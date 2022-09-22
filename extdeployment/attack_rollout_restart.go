@@ -122,7 +122,7 @@ func StartDeploymentRolloutRestart(body []byte) (*DeploymentRolloutRestartState,
 		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse attack state", err))
 	}
 
-	log.Info().Msgf("Starting deployment rollout restart attack for %s\n", state)
+	log.Info().Msgf("Starting deployment rollout restart attack for %+v", state)
 
 	cmd := exec.Command("kubectl",
 		"rollout",
