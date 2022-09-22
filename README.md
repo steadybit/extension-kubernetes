@@ -1,4 +1,4 @@
-<img src="./logo.jpeg" height="130" align="right" alt="Kubernetes logo depicting a helm next to text 'Kubernetes'">
+<img src="./logo.png" height="130" align="right" alt="Kubernetes logo depicting a helm next to text 'Kubernetes'">
 
 # Steadybit extension-kubernetes
 
