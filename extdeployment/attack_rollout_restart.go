@@ -132,7 +132,7 @@ func StartDeploymentRolloutRestart(body []byte) (*DeploymentRolloutRestartState,
 		fmt.Sprintf("deployment/%s", state.Deployment))
 	cmdOut, cmdErr := cmd.CombinedOutput()
 	if cmdErr != nil {
-		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart: %s", cmdOut), err))
+		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart: %s", cmdOut), cmdErr))
 	}
 
 	return &state, nil
@@ -175,7 +175,7 @@ func RolloutRestartStatus(body []byte) (*action_kit_api.StatusResult, *extension
 		fmt.Sprintf("deployment/%s", state.Deployment))
 	cmdOut, cmdErr := cmd.CombinedOutput()
 	if cmdErr != nil {
-		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart status check: %s", cmdOut), err))
+		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart status check: %s", cmdOut), cmdErr))
 	}
 
 	cmdOutStr := string(cmdOut)
