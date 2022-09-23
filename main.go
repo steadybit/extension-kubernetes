@@ -18,6 +18,7 @@ func main() {
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 	extdeployment.RegisterDeploymentRolloutRestartAttackHandlers()
+	extdeployment.RegisterDeploymentRolloutStatusCheckHandlers()
 
 	port := 8088
 	log.Log().Msgf("Starting extension-kubernetes server on port %d. Get started via /", port)
@@ -37,6 +38,10 @@ func getExtensionList() ExtensionListResponse {
 			{
 				"GET",
 				"/deployment/attack/rollout-restart",
+			},
+			{
+				"GET",
+				"/deployment/check/rollout-status",
 			},
 		},
 	}
