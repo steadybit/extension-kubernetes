@@ -153,7 +153,7 @@ func RolloutStatusStatus(body []byte) (*action_kit_api.StatusResult, bool, *exte
 		return nil, false, extutil.Ptr(extension_kit.ToError("Failed to parse check state", err))
 	}
 
-	if state.TimeoutEnd != nil && time.Now().Before(time.Unix(*state.TimeoutEnd, 0)) {
+	if state.TimeoutEnd != nil && time.Now().After(time.Unix(*state.TimeoutEnd, 0)) {
 		return extutil.Ptr(action_kit_api.StatusResult{
 			Completed: false,
 			Messages: extutil.Ptr(action_kit_api.Messages{
