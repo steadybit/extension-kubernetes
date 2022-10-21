@@ -8,8 +8,8 @@ go 1.18
 require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.27.0
-	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.0.0
-	github.com/steadybit/extension-kit v1.2.0
+	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.0.1
+	github.com/steadybit/extension-kit v1.3.2
 )
 
 require (
