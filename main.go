@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2022 Steadybit GmbH
+// SPDX-FileCopyrightText: 2023 Steadybit GmbH
 
 package main
 
 import (
-	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
-	"net/http"
 )
 
 func main() {
@@ -20,12 +17,9 @@ func main() {
 	extdeployment.RegisterDeploymentRolloutRestartAttackHandlers()
 	extdeployment.RegisterDeploymentRolloutStatusCheckHandlers()
 
-	port := 8088
-	log.Log().Msgf("Starting extension-kubernetes server on port %d. Get started via /", port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to start extension-kubernetes server on port %d", port)
-	}
+	exthttp.Listen(exthttp.ListenOpts{
+		Port: 8088,
+	})
 }
 
 type ExtensionListResponse struct {
