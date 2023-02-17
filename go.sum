@@ -21,6 +21,8 @@ github.com/steadybit/action-kit/go/action_kit_api/v2 v2.0.1 h1:SJbVIxN1+d/oLUel5
 github.com/steadybit/action-kit/go/action_kit_api/v2 v2.0.1/go.mod h1:4yGr/DzsHpw6elju1XHCeUsY/qoqNTcLY3ytgnNcMt8=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.0 h1:Ue2pIpPmtcVTcwILZlRfAsKNbznUjrRfmeZXlta4YOw=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.0/go.mod h1:OnIfjrBhmMQCYxriHmr8mT1wCpvqIZxwBHWnanFhgNA=
+github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230217142627-5f2cc4027bb4 h1:cEfLq7YihvIaEuobFjf5m5hnp05pIHXGQGYYboabaAs=
+github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230217142627-5f2cc4027bb4/go.mod h1:OnIfjrBhmMQCYxriHmr8mT1wCpvqIZxwBHWnanFhgNA=
 github.com/steadybit/extension-kit v1.6.0 h1:TV5EQQqT9yBtzTKoHg4s56B+n2x1UAWok0t2puoo26o=
 github.com/steadybit/extension-kit v1.6.0/go.mod h1:zC5Tw+wrJTx4xvOlsIY+MfMoRYoglj83vR15Xr3aP5c=
 github.com/stretchr/testify v1.8.0 h1:pSgiaMZlXftHpm5L7V1+rVB+AZJydKsMxsQBIJw4PKk=
