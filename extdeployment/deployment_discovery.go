@@ -4,9 +4,13 @@
 package extdeployment
 
 import (
+	"context"
+	"fmt"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
+	"github.com/steadybit/extension-kubernetes/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 )
 
@@ -82,5 +86,10 @@ func getDeploymentAttributeDescriptions() discovery_kit_api.AttributeDescription
 
 func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
 	targets := make([]discovery_kit_api.Target, 0)
+	var pods, err = utils.Client.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
 }
