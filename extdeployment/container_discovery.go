@@ -69,11 +69,36 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						AggregationType: discovery_kit_api.Any,
 						Name:            "k8s.container.ready",
 					},
-					//TODO Service references
-					//TODO Container Image overwrite
-					//TODO POD-Labels
-					//TODO Owner-References
-
+					{
+						//TODO --> Do we need an explicit "overwrite"?
+						AggregationType: discovery_kit_api.Any,
+						Name:            "container.image",
+					},
+					{
+						AggregationType: discovery_kit_api.All,
+						Name:            "k8s.service.name",
+					},
+					{
+						AggregationType: discovery_kit_api.All,
+						Name:            "k8s.service.namespace",
+					},
+					//TODO POD-Labels --> Do we need wildcards?
+					{
+						AggregationType: discovery_kit_api.Any,
+						Name:            "k8s.replicaset",
+					},
+					{
+						AggregationType: discovery_kit_api.Any,
+						Name:            "k8s.daemonset",
+					},
+					{
+						AggregationType: discovery_kit_api.Any,
+						Name:            "k8s.deployment",
+					},
+					{
+						AggregationType: discovery_kit_api.Any,
+						Name:            "k8s.statefulset",
+					},
 				},
 			}, {
 				Src: discovery_kit_api.SourceOrDestination{
@@ -97,7 +122,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						AggregationType: discovery_kit_api.Any,
 						Name:            "k8s.distribution",
 					},
-					//TODO Labels
+					//TODO Labels  --> Do we need wildcards?
 				},
 			},
 		}),
