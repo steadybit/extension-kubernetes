@@ -19,7 +19,9 @@ func main() {
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 	extdeployment.RegisterDeploymentRolloutRestartAttackHandlers()
 	extdeployment.RegisterDeploymentRolloutStatusCheckHandlers()
+	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
+	extdeployment.RegisterContainerDiscoveryHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8088,
@@ -51,17 +53,25 @@ func getExtensionList() ExtensionListResponse {
 					Method: "GET",
 					Path:   "/deployment/discovery",
 				},
+				{
+					Method: "GET",
+					Path:   "/container/discovery",
+				},
 			},
 			TargetTypes: []discovery_kit_api.DescribingEndpointReference{
 				{
 					Method: "GET",
 					Path:   "/deployment/discovery/target-description",
 				},
+				{
+					Method: "GET",
+					Path:   "/container/discovery/target-description",
+				},
 			},
 			TargetAttributes: []discovery_kit_api.DescribingEndpointReference{
 				{
 					Method: "GET",
-					Path:   "/deployment/discovery/attribute-descriptions",
+					Path:   "/attribute-descriptions",
 				},
 			},
 		},

@@ -33,12 +33,12 @@ func RegisterDeploymentRolloutRestartAttackHandlers() {
 
 func getDeploymentRolloutRestartAttackDescription() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          fmt.Sprintf("%s.attack.rollout-restart", deploymentTargetId),
+		Id:          fmt.Sprintf("%s.attack.rollout-restart", deploymentTargetType),
 		Label:       "rollout restart deployment",
 		Description: "execute a rollout restart for a Kubernetes deployment",
 		Version:     "1.0.0",
 		Icon:        extutil.Ptr(deploymentIcon),
-		TargetType:  extutil.Ptr(deploymentTargetId),
+		TargetType:  extutil.Ptr(deploymentTargetType),
 		Category:    extutil.Ptr("state"),
 		TimeControl: action_kit_api.Internal,
 		Kind:        action_kit_api.Attack,

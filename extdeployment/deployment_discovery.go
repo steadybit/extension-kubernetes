@@ -16,13 +16,12 @@ import (
 func RegisterDeploymentDiscoveryHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/discovery", exthttp.GetterAsHandler(getDeploymentDiscoveryDescription))
 	exthttp.RegisterHttpHandler("/deployment/discovery/target-description", exthttp.GetterAsHandler(getDeploymentTargetDescription))
-	exthttp.RegisterHttpHandler("/deployment/discovery/attribute-descriptions", exthttp.GetterAsHandler(getDeploymentAttributeDescriptions))
 	exthttp.RegisterHttpHandler("/deployment/discovery/discovered-targets", getDiscoveredDeployments)
 }
 
 func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         deploymentTargetId,
+		Id:         deploymentTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			Method:       "GET",
@@ -34,7 +33,7 @@ func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription 
 
 func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
-		Id:       deploymentTargetId,
+		Id:       deploymentTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes deployment (ext)", Other: "Kubernetes deployments (ext)"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  "1.0.0-SNAPSHOT",
@@ -55,34 +54,6 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDeploymentAttributeDescriptions() discovery_kit_api.AttributeDescriptions {
-	return discovery_kit_api.AttributeDescriptions{
-		Attributes: []discovery_kit_api.AttributeDescription{
-			{
-				Attribute: "k8s.namespace",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "namespace name",
-					Other: "namespace names",
-				},
-			},
-			{
-				Attribute: "k8s.cluster-name",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "cluster name",
-					Other: "cluster names",
-				},
-			},
-			{
-				Attribute: "k8s.deployment",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "deployment name",
-					Other: "deployment names",
-				},
-			},
-		},
-	}
-}
-
 func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
 	var deployments, err = utils.DeploymentLister.List(labels.Everything())
 	if err != nil {
@@ -96,7 +67,7 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
-			TargetType: deploymentTargetId,
+			TargetType: deploymentTargetType,
 			Label:      d.Name,
 			//TODO Add other attributes
 			Attributes: map[string][]string{"k8s.namespace": {d.Name}},
