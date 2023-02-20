@@ -36,7 +36,7 @@ func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription 
 func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       deploymentTargetId,
-		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes deployment", Other: "Kubernetes deployments"},
+		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes deployment (ext)", Other: "Kubernetes deployments (ext)"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  "1.0.0-SNAPSHOT",
 		Icon:     extutil.Ptr(deploymentIcon),
