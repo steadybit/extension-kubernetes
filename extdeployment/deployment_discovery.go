@@ -4,13 +4,12 @@
 package extdeployment
 
 import (
-	"context"
 	"fmt"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"net/http"
 )
 
@@ -85,11 +84,25 @@ func getDeploymentAttributeDescriptions() discovery_kit_api.AttributeDescription
 }
 
 func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
-	targets := make([]discovery_kit_api.Target, 0)
-	var pods, err = utils.Client.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+	var deployments, err = utils.DeploymentLister.List(labels.Everything())
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
+
+	targets := make([]discovery_kit_api.Target, len(deployments))
+	for i, d := range deployments {
+		//TODO Implement Cluster-Name Agent Config
+		targetName := fmt.Sprintf("%s/%s/%s", "test", d.Namespace, d.Name)
+
+		targets[i] = discovery_kit_api.Target{
+			Id:         targetName,
+			TargetType: deploymentTargetId,
+			Label:      d.Name,
+			//TODO Add other attributes
+			Attributes: map[string][]string{"k8s.namespace": {d.Name}},
+		}
+	}
+
+	fmt.Printf("There are %d deployments in the cluster\n", len(deployments))
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
 }
