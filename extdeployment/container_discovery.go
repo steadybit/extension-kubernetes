@@ -10,6 +10,8 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"net/http"
+	"strconv"
+	"strings"
 )
 
 func RegisterContainerDiscoveryHandlers() {
@@ -151,6 +153,39 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 		podMetadata := pod.ObjectMeta
 		ownerReferenceList := client.OwnerReferenceList(&podMetadata)
 		fmt.Printf("Pod: %s \n ReferenceList:%+v\n", pod.Name, ownerReferenceList)
+
+		for _, container := range pod.Status.ContainerStatuses {
+			if container.ContainerID == "" {
+				continue
+			}
+
+			containerIdWithoutPrefix := strings.SplitAfter(container.ContainerID, "://")[1]
+
+			attributes := map[string][]string{
+				"container.id":          {containerIdWithoutPrefix},
+				"container.image":       {"TODO"},
+				"k8s.cluster-name":      {"TODO"},
+				"k8s.distribution":      {"TODO"},
+				"k8s.namespace":         {podMetadata.Namespace},
+				"k8s.container.name":    {container.Name},
+				"k8s.container.ready":   {strconv.FormatBool(container.Ready)},
+				"k8s.service.name":      {"TODO"},
+				"k8s.service.namespace": {"TODO"},
+			}
+
+			for _, ownerRef := range ownerReferenceList {
+				attributes[fmt.Sprintf("k8s.%v", ownerRef.Kind)] = []string{ownerRef.Name}
+			}
+
+			targets = append(targets, discovery_kit_api.Target{
+				Id:         containerIdWithoutPrefix,
+				Label:      container.Name,
+				TargetType: containerTargetType,
+				Attributes: attributes,
+			})
+
+		}
+
 	}
 
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})

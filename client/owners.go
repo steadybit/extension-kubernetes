@@ -7,8 +7,8 @@ import (
 )
 
 type OwnerReference struct {
-	name string
-	kind string
+	Name string
+	Kind string
 }
 type ownerReferenceResult struct {
 	ownerRefs []OwnerReference
@@ -37,22 +37,22 @@ func getResource(kind string, namespace string, name string) (*OwnerReference, *
 	if strings.EqualFold("replicaset", kind) {
 		replicaSet := K8S.ReplicaSetByNamespaceAndName(namespace, name)
 		if replicaSet != nil {
-			return extutil.Ptr(OwnerReference{name: replicaSet.Name, kind: kind}), extutil.Ptr(replicaSet.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: replicaSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(replicaSet.ObjectMeta)
 		}
 	} else if strings.EqualFold("daemonset", kind) {
 		daemonSet := K8S.DaemonSetByNamespaceAndName(namespace, name)
 		if daemonSet != nil {
-			return extutil.Ptr(OwnerReference{name: daemonSet.Name, kind: kind}), extutil.Ptr(daemonSet.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: daemonSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(daemonSet.ObjectMeta)
 		}
 	} else if strings.EqualFold("deployment", kind) {
 		deployment := K8S.DeploymentByNamespaceAndName(namespace, name)
 		if deployment != nil {
-			return extutil.Ptr(OwnerReference{name: deployment.Name, kind: kind}), extutil.Ptr(deployment.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: deployment.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(deployment.ObjectMeta)
 		}
 	} else if strings.EqualFold("statefulset", kind) {
 		statefulset := K8S.StatefulSetByNamespaceAndName(namespace, name)
 		if statefulset != nil {
-			return extutil.Ptr(OwnerReference{name: statefulset.Name, kind: kind}), extutil.Ptr(statefulset.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: statefulset.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(statefulset.ObjectMeta)
 		}
 	}
 	return nil, nil
