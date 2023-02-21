@@ -152,6 +152,7 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 	for _, pod := range client.K8S.Pods() {
 		podMetadata := pod.ObjectMeta
 		ownerReferences := client.OwnerReferences(&podMetadata)
+		services := client.K8S.ServicesByPod(pod)
 
 		for _, container := range pod.Status.ContainerStatuses {
 			if container.ContainerID == "" {
@@ -164,16 +165,19 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 				"container.id":     {containerIdWithoutPrefix},
 				"k8s.cluster-name": {extconfig.Config.ClusterName},
 				//"k8s.distribution":      {"TODO implement me"},
-				"k8s.namespace":         {podMetadata.Namespace},
-				"k8s.container.name":    {container.Name},
-				"k8s.container.ready":   {strconv.FormatBool(container.Ready)},
-				"k8s.service.name":      {"TODO"},
-				"k8s.service.namespace": {"TODO"},
+				"k8s.namespace":       {podMetadata.Namespace},
+				"k8s.container.name":  {container.Name},
+				"k8s.container.ready": {strconv.FormatBool(container.Ready)},
 			}
 
 			containerSpec := ownerReferences.ContainerSpec(container.Name)
 			if containerSpec != nil {
 				attributes["k8s.container.image"] = []string{containerSpec.Image}
+			}
+
+			for _, service := range services {
+				attributes["k8s.service.name"] = []string{service.Name}
+				attributes["k8s.service.namespace"] = []string{service.Namespace}
 			}
 
 			for _, ownerRef := range ownerReferences.OwnerRefs {

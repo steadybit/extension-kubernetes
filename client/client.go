@@ -31,6 +31,8 @@ type Client struct {
 	podsInformer         cache.SharedIndexInformer
 	replicaSetsLister    listerAppsv1.ReplicaSetLister
 	replicaSetsInformer  cache.SharedIndexInformer
+	servicesLister       listerCorev1.ServiceLister
+	servicesInformer     cache.SharedIndexInformer
 	statefulSetsLister   listerAppsv1.StatefulSetLister
 	statefulSetsInformer cache.SharedIndexInformer
 }
@@ -51,6 +53,27 @@ func (c Client) Deployments() []*appsv1.Deployment {
 		return []*appsv1.Deployment{}
 	}
 	return deployments
+}
+
+func (c Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
+	services, err := c.servicesLister.Services("").List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching services")
+		return []*corev1.Service{}
+	}
+	var result []*corev1.Service
+	for _, service := range services {
+		match := true
+		for key, value := range service.Spec.Selector {
+			if value != pod.ObjectMeta.Labels[key] {
+				match = false
+			}
+		}
+		if match {
+			result = append(result, service)
+		}
+	}
+	return result
 }
 
 func (c Client) DaemonSetByNamespaceAndName(namespace string, name string) *appsv1.DaemonSet {
@@ -104,6 +127,8 @@ func PrepareClient() {
 	podsInformer := pods.Informer()
 	replicaSets := factory.Apps().V1().ReplicaSets()
 	replicaSetsInformer := replicaSets.Informer()
+	services := factory.Core().V1().Services()
+	servicesInformer := services.Informer()
 	statefulSets := factory.Apps().V1().StatefulSets()
 	statefulSetsInformer := statefulSets.Informer()
 
@@ -117,6 +142,7 @@ func PrepareClient() {
 		deploymentsInformer.HasSynced,
 		podsInformer.HasSynced,
 		replicaSetsInformer.HasSynced,
+		servicesInformer.HasSynced,
 		statefulSetsInformer.HasSynced,
 	) {
 		log.Fatal().Msg("Timed out waiting for caches to sync")
@@ -132,6 +158,8 @@ func PrepareClient() {
 		podsInformer,
 		replicaSets.Lister(),
 		replicaSetsInformer,
+		services.Lister(),
+		servicesInformer,
 		statefulSets.Lister(),
 		statefulSetsInformer,
 	}
