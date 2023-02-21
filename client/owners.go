@@ -1,7 +1,10 @@
 package client
 
 import (
+	"fmt"
 	"github.com/steadybit/extension-kit/extutil"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
@@ -10,50 +13,78 @@ type OwnerReference struct {
 	Name string
 	Kind string
 }
-type ownerReferenceResult struct {
-	ownerRefs []OwnerReference
+type OwnerRefListWithResource struct {
+	OwnerRefs  []OwnerReference
+	Deployment *appsv1.Deployment
+	Daemonset  *appsv1.DaemonSet
 }
 
-func OwnerReferenceList(meta *metav1.ObjectMeta) []OwnerReference {
-	result := ownerReferenceResult{}
+func (o OwnerRefListWithResource) ContainerSpec(containerName string) *corev1.Container {
+	if o.Deployment != nil {
+		return findContainerSpec(o.Deployment.Spec.Template.Spec.Containers, containerName)
+	} else if o.Daemonset != nil {
+		return findContainerSpec(o.Daemonset.Spec.Template.Spec.Containers, containerName)
+	} else {
+		return nil
+	}
+}
+
+func findContainerSpec(specs []corev1.Container, containerName string) *corev1.Container {
+	for _, spec := range specs {
+		if spec.Name == containerName {
+			return &spec
+		}
+	}
+	return nil
+}
+
+func OwnerReferences(meta *metav1.ObjectMeta) OwnerRefListWithResource {
+	result := OwnerRefListWithResource{}
 	recursivelyGetOwnerReferences(meta, &result)
-	return result.ownerRefs
+	fmt.Printf("%+v", result)
+	return result
 }
 
-func recursivelyGetOwnerReferences(meta *metav1.ObjectMeta, result *ownerReferenceResult) {
+func recursivelyGetOwnerReferences(meta *metav1.ObjectMeta, result *OwnerRefListWithResource) {
 	if meta.GetOwnerReferences() == nil {
 		return
 	}
 	for _, ref := range meta.GetOwnerReferences() {
-		ownerRef, ownerMeta := getResource(ref.Kind, meta.Namespace, ref.Name)
+		ownerRef, ownerMeta, deployment, daemonset := getResource(ref.Kind, meta.Namespace, ref.Name)
 		if ownerRef != nil {
-			result.ownerRefs = append(result.ownerRefs, *ownerRef)
+			result.OwnerRefs = append(result.OwnerRefs, *ownerRef)
+			if deployment != nil {
+				result.Deployment = deployment
+			}
+			if daemonset != nil {
+				result.Daemonset = daemonset
+			}
 			recursivelyGetOwnerReferences(ownerMeta, result)
 		}
 	}
 }
 
-func getResource(kind string, namespace string, name string) (*OwnerReference, *metav1.ObjectMeta) {
+func getResource(kind string, namespace string, name string) (*OwnerReference, *metav1.ObjectMeta, *appsv1.Deployment, *appsv1.DaemonSet) {
 	if strings.EqualFold("replicaset", kind) {
 		replicaSet := K8S.ReplicaSetByNamespaceAndName(namespace, name)
 		if replicaSet != nil {
-			return extutil.Ptr(OwnerReference{Name: replicaSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(replicaSet.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: replicaSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(replicaSet.ObjectMeta), nil, nil
 		}
 	} else if strings.EqualFold("daemonset", kind) {
 		daemonSet := K8S.DaemonSetByNamespaceAndName(namespace, name)
 		if daemonSet != nil {
-			return extutil.Ptr(OwnerReference{Name: daemonSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(daemonSet.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: daemonSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(daemonSet.ObjectMeta), nil, daemonSet
 		}
 	} else if strings.EqualFold("deployment", kind) {
 		deployment := K8S.DeploymentByNamespaceAndName(namespace, name)
 		if deployment != nil {
-			return extutil.Ptr(OwnerReference{Name: deployment.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(deployment.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: deployment.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(deployment.ObjectMeta), deployment, nil
 		}
 	} else if strings.EqualFold("statefulset", kind) {
 		statefulset := K8S.StatefulSetByNamespaceAndName(namespace, name)
 		if statefulset != nil {
-			return extutil.Ptr(OwnerReference{Name: statefulset.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(statefulset.ObjectMeta)
+			return extutil.Ptr(OwnerReference{Name: statefulset.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(statefulset.ObjectMeta), nil, nil
 		}
 	}
-	return nil, nil
+	return nil, nil, nil, nil
 }

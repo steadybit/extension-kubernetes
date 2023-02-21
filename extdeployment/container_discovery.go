@@ -75,9 +75,8 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						Name:            "k8s.container.ready",
 					},
 					{
-						//TODO --> Do we need an explicit "overwrite"?
 						AggregationType: discovery_kit_api.Any,
-						Name:            "container.image",
+						Name:            "k8s.container.image",
 					},
 					{
 						AggregationType: discovery_kit_api.All,
@@ -87,7 +86,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						AggregationType: discovery_kit_api.All,
 						Name:            "k8s.service.namespace",
 					},
-					//TODO POD-Labels --> Do we need wildcards?
+					//TODO POD-Labels "k8s.pod.label." (needs extended TargetEnrichtmentRule.Attribute `startsWith`)
 					{
 						AggregationType: discovery_kit_api.Any,
 						Name:            "k8s.replicaset",
@@ -127,7 +126,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						AggregationType: discovery_kit_api.Any,
 						Name:            "k8s.distribution",
 					},
-					//TODO Labels  --> Do we need wildcards?
+					//TODO Labels (needs extended TargetEnrichtmentRule.Attribute `startsWith`)
 				},
 			},
 		}),
@@ -152,8 +151,7 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 
 	for _, pod := range client.K8S.Pods() {
 		podMetadata := pod.ObjectMeta
-		ownerReferenceList := client.OwnerReferenceList(&podMetadata)
-		fmt.Printf("Pod: %s \n ReferenceList:%+v\n", pod.Name, ownerReferenceList)
+		ownerReferences := client.OwnerReferences(&podMetadata)
 
 		for _, container := range pod.Status.ContainerStatuses {
 			if container.ContainerID == "" {
@@ -163,10 +161,9 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 			containerIdWithoutPrefix := strings.SplitAfter(container.ContainerID, "://")[1]
 
 			attributes := map[string][]string{
-				"container.id":          {containerIdWithoutPrefix},
-				"container.image":       {"TODO"},
-				"k8s.cluster-name":      {extconfig.Config.ClusterName},
-				"k8s.distribution":      {"TODO"},
+				"container.id":     {containerIdWithoutPrefix},
+				"k8s.cluster-name": {extconfig.Config.ClusterName},
+				//"k8s.distribution":      {"TODO implement me"},
 				"k8s.namespace":         {podMetadata.Namespace},
 				"k8s.container.name":    {container.Name},
 				"k8s.container.ready":   {strconv.FormatBool(container.Ready)},
@@ -174,7 +171,12 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 				"k8s.service.namespace": {"TODO"},
 			}
 
-			for _, ownerRef := range ownerReferenceList {
+			containerSpec := ownerReferences.ContainerSpec(container.Name)
+			if containerSpec != nil {
+				attributes["k8s.container.image"] = []string{containerSpec.Image}
+			}
+
+			for _, ownerRef := range ownerReferences.OwnerRefs {
 				attributes[fmt.Sprintf("k8s.%v", ownerRef.Kind)] = []string{ownerRef.Name}
 			}
 
