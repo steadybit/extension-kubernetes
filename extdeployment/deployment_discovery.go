@@ -8,8 +8,7 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/utils"
-	"k8s.io/apimachinery/pkg/labels"
+	"github.com/steadybit/extension-kubernetes/client"
 	"net/http"
 )
 
@@ -55,16 +54,12 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 }
 
 func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
-	var deployments, err = utils.DeploymentLister.List(labels.Everything())
-	if err != nil {
-		panic(err.Error())
-	}
+	deployments := client.K8S.Deployments()
 
 	targets := make([]discovery_kit_api.Target, len(deployments))
 	for i, d := range deployments {
 		//TODO Implement Cluster-Name Agent Config
 		targetName := fmt.Sprintf("%s/%s/%s", "test", d.Namespace, d.Name)
-
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
 			TargetType: deploymentTargetType,
@@ -73,7 +68,5 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 			Attributes: map[string][]string{"k8s.namespace": {d.Name}},
 		}
 	}
-
-	fmt.Printf("There are %d deployments in the cluster\n", len(deployments))
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
 }

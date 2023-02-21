@@ -4,16 +4,20 @@
 package extdeployment
 
 import (
+	"fmt"
 	discovery_kit_api "github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
+	"github.com/steadybit/extension-kubernetes/client"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
+	"strings"
 )
 
 func RegisterContainerDiscoveryHandlers() {
 	exthttp.RegisterHttpHandler("/container/discovery", exthttp.GetterAsHandler(getContainerDiscoveryDescription))
 	exthttp.RegisterHttpHandler("/container/discovery/target-description", exthttp.GetterAsHandler(getContainerTargetDescription))
-	exthttp.RegisterHttpHandler("/container/discovery/discovered-targets", getContainerDeployments)
+	exthttp.RegisterHttpHandler("/container/discovery/discovered-targets", getDiscoveredContainer)
 }
 
 func getContainerDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
@@ -142,7 +146,66 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getContainerDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
-	targets := make([]discovery_kit_api.Target, 0)
+func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
+	var targets []discovery_kit_api.Target
+
+	for _, pod := range client.K8S.Pods() {
+		podMetadata := pod.ObjectMeta
+		ownerReferenceList := getOwnerReferenceList(&podMetadata)
+		fmt.Printf("Pod: %s \n ReferenceList:%+v\n", pod.Name, ownerReferenceList)
+	}
+
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
+}
+
+type ownerReference struct {
+	name string
+	kind string
+}
+type ownerReferenceResult struct {
+	ownerRefs []ownerReference
+}
+
+func getOwnerReferenceList(meta *metav1.ObjectMeta) []ownerReference {
+	result := ownerReferenceResult{}
+	recursivelyGetOwnerReferences(meta, &result)
+	return result.ownerRefs
+}
+
+func recursivelyGetOwnerReferences(meta *metav1.ObjectMeta, result *ownerReferenceResult) {
+	if meta.GetOwnerReferences() == nil {
+		return
+	}
+	for _, ref := range meta.GetOwnerReferences() {
+		ownerRef, ownerMeta := getResource(ref.Kind, meta.Namespace, ref.Name)
+		if ownerRef != nil {
+			result.ownerRefs = append(result.ownerRefs, *ownerRef)
+			recursivelyGetOwnerReferences(ownerMeta, result)
+		}
+	}
+}
+
+func getResource(kind string, namespace string, name string) (*ownerReference, *metav1.ObjectMeta) {
+	if strings.EqualFold("replicaset", kind) {
+		replicaSet := client.K8S.ReplicaSetByNamespaceAndName(namespace, name)
+		if replicaSet != nil {
+			return extutil.Ptr(ownerReference{name: replicaSet.Name, kind: kind}), extutil.Ptr(replicaSet.ObjectMeta)
+		}
+	} else if strings.EqualFold("daemonset", kind) {
+		daemonSet := client.K8S.DaemonSetByNamespaceAndName(namespace, name)
+		if daemonSet != nil {
+			return extutil.Ptr(ownerReference{name: daemonSet.Name, kind: kind}), extutil.Ptr(daemonSet.ObjectMeta)
+		}
+	} else if strings.EqualFold("deployment", kind) {
+		deployment := client.K8S.DeploymentByNamespaceAndName(namespace, name)
+		if deployment != nil {
+			return extutil.Ptr(ownerReference{name: deployment.Name, kind: kind}), extutil.Ptr(deployment.ObjectMeta)
+		}
+	} else if strings.EqualFold("statefulset", kind) {
+		statefulset := client.K8S.StatefulSetByNamespaceAndName(namespace, name)
+		if statefulset != nil {
+			return extutil.Ptr(ownerReference{name: statefulset.Name, kind: kind}), extutil.Ptr(statefulset.ObjectMeta)
+		}
+	}
+	return nil, nil
 }

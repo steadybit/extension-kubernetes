@@ -8,13 +8,13 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
+	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
-	"github.com/steadybit/extension-kubernetes/utils"
 )
 
 func main() {
 	extlogging.InitZeroLog()
-	utils.PrepareKubernetesClient()
+	client.PrepareClient()
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 	extdeployment.RegisterDeploymentRolloutRestartAttackHandlers()
