@@ -9,6 +9,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extconfig"
 	"net/http"
 	"strconv"
 	"strings"
@@ -164,7 +165,7 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 			attributes := map[string][]string{
 				"container.id":          {containerIdWithoutPrefix},
 				"container.image":       {"TODO"},
-				"k8s.cluster-name":      {"TODO"},
+				"k8s.cluster-name":      {extconfig.Config.ClusterName},
 				"k8s.distribution":      {"TODO"},
 				"k8s.namespace":         {podMetadata.Namespace},
 				"k8s.container.name":    {container.Name},

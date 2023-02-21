@@ -9,12 +9,16 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 )
 
 func main() {
 	extlogging.InitZeroLog()
 	client.PrepareClient()
+
+	extconfig.ParseConfiguration()
+	extconfig.ValidateConfiguration()
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 	extdeployment.RegisterDeploymentRolloutRestartAttackHandlers()

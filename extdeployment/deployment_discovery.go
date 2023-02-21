@@ -9,6 +9,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extconfig"
 	"net/http"
 )
 
@@ -58,8 +59,7 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 
 	targets := make([]discovery_kit_api.Target, len(deployments))
 	for i, d := range deployments {
-		//TODO Implement Cluster-Name Agent Config
-		targetName := fmt.Sprintf("%s/%s/%s", "test", d.Namespace, d.Name)
+		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, d.Namespace, d.Name)
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
 			TargetType: deploymentTargetType,
