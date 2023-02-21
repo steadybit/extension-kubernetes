@@ -9,6 +9,8 @@ A [Steadybit](https://www.steadybit.com/) attack and check implementation for Ku
  - Deployments
      - Attacks
          - Rollout restart (`kubectl rollout restart`) 
+     - Checks
+         - Deployment rollout status (`kubectl rollout status`)  
 
 ## Configuration
 
