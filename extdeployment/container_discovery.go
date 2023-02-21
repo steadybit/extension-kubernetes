@@ -12,7 +12,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 func RegisterContainerDiscoveryHandlers() {
@@ -159,10 +158,8 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 				continue
 			}
 
-			containerIdWithoutPrefix := strings.SplitAfter(container.ContainerID, "://")[1]
-
 			attributes := map[string][]string{
-				"container.id":     {containerIdWithoutPrefix},
+				"container.id":     {container.ContainerID},
 				"k8s.cluster-name": {extconfig.Config.ClusterName},
 				//"k8s.distribution":      {"TODO implement me"},
 				"k8s.namespace":       {podMetadata.Namespace},
@@ -185,7 +182,7 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 			}
 
 			targets = append(targets, discovery_kit_api.Target{
-				Id:         containerIdWithoutPrefix,
+				Id:         container.ContainerID,
 				Label:      container.Name,
 				TargetType: containerTargetType,
 				Attributes: attributes,
