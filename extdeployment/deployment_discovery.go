@@ -41,8 +41,8 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.deployment"},
-				{Attribute: "k8s.namespace"},
-				{Attribute: "k8s.cluster-name"},
+				//{Attribute: "k8s.namespace"}, Temporary disabled to test definition
+				//{Attribute: "k8s.cluster-name"}, Temporary disabled to test definition
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
@@ -65,7 +65,11 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 			TargetType: deploymentTargetType,
 			Label:      d.Name,
 			//TODO Add other attributes
-			Attributes: map[string][]string{"k8s.namespace": {d.Name}},
+			Attributes: map[string][]string{
+				"k8s.namespace":    {d.Namespace},
+				"k8s.deployment":   {d.Name},
+				"k8s.cluster-name": {extconfig.Config.ClusterName},
+			},
 		}
 	}
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
