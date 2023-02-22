@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2022 Steadybit GmbH
 
-package extdeployment
+package extcontainer
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func RegisterContainerDiscoveryHandlers() {
@@ -44,13 +45,13 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 				Src: discovery_kit_api.SourceOrDestination{
 					Type: containerTargetType,
 					Selector: map[string]string{
-						"container.id": "${dest.container.id}",
+						"k8s.container.id.stripped": "${dest.container.id.stripped}",
 					},
 				},
 				Dest: discovery_kit_api.SourceOrDestination{
 					Type: "container",
 					Selector: map[string]string{
-						"container.id": "${src.container.id}",
+						"container.id.stripped": "${src.k8s.container.id.stripped}",
 					},
 				},
 				Attributes: []discovery_kit_api.Attribute{
@@ -107,13 +108,13 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 				Src: discovery_kit_api.SourceOrDestination{
 					Type: containerTargetType,
 					Selector: map[string]string{
-						"host.hostname": "${dest.host.hostname}",
+						"k8s.node.name": "${dest.host.hostname}",
 					},
 				},
 				Dest: discovery_kit_api.SourceOrDestination{
 					Type: "host",
 					Selector: map[string]string{
-						"host.hostname": "${src.host.hostname}",
+						"host.hostname": "${src.k8s.node.name}",
 					},
 				},
 				Attributes: []discovery_kit_api.Attribute{
@@ -132,6 +133,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.container.name"},
+				{Attribute: "k8s.pod.name"},
 				{Attribute: "k8s.namespace"},
 				{Attribute: "k8s.cluster-name"},
 			},
@@ -158,13 +160,18 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 				continue
 			}
 
+			containerIdWithoutPrefix := strings.SplitAfter(container.ContainerID, "://")[1]
+
 			attributes := map[string][]string{
-				"container.id":     {container.ContainerID},
-				"k8s.cluster-name": {extconfig.Config.ClusterName},
-				//"k8s.distribution":      {"TODO implement me"},
-				"k8s.namespace":       {podMetadata.Namespace},
-				"k8s.container.name":  {container.Name},
-				"k8s.container.ready": {strconv.FormatBool(container.Ready)},
+				"k8s.cluster-name":          {extconfig.Config.ClusterName},
+				"k8s.container.id":          {container.ContainerID},
+				"k8s.container.id.stripped": {containerIdWithoutPrefix},
+				"k8s.container.name":        {container.Name},
+				"k8s.container.ready":       {strconv.FormatBool(container.Ready)},
+				"k8s.namespace":             {podMetadata.Namespace},
+				"k8s.node.name":             {pod.Spec.NodeName},
+				"k8s.pod.name":              {podMetadata.Name},
+				//"k8s.distribution":        {"TODO implement me"},
 			}
 
 			containerSpec := ownerReferences.ContainerSpec(container.Name)

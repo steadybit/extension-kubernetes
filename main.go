@@ -10,6 +10,7 @@ import (
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 )
 
@@ -25,7 +26,7 @@ func main() {
 	extdeployment.RegisterDeploymentRolloutStatusCheckHandlers()
 	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
-	extdeployment.RegisterContainerDiscoveryHandlers()
+	extcontainer.RegisterContainerDiscoveryHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8088,

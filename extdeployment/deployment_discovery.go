@@ -41,8 +41,8 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.deployment"},
-				//{Attribute: "k8s.namespace"}, Temporary disabled to test definition
-				//{Attribute: "k8s.cluster-name"}, Temporary disabled to test definition
+				{Attribute: "k8s.namespace"},
+				{Attribute: "k8s.cluster-name"},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
