@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
@@ -44,6 +45,20 @@ func (c Client) Pods() []*corev1.Pod {
 		return []*corev1.Pod{}
 	}
 	return pods
+}
+
+func (c Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
+	selector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while creating a selector from deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, deployment.Spec.Selector)
+		return nil
+	}
+	list, err := c.podsLister.Pods(deployment.Namespace).List(selector)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching Pods for Deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, selector)
+		return nil
+	}
+	return list
 }
 
 func (c Client) Deployments() []*appsv1.Deployment {
