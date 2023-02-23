@@ -63,7 +63,7 @@ func (c Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 	}
 	var result []*corev1.Service
 	for _, service := range services {
-		match := true
+		match := service.Spec.Selector != nil
 		for key, value := range service.Spec.Selector {
 			if value != pod.ObjectMeta.Labels[key] {
 				match = false
