@@ -60,16 +60,32 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 	targets := make([]discovery_kit_api.Target, len(deployments))
 	for i, d := range deployments {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, d.Namespace, d.Name)
+		attributes := map[string][]string{
+			"k8s.namespace":    {d.Namespace},
+			"k8s.deployment":   {d.Name},
+			"k8s.cluster-name": {extconfig.Config.ClusterName},
+			//"k8s.distribution":        {"TODO implement me"},
+		}
+
+		pods := client.K8S.PodsByDeployment(d)
+		if len(pods) > 0 {
+			podNames := make([]string, len(pods))
+			var containerIds []string
+			for podIndex, pod := range pods {
+				podNames[podIndex] = pod.Name
+				for _, container := range pod.Status.ContainerStatuses {
+					containerIds = append(containerIds, container.ContainerID)
+				}
+			}
+			attributes["k8s.pod.name"] = podNames
+			attributes["k8s.container.id"] = containerIds
+		}
+
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
 			TargetType: deploymentTargetType,
 			Label:      d.Name,
-			//TODO Add other attributes
-			Attributes: map[string][]string{
-				"k8s.namespace":    {d.Namespace},
-				"k8s.deployment":   {d.Name},
-				"k8s.cluster-name": {extconfig.Config.ClusterName},
-			},
+			Attributes: attributes,
 		}
 	}
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
