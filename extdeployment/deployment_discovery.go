@@ -67,6 +67,10 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 			//"k8s.distribution":        {"TODO implement me"},
 		}
 
+		for key, value := range d.ObjectMeta.Labels {
+			attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
+		}
+
 		pods := client.K8S.PodsByDeployment(d)
 		if len(pods) > 0 {
 			podNames := make([]string, len(pods))

@@ -57,50 +57,66 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 				Attributes: []discovery_kit_api.Attribute{
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.cluster-name",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.distribution",
 					}, {
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.namespace",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.container.name",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.container.ready",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.container.image",
 					},
 					{
 						AggregationType: discovery_kit_api.All,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.service.name",
 					},
 					{
 						AggregationType: discovery_kit_api.All,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.service.namespace",
 					},
-					//TODO POD-Labels "k8s.pod.label." (needs extended TargetEnrichtmentRule.Attribute `startsWith`)
+					{
+						AggregationType: discovery_kit_api.All,
+						Matcher:         discovery_kit_api.StartsWith,
+						Name:            "k8s.pod.label.",
+					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.replicaset",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.daemonset",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.deployment",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.statefulset",
 					},
 				},
@@ -120,10 +136,12 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 				Attributes: []discovery_kit_api.Attribute{
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.cluster-name",
 					},
 					{
 						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.distribution",
 					},
 					//TODO Labels (needs extended TargetEnrichtmentRule.Attribute `startsWith`)
@@ -172,6 +190,10 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 				"k8s.node.name":             {pod.Spec.NodeName},
 				"k8s.pod.name":              {podMetadata.Name},
 				//"k8s.distribution":        {"TODO implement me"},
+			}
+
+			for key, value := range podMetadata.Labels {
+				attributes[fmt.Sprintf("k8s.pod.label.%v", key)] = []string{value}
 			}
 
 			containerSpec := ownerReferences.ContainerSpec(container.Name)
