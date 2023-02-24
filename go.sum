@@ -185,6 +185,8 @@ github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230217142627-
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230217142627-5f2cc4027bb4/go.mod h1:OnIfjrBhmMQCYxriHmr8mT1wCpvqIZxwBHWnanFhgNA=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230223151521-e81018e6af38 h1:AXWxIy81/tZUzfbYbAURZFzZOdTRxr8cxB6lWW1itnQ=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230223151521-e81018e6af38/go.mod h1:OnIfjrBhmMQCYxriHmr8mT1wCpvqIZxwBHWnanFhgNA=
+github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230224102014-0d3e5260ba14 h1:ZfetmR1r3Je9umN7RGSghgBCryzicExQT1NumJeTjI4=
+github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230224102014-0d3e5260ba14/go.mod h1:OnIfjrBhmMQCYxriHmr8mT1wCpvqIZxwBHWnanFhgNA=
 github.com/steadybit/extension-kit v1.6.0 h1:TV5EQQqT9yBtzTKoHg4s56B+n2x1UAWok0t2puoo26o=
 github.com/steadybit/extension-kit v1.6.0/go.mod h1:zC5Tw+wrJTx4xvOlsIY+MfMoRYoglj83vR15Xr3aP5c=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=

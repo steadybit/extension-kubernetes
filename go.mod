@@ -9,7 +9,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.27.0
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.0.1
-	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230223151521-e81018e6af38
+	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230224102014-0d3e5260ba14
 	github.com/steadybit/extension-kit v1.6.0
 	k8s.io/client-go v0.26.1
 )
