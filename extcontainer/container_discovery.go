@@ -144,7 +144,31 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						Matcher:         discovery_kit_api.Equals,
 						Name:            "k8s.distribution",
 					},
-					//TODO Labels (needs extended TargetEnrichtmentRule.Attribute `startsWith`)
+					{
+						AggregationType: discovery_kit_api.Any,
+						Matcher:         discovery_kit_api.Equals,
+						Name:            "k8s.namespace",
+					},
+					{
+						AggregationType: discovery_kit_api.All,
+						Matcher:         discovery_kit_api.Equals,
+						Name:            "k8s.replicaset",
+					},
+					{
+						AggregationType: discovery_kit_api.All,
+						Matcher:         discovery_kit_api.Equals,
+						Name:            "k8s.daemonset",
+					},
+					{
+						AggregationType: discovery_kit_api.All,
+						Matcher:         discovery_kit_api.Equals,
+						Name:            "k8s.deployment",
+					},
+					{
+						AggregationType: discovery_kit_api.All,
+						Matcher:         discovery_kit_api.Equals,
+						Name:            "k8s.statefulset",
+					},
 				},
 			},
 		}),
