@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+
 package client
 
 import (
@@ -24,8 +27,8 @@ import (
 var K8S *Client
 
 type Client struct {
-	daemonsetsLister     listerAppsv1.DaemonSetLister
-	daemonsetsInformer   cache.SharedIndexInformer
+	daemonSetsLister     listerAppsv1.DaemonSetLister
+	daemonSetsInformer   cache.SharedIndexInformer
 	deploymentsLister    listerAppsv1.DeploymentLister
 	deploymentsInformer  cache.SharedIndexInformer
 	podsLister           listerCorev1.PodLister
@@ -38,7 +41,7 @@ type Client struct {
 	statefulSetsInformer cache.SharedIndexInformer
 }
 
-func (c Client) Pods() []*corev1.Pod {
+func (c *Client) Pods() []*corev1.Pod {
 	pods, err := c.podsLister.Pods("").List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching pods")
@@ -47,7 +50,7 @@ func (c Client) Pods() []*corev1.Pod {
 	return pods
 }
 
-func (c Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
+func (c *Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
 	selector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while creating a selector from deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, deployment.Spec.Selector)
@@ -61,7 +64,7 @@ func (c Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
 	return list
 }
 
-func (c Client) Deployments() []*appsv1.Deployment {
+func (c *Client) Deployments() []*appsv1.Deployment {
 	deployments, err := c.deploymentsLister.Deployments("").List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching deployments")
@@ -70,7 +73,7 @@ func (c Client) Deployments() []*appsv1.Deployment {
 	return deployments
 }
 
-func (c Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
+func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 	services, err := c.servicesLister.Services("").List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching services")
@@ -91,15 +94,15 @@ func (c Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 	return result
 }
 
-func (c Client) DaemonSetByNamespaceAndName(namespace string, name string) *appsv1.DaemonSet {
+func (c *Client) DaemonSetByNamespaceAndName(namespace string, name string) *appsv1.DaemonSet {
 	key := fmt.Sprintf("%s/%s", namespace, name)
-	item, _, err := c.daemonsetsInformer.GetIndexer().GetByKey(key)
+	item, _, err := c.daemonSetsInformer.GetIndexer().GetByKey(key)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error during lookup of DaemonSet %s/%s", namespace, name)
 	}
 	return item.(*appsv1.DaemonSet)
 }
-func (c Client) DeploymentByNamespaceAndName(namespace string, name string) *appsv1.Deployment {
+func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *appsv1.Deployment {
 	key := fmt.Sprintf("%s/%s", namespace, name)
 	item, _, err := c.deploymentsInformer.GetIndexer().GetByKey(key)
 	if err != nil {
@@ -107,7 +110,7 @@ func (c Client) DeploymentByNamespaceAndName(namespace string, name string) *app
 	}
 	return item.(*appsv1.Deployment)
 }
-func (c Client) ReplicaSetByNamespaceAndName(namespace string, name string) *appsv1.ReplicaSet {
+func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *appsv1.ReplicaSet {
 	key := fmt.Sprintf("%s/%s", namespace, name)
 	item, _, err := c.replicaSetsInformer.GetIndexer().GetByKey(key)
 	if err != nil {
@@ -115,7 +118,7 @@ func (c Client) ReplicaSetByNamespaceAndName(namespace string, name string) *app
 	}
 	return item.(*appsv1.ReplicaSet)
 }
-func (c Client) StatefulSetByNamespaceAndName(namespace string, name string) *appsv1.StatefulSet {
+func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *appsv1.StatefulSet {
 	key := fmt.Sprintf("%s/%s", namespace, name)
 	item, _, err := c.statefulSetsInformer.GetIndexer().GetByKey(key)
 	if err != nil {
@@ -126,7 +129,11 @@ func (c Client) StatefulSetByNamespaceAndName(namespace string, name string) *ap
 
 func PrepareClient() {
 	clientset := createClientset()
+	K8S = CreateClient(clientset)
+}
 
+// CreateClient is visible for testing
+func CreateClient(clientset kubernetes.Interface) *Client {
 	// stop signal for the informer
 	stopper := make(chan struct{})
 	defer close(stopper)
@@ -134,11 +141,12 @@ func PrepareClient() {
 	factory := informers.NewSharedInformerFactory(clientset, 0)
 
 	// DeploymentsInformer.SetTransform() // TODO - Check whether we could use transformers to remove stuff --> save RAM?
-	daemonsets := factory.Apps().V1().DaemonSets()
-	daemosetsInformer := daemonsets.Informer()
+	daemonSets := factory.Apps().V1().DaemonSets()
+	daemonSetsInformer := daemonSets.Informer()
 	deployments := factory.Apps().V1().Deployments()
 	deploymentsInformer := deployments.Informer()
 	pods := factory.Core().V1().Pods()
+	podsLister := pods.Lister()
 	podsInformer := pods.Informer()
 	replicaSets := factory.Apps().V1().ReplicaSets()
 	replicaSetsInformer := replicaSets.Informer()
@@ -153,7 +161,7 @@ func PrepareClient() {
 
 	log.Info().Msgf("Start cache sync.")
 	if !cache.WaitForCacheSync(stopper,
-		daemosetsInformer.HasSynced,
+		daemonSetsInformer.HasSynced,
 		deploymentsInformer.HasSynced,
 		podsInformer.HasSynced,
 		replicaSetsInformer.HasSynced,
@@ -164,19 +172,19 @@ func PrepareClient() {
 	}
 	log.Info().Msgf("Caches synced.")
 
-	K8S = &Client{
-		daemonsets.Lister(),
-		daemosetsInformer,
-		deployments.Lister(),
-		deploymentsInformer,
-		pods.Lister(),
-		podsInformer,
-		replicaSets.Lister(),
-		replicaSetsInformer,
-		services.Lister(),
-		servicesInformer,
-		statefulSets.Lister(),
-		statefulSetsInformer,
+	return &Client{
+		daemonSetsLister:     daemonSets.Lister(),
+		daemonSetsInformer:   daemonSetsInformer,
+		deploymentsLister:    deployments.Lister(),
+		deploymentsInformer:  deploymentsInformer,
+		podsLister:           podsLister,
+		podsInformer:         podsInformer,
+		replicaSetsLister:    replicaSets.Lister(),
+		replicaSetsInformer:  replicaSetsInformer,
+		servicesLister:       services.Lister(),
+		servicesInformer:     servicesInformer,
+		statefulSetsLister:   statefulSets.Lister(),
+		statefulSetsInformer: statefulSetsInformer,
 	}
 }
 

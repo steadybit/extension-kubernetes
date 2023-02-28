@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2022 Steadybit GmbH
+// SPDX-FileCopyrightText: 2023 Steadybit GmbH
 
 package extcontainer
 
@@ -170,12 +170,17 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 }
 
 func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
+	targets := getDiscoveredContainerTargets(client.K8S)
+	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
+}
+
+func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Target {
 	var targets []discovery_kit_api.Target
 
-	for _, pod := range client.K8S.Pods() {
+	for _, pod := range k8s.Pods() {
 		podMetadata := pod.ObjectMeta
-		ownerReferences := client.OwnerReferences(&podMetadata)
-		services := client.K8S.ServicesByPod(pod)
+		ownerReferences := client.OwnerReferences(k8s, &podMetadata)
+		services := k8s.ServicesByPod(pod)
 
 		for _, container := range pod.Status.ContainerStatuses {
 			if container.ContainerID == "" {
@@ -222,8 +227,6 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 			})
 
 		}
-
 	}
-
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
+	return targets
 }

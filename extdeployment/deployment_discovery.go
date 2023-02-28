@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2022 Steadybit GmbH
+// SPDX-FileCopyrightText: 2023 Steadybit GmbH
 
 package extdeployment
 
@@ -64,6 +64,25 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 			"k8s.namespace":    {d.Namespace},
 			"k8s.deployment":   {d.Name},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
+			//this.distribution = this.isOpenshift() ? "openshift" : "kubernetes";
+			//private boolean isOpenshift() {
+			//	try {
+			//		var rootPaths = this.client.rootPaths();
+			//		if (rootPaths != null) {
+			//			var paths = rootPaths.getPaths();
+			//			if (paths != null) {
+			//				for (var path : paths) {
+			//					if (Objects.equals("/oapi", path) || Objects.equals("oapi", path)) {
+			//						return true;
+			//					}
+			//				}
+			//			}
+			//		}
+			//	} catch (Exception e) {
+			//		log.debug("Could not verify kubernetes distribution - error while verifying available paths: {}", e.getMessage());
+			//	}
+			//	return false;
+			//}
 			//"k8s.distribution":        {"TODO implement me"},
 		}
 

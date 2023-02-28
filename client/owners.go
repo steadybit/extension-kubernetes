@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+
 package client
 
 import (
@@ -38,19 +41,19 @@ func findContainerSpec(specs []corev1.Container, containerName string) *corev1.C
 	return nil
 }
 
-func OwnerReferences(meta *metav1.ObjectMeta) OwnerRefListWithResource {
+func OwnerReferences(k8s *Client, meta *metav1.ObjectMeta) OwnerRefListWithResource {
 	result := OwnerRefListWithResource{}
-	recursivelyGetOwnerReferences(meta, &result)
+	recursivelyGetOwnerReferences(k8s, meta, &result)
 	fmt.Printf("%+v", result)
 	return result
 }
 
-func recursivelyGetOwnerReferences(meta *metav1.ObjectMeta, result *OwnerRefListWithResource) {
+func recursivelyGetOwnerReferences(k8s *Client, meta *metav1.ObjectMeta, result *OwnerRefListWithResource) {
 	if meta.GetOwnerReferences() == nil {
 		return
 	}
 	for _, ref := range meta.GetOwnerReferences() {
-		ownerRef, ownerMeta, deployment, daemonset := getResource(ref.Kind, meta.Namespace, ref.Name)
+		ownerRef, ownerMeta, deployment, daemonset := getResource(k8s, ref.Kind, meta.Namespace, ref.Name)
 		if ownerRef != nil {
 			result.OwnerRefs = append(result.OwnerRefs, *ownerRef)
 			if deployment != nil {
@@ -59,29 +62,29 @@ func recursivelyGetOwnerReferences(meta *metav1.ObjectMeta, result *OwnerRefList
 			if daemonset != nil {
 				result.Daemonset = daemonset
 			}
-			recursivelyGetOwnerReferences(ownerMeta, result)
+			recursivelyGetOwnerReferences(k8s, ownerMeta, result)
 		}
 	}
 }
 
-func getResource(kind string, namespace string, name string) (*OwnerReference, *metav1.ObjectMeta, *appsv1.Deployment, *appsv1.DaemonSet) {
+func getResource(k8s *Client, kind string, namespace string, name string) (*OwnerReference, *metav1.ObjectMeta, *appsv1.Deployment, *appsv1.DaemonSet) {
 	if strings.EqualFold("replicaset", kind) {
-		replicaSet := K8S.ReplicaSetByNamespaceAndName(namespace, name)
+		replicaSet := k8s.ReplicaSetByNamespaceAndName(namespace, name)
 		if replicaSet != nil {
 			return extutil.Ptr(OwnerReference{Name: replicaSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(replicaSet.ObjectMeta), nil, nil
 		}
 	} else if strings.EqualFold("daemonset", kind) {
-		daemonSet := K8S.DaemonSetByNamespaceAndName(namespace, name)
+		daemonSet := k8s.DaemonSetByNamespaceAndName(namespace, name)
 		if daemonSet != nil {
 			return extutil.Ptr(OwnerReference{Name: daemonSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(daemonSet.ObjectMeta), nil, daemonSet
 		}
 	} else if strings.EqualFold("deployment", kind) {
-		deployment := K8S.DeploymentByNamespaceAndName(namespace, name)
+		deployment := k8s.DeploymentByNamespaceAndName(namespace, name)
 		if deployment != nil {
 			return extutil.Ptr(OwnerReference{Name: deployment.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(deployment.ObjectMeta), deployment, nil
 		}
 	} else if strings.EqualFold("statefulset", kind) {
-		statefulset := K8S.StatefulSetByNamespaceAndName(namespace, name)
+		statefulset := k8s.StatefulSetByNamespaceAndName(namespace, name)
 		if statefulset != nil {
 			return extutil.Ptr(OwnerReference{Name: statefulset.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(statefulset.ObjectMeta), nil, nil
 		}
