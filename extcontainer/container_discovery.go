@@ -5,7 +5,6 @@ package extcontainer
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
 	discovery_kit_api "github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
@@ -177,7 +176,6 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 
 func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Target {
 	pods := k8s.Pods()
-	log.Info().Msgf("%v", pods)
 	targets := make([]discovery_kit_api.Target, 0, len(pods))
 	for _, pod := range pods {
 		podMetadata := pod.ObjectMeta

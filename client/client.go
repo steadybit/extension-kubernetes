@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
+	"time"
 )
 
 var K8S *Client
@@ -57,9 +58,7 @@ func (c *Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
 		log.Error().Err(err).Msgf("Error while creating a selector from deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, deployment.Spec.Selector)
 		return nil
 	}
-	log.Info().Msgf("Query with: %v", selector)
 	list, err := c.podsLister.Pods(deployment.Namespace).List(selector)
-	log.Info().Msgf("Got: %v", list)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching Pods for Deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, selector)
 		return nil
@@ -218,6 +217,7 @@ func createClientset() (*kubernetes.Clientset, string) {
 	}
 
 	config.UserAgent = "steadybit-extension-kubernetes"
+	config.Timeout = time.Second * 10
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not create kubernetes client")
