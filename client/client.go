@@ -74,7 +74,7 @@ func (c *Client) Deployments() []*appsv1.Deployment {
 }
 
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
-	services, err := c.servicesLister.Services("").List(labels.Everything())
+	services, err := c.servicesLister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching services")
 		return []*corev1.Service{}

@@ -197,6 +197,7 @@ func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Targe
 				"k8s.container.id.stripped": {containerIdWithoutPrefix},
 				"k8s.container.name":        {container.Name},
 				"k8s.container.ready":       {strconv.FormatBool(container.Ready)},
+				"k8s.container.image":       {container.Image},
 				"k8s.namespace":             {podMetadata.Namespace},
 				"k8s.node.name":             {pod.Spec.NodeName},
 				"k8s.pod.name":              {podMetadata.Name},
@@ -205,11 +206,6 @@ func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Targe
 
 			for key, value := range podMetadata.Labels {
 				attributes[fmt.Sprintf("k8s.pod.label.%v", key)] = []string{value}
-			}
-
-			containerSpec := ownerReferences.ContainerSpec(container.Name)
-			if containerSpec != nil {
-				attributes["k8s.container.image"] = []string{containerSpec.Image}
 			}
 
 			for _, service := range services {
@@ -227,7 +223,6 @@ func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Targe
 				TargetType: containerTargetType,
 				Attributes: attributes,
 			})
-
 		}
 	}
 	return targets
