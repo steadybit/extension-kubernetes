@@ -201,7 +201,7 @@ func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Targe
 				"k8s.namespace":             {podMetadata.Namespace},
 				"k8s.node.name":             {pod.Spec.NodeName},
 				"k8s.pod.name":              {podMetadata.Name},
-				//"k8s.distribution":        {"TODO implement me"},
+				"k8s.distribution":          {k8s.Distribution},
 			}
 
 			for key, value := range podMetadata.Labels {

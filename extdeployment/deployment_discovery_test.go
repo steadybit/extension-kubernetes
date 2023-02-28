@@ -106,11 +106,12 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 		"k8s.cluster-name":               {"development"},
 		"k8s.pod.name":                   {"shop-pod"},
 		"k8s.container.id":               {"crio://abcdef"},
+		"k8s.distribution":               {"kubernetes"},
 	}, target.Attributes)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	client := client.CreateClient(clientset, stopCh)
+	client := client.CreateClient(clientset, stopCh, "")
 	return client, clientset
 }

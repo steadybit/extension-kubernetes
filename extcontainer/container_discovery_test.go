@@ -123,11 +123,12 @@ func Test_getDiscoveredContainer(t *testing.T) {
 		"k8s.pod.label.best-city":   {"Kevelaer"},
 		"k8s.service.name":          {"shop-kevelaer"},
 		"k8s.service.namespace":     {"default"},
+		"k8s.distribution":          {"openshift"},
 	}, target.Attributes)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	client := client.CreateClient(clientset, stopCh)
+	client := client.CreateClient(clientset, stopCh, "/oapi")
 	return client, clientset
 }

@@ -27,11 +27,12 @@ import (
 var K8S *Client
 
 type Client struct {
+	Distribution         string
 	daemonSetsLister     listerAppsv1.DaemonSetLister
 	daemonSetsInformer   cache.SharedIndexInformer
 	deploymentsLister    listerAppsv1.DeploymentLister
 	deploymentsInformer  cache.SharedIndexInformer
-	PodsLister           listerCorev1.PodLister
+	podsLister           listerCorev1.PodLister
 	podsInformer         cache.SharedIndexInformer
 	replicaSetsLister    listerAppsv1.ReplicaSetLister
 	replicaSetsInformer  cache.SharedIndexInformer
@@ -42,7 +43,7 @@ type Client struct {
 }
 
 func (c *Client) Pods() []*corev1.Pod {
-	pods, err := c.PodsLister.List(labels.Everything())
+	pods, err := c.podsLister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching pods")
 		return []*corev1.Pod{}
@@ -57,7 +58,7 @@ func (c *Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
 		return nil
 	}
 	log.Info().Msgf("Query with: %v", selector)
-	list, err := c.PodsLister.Pods(deployment.Namespace).List(selector)
+	list, err := c.podsLister.Pods(deployment.Namespace).List(selector)
 	log.Info().Msgf("Got: %v", list)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching Pods for Deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, selector)
@@ -130,12 +131,12 @@ func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *a
 }
 
 func PrepareClient(stopCh <-chan struct{}) {
-	clientset := createClientset()
-	K8S = CreateClient(clientset, stopCh)
+	clientset, rootApiPath := createClientset()
+	K8S = CreateClient(clientset, stopCh, rootApiPath)
 }
 
 // CreateClient is visible for testing
-func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}) *Client {
+func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string) *Client {
 	factory := informers.NewSharedInformerFactory(clientset, 0)
 
 	// DeploymentsInformer.SetTransform() // TODO - Check whether we could use transformers to remove stuff --> save RAM?
@@ -169,12 +170,18 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}) *Clien
 	}
 	log.Info().Msgf("Caches synced.")
 
+	distribution := "kubernetes"
+	if isOpenShift(rootApiPath) {
+		distribution = "openshift"
+	}
+
 	return &Client{
+		Distribution:         distribution,
 		daemonSetsLister:     daemonSets.Lister(),
 		daemonSetsInformer:   daemonSetsInformer,
 		deploymentsLister:    deployments.Lister(),
 		deploymentsInformer:  deploymentsInformer,
-		PodsLister:           pods.Lister(),
+		podsLister:           pods.Lister(),
 		podsInformer:         podsInformer,
 		replicaSetsLister:    replicaSets.Lister(),
 		replicaSetsInformer:  replicaSetsInformer,
@@ -185,7 +192,11 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}) *Clien
 	}
 }
 
-func createClientset() *kubernetes.Clientset {
+func isOpenShift(rootApiPath string) bool {
+	return rootApiPath == "/oapi" || rootApiPath == "oapi"
+}
+
+func createClientset() (*kubernetes.Clientset, string) {
 	config, err := rest.InClusterConfig()
 	if err == nil {
 		log.Info().Msgf("Extension is running inside a cluster, config found")
@@ -205,6 +216,8 @@ func createClientset() *kubernetes.Clientset {
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not find kubernetes config")
 	}
+
+	config.UserAgent = "steadybit-extension-kubernetes"
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not create kubernetes client")
@@ -217,5 +230,5 @@ func createClientset() *kubernetes.Clientset {
 
 	log.Info().Msgf("Cluster connected! Kubernetes Server Version %+v", info)
 
-	return clientset
+	return clientset, config.APIPath
 }
