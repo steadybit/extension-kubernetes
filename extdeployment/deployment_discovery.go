@@ -55,7 +55,12 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 }
 
 func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
-	deployments := client.K8S.Deployments()
+	targets := getDiscoveredDeploymentTargets(client.K8S)
+	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
+}
+
+func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Target {
+	deployments := k8s.Deployments()
 
 	targets := make([]discovery_kit_api.Target, len(deployments))
 	for i, d := range deployments {
@@ -90,7 +95,7 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 			attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
 		}
 
-		pods := client.K8S.PodsByDeployment(d)
+		pods := k8s.PodsByDeployment(d)
 		if len(pods) > 0 {
 			podNames := make([]string, len(pods))
 			var containerIds []string
@@ -111,5 +116,5 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 			Attributes: attributes,
 		}
 	}
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
+	return targets
 }

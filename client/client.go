@@ -56,7 +56,9 @@ func (c *Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
 		log.Error().Err(err).Msgf("Error while creating a selector from deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, deployment.Spec.Selector)
 		return nil
 	}
+	log.Info().Msgf("Query with: %v", selector)
 	list, err := c.PodsLister.Pods(deployment.Namespace).List(selector)
+	log.Info().Msgf("Got: %v", list)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching Pods for Deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, selector)
 		return nil
@@ -65,7 +67,7 @@ func (c *Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
 }
 
 func (c *Client) Deployments() []*appsv1.Deployment {
-	deployments, err := c.deploymentsLister.Deployments("").List(labels.Everything())
+	deployments, err := c.deploymentsLister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching deployments")
 		return []*appsv1.Deployment{}
