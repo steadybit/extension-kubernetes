@@ -5,73 +5,25 @@ package extcontainer
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/tools/cache"
 	"testing"
 	"time"
 )
 
-// TODO remove
-func Test_informerStrategy(t *testing.T) {
-	// Given
-	_, clientset := getTestClient()
-
-	factory := informers.NewSharedInformerFactory(clientset, 0)
-	informer := factory.Core().V1().Pods()
-	lister := informer.Lister()
-	stopper := make(chan struct{})
-	defer runtime.HandleCrash()
-	defer close(stopper)
-	go factory.Start(stopper)
-	if !cache.WaitForCacheSync(stopper,
-		informer.Informer().HasSynced,
-	) {
-		log.Fatal().Msg("Timed out waiting for caches to sync")
-	}
-
-	// When
-	_, err := clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), &v1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Pod",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop",
-				Namespace: "default",
-			},
-			Spec: v1.PodSpec{
-				Containers: []v1.Container{
-					{
-						Name:            "nginx",
-						Image:           "nginx",
-						ImagePullPolicy: "Always",
-					},
-				},
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	// Then
-	time.Sleep(time.Second * 2)
-	pods, err := lister.Pods("").List(labels.Everything())
-	require.NoError(t, err)
-	require.Len(t, pods, 1)
-}
-
 func Test_getDiscoveredContainer(t *testing.T) {
 	// Given
-	client, clientset := getTestClient()
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client, clientset := getTestClient(stopCh)
+	extconfig.Config.ClusterName = "development"
+
 	_, err := clientset.CoreV1().
 		Pods("default").
 		Create(context.Background(), &v1.Pod{
@@ -83,7 +35,16 @@ func Test_getDiscoveredContainer(t *testing.T) {
 				Name:      "shop",
 				Namespace: "default",
 			},
+			Status: v1.PodStatus{
+				ContainerStatuses: []v1.ContainerStatus{
+					{
+						ContainerID: "crio://abcdef",
+						Name:        "MrFancyPants",
+					},
+				},
+			},
 			Spec: v1.PodSpec{
+				NodeName: "worker-1",
 				Containers: []v1.Container{
 					{
 						Name:            "nginx",
@@ -96,14 +57,31 @@ func Test_getDiscoveredContainer(t *testing.T) {
 	require.NoError(t, err)
 
 	// When
-	time.Sleep(time.Second * 2)
-	targets := getDiscoveredContainerTargets(client)
+	assert.Eventually(t, func() bool {
+		return len(getDiscoveredContainerTargets(client)) == 1
+	}, time.Minute, 100*time.Millisecond)
 
 	// Then
+	targets := getDiscoveredContainerTargets(client)
 	require.Len(t, targets, 1)
+	target := targets[0]
+	assert.Equal(t, "crio://abcdef", target.Id)
+	assert.Equal(t, "MrFancyPants", target.Label)
+	assert.Equal(t, containerTargetType, target.TargetType)
+	assert.Equal(t, map[string][]string{
+		"k8s.cluster-name":          {"development"},
+		"k8s.container.id":          {"crio://abcdef"},
+		"k8s.container.id.stripped": {"abcdef"},
+		"k8s.container.name":        {"MrFancyPants"},
+		"k8s.container.ready":       {"false"},
+		"k8s.namespace":             {"default"},
+		"k8s.node.name":             {"worker-1"},
+		"k8s.pod.name":              {"shop"},
+	}, target.Attributes)
 }
 
-func getTestClient() (*client.Client, kubernetes.Interface) {
+func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	return client.CreateClient(clientset), clientset
+	client := client.CreateClient(clientset, stopCh)
+	return client, clientset
 }

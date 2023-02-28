@@ -15,8 +15,10 @@ import (
 )
 
 func main() {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	extlogging.InitZeroLog()
-	client.PrepareClient()
+	client.PrepareClient(stopCh)
 
 	extconfig.ParseConfiguration()
 	extconfig.ValidateConfiguration()

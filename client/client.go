@@ -31,7 +31,7 @@ type Client struct {
 	daemonSetsInformer   cache.SharedIndexInformer
 	deploymentsLister    listerAppsv1.DeploymentLister
 	deploymentsInformer  cache.SharedIndexInformer
-	podsLister           listerCorev1.PodLister
+	PodsLister           listerCorev1.PodLister
 	podsInformer         cache.SharedIndexInformer
 	replicaSetsLister    listerAppsv1.ReplicaSetLister
 	replicaSetsInformer  cache.SharedIndexInformer
@@ -42,7 +42,7 @@ type Client struct {
 }
 
 func (c *Client) Pods() []*corev1.Pod {
-	pods, err := c.podsLister.Pods("").List(labels.Everything())
+	pods, err := c.PodsLister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching pods")
 		return []*corev1.Pod{}
@@ -56,7 +56,7 @@ func (c *Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
 		log.Error().Err(err).Msgf("Error while creating a selector from deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, deployment.Spec.Selector)
 		return nil
 	}
-	list, err := c.podsLister.Pods(deployment.Namespace).List(selector)
+	list, err := c.PodsLister.Pods(deployment.Namespace).List(selector)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching Pods for Deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, selector)
 		return nil
@@ -127,17 +127,13 @@ func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *a
 	return item.(*appsv1.StatefulSet)
 }
 
-func PrepareClient() {
+func PrepareClient(stopCh <-chan struct{}) {
 	clientset := createClientset()
-	K8S = CreateClient(clientset)
+	K8S = CreateClient(clientset, stopCh)
 }
 
 // CreateClient is visible for testing
-func CreateClient(clientset kubernetes.Interface) *Client {
-	// stop signal for the informer
-	stopper := make(chan struct{})
-	defer close(stopper)
-
+func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}) *Client {
 	factory := informers.NewSharedInformerFactory(clientset, 0)
 
 	// DeploymentsInformer.SetTransform() // TODO - Check whether we could use transformers to remove stuff --> save RAM?
@@ -146,7 +142,6 @@ func CreateClient(clientset kubernetes.Interface) *Client {
 	deployments := factory.Apps().V1().Deployments()
 	deploymentsInformer := deployments.Informer()
 	pods := factory.Core().V1().Pods()
-	podsLister := pods.Lister()
 	podsInformer := pods.Informer()
 	replicaSets := factory.Apps().V1().ReplicaSets()
 	replicaSetsInformer := replicaSets.Informer()
@@ -157,10 +152,10 @@ func CreateClient(clientset kubernetes.Interface) *Client {
 
 	defer runtime.HandleCrash()
 
-	go factory.Start(stopper)
+	go factory.Start(stopCh)
 
-	log.Info().Msgf("Start cache sync.")
-	if !cache.WaitForCacheSync(stopper,
+	log.Info().Msgf("Start Kubernetes cache sync.")
+	if !cache.WaitForCacheSync(stopCh,
 		daemonSetsInformer.HasSynced,
 		deploymentsInformer.HasSynced,
 		podsInformer.HasSynced,
@@ -177,7 +172,7 @@ func CreateClient(clientset kubernetes.Interface) *Client {
 		daemonSetsInformer:   daemonSetsInformer,
 		deploymentsLister:    deployments.Lister(),
 		deploymentsInformer:  deploymentsInformer,
-		podsLister:           podsLister,
+		PodsLister:           pods.Lister(),
 		podsInformer:         podsInformer,
 		replicaSetsLister:    replicaSets.Lister(),
 		replicaSetsInformer:  replicaSetsInformer,

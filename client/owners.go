@@ -4,7 +4,6 @@
 package client
 
 import (
-	"fmt"
 	"github.com/steadybit/extension-kit/extutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +43,6 @@ func findContainerSpec(specs []corev1.Container, containerName string) *corev1.C
 func OwnerReferences(k8s *Client, meta *metav1.ObjectMeta) OwnerRefListWithResource {
 	result := OwnerRefListWithResource{}
 	recursivelyGetOwnerReferences(k8s, meta, &result)
-	fmt.Printf("%+v", result)
 	return result
 }
 

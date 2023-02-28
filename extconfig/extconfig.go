@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2022 Steadybit GmbH
+// SPDX-FileCopyrightText: 2023 Steadybit GmbH
 
 package extconfig
 
@@ -12,7 +12,7 @@ import (
 // through environment variables. Learn more through the documentation of the envconfig package.
 // https://github.com/kelseyhightower/envconfig
 type Specification struct {
-	ClusterName string `required:"true"`
+	ClusterName string `required:"true" split_words:"true"`
 }
 
 var (
