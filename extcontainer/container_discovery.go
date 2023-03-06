@@ -149,6 +149,10 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						Matcher: discovery_kit_api.Equals,
 						Name:    "k8s.statefulset",
 					},
+					{
+						Matcher: discovery_kit_api.Equals,
+						Name:    "k8s.pod.name",
+					},
 				},
 			},
 		}),
