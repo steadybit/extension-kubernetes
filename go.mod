@@ -18,6 +18,10 @@ require (
 	k8s.io/client-go v0.26.1
 )
 
+replace (
+	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.2.0 => ../action-kit/go/action_kit_api
+)
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect

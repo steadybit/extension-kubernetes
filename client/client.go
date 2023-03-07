@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 	"time"
+	"sort"
 )
 
 var K8S *Client
@@ -41,6 +42,7 @@ type Client struct {
 	servicesInformer     cache.SharedIndexInformer
 	statefulSetsLister   listerAppsv1.StatefulSetLister
 	statefulSetsInformer cache.SharedIndexInformer
+	eventsInformer       cache.SharedIndexInformer
 }
 
 func (c *Client) Pods() []*corev1.Pod {
@@ -129,6 +131,27 @@ func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *a
 	return item.(*appsv1.StatefulSet)
 }
 
+func (c *Client) Events(since time.Time) *[]corev1.Event {
+	events := c.eventsInformer.GetIndexer().List()
+	//filter events by time
+	result := filterEvents(events, since)
+	//sort events by time
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].LastTimestamp.Time.Before(result[j].LastTimestamp.Time)
+	})
+	return &result
+}
+
+func filterEvents(events []interface{}, since time.Time) []corev1.Event {
+	var filtered []corev1.Event
+	for _, event := range events {
+		if event.(*corev1.Event).LastTimestamp.Time.After(since) {
+			filtered = append(filtered, *event.(*corev1.Event))
+		}
+	}
+	return filtered
+}
+
 func PrepareClient(stopCh <-chan struct{}) {
 	clientset, rootApiPath := createClientset()
 	K8S = CreateClient(clientset, stopCh, rootApiPath)
@@ -151,6 +174,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	servicesInformer := services.Informer()
 	statefulSets := factory.Apps().V1().StatefulSets()
 	statefulSetsInformer := statefulSets.Informer()
+	eventsInformer := factory.Core().V1().Events().Informer()
 
 	defer runtime.HandleCrash()
 
@@ -188,6 +212,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		servicesInformer:     servicesInformer,
 		statefulSetsLister:   statefulSets.Lister(),
 		statefulSetsInformer: statefulSetsInformer,
+		eventsInformer:       eventsInformer,
 	}
 }
 
