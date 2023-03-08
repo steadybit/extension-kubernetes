@@ -24,10 +24,10 @@ type K8sEventsState struct {
 }
 
 func RegisterK8sEventsHandlers() {
-	exthttp.RegisterHttpHandler("/k8s/events", exthttp.GetterAsHandler(getK8sEventsDescription))
-	exthttp.RegisterHttpHandler("/k8s/events/prepare", prepareK8sEvents)
-	exthttp.RegisterHttpHandler("/k8s/events/start", startK8sEvents)
-	exthttp.RegisterHttpHandler("/k8s/events/status", statusK8sEvents)
+	exthttp.RegisterHttpHandler("/events", exthttp.GetterAsHandler(getK8sEventsDescription))
+	exthttp.RegisterHttpHandler("/events/prepare", prepareK8sEvents)
+	exthttp.RegisterHttpHandler("/events/start", startK8sEvents)
+	exthttp.RegisterHttpHandler("/events/status", statusK8sEvents)
 }
 
 func getK8sEventsDescription() action_kit_api.ActionDescription {
@@ -53,15 +53,15 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{
 			Method: "POST",
-			Path:   "/k8s/events/prepare",
+			Path:   "/events/prepare",
 		},
 		Start: action_kit_api.MutatingEndpointReference{
 			Method: "POST",
-			Path:   "/k8s/events/start",
+			Path:   "/events/start",
 		},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			Method: "POST",
-			Path:   "/k8s/events/status",
+			Path:   "/events/status",
 		}),
 	}
 }

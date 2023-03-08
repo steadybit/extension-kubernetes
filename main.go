@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
+	"github.com/steadybit/extension-kubernetes/extmetrics"
 )
 
 func main() {
@@ -31,6 +32,7 @@ func main() {
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
 	extevents.RegisterK8sEventsHandlers()
+	extmetrics.RegisterPodCountMetricsHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8089,
@@ -56,7 +58,11 @@ func getExtensionList() ExtensionListResponse {
 				},
 				{
 					"GET",
-					"/k8s/events",
+					"/events",
+				},
+				{
+					"GET",
+					"/metrics/pod-count",
 				},
 			},
 		},
