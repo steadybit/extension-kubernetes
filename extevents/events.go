@@ -23,6 +23,8 @@ type K8sEventsState struct {
 	TimeoutEnd    *int64    `json:"timeoutEnd"`
 }
 
+const LogType = "KUBERNETES_EVENTS"
+
 func RegisterK8sEventsHandlers() {
 	exthttp.RegisterHttpHandler("/events", exthttp.GetterAsHandler(getK8sEventsDescription))
 	exthttp.RegisterHttpHandler("/events/prepare", prepareK8sEvents)
@@ -51,6 +53,13 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 				Required:     extutil.Ptr(true),
 			},
 		},
+		Widgets: extutil.Ptr([]action_kit_api.Widget{
+			action_kit_api.LogWidget{
+				Type:    action_kit_api.ComSteadybitWidgetLog,
+				Title:   "Kubernetes Events",
+				LogType: LogType,
+			},
+		}),
 		Prepare: action_kit_api.MutatingEndpointReference{
 			Method: "POST",
 			Path:   "/events/prepare",
@@ -176,7 +185,7 @@ func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {
 	for _, event := range *events {
 		messages = append(messages, action_kit_api.Message{
 			Message: event.Message,
-			Type:    extutil.Ptr("KUBERNETES"),
+			Type:    extutil.Ptr(LogType),
 			Level:   convertToLevel(event.Type),
 		})
 	}
