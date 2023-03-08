@@ -5,6 +5,7 @@ package extmetrics
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extconversion"
@@ -46,29 +47,10 @@ func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 				Required:     extutil.Ptr(true),
 			},
 		},
-		//TODO: Do we want to make the existing Widget reusable?
+		//TODO Implement this
 		//Widgets: extutil.Ptr([]action_kit_api.Widget{
-		//	action_kit_api.StateOverTimeWidget{
-		//		Type:  action_kit_api.ComSteadybitWidgetStateOverTime,
-		//		Title: "Datadog Monitor Status",
-		//		Identity: action_kit_api.StateOverTimeWidgetIdentityConfig{
-		//			From: "datadog.monitor.id",
-		//		},
-		//		Label: action_kit_api.StateOverTimeWidgetLabelConfig{
-		//			From: "datadog.monitor.name",
-		//		},
-		//		State: action_kit_api.StateOverTimeWidgetStateConfig{
-		//			From: "state",
-		//		},
-		//		Tooltip: action_kit_api.StateOverTimeWidgetTooltipConfig{
-		//			From: "tooltip",
-		//		},
-		//		Url: extutil.Ptr(action_kit_api.StateOverTimeWidgetUrlConfig{
-		//			From: extutil.Ptr("url"),
-		//		}),
-		//		Value: extutil.Ptr(action_kit_api.StateOverTimeWidgetValueConfig{
-		//			Hide: extutil.Ptr(true),
-		//		}),
+		//	action_kit_api.PredefinedWidget{
+		//		Type:  "DeploymentReadinessWidget"
 		//	},
 		//}),
 		Prepare: action_kit_api.MutatingEndpointReference{
@@ -88,7 +70,8 @@ func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 }
 
 type PodCountMetricsState struct {
-	End time.Time
+	End         time.Time
+	LastMetrics map[string]int32
 }
 
 func preparePodCountMetrics(w http.ResponseWriter, _ *http.Request, body []byte) {
@@ -119,7 +102,8 @@ func preparePodCountMetricsInternal(body []byte) (*PodCountMetricsState, *extens
 	end := time.Now().Add(time.Millisecond * time.Duration(duration))
 
 	return extutil.Ptr(PodCountMetricsState{
-		End: end,
+		End:         end,
+		LastMetrics: make(map[string]int32),
 	}), nil
 }
 
@@ -161,15 +145,53 @@ func statusPodCountMetricsInternal(k8s *client.Client, body []byte) action_kit_a
 
 	var metrics []action_kit_api.Metric
 	for _, d := range k8s.Deployments() {
-		for _, m := range toMetrics(d, now) {
-			metrics = append(metrics, m)
+		if hasChanges(d, &state) {
+			for _, m := range toMetrics(d, now) {
+				state.LastMetrics[getMetricKey(d, *m.Name)] = int32(m.Value)
+				metrics = append(metrics, m)
+			}
+		}
+	}
+
+	var convertedState action_kit_api.ActionState
+	err = extconversion.Convert(state, &convertedState)
+	if err != nil {
+		return action_kit_api.StatusResult{
+			Error: extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  "Failed to encode action state",
+				Detail: extutil.Ptr(err.Error()),
+				Status: extutil.Ptr(action_kit_api.Errored),
+			}),
 		}
 	}
 
 	return action_kit_api.StatusResult{
 		Completed: now.After(state.End),
 		Metrics:   extutil.Ptr(metrics),
+		State:     &convertedState,
 	}
+}
+
+func hasChanges(deployment *appsv1.Deployment, state *PodCountMetricsState) bool {
+	currentDesiredReplicas := int32(0)
+	if deployment.Spec.Replicas != nil {
+		currentDesiredReplicas = *deployment.Spec.Replicas
+	}
+
+	return hasChange(deployment, state, "replicas_current_count", deployment.Status.Replicas) ||
+		hasChange(deployment, state, "replicas_desired_count", currentDesiredReplicas) ||
+		hasChange(deployment, state, "replicas_ready_count", deployment.Status.ReadyReplicas) ||
+		hasChange(deployment, state, "replicas_available_count", deployment.Status.AvailableReplicas)
+}
+
+func hasChange(deployment *appsv1.Deployment, state *PodCountMetricsState, metric string, currentValue int32) bool {
+	key := getMetricKey(deployment, metric)
+	oldValue, oldValuePresent := state.LastMetrics[key]
+	return !oldValuePresent || oldValue != currentValue
+}
+
+func getMetricKey(deployment *appsv1.Deployment, metric string) string {
+	return fmt.Sprintf("%s-%s/%s", metric, deployment.Namespace, deployment.Name)
 }
 
 func toMetrics(deployment *appsv1.Deployment, now time.Time) []action_kit_api.Metric {

@@ -51,7 +51,8 @@ func TestPrepareExtractsState(t *testing.T) {
 func TestStatusReturnsMetrics(t *testing.T) {
 	// Given
 	reqJson := getStatusRequestBody(t, PodCountMetricsState{
-		End: time.Now().Add(time.Minute * -1),
+		End:         time.Now().Add(time.Minute * -1),
+		LastMetrics: make(map[string]int32),
 	})
 
 	stopCh := make(chan struct{})
@@ -93,7 +94,7 @@ func TestStatusReturnsMetrics(t *testing.T) {
 	result := statusPodCountMetricsInternal(client, reqJson)
 
 	// Then
-	require.Nil(t, result.State)
+	require.Len(t, (*result.State)["LastMetrics"], 4)
 	require.True(t, result.Completed)
 	require.Nil(t, result.Error)
 	require.Len(t, *result.Metrics, 4)
