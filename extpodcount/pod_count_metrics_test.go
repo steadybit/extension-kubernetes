@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2022 Steadybit GmbH
 
-package extmetrics
+package extpodcount
 
 import (
 	"context"
@@ -13,17 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"testing"
 	"time"
 )
-
-func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewSimpleClientset()
-	client := client.CreateClient(clientset, stopCh, "")
-	return client, clientset
-}
 
 func getStatusRequestBody(t *testing.T, state PodCountMetricsState) []byte {
 	var encodedState action_kit_api.ActionState
@@ -58,12 +51,12 @@ func TestPrepareExtractsState(t *testing.T) {
 func TestStatusReturnsMetrics(t *testing.T) {
 	// Given
 	reqJson := getStatusRequestBody(t, PodCountMetricsState{
-		End: time.Now().Add(time.Minute * -1),
+		End:         time.Now().Add(time.Minute * -1),
+		LastMetrics: make(map[string]int32),
 	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
 
 	desiredCount := int32(5)
@@ -71,6 +64,7 @@ func TestStatusReturnsMetrics(t *testing.T) {
 	availableCount := int32(2)
 	readyCount := int32(1)
 
+	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
 		AppsV1().
 		Deployments("default").
@@ -94,11 +88,13 @@ func TestStatusReturnsMetrics(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	client := client.CreateClient(clientset, stopCh, "")
+
 	// When
 	result := statusPodCountMetricsInternal(client, reqJson)
 
 	// Then
-	require.Nil(t, result.State)
+	require.Len(t, (*result.State)["LastMetrics"], 4)
 	require.True(t, result.Completed)
 	require.Nil(t, result.Error)
 	require.Len(t, *result.Metrics, 4)
