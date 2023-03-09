@@ -35,7 +35,7 @@ func main() {
 	extmetrics.RegisterPodCountMetricsHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
-		Port: 8089,
+		Port: 8088,
 	})
 }
 

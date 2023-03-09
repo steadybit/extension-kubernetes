@@ -9,17 +9,13 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.27.0
-	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.2.0
+	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.2.1-0.20230309091411-7db6e36b78c3
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230224102014-0d3e5260ba14
 	github.com/steadybit/extension-kit v1.6.0
 	github.com/stretchr/testify v1.8.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
-)
-
-replace (
-	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.2.0 => ../action-kit/go/action_kit_api
 )
 
 require (
