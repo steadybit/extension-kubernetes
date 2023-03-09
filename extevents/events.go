@@ -20,8 +20,8 @@ import (
 )
 
 type K8sEventsState struct {
-	lastEventTime time.Time `json:"lastEventTime"`
-	TimeoutEnd    *int64    `json:"timeoutEnd"`
+	LastEventTime *int64 `json:"lastEventTime"`
+	TimeoutEnd    *int64 `json:"timeoutEnd"`
 }
 
 const LogType = "KUBERNETES_EVENTS"
@@ -98,7 +98,8 @@ func PrepareK8sEvents(body []byte) (*K8sEventsState, *extension_kit.ExtensionErr
 	}
 
 	return extutil.Ptr(K8sEventsState{
-		TimeoutEnd: timeoutEnd,
+		LastEventTime: extutil.Ptr(time.Now().Unix()),
+		TimeoutEnd:    timeoutEnd,
 	}), nil
 }
 
@@ -124,7 +125,7 @@ func StartK8sLogs(body []byte) (*K8sEventsState, *extension_kit.ExtensionError) 
 		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse attack state", err))
 	}
 
-	state.lastEventTime = time.Now()
+	state.LastEventTime = extutil.Ptr(time.Now().Unix())
 	return &state, nil
 }
 
@@ -165,9 +166,9 @@ func K8sLogsStatus(body []byte) (*action_kit_api.StatusResult, bool, *extension_
 		}), true, nil
 	}
 
-	newLastEventTime := time.Now()
-	events := client.K8S.Events(state.lastEventTime)
-	state.lastEventTime = newLastEventTime
+	newLastEventTime := time.Now().Unix()
+	events := client.K8S.Events(time.Unix(*state.LastEventTime, 0))
+	state.LastEventTime = extutil.Ptr(newLastEventTime)
 
 	// log events
 	for _, event := range *events {
@@ -187,7 +188,7 @@ func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {
 			Message:   event.Message,
 			Type:      extutil.Ptr(LogType),
 			Level:     convertToLevel(event.Type),
-			Timestamp: extutil.Ptr(event.EventTime.Time),
+			Timestamp: extutil.Ptr(event.LastTimestamp.Time),
 			Fields: extutil.Ptr(action_kit_api.MessageFields{
 				"reason":       event.Reason,
 				"cluster-name": "event.ClusterName",
