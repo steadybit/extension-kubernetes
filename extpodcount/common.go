@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2022 Steadybit GmbH
 
-package extmetrics
+package extpodcount
 
 const (
 	podCountMetricActionId = "com.github.steadybit.extension_kubernetes.pod_count_metric"
