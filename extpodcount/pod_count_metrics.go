@@ -20,10 +20,10 @@ import (
 )
 
 func RegisterPodCountMetricsHandlers() {
-	exthttp.RegisterHttpHandler("/metrics/pod-count", exthttp.GetterAsHandler(getPodCountMetricsDescription))
-	exthttp.RegisterHttpHandler("/metrics/pod-count/prepare", preparePodCountMetrics)
-	exthttp.RegisterHttpHandler("/metrics/pod-count/start", startPodCountMetrics)
-	exthttp.RegisterHttpHandler("/metrics/pod-count/status", statusPodCountMetrics)
+	exthttp.RegisterHttpHandler("/pod-count/metrics", exthttp.GetterAsHandler(getPodCountMetricsDescription))
+	exthttp.RegisterHttpHandler("/pod-count/metrics/prepare", preparePodCountMetrics)
+	exthttp.RegisterHttpHandler("/pod-count/metrics/start", startPodCountMetrics)
+	exthttp.RegisterHttpHandler("/pod-count/metrics/status", statusPodCountMetrics)
 }
 
 func getPodCountMetricsDescription() action_kit_api.ActionDescription {
@@ -55,15 +55,15 @@ func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 		//}),
 		Prepare: action_kit_api.MutatingEndpointReference{
 			Method: "POST",
-			Path:   "/metrics/pod-count/prepare",
+			Path:   "/pod-count/metrics/prepare",
 		},
 		Start: action_kit_api.MutatingEndpointReference{
 			Method: "POST",
-			Path:   "/metrics/pod-count/start",
+			Path:   "/pod-count/metrics/start",
 		},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
 			Method:       "POST",
-			Path:         "/metrics/pod-count/status",
+			Path:         "/pod-count/metrics/status",
 			CallInterval: extutil.Ptr("2s"),
 		}),
 	}

@@ -56,7 +56,7 @@ func getExtensionList() ExtensionListResponse {
 				},
 				{
 					"GET",
-					"/metrics/pod-count",
+					"/pod-count/metrics",
 				},
 			},
 		},
