@@ -32,7 +32,6 @@ func main() {
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
 	extevents.RegisterK8sEventsHandlers()
-	extmetrics.RegisterPodCountMetricsHandlers()
 	extpodcount.RegisterPodCountMetricsHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
