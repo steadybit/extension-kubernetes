@@ -124,7 +124,6 @@ func StartK8sLogs(body []byte) (*K8sEventsState, *extension_kit.ExtensionError) 
 	}
 
 	state.lastEventTime = time.Now()
-	log.Info().Msgf("", state)
 	return &state, nil
 }
 
