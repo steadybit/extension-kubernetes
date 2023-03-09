@@ -104,7 +104,11 @@ func (c *Client) DaemonSetByNamespaceAndName(namespace string, name string) *app
 	if err != nil {
 		log.Error().Err(err).Msgf("Error during lookup of DaemonSet %s/%s", namespace, name)
 	}
-	return item.(*appsv1.DaemonSet)
+	if item != nil {
+		return item.(*appsv1.DaemonSet)
+	} else {
+		return nil
+	}
 }
 func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *appsv1.Deployment {
 	key := fmt.Sprintf("%s/%s", namespace, name)
@@ -112,7 +116,11 @@ func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *ap
 	if err != nil {
 		log.Error().Err(err).Msgf("Error during lookup of Deployment %s/%s", namespace, name)
 	}
-	return item.(*appsv1.Deployment)
+	if item != nil {
+		return item.(*appsv1.Deployment)
+	} else {
+		return nil
+	}
 }
 func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *appsv1.ReplicaSet {
 	key := fmt.Sprintf("%s/%s", namespace, name)
@@ -120,7 +128,11 @@ func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *ap
 	if err != nil {
 		log.Error().Err(err).Msgf("Error during lookup of ReplicaSet %s/%s", namespace, name)
 	}
-	return item.(*appsv1.ReplicaSet)
+	if item != nil {
+		return item.(*appsv1.ReplicaSet)
+	} else {
+		return nil
+	}
 }
 func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *appsv1.StatefulSet {
 	key := fmt.Sprintf("%s/%s", namespace, name)
@@ -128,7 +140,11 @@ func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *a
 	if err != nil {
 		log.Error().Err(err).Msgf("Error during lookup of StatefulSet %s/%s", namespace, name)
 	}
-	return item.(*appsv1.StatefulSet)
+	if item != nil {
+		return item.(*appsv1.StatefulSet)
+	} else {
+		return nil
+	}
 }
 
 func (c *Client) Events(since time.Time) *[]corev1.Event {

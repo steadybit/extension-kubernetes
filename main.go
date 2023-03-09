@@ -33,6 +33,7 @@ func main() {
 	extcontainer.RegisterContainerDiscoveryHandlers()
 	extevents.RegisterK8sEventsHandlers()
 	extpodcount.RegisterPodCountMetricsHandlers()
+	extpodcount.RegisterPodCountCheckHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8088,
@@ -63,6 +64,10 @@ func getExtensionList() ExtensionListResponse {
 				{
 					"GET",
 					"/pod-count/metrics",
+				},
+				{
+					"GET",
+					"/pod-count/check",
 				},
 			},
 		},

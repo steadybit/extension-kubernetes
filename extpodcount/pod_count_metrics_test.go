@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func getStatusRequestBody(t *testing.T, state PodCountMetricsState) []byte {
+func getStatusRequestBodyMetric(t *testing.T, state PodCountMetricsState) []byte {
 	var encodedState action_kit_api.ActionState
 	err := extconversion.Convert(state, &encodedState)
 	require.NoError(t, err)
@@ -30,7 +30,7 @@ func getStatusRequestBody(t *testing.T, state PodCountMetricsState) []byte {
 	return reqJson
 }
 
-func TestPrepareExtractsState(t *testing.T) {
+func TestPrepareMetricsExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
@@ -50,7 +50,7 @@ func TestPrepareExtractsState(t *testing.T) {
 
 func TestStatusReturnsMetrics(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBody(t, PodCountMetricsState{
+	reqJson := getStatusRequestBodyMetric(t, PodCountMetricsState{
 		End:         time.Now().Add(time.Minute * -1),
 		LastMetrics: make(map[string]int32),
 	})
