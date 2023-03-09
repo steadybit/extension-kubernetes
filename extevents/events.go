@@ -15,6 +15,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/utils"
 	corev1 "k8s.io/api/core/v1"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -170,7 +171,7 @@ func K8sLogsStatus(body []byte) (*action_kit_api.StatusResult, bool, *extension_
 
 	// log events
 	for _, event := range *events {
-		log.Info().Msgf("Event: %s", event.Message)
+		log.Debug().Msgf("Event: %s", event.Message)
 	}
 
 	return extutil.Ptr(action_kit_api.StatusResult{
@@ -183,9 +184,16 @@ func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {
 	var messages []action_kit_api.Message
 	for _, event := range *events {
 		messages = append(messages, action_kit_api.Message{
-			Message: event.Message,
-			Type:    extutil.Ptr(LogType),
-			Level:   convertToLevel(event.Type),
+			Message:   event.Message,
+			Type:      extutil.Ptr(LogType),
+			Level:     convertToLevel(event.Type),
+			Timestamp: extutil.Ptr(event.EventTime.Time),
+			Fields: extutil.Ptr(action_kit_api.MessageFields{
+				"reason":       event.Reason,
+				"cluster-name": "event.ClusterName",
+				"namespace":    event.Namespace,
+				"object":       strings.ToLower(event.InvolvedObject.Kind) + "/" + event.InvolvedObject.Name,
+			}),
 		})
 	}
 	return extutil.Ptr(messages)
