@@ -180,8 +180,6 @@ func statusPodCountCheckInternal(k8s *client.Client, body []byte) action_kit_api
 
 	now := time.Now()
 
-	var checkError *action_kit_api.ActionKitError
-
 	deployment := k8s.DeploymentByNamespaceAndName(state.Namespace, state.Deployment)
 	if deployment == nil {
 		return action_kit_api.StatusResult{
@@ -205,6 +203,7 @@ func statusPodCountCheckInternal(k8s *client.Client, body []byte) action_kit_api
 		}
 	}
 
+	var checkError *action_kit_api.ActionKitError
 	if state.PodCountCheckMode == podCountMin1 && readyCount < 1 {
 		checkError = extutil.Ptr(action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("%s has no ready pods.", state.Deployment),
@@ -222,8 +221,15 @@ func statusPodCountCheckInternal(k8s *client.Client, body []byte) action_kit_api
 		})
 	}
 
-	return action_kit_api.StatusResult{
-		Completed: now.After(state.Timeout),
-		Error:     checkError,
+	if now.After(state.Timeout) {
+		return action_kit_api.StatusResult{
+			Completed: true,
+			Error:     checkError,
+		}
+	} else {
+		return action_kit_api.StatusResult{
+			Completed: checkError == nil,
+		}
 	}
+
 }

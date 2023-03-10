@@ -130,7 +130,7 @@ func TestStatusCheckPodCountMin1Success(t *testing.T) {
 	result := statusPodCountCheckInternal(client, reqJson)
 
 	// Then
-	require.False(t, result.Completed)
+	require.True(t, result.Completed)
 	require.Nil(t, result.Error)
 }
 
@@ -214,7 +214,7 @@ func TestStatusCheckPodCountEqualsDesiredCountSuccess(t *testing.T) {
 	result := statusPodCountCheckInternal(client, reqJson)
 
 	// Then
-	require.False(t, result.Completed)
+	require.True(t, result.Completed)
 	require.Nil(t, result.Error)
 }
 
@@ -298,7 +298,7 @@ func TestStatusCheckPodCountLessThanDesiredCountSuccess(t *testing.T) {
 	result := statusPodCountCheckInternal(client, reqJson)
 
 	// Then
-	require.False(t, result.Completed)
+	require.True(t, result.Completed)
 	require.Nil(t, result.Error)
 }
 
