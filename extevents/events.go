@@ -15,6 +15,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/utils"
 	corev1 "k8s.io/api/core/v1"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -130,7 +131,7 @@ func StartK8sLogs(body []byte) (*K8sEventsState, *extension_kit.ExtensionError) 
 }
 
 func statusK8sEvents(w http.ResponseWriter, _ *http.Request, body []byte) {
-	result, timeout, err := K8sLogsStatus(body)
+	result, timeout, err := K8sLogsStatus(client.K8S, body)
 	if err != nil {
 		exthttp.WriteError(w, *err)
 	} else {
@@ -141,7 +142,7 @@ func statusK8sEvents(w http.ResponseWriter, _ *http.Request, body []byte) {
 	}
 }
 
-func K8sLogsStatus(body []byte) (*action_kit_api.StatusResult, bool, *extension_kit.ExtensionError) {
+func K8sLogsStatus(k8s *client.Client, body []byte) (*action_kit_api.StatusResult, bool, *extension_kit.ExtensionError) {
 	var request action_kit_api.ActionStatusRequestBody
 	err := json.Unmarshal(body, &request)
 	if err != nil {
@@ -167,7 +168,7 @@ func K8sLogsStatus(body []byte) (*action_kit_api.StatusResult, bool, *extension_
 	}
 
 	newLastEventTime := time.Now().Unix()
-	events := client.K8S.Events(time.Unix(*state.LastEventTime, 0))
+	events := k8s.Events(time.Unix(*state.LastEventTime, 0))
 	state.LastEventTime = extutil.Ptr(newLastEventTime)
 
 	// log events
@@ -183,6 +184,10 @@ func K8sLogsStatus(body []byte) (*action_kit_api.StatusResult, bool, *extension_
 
 func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {
 	var messages []action_kit_api.Message
+	clusterName, cnAvailable := os.LookupEnv("STEADYBIT_EXTENSION_CLUSTER_NAME")
+	if !cnAvailable {
+		clusterName = "unknown"
+	}
 	for _, event := range *events {
 		messages = append(messages, action_kit_api.Message{
 			Message:   event.Message,
@@ -191,7 +196,7 @@ func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {
 			Timestamp: extutil.Ptr(event.LastTimestamp.Time),
 			Fields: extutil.Ptr(action_kit_api.MessageFields{
 				"reason":       event.Reason,
-				"cluster-name": "event.ClusterName",
+				"cluster-name": clusterName,
 				"namespace":    event.Namespace,
 				"object":       strings.ToLower(event.InvolvedObject.Kind) + "/" + event.InvolvedObject.Name,
 			}),

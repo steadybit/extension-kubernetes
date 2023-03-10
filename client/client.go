@@ -22,8 +22,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
-	"time"
 	"sort"
+	"time"
 )
 
 var K8S *Client
