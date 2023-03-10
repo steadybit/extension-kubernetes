@@ -47,12 +47,12 @@ func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 				Required:     extutil.Ptr(true),
 			},
 		},
-		//TODO Implement this
-		//Widgets: extutil.Ptr([]action_kit_api.Widget{
-		//	action_kit_api.PredefinedWidget{
-		//		Type:  "DeploymentReadinessWidget"
-		//	},
-		//}),
+		Widgets: extutil.Ptr([]action_kit_api.Widget{
+			action_kit_api.PredefinedWidget{
+				Type:               action_kit_api.ComSteadybitWidgetPredefined,
+				PredefinedWidgetId: "com.steadybit.widget.predefined.DeploymentReadinessWidget",
+			},
+		}),
 		Prepare: action_kit_api.MutatingEndpointReference{
 			Method: "POST",
 			Path:   "/pod-count/metrics/prepare",
