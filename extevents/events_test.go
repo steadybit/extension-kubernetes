@@ -19,7 +19,28 @@ import (
 	"time"
 )
 
-func TestPrepareCheckExtractsState(t *testing.T) {
+func prepareTest(t *testing.T, stopCh chan struct{}) ([]byte, *client.Client) {
+	reqJson := getStatusRequestBodyCheck(t, K8sEventsState{
+		TimeoutEnd:    extutil.Ptr(time.Now().Add(time.Minute * 1).Unix()),
+		LastEventTime: extutil.Ptr(time.Now().Add(-time.Minute * 1).Unix()),
+	})
+
+	clientset := testclient.NewSimpleClientset()
+	_, err := clientset.
+		CoreV1().
+		Events("shop").
+		Create(context.Background(), &corev1.Event{
+			LastTimestamp: metav1.Time{Time: time.Now()},
+			Message:       "test",
+			Type:          "Normal",
+		}, metav1.CreateOptions{})
+
+	require.NoError(t, err)
+	client := client.CreateClient(clientset, stopCh, "")
+	return reqJson, client
+}
+
+func TestPrepareExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
@@ -50,35 +71,38 @@ func getStatusRequestBodyCheck(t *testing.T, state K8sEventsState) []byte {
 	return reqJson
 }
 
-func TestStatusCheckEventsFound(t *testing.T) {
+func TestStatusEventsFound(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, K8sEventsState{
-		TimeoutEnd:    extutil.Ptr(time.Now().Add(time.Minute * 1).Unix()),
-		LastEventTime: extutil.Ptr(time.Now().Add(-time.Minute * 1).Unix()),
-	})
-
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
-	clientset := testclient.NewSimpleClientset()
-	_, err := clientset.
-		CoreV1().
-		Events("shop").
-		Create(context.Background(), &corev1.Event{
-			LastTimestamp: metav1.Time{Time: time.Now()},
-			Message:       "test",
-			Type:          "Normal",
-		}, metav1.CreateOptions{})
-
-	require.NoError(t, err)
-	client := client.CreateClient(clientset, stopCh, "")
+	reqJson, k8sClient := prepareTest(t, stopCh)
 
 	// When
-	result, timeout, _ := K8sLogsStatus(client, reqJson)
+	result, timeout, _ := K8sLogsStatus(k8sClient, reqJson)
 
 	// Then
 	require.False(t, timeout)
-	// finde first message
+
+	for _, message := range *(result.Messages) {
+		require.Equal(t, "test", message.Message)
+		require.Equal(t, "KUBERNETES_EVENTS", *message.Type)
+		require.Equal(t, action_kit_api.MessageLevel("info"), *message.Level)
+		require.Equal(t, action_kit_api.MessageFields(action_kit_api.MessageFields{"cluster-name": "unknown", "namespace": "shop", "object": "/", "reason": ""}), *message.Fields)
+	}
+}
+
+func TestStopEventsFound(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	reqJson, k8sClient := prepareTest(t, stopCh)
+
+	// When
+	result, _ := K8sLogsStop(k8sClient, reqJson)
+
+	// Then
 	for _, message := range *(result.Messages) {
 		require.Equal(t, "test", message.Message)
 		require.Equal(t, "KUBERNETES_EVENTS", *message.Type)

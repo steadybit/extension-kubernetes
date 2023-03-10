@@ -32,6 +32,7 @@ func RegisterK8sEventsHandlers() {
 	exthttp.RegisterHttpHandler("/events/prepare", prepareK8sEvents)
 	exthttp.RegisterHttpHandler("/events/start", startK8sEvents)
 	exthttp.RegisterHttpHandler("/events/status", statusK8sEvents)
+	exthttp.RegisterHttpHandler("/events/stop", stopK8sEvents)
 }
 
 func getK8sEventsDescription() action_kit_api.ActionDescription {
@@ -123,7 +124,7 @@ func StartK8sLogs(body []byte) (*K8sEventsState, *extension_kit.ExtensionError) 
 	var state K8sEventsState
 	err = utils.DecodeActionState(request.State, &state)
 	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse attack state", err))
+		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse state", err))
 	}
 
 	state.LastEventTime = extutil.Ptr(time.Now().Unix())
@@ -152,7 +153,7 @@ func K8sLogsStatus(k8s *client.Client, body []byte) (*action_kit_api.StatusResul
 	var state K8sEventsState
 	err = utils.DecodeActionState(request.State, &state)
 	if err != nil {
-		return nil, false, extutil.Ptr(extension_kit.ToError("Failed to parse attack state", err))
+		return nil, false, extutil.Ptr(extension_kit.ToError("Failed to parse state", err))
 	}
 
 	if state.TimeoutEnd != nil && time.Now().After(time.Unix(*state.TimeoutEnd, 0)) {
@@ -167,6 +168,14 @@ func K8sLogsStatus(k8s *client.Client, body []byte) (*action_kit_api.StatusResul
 		}), true, nil
 	}
 
+	messages := getMessages(k8s, state)
+	return extutil.Ptr(action_kit_api.StatusResult{
+		Completed: false,
+		Messages:  messages,
+	}), false, nil
+}
+
+func getMessages(k8s *client.Client, state K8sEventsState) *action_kit_api.Messages {
 	newLastEventTime := time.Now().Unix()
 	events := k8s.Events(time.Unix(*state.LastEventTime, 0))
 	state.LastEventTime = extutil.Ptr(newLastEventTime)
@@ -176,10 +185,36 @@ func K8sLogsStatus(k8s *client.Client, body []byte) (*action_kit_api.StatusResul
 		log.Debug().Msgf("Event: %s", event.Message)
 	}
 
-	return extutil.Ptr(action_kit_api.StatusResult{
-		Completed: false,
-		Messages:  eventsToMessages(events),
-	}), false, nil
+	messages := eventsToMessages(events)
+	return messages
+}
+
+func stopK8sEvents(w http.ResponseWriter, _ *http.Request, body []byte) {
+	result, err := K8sLogsStop(client.K8S, body)
+	if err != nil {
+		exthttp.WriteError(w, *err)
+	} else {
+		exthttp.WriteBody(w, result)
+	}
+}
+func K8sLogsStop(k8s *client.Client, body []byte) (*action_kit_api.StopResult, *extension_kit.ExtensionError) {
+	var request action_kit_api.ActionStatusRequestBody
+	err := json.Unmarshal(body, &request)
+	if err != nil {
+		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
+	}
+
+	var state K8sEventsState
+	err = utils.DecodeActionState(request.State, &state)
+	if err != nil {
+		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse state", err))
+	}
+
+	messages := getMessages(k8s, state)
+
+	return extutil.Ptr(action_kit_api.StopResult{
+		Messages: messages,
+	}), nil
 }
 
 func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {
