@@ -36,7 +36,7 @@ func getContainerDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       containerTargetType,
-		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes container", Other: "Kubernetes containers"},
+		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Container", Other: "Kubernetes Containers"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  "1.0.0-SNAPSHOT",
 		Icon:     extutil.Ptr(containerIcon),
