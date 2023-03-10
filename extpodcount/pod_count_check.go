@@ -34,8 +34,8 @@ const (
 func getPodCountCheckDescription() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          podCountCheckActionId,
-		Label:       "pod count check",
-		Description: "verifies pod counts",
+		Label:       "Pod Count",
+		Description: "Verify pod counts",
 		Version:     "1.0.0-SNAPSHOT",
 		Icon:        extutil.Ptr(podCountCheckIcon),
 		Category:    extutil.Ptr("kubernetes"),

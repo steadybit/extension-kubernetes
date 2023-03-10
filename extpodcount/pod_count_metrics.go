@@ -29,8 +29,8 @@ func RegisterPodCountMetricsHandlers() {
 func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          podCountMetricActionId,
-		Label:       "pod count metrics",
-		Description: "collects information about pod counts (desired vs. actual count).",
+		Label:       "Pod Count Metrics",
+		Description: "Collects information about pod counts (desired vs. actual count).",
 		Version:     "1.0.0-SNAPSHOT",
 		Icon:        extutil.Ptr(podCountMetricIcon),
 		Category:    extutil.Ptr("kubernetes"),
