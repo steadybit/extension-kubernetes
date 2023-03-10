@@ -40,7 +40,7 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 		Description: "Collect event logs from a Kubernetes",
 		Version:     "1.0.0",
 		Icon:        extutil.Ptr(logIcon),
-		Category:    extutil.Ptr("monitoring"),
+		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,
 		Kind:        action_kit_api.Other,
 		Parameters: []action_kit_api.ActionParameter{

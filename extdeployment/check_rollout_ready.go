@@ -47,7 +47,7 @@ func getDeploymentRolloutStatusDescription() action_kit_api.ActionDescription {
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 			},
 		}),
-		Category:    extutil.Ptr("state"),
+		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,
 		Kind:        action_kit_api.Check,
 		Parameters: []action_kit_api.ActionParameter{
