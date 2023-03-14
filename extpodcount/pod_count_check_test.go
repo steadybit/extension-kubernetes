@@ -68,9 +68,6 @@ func TestStatusCheckDeploymentNotFound(t *testing.T) {
 		Deployment:        "checkout",
 	})
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
 		AppsV1().
@@ -82,6 +79,9 @@ func TestStatusCheckDeploymentNotFound(t *testing.T) {
 			},
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
@@ -100,9 +100,6 @@ func TestStatusCheckPodCountMin1Success(t *testing.T) {
 		Namespace:         "shop",
 		Deployment:        "checkout",
 	})
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
 
 	desiredCount := int32(1)
 
@@ -124,6 +121,8 @@ func TestStatusCheckPodCountMin1Success(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
@@ -142,9 +141,6 @@ func TestStatusCheckPodCountMin1Fail(t *testing.T) {
 		Namespace:         "shop",
 		Deployment:        "checkout",
 	})
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
 
 	desiredCount := int32(1)
 
@@ -166,6 +162,8 @@ func TestStatusCheckPodCountMin1Fail(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
@@ -185,9 +183,6 @@ func TestStatusCheckPodCountEqualsDesiredCountSuccess(t *testing.T) {
 		Deployment:        "checkout",
 	})
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
 	desiredCount := int32(2)
 
 	clientset := testclient.NewSimpleClientset()
@@ -208,6 +203,8 @@ func TestStatusCheckPodCountEqualsDesiredCountSuccess(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
@@ -227,9 +224,6 @@ func TestStatusCheckPodCountEqualsDesiredCountFail(t *testing.T) {
 		Deployment:        "checkout",
 	})
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
 	desiredCount := int32(2)
 
 	clientset := testclient.NewSimpleClientset()
@@ -250,6 +244,8 @@ func TestStatusCheckPodCountEqualsDesiredCountFail(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
@@ -269,9 +265,6 @@ func TestStatusCheckPodCountLessThanDesiredCountSuccess(t *testing.T) {
 		Deployment:        "checkout",
 	})
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
 	desiredCount := int32(2)
 
 	clientset := testclient.NewSimpleClientset()
@@ -292,6 +285,8 @@ func TestStatusCheckPodCountLessThanDesiredCountSuccess(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
@@ -310,9 +305,6 @@ func TestStatusCheckPodCountLessThanDesiredCountFail(t *testing.T) {
 		Namespace:         "shop",
 		Deployment:        "checkout",
 	})
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
 
 	desiredCount := int32(2)
 
@@ -334,6 +326,8 @@ func TestStatusCheckPodCountLessThanDesiredCountFail(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When

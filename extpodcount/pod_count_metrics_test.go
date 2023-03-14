@@ -55,8 +55,6 @@ func TestStatusReturnsMetrics(t *testing.T) {
 		LastMetrics: make(map[string]int32),
 	})
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
 	extconfig.Config.ClusterName = "development"
 
 	desiredCount := int32(5)
@@ -88,6 +86,8 @@ func TestStatusReturnsMetrics(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
