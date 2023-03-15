@@ -88,7 +88,7 @@ func TestStatusEventsFound(t *testing.T) {
 		require.Equal(t, "test", message.Message)
 		require.Equal(t, "KUBERNETES_EVENTS", *message.Type)
 		require.Equal(t, action_kit_api.MessageLevel("info"), *message.Level)
-		require.Equal(t, action_kit_api.MessageFields(action_kit_api.MessageFields{"cluster-name": "unknown", "namespace": "shop", "object": "/", "reason": ""}), *message.Fields)
+		require.Equal(t, action_kit_api.MessageFields{"cluster-name": "unknown", "namespace": "shop", "object": "/", "reason": ""}, *message.Fields)
 	}
 }
 
@@ -107,6 +107,6 @@ func TestStopEventsFound(t *testing.T) {
 		require.Equal(t, "test", message.Message)
 		require.Equal(t, "KUBERNETES_EVENTS", *message.Type)
 		require.Equal(t, action_kit_api.MessageLevel("info"), *message.Level)
-		require.Equal(t, action_kit_api.MessageFields(action_kit_api.MessageFields{"cluster-name": "unknown", "namespace": "shop", "object": "/", "reason": ""}), *message.Fields)
+		require.Equal(t, action_kit_api.MessageFields{"cluster-name": "unknown", "namespace": "shop", "object": "/", "reason": ""}, *message.Fields)
 	}
 }
