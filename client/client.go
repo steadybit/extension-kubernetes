@@ -43,6 +43,8 @@ type Client struct {
 	statefulSetsLister   listerAppsv1.StatefulSetLister
 	statefulSetsInformer cache.SharedIndexInformer
 	eventsInformer       cache.SharedIndexInformer
+	nodesLister          listerCorev1.NodeLister
+	nodesInformer        cache.SharedIndexInformer
 }
 
 func (c *Client) Pods() []*corev1.Pod {
@@ -147,6 +149,28 @@ func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *a
 	}
 }
 
+func (c *Client) NodesReadyCount() int {
+	nodes := c.Nodes()
+	nodeCountReady := 0
+	for _, node := range nodes {
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
+				nodeCountReady = nodeCountReady + 1
+			}
+		}
+	}
+	return nodeCountReady
+}
+
+func (c *Client) Nodes() []*corev1.Node {
+	nodes, err := c.nodesLister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching nodes")
+		return []*corev1.Node{}
+	}
+	return nodes
+}
+
 func (c *Client) Events(since time.Time) *[]corev1.Event {
 	events := c.eventsInformer.GetIndexer().List()
 	//filter events by time
@@ -191,6 +215,8 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	statefulSets := factory.Apps().V1().StatefulSets()
 	statefulSetsInformer := statefulSets.Informer()
 	eventsInformer := factory.Core().V1().Events().Informer()
+	nodes := factory.Core().V1().Nodes()
+	nodesInformer := nodes.Informer()
 
 	defer runtime.HandleCrash()
 
@@ -204,6 +230,8 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		replicaSetsInformer.HasSynced,
 		servicesInformer.HasSynced,
 		statefulSetsInformer.HasSynced,
+		eventsInformer.HasSynced,
+		nodesInformer.HasSynced,
 	) {
 		log.Fatal().Msg("Timed out waiting for caches to sync")
 	}
@@ -229,6 +257,8 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		statefulSetsLister:   statefulSets.Lister(),
 		statefulSetsInformer: statefulSetsInformer,
 		eventsInformer:       eventsInformer,
+		nodesLister:          nodes.Lister(),
+		nodesInformer:        nodesInformer,
 	}
 }
 

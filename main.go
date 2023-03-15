@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
+	"github.com/steadybit/extension-kubernetes/extnode"
 )
 
 func main() {
@@ -33,6 +34,8 @@ func main() {
 	extevents.RegisterK8sEventsHandlers()
 	extdeployment.RegisterPodCountMetricsHandlers()
 	extdeployment.RegisterPodCountCheckHandlers()
+	extnode.RegisterNodeCountCheckHandlers()
+	extnode.RegisterClusterDiscoveryHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8088,
@@ -68,6 +71,10 @@ func getExtensionList() ExtensionListResponse {
 					"GET",
 					"/pod-count/check",
 				},
+				{
+					"GET",
+					"/node-count/check",
+				},
 			},
 		},
 		DiscoveryList: discovery_kit_api.DiscoveryList{
@@ -79,6 +86,10 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/container/discovery",
+				},
+				{
+					Method: "GET",
+					Path:   "/cluster/discovery",
 				},
 			},
 			TargetTypes: []discovery_kit_api.DescribingEndpointReference{
