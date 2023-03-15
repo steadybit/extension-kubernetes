@@ -36,7 +36,7 @@ func getDeploymentRolloutRestartAttackDescription() action_kit_api.ActionDescrip
 		Id:          fmt.Sprintf("%s.attack.rollout-restart", DeploymentTargetType),
 		Label:       "Rollout Restart Deployment",
 		Description: "Execute a rollout restart for a Kubernetes deployment",
-		Version:     "1.0.0",
+		Version:     "1.0.0-SNAPSHOT",
 		Icon:        extutil.Ptr(deploymentIcon),
 		TargetType:  extutil.Ptr(DeploymentTargetType),
 		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{

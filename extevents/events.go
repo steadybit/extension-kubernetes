@@ -40,7 +40,7 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 		Id:          "com.github.steadybit.extension_kubernetes.kubernetes_logs",
 		Label:       "Kubernetes Event Logs",
 		Description: "Collect event logs from a Kubernetes",
-		Version:     "1.0.0",
+		Version:     "1.0.0-SNAPSHOT",
 		Icon:        extutil.Ptr(logIcon),
 		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,
