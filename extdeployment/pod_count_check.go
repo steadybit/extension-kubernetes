@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2022 Steadybit GmbH
 
-package extpodcount
+package extdeployment
 
 import (
 	"encoding/json"
@@ -12,7 +12,6 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
-	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"math"
 	"net/http"
 	"time"
@@ -41,7 +40,7 @@ func getPodCountCheckDescription() action_kit_api.ActionDescription {
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.Internal,
-		TargetType:  extutil.Ptr(extdeployment.DeploymentTargetType),
+		TargetType:  extutil.Ptr(deploymentTargetType),
 		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "default",

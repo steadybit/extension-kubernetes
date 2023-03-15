@@ -21,7 +21,7 @@ func RegisterDeploymentDiscoveryHandlers() {
 
 func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         DeploymentTargetType,
+		Id:         deploymentTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			Method:       "GET",
@@ -33,7 +33,7 @@ func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription 
 
 func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
-		Id:       DeploymentTargetType,
+		Id:       deploymentTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Deployment", Other: "Kubernetes Deployments"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  "1.0.0-SNAPSHOT",
@@ -92,7 +92,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
-			TargetType: DeploymentTargetType,
+			TargetType: deploymentTargetType,
 			Label:      d.Name,
 			Attributes: attributes,
 		}

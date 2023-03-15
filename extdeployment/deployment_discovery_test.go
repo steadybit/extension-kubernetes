@@ -98,7 +98,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	target := targets[0]
 	assert.Equal(t, "development/default/shop", target.Id)
 	assert.Equal(t, "shop", target.Label)
-	assert.Equal(t, DeploymentTargetType, target.TargetType)
+	assert.Equal(t, deploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
 		"k8s.namespace":                  {"default"},
 		"k8s.deployment":                 {"shop"},

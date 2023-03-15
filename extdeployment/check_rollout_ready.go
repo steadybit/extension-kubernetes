@@ -34,12 +34,12 @@ func RegisterDeploymentRolloutStatusCheckHandlers() {
 
 func getDeploymentRolloutStatusDescription() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          fmt.Sprintf("%s.check.rollout-status", DeploymentTargetType),
+		Id:          fmt.Sprintf("%s.check.rollout-status", deploymentTargetType),
 		Label:       "Deployment Rollout Status",
 		Description: "Check the rollout status of the deployment. The check succeeds when no rollout is pending, i.e., `kubectl rollout status` exits with status code `0`.",
 		Version:     "1.0.0-SNAPSHOT",
 		Icon:        extutil.Ptr(deploymentIcon),
-		TargetType:  extutil.Ptr(DeploymentTargetType),
+		TargetType:  extutil.Ptr(deploymentTargetType),
 		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "default",
