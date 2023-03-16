@@ -83,6 +83,9 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
 				for _, container := range pod.Status.ContainerStatuses {
+					if container.ContainerID == "" {
+						continue
+					}
 					containerIds = append(containerIds, container.ContainerID)
 				}
 			}
