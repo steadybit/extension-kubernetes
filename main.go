@@ -101,6 +101,10 @@ func getExtensionList() ExtensionListResponse {
 					Method: "GET",
 					Path:   "/container/discovery/target-description",
 				},
+				{
+					Method: "GET",
+					Path:   "/cluster/discovery/target-description",
+				},
 			},
 			TargetAttributes: []discovery_kit_api.DescribingEndpointReference{
 				{
