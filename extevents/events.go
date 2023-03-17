@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
@@ -40,7 +41,7 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 		Id:          "com.github.steadybit.extension_kubernetes.kubernetes_logs",
 		Label:       "Kubernetes Event Logs",
 		Description: "Collect event logs from a Kubernetes",
-		Version:     "1.0.0-SNAPSHOT",
+		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(logIcon),
 		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,

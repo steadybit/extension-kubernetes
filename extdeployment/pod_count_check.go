@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
@@ -35,7 +36,7 @@ func getPodCountCheckDescription() action_kit_api.ActionDescription {
 		Id:          podCountCheckActionId,
 		Label:       "Pod Count",
 		Description: "Verify pod counts",
-		Version:     "1.0.0-SNAPSHOT",
+		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(podCountCheckIcon),
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Check,

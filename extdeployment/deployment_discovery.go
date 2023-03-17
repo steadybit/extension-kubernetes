@@ -6,6 +6,7 @@ package extdeployment
 import (
 	"fmt"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
@@ -36,7 +37,7 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 		Id:       deploymentTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Deployment", Other: "Kubernetes Deployments"},
 		Category: extutil.Ptr("Kubernetes"),
-		Version:  "1.0.0-SNAPSHOT",
+		Version:  extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:     extutil.Ptr(deploymentIcon),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{

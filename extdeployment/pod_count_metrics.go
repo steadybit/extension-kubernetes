@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
@@ -31,7 +32,7 @@ func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 		Id:          podCountMetricActionId,
 		Label:       "Pod Count Metrics",
 		Description: "Collects information about pod counts (desired vs. actual count).",
-		Version:     "1.0.0-SNAPSHOT",
+		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(podCountMetricIcon),
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Other,

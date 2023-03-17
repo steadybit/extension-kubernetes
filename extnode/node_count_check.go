@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
@@ -35,7 +36,7 @@ func getNodeCountCheckDescription() action_kit_api.ActionDescription {
 		Id:          nodeCountCheckActionId,
 		Label:       "Node Count",
 		Description: "Verify node counts",
-		Version:     "1.0.0-SNAPSHOT",
+		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(nodeCountCheckIcon),
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Check,

@@ -6,6 +6,7 @@ package extcontainer
 import (
 	"fmt"
 	discovery_kit_api "github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
@@ -38,7 +39,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 		Id:       containerTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Container", Other: "Kubernetes Containers"},
 		Category: extutil.Ptr("Kubernetes"),
-		Version:  "1.0.0-SNAPSHOT",
+		Version:  extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:     extutil.Ptr(containerIcon),
 		EnrichmentRules: extutil.Ptr([]discovery_kit_api.TargetEnrichmentRule{
 			{

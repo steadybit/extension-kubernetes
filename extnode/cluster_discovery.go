@@ -5,6 +5,7 @@ package extnode
 
 import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/extconfig"
@@ -34,7 +35,7 @@ func getClusterTargetDescription() discovery_kit_api.TargetDescription {
 		Id:       clusterTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Cluster", Other: "Kubernetes Cluster"},
 		Category: extutil.Ptr("Kubernetes"),
-		Version:  "1.0.0-SNAPSHOT",
+		Version:  extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:     extutil.Ptr(clusterIcon),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
