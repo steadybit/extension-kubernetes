@@ -186,8 +186,8 @@ github.com/steadybit/action-kit/go/action_kit_api/v2 v2.2.1-0.20230309152839-790
 github.com/steadybit/action-kit/go/action_kit_api/v2 v2.2.1-0.20230309152839-790a73570243/go.mod h1:4yGr/DzsHpw6elju1XHCeUsY/qoqNTcLY3ytgnNcMt8=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230224102014-0d3e5260ba14 h1:ZfetmR1r3Je9umN7RGSghgBCryzicExQT1NumJeTjI4=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.1.1-0.20230224102014-0d3e5260ba14/go.mod h1:OnIfjrBhmMQCYxriHmr8mT1wCpvqIZxwBHWnanFhgNA=
-github.com/steadybit/extension-kit v1.6.0 h1:TV5EQQqT9yBtzTKoHg4s56B+n2x1UAWok0t2puoo26o=
-github.com/steadybit/extension-kit v1.6.0/go.mod h1:zC5Tw+wrJTx4xvOlsIY+MfMoRYoglj83vR15Xr3aP5c=
+github.com/steadybit/extension-kit v1.7.1 h1:znUl8db9tv2g38C6H02CBnxvku0fVBiLXxXhrPXhAHg=
+github.com/steadybit/extension-kit v1.7.1/go.mod h1:zC5Tw+wrJTx4xvOlsIY+MfMoRYoglj83vR15Xr3aP5c=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
