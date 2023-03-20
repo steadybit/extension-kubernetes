@@ -24,7 +24,7 @@ func RegisterContainerDiscoveryHandlers() {
 
 func getContainerDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         containerTargetType,
+		Id:         kubernetesContainerTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			Method:       "GET",
@@ -36,15 +36,15 @@ func getContainerDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 
 func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
-		Id:       containerTargetType,
+		Id:       kubernetesContainerTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Container", Other: "Kubernetes Containers"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr(containerIcon),
+		Icon:     extutil.Ptr(kubernetesContainerIcon),
 		EnrichmentRules: extutil.Ptr([]discovery_kit_api.TargetEnrichmentRule{
 			{
 				Src: discovery_kit_api.SourceOrDestination{
-					Type: containerTargetType,
+					Type: kubernetesContainerTargetType,
 					Selector: map[string]string{
 						"k8s.container.id.stripped": "${dest.container.id.stripped}",
 					},
@@ -110,7 +110,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 				},
 			}, {
 				Src: discovery_kit_api.SourceOrDestination{
-					Type: containerTargetType,
+					Type: kubernetesContainerTargetType,
 					Selector: map[string]string{
 						"k8s.node.name": "${dest.host.hostname}",
 					},
@@ -223,7 +223,7 @@ func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Targe
 			targets = append(targets, discovery_kit_api.Target{
 				Id:         container.ContainerID,
 				Label:      container.Name,
-				TargetType: containerTargetType,
+				TargetType: kubernetesContainerTargetType,
 				Attributes: attributes,
 			})
 		}
