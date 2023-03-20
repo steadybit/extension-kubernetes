@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/utils"
@@ -34,13 +35,20 @@ func RegisterDeploymentRolloutStatusCheckHandlers() {
 
 func getDeploymentRolloutStatusDescription() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          fmt.Sprintf("%s.check.rollout-status", deploymentTargetId),
-		Label:       "deployment rollout status",
+		Id:          rolloutStatusActionId,
+		Label:       "Deployment Rollout Status",
 		Description: "Check the rollout status of the deployment. The check succeeds when no rollout is pending, i.e., `kubectl rollout status` exits with status code `0`.",
-		Version:     "1.0.0-SNAPSHOT",
+		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(deploymentIcon),
-		TargetType:  extutil.Ptr(deploymentTargetId),
-		Category:    extutil.Ptr("state"),
+		TargetType:  extutil.Ptr(deploymentTargetType),
+		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			{
+				Label:       "default",
+				Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
+				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
+			},
+		}),
+		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,
 		Kind:        action_kit_api.Check,
 		Parameters: []action_kit_api.ActionParameter{

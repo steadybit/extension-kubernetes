@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.0.0
+ - Added Discoveries for Deployments and Container
+ - Added Pod Count Check and Node Count check
+ - Added Pod Count Metrics and Event Logs
+
 ## v1.3.0
 
  - Support creation of a TLS server through the environment variables `STEADYBIT_EXTENSION_TLS_SERVER_CERT` and `STEADYBIT_EXTENSION_TLS_SERVER_KEY`. Both environment variables must refer to files containing the certificate and key in PEM format.

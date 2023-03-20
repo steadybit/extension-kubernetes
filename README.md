@@ -6,11 +6,19 @@ A [Steadybit](https://www.steadybit.com/) attack and check implementation for Ku
 
 ## Capabilities
 
- - Deployments
-     - Attacks
-         - Rollout restart (`kubectl rollout restart`) 
-     - Checks
-         - Deployment rollout status (`kubectl rollout status`)  
+- Discoveries
+  - Deployments
+  - Container
+  - Cluster
+- Attacks
+  - Deployment Rollout restart (`kubectl rollout restart`)
+- Checks
+  - Deployment rollout status (`kubectl rollout status`)  
+  - Pod count check
+  - Node count check
+- Metrics / Logs
+  - Event log
+  - Pod count metrics
 
 ## Configuration
 
@@ -34,6 +42,16 @@ rules:
       - list
       - watch
       - patch
+  - apiGroups: [""]
+    resources:
+      - services
+      - pods
+      - nodes
+      - events
+    verbs:
+      - get
+      - list
+      - watch
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -61,6 +79,8 @@ subjects:
 We recommend that you deploy the extension with our [official Helm chart](https://github.com/steadybit/helm-charts/tree/main/charts/steadybit-extension-kubernetes).
 
 ## Agent Configuration
+
+**Note:** When deployed in Kubernetes using our [official Helm chart](https://github.com/steadybit/helm-charts/tree/main/charts/steadybit-extension-kubernetes), this is not necessary because the extension can be auto-discovered.
 
 The Steadybit Kubernetes agent needs to be configured to interact with the Kubernetes extension by adding the following environment variables:
 

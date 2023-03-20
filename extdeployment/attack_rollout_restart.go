@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/utils"
@@ -33,12 +34,19 @@ func RegisterDeploymentRolloutRestartAttackHandlers() {
 
 func getDeploymentRolloutRestartAttackDescription() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          fmt.Sprintf("%s.attack.rollout-restart", deploymentTargetId),
-		Label:       "rollout restart deployment",
-		Description: "execute a rollout restart for a Kubernetes deployment",
-		Version:     "1.0.0",
+		Id:          rolloutRestartActionId,
+		Label:       "Rollout Restart Deployment",
+		Description: "Execute a rollout restart for a Kubernetes deployment",
+		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(deploymentIcon),
-		TargetType:  extutil.Ptr(deploymentTargetId),
+		TargetType:  extutil.Ptr(deploymentTargetType),
+		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			{
+				Label:       "default",
+				Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
+				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
+			},
+		}),
 		Category:    extutil.Ptr("state"),
 		TimeControl: action_kit_api.Internal,
 		Kind:        action_kit_api.Attack,

@@ -6,6 +6,9 @@
 FROM golang:1.18-alpine AS build
 
 ARG TARGETARCH
+ARG NAME
+ARG VERSION
+ARG REVISION
 
 WORKDIR /app
 
@@ -17,7 +20,12 @@ RUN chmod a+x /usr/bin/kubectl
 
 COPY . .
 
-RUN go build -o /extension-kubernetes
+RUN go build \
+    -ldflags="\
+    -X 'github.com/steadybit/extension-kit/extbuild.ExtensionName=${NAME}' \
+    -X 'github.com/steadybit/extension-kit/extbuild.Version=${VERSION}' \
+    -X 'github.com/steadybit/extension-kit/extbuild.Revision=${REVISION}'" \
+    -o /extension-kubernetes
 
 ##
 ## Runtime
