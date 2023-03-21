@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2023 Steadybit GmbH
 
-package extnode
+package extcluster
 
 import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
@@ -20,7 +20,7 @@ func RegisterClusterDiscoveryHandlers() {
 
 func getClusterDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         clusterTargetType,
+		Id:         ClusterTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			Method:       "GET",
@@ -32,7 +32,7 @@ func getClusterDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 
 func getClusterTargetDescription() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
-		Id:       clusterTargetType,
+		Id:       ClusterTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Cluster", Other: "Kubernetes Cluster"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
@@ -61,7 +61,7 @@ func getDiscoveredClusterTargets() []discovery_kit_api.Target {
 		{
 			Id:         extconfig.Config.ClusterName,
 			Label:      extconfig.Config.ClusterName,
-			TargetType: clusterTargetType,
+			TargetType: ClusterTargetType,
 			Attributes: map[string][]string{
 				"k8s.cluster-name": {extconfig.Config.ClusterName},
 			},

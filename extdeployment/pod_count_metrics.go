@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"math"
@@ -37,6 +38,14 @@ func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Other,
 		TimeControl: action_kit_api.Internal,
+		TargetType:  extutil.Ptr(extcluster.ClusterTargetType),
+		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			{
+				Label:       "default",
+				Description: extutil.Ptr("Find cluster by name"),
+				Query:       "k8s.cluster-name=\"\"",
+			},
+		}),
 		Parameters: []action_kit_api.ActionParameter{
 			{
 				Name:         "duration",

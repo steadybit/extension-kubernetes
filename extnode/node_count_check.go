@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcluster"
 	"math"
 	"net/http"
 	"time"
@@ -41,7 +42,7 @@ func getNodeCountCheckDescription() action_kit_api.ActionDescription {
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.Internal,
-		TargetType:  extutil.Ptr(clusterTargetType),
+		TargetType:  extutil.Ptr(extcluster.ClusterTargetType),
 		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "default",

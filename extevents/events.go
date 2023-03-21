@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/utils"
 	corev1 "k8s.io/api/core/v1"
 	"net/http"
@@ -46,6 +47,14 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,
 		Kind:        action_kit_api.Other,
+		TargetType:  extutil.Ptr(extcluster.ClusterTargetType),
+		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			{
+				Label:       "default",
+				Description: extutil.Ptr("Find cluster by name"),
+				Query:       "k8s.cluster-name=\"\"",
+			},
+		}),
 		Parameters: []action_kit_api.ActionParameter{
 			{
 				Name:         "duration",

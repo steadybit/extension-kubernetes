@@ -10,6 +10,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
@@ -37,7 +38,7 @@ func main() {
 	extdeployment.RegisterPodCountMetricsHandlers()
 	extdeployment.RegisterPodCountCheckHandlers()
 	extnode.RegisterNodeCountCheckHandlers()
-	extnode.RegisterClusterDiscoveryHandlers()
+	extcluster.RegisterClusterDiscoveryHandlers()
 
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8088,
