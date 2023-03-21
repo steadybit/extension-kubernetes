@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.1.0
+ - Kubernetes Event Log and Pod Metrics will need a cluster-selection to support multiple kubernetes clusters
+
 ## v2.0.0
  - Added Discoveries for Deployments and Container
  - Added Pod Count Check and Node Count check
