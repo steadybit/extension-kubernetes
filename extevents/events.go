@@ -85,6 +85,10 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 			Method: "POST",
 			Path:   "/events/status",
 		}),
+		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{
+			Method: "POST",
+			Path:   "/events/stop",
+		}),
 	}
 }
 
