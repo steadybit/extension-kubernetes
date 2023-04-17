@@ -40,13 +40,15 @@ func getDeploymentRolloutStatusDescription() action_kit_api.ActionDescription {
 		Description: "Check the rollout status of the deployment. The check succeeds when no rollout is pending, i.e., `kubectl rollout status` exits with status code `0`.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(deploymentIcon),
-		TargetType:  extutil.Ptr(deploymentTargetType),
-		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
-			{
-				Label:       "default",
-				Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
-				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
-			},
+		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+			TargetType: deploymentTargetType,
+			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+				{
+					Label:       "default",
+					Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
+					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
+				},
+			}),
 		}),
 		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,
