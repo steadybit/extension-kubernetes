@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - 'develop'
     tags:
       - 'v*'
   pull_request:
@@ -39,12 +38,6 @@ jobs:
         run: |
           go mod download
           go test ./... -coverprofile=coverage.out
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Log in to the container registry
         if: github.event_name != 'pull_request'
