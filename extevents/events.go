@@ -47,13 +47,16 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 		Category:    extutil.Ptr("kubernetes"),
 		TimeControl: action_kit_api.Internal,
 		Kind:        action_kit_api.Other,
-		TargetType:  extutil.Ptr(extcluster.ClusterTargetType),
-		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
-			{
-				Label:       "default",
-				Description: extutil.Ptr("Find cluster by name"),
-				Query:       "k8s.cluster-name=\"\"",
-			},
+		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+			TargetType:          extcluster.ClusterTargetType,
+			QuantityRestriction: extutil.Ptr(action_kit_api.ExactlyOne),
+			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+				{
+					Label:       "default",
+					Description: extutil.Ptr("Find cluster by name"),
+					Query:       "k8s.cluster-name=\"\"",
+				},
+			}),
 		}),
 		Parameters: []action_kit_api.ActionParameter{
 			{

@@ -41,13 +41,16 @@ func getPodCountCheckDescription() action_kit_api.ActionDescription {
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.Internal,
-		TargetType:  extutil.Ptr(deploymentTargetType),
-		TargetSelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
-			{
-				Label:       "default",
-				Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
-				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
-			},
+		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+			TargetType:          deploymentTargetType,
+			QuantityRestriction: extutil.Ptr(action_kit_api.All),
+			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+				{
+					Label:       "default",
+					Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
+					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
+				},
+			}),
 		}),
 		Parameters: []action_kit_api.ActionParameter{
 			{
