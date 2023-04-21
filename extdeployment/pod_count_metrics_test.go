@@ -5,9 +5,7 @@ package extdeployment
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/stretchr/testify/require"
@@ -18,18 +16,6 @@ import (
 	"time"
 )
 
-func getStatusRequestBodyMetric(t *testing.T, state PodCountMetricsState) []byte {
-	var encodedState action_kit_api.ActionState
-	err := extconversion.Convert(state, &encodedState)
-	require.NoError(t, err)
-	request := action_kit_api.ActionStatusRequestBody{
-		State: encodedState,
-	}
-	reqJson, err := json.Marshal(request)
-	require.NoError(t, err)
-	return reqJson
-}
-
 func TestPrepareMetricsExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
@@ -37,23 +23,25 @@ func TestPrepareMetricsExtractsState(t *testing.T) {
 			"duration": 1000 * 60,
 		},
 	}
-	reqJson, err := json.Marshal(request)
-	require.NoError(t, err)
+
+	action := NewPodCountMetricsAction()
+	state := action.NewEmptyState()
 
 	// When
-	state, extErr := preparePodCountMetricsInternal(reqJson)
+	result, err := action.Prepare(context.TODO(), &state, request)
 
 	// Then
-	require.Nil(t, extErr)
+	require.Nil(t, err)
+	require.Nil(t, result)
 	require.True(t, state.End.After(time.Now()))
 }
 
 func TestStatusReturnsMetrics(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyMetric(t, PodCountMetricsState{
+	state := PodCountMetricsState{
 		End:         time.Now().Add(time.Minute * -1),
 		LastMetrics: make(map[string]int32),
-	})
+	}
 
 	extconfig.Config.ClusterName = "development"
 
@@ -91,10 +79,10 @@ func TestStatusReturnsMetrics(t *testing.T) {
 	client := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountMetricsInternal(client, reqJson)
+	result := statusPodCountMetricsInternal(client, &state)
 
 	// Then
-	require.Len(t, (*result.State)["LastMetrics"], 4)
+	require.Len(t, state.LastMetrics, 4)
 	require.True(t, result.Completed)
 	require.Nil(t, result.Error)
 	require.Len(t, *result.Metrics, 4)

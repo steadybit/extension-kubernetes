@@ -4,20 +4,20 @@
 package extdeployment
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/utils"
-	"net/http"
 	"os/exec"
 	"strings"
 	"time"
 )
+
+type CheckDeploymentRolloutStatusAction struct {
+}
 
 type CheckDeploymentRolloutStatusState struct {
 	Cluster    string `json:"cluster"`
@@ -26,14 +26,18 @@ type CheckDeploymentRolloutStatusState struct {
 	TimeoutEnd *int64 `json:"timeoutEnd"`
 }
 
-func RegisterDeploymentRolloutStatusCheckHandlers() {
-	exthttp.RegisterHttpHandler("/deployment/check/rollout-status", exthttp.GetterAsHandler(getDeploymentRolloutStatusDescription))
-	exthttp.RegisterHttpHandler("/deployment/check/rollout-status/prepare", prepareDeploymentRolloutStatus)
-	exthttp.RegisterHttpHandler("/deployment/check/rollout-status/start", startDeploymentRolloutStatus)
-	exthttp.RegisterHttpHandler("/deployment/check/rollout-status/status", deploymentRolloutStatusStatus)
+func NewCheckDeploymentRolloutStatusAction() action_kit_sdk.Action[CheckDeploymentRolloutStatusState] {
+	return CheckDeploymentRolloutStatusAction{}
 }
 
-func getDeploymentRolloutStatusDescription() action_kit_api.ActionDescription {
+var _ action_kit_sdk.Action[CheckDeploymentRolloutStatusState] = (*CheckDeploymentRolloutStatusAction)(nil)
+var _ action_kit_sdk.ActionWithStatus[CheckDeploymentRolloutStatusState] = (*CheckDeploymentRolloutStatusAction)(nil)
+
+func (f CheckDeploymentRolloutStatusAction) NewEmptyState() CheckDeploymentRolloutStatusState {
+	return CheckDeploymentRolloutStatusState{}
+}
+
+func (f CheckDeploymentRolloutStatusAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          rolloutStatusActionId,
 		Label:       "Deployment Rollout Status",
@@ -63,116 +67,37 @@ func getDeploymentRolloutStatusDescription() action_kit_api.ActionDescription {
 				DefaultValue: extutil.Ptr("10m"),
 			},
 		},
-		Prepare: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/deployment/check/rollout-status/prepare",
-		},
-		Start: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/deployment/check/rollout-status/start",
-		},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			Method: "POST",
-			Path:   "/deployment/check/rollout-status/status",
-		}),
+		Prepare: action_kit_api.MutatingEndpointReference{},
+		Start:   action_kit_api.MutatingEndpointReference{},
+		Status:  extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{}),
 	}
 }
 
-func prepareDeploymentRolloutStatus(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := PrepareDeploymentRolloutStatus(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		utils.WriteActionState(w, *state)
-	}
-}
-
-func PrepareDeploymentRolloutStatus(body []byte) (*CheckDeploymentRolloutStatusState, *extension_kit.ExtensionError) {
-	var request action_kit_api.PrepareActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
+func (f CheckDeploymentRolloutStatusAction) Prepare(_ context.Context, state *CheckDeploymentRolloutStatusState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var timeoutEnd *int64
 	if request.Config["duration"] != nil {
-		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(float64(time.Millisecond) * request.Config["duration"].(float64))).Unix())
+		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * request.Config["duration"].(int))).Unix())
 	}
-
-	return extutil.Ptr(CheckDeploymentRolloutStatusState{
-		Cluster:    request.Target.Attributes["k8s.cluster-name"][0],
-		Namespace:  request.Target.Attributes["k8s.namespace"][0],
-		Deployment: request.Target.Attributes["k8s.deployment"][0],
-		TimeoutEnd: timeoutEnd,
-	}), nil
+	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
+	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
+	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
+	state.TimeoutEnd = timeoutEnd
+	return nil, nil
 }
 
-func startDeploymentRolloutStatus(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := StartDeploymentRolloutStatus(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		utils.WriteActionState(w, *state)
-	}
+func (f CheckDeploymentRolloutStatusAction) Start(_ context.Context, _ *CheckDeploymentRolloutStatusState) (*action_kit_api.StartResult, error) {
+	return nil, nil
 }
 
-func StartDeploymentRolloutStatus(body []byte) (*CheckDeploymentRolloutStatusState, *extension_kit.ExtensionError) {
-	var request action_kit_api.StartActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
-	var state CheckDeploymentRolloutStatusState
-	err = utils.DecodeActionState(request.State, &state)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse action state", err))
-	}
-
-	return &state, nil
-}
-
-func deploymentRolloutStatusStatus(w http.ResponseWriter, _ *http.Request, body []byte) {
-	result, timeout, err := RolloutStatusStatus(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		w.Header().Set("Content-Type", "application/json")
-		statusCode := 200
-		if timeout {
-			statusCode = 500
-		}
-		w.WriteHeader(statusCode)
-		encodeErr := json.NewEncoder(w).Encode(result)
-		if encodeErr != nil {
-			log.Err(encodeErr).Msgf("Failed to encode response body")
-		}
-	}
-}
-
-func RolloutStatusStatus(body []byte) (*action_kit_api.StatusResult, bool, *extension_kit.ExtensionError) {
-	var request action_kit_api.ActionStatusRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, false, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
-	var state CheckDeploymentRolloutStatusState
-	err = utils.DecodeActionState(request.State, &state)
-	if err != nil {
-		return nil, false, extutil.Ptr(extension_kit.ToError("Failed to parse check state", err))
-	}
-
+func (f CheckDeploymentRolloutStatusAction) Status(_ context.Context, state *CheckDeploymentRolloutStatusState) (*action_kit_api.StatusResult, error) {
 	if state.TimeoutEnd != nil && time.Now().After(time.Unix(*state.TimeoutEnd, 0)) {
 		return extutil.Ptr(action_kit_api.StatusResult{
-			Completed: false,
-			Messages: extutil.Ptr(action_kit_api.Messages{
-				action_kit_api.Message{
-					Level:   extutil.Ptr(action_kit_api.Error),
-					Message: fmt.Sprintf("Timed out waiting for deployment '%s' in namespace '%s' to complete rollout", state.Deployment, state.Namespace),
-				},
+			Completed: true,
+			Error: extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("Timed out waiting for deployment '%s' in namespace '%s' to complete rollout", state.Deployment, state.Namespace),
+				Status: extutil.Ptr(action_kit_api.Failed),
 			}),
-		}), true, nil
+		}), nil
 	}
 
 	cmd := exec.Command("kubectl",
@@ -184,12 +109,12 @@ func RolloutStatusStatus(body []byte) (*action_kit_api.StatusResult, bool, *exte
 		fmt.Sprintf("deployment/%s", state.Deployment))
 	cmdOut, cmdErr := cmd.CombinedOutput()
 	if cmdErr != nil {
-		return nil, false, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout status check: %s", cmdOut), cmdErr))
+		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout status check: %s", cmdOut), cmdErr))
 	}
 
 	cmdOutStr := string(cmdOut)
 	completed := !strings.Contains(strings.ToLower(cmdOutStr), "waiting")
 	return extutil.Ptr(action_kit_api.StatusResult{
 		Completed: completed,
-	}), false, nil
+	}), nil
 }

@@ -4,39 +4,43 @@
 package extevents
 
 import (
-	"encoding/json"
+	"context"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcluster"
-	"github.com/steadybit/extension-kubernetes/utils"
 	corev1 "k8s.io/api/core/v1"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 )
+
+const LogType = "KUBERNETES_EVENTS"
+
+type K8sEventsAction struct {
+}
 
 type K8sEventsState struct {
 	LastEventTime *int64 `json:"lastEventTime"`
 	TimeoutEnd    *int64 `json:"timeoutEnd"`
 }
 
-const LogType = "KUBERNETES_EVENTS"
-
-func RegisterK8sEventsHandlers() {
-	exthttp.RegisterHttpHandler("/events", exthttp.GetterAsHandler(getK8sEventsDescription))
-	exthttp.RegisterHttpHandler("/events/prepare", prepareK8sEvents)
-	exthttp.RegisterHttpHandler("/events/start", startK8sEvents)
-	exthttp.RegisterHttpHandler("/events/status", statusK8sEvents)
-	exthttp.RegisterHttpHandler("/events/stop", stopK8sEvents)
+func NewK8sEventsAction() action_kit_sdk.Action[K8sEventsState] {
+	return K8sEventsAction{}
 }
 
-func getK8sEventsDescription() action_kit_api.ActionDescription {
+var _ action_kit_sdk.Action[K8sEventsState] = (*K8sEventsAction)(nil)
+var _ action_kit_sdk.ActionWithStatus[K8sEventsState] = (*K8sEventsAction)(nil)
+var _ action_kit_sdk.ActionWithStop[K8sEventsState] = (*K8sEventsAction)(nil)
+
+func (f K8sEventsAction) NewEmptyState() K8sEventsState {
+	return K8sEventsState{}
+}
+
+func (f K8sEventsAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          "com.github.steadybit.extension_kubernetes.kubernetes_logs",
 		Label:       "Kubernetes Event Logs",
@@ -75,123 +79,48 @@ func getK8sEventsDescription() action_kit_api.ActionDescription {
 				LogType: LogType,
 			},
 		}),
-		Prepare: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/events/prepare",
-		},
-		Start: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/events/start",
-		},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			Method: "POST",
-			Path:   "/events/status",
-		}),
-		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/events/stop",
-		}),
+		Prepare: action_kit_api.MutatingEndpointReference{},
+		Start:   action_kit_api.MutatingEndpointReference{},
+		Status:  extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{}),
+		Stop:    extutil.Ptr(action_kit_api.MutatingEndpointReference{}),
 	}
 }
 
-func prepareK8sEvents(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := PrepareK8sEvents(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		utils.WriteActionState(w, *state)
-	}
-}
-
-func PrepareK8sEvents(body []byte) (*K8sEventsState, *extension_kit.ExtensionError) {
-	var request action_kit_api.PrepareActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
+func (f K8sEventsAction) Prepare(_ context.Context, state *K8sEventsState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var timeoutEnd *int64
 	if request.Config["duration"] != nil {
-		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(float64(time.Millisecond) * request.Config["duration"].(float64))).Unix())
-	}
-
-	return extutil.Ptr(K8sEventsState{
-		LastEventTime: extutil.Ptr(time.Now().Unix()),
-		TimeoutEnd:    timeoutEnd,
-	}), nil
-}
-
-func startK8sEvents(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := StartK8sLogs(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		utils.WriteActionState(w, *state)
-	}
-}
-
-func StartK8sLogs(body []byte) (*K8sEventsState, *extension_kit.ExtensionError) {
-	var request action_kit_api.StartActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
-	var state K8sEventsState
-	err = utils.DecodeActionState(request.State, &state)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse state", err))
+		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * request.Config["duration"].(int))).Unix())
 	}
 
 	state.LastEventTime = extutil.Ptr(time.Now().Unix())
-	return &state, nil
+	state.TimeoutEnd = timeoutEnd
+	return nil, nil
 }
 
-func statusK8sEvents(w http.ResponseWriter, _ *http.Request, body []byte) {
-	result, timeout, err := K8sLogsStatus(client.K8S, body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		if timeout {
-			log.Info().Msgf("Timeout")
-		}
-		exthttp.WriteBody(w, result)
-	}
+func (f K8sEventsAction) Start(_ context.Context, state *K8sEventsState) (*action_kit_api.StartResult, error) {
+	state.LastEventTime = extutil.Ptr(time.Now().Unix())
+	return nil, nil
 }
 
-func K8sLogsStatus(k8s *client.Client, body []byte) (*action_kit_api.StatusResult, bool, *extension_kit.ExtensionError) {
-	var request action_kit_api.ActionStatusRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, false, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
+func (f K8sEventsAction) Status(ctx context.Context, state *K8sEventsState) (*action_kit_api.StatusResult, error) {
+	return statusInternal(client.K8S, state), nil
+}
 
-	var state K8sEventsState
-	err = utils.DecodeActionState(request.State, &state)
-	if err != nil {
-		return nil, false, extutil.Ptr(extension_kit.ToError("Failed to parse state", err))
-	}
-
+func statusInternal(k8s *client.Client, state *K8sEventsState) *action_kit_api.StatusResult {
 	if state.TimeoutEnd != nil && time.Now().After(time.Unix(*state.TimeoutEnd, 0)) {
 		return extutil.Ptr(action_kit_api.StatusResult{
 			Completed: true,
-			Messages: extutil.Ptr(action_kit_api.Messages{
-				action_kit_api.Message{
-					Level:   extutil.Ptr(action_kit_api.Error),
-					Message: "Timeout reached",
-				},
-			}),
-		}), true, nil
+		})
 	}
 
 	messages := getMessages(k8s, state)
 	return extutil.Ptr(action_kit_api.StatusResult{
 		Completed: false,
 		Messages:  messages,
-	}), false, nil
+	})
 }
 
-func getMessages(k8s *client.Client, state K8sEventsState) *action_kit_api.Messages {
+func getMessages(k8s *client.Client, state *K8sEventsState) *action_kit_api.Messages {
 	newLastEventTime := time.Now().Unix()
 	events := k8s.Events(time.Unix(*state.LastEventTime, 0))
 	state.LastEventTime = extutil.Ptr(newLastEventTime)
@@ -205,32 +134,15 @@ func getMessages(k8s *client.Client, state K8sEventsState) *action_kit_api.Messa
 	return messages
 }
 
-func stopK8sEvents(w http.ResponseWriter, _ *http.Request, body []byte) {
-	result, err := K8sLogsStop(client.K8S, body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		exthttp.WriteBody(w, result)
-	}
+func (f K8sEventsAction) Stop(ctx context.Context, state *K8sEventsState) (*action_kit_api.StopResult, error) {
+	return stopInternal(client.K8S, state), nil
 }
-func K8sLogsStop(k8s *client.Client, body []byte) (*action_kit_api.StopResult, *extension_kit.ExtensionError) {
-	var request action_kit_api.ActionStatusRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
 
-	var state K8sEventsState
-	err = utils.DecodeActionState(request.State, &state)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse state", err))
-	}
-
+func stopInternal(k8s *client.Client, state *K8sEventsState) *action_kit_api.StopResult {
 	messages := getMessages(k8s, state)
-
 	return extutil.Ptr(action_kit_api.StopResult{
 		Messages: messages,
-	}), nil
+	})
 }
 
 func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {

@@ -4,19 +4,20 @@
 package extdeployment
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/utils"
-	"net/http"
 	"os/exec"
 	"strings"
 )
+
+type DeploymentRolloutRestartAction struct {
+}
 
 type DeploymentRolloutRestartState struct {
 	Cluster    string `json:"cluster"`
@@ -25,14 +26,18 @@ type DeploymentRolloutRestartState struct {
 	Wait       bool   `json:"wait"`
 }
 
-func RegisterDeploymentRolloutRestartAttackHandlers() {
-	exthttp.RegisterHttpHandler("/deployment/attack/rollout-restart", exthttp.GetterAsHandler(getDeploymentRolloutRestartAttackDescription))
-	exthttp.RegisterHttpHandler("/deployment/attack/rollout-restart/prepare", prepareDeploymentRolloutRestart)
-	exthttp.RegisterHttpHandler("/deployment/attack/rollout-restart/start", startDeploymentRolloutRestart)
-	exthttp.RegisterHttpHandler("/deployment/attack/rollout-restart/status", deploymentRolloutRestartStatus)
+func NewDeploymentRolloutRestartAction() action_kit_sdk.Action[DeploymentRolloutRestartState] {
+	return DeploymentRolloutRestartAction{}
 }
 
-func getDeploymentRolloutRestartAttackDescription() action_kit_api.ActionDescription {
+var _ action_kit_sdk.Action[DeploymentRolloutRestartState] = (*DeploymentRolloutRestartAction)(nil)
+var _ action_kit_sdk.ActionWithStatus[DeploymentRolloutRestartState] = (*DeploymentRolloutRestartAction)(nil)
+
+func (f DeploymentRolloutRestartAction) NewEmptyState() DeploymentRolloutRestartState {
+	return DeploymentRolloutRestartState{}
+}
+
+func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          rolloutRestartActionId,
 		Label:       "Rollout Restart Deployment",
@@ -76,22 +81,7 @@ func getDeploymentRolloutRestartAttackDescription() action_kit_api.ActionDescrip
 	}
 }
 
-func prepareDeploymentRolloutRestart(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := PrepareDeploymentRolloutRestart(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		utils.WriteActionState(w, *state)
-	}
-}
-
-func PrepareDeploymentRolloutRestart(body []byte) (*DeploymentRolloutRestartState, *extension_kit.ExtensionError) {
-	var request action_kit_api.PrepareActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
+func (f DeploymentRolloutRestartAction) Prepare(_ context.Context, state *DeploymentRolloutRestartState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	wait := false
 	if request.Config["wait"] != nil {
 		switch v := request.Config["wait"].(type) {
@@ -101,37 +91,14 @@ func PrepareDeploymentRolloutRestart(body []byte) (*DeploymentRolloutRestartStat
 			wait = v == "true"
 		}
 	}
-
-	return extutil.Ptr(DeploymentRolloutRestartState{
-		Cluster:    request.Target.Attributes["k8s.cluster-name"][0],
-		Namespace:  request.Target.Attributes["k8s.namespace"][0],
-		Deployment: request.Target.Attributes["k8s.deployment"][0],
-		Wait:       wait,
-	}), nil
+	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
+	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
+	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
+	state.Wait = wait
+	return nil, nil
 }
 
-func startDeploymentRolloutRestart(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := StartDeploymentRolloutRestart(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		utils.WriteActionState(w, *state)
-	}
-}
-
-func StartDeploymentRolloutRestart(body []byte) (*DeploymentRolloutRestartState, *extension_kit.ExtensionError) {
-	var request action_kit_api.StartActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
-	var state DeploymentRolloutRestartState
-	err = utils.DecodeActionState(request.State, &state)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse attack state", err))
-	}
-
+func (f DeploymentRolloutRestartAction) Start(_ context.Context, state *DeploymentRolloutRestartState) (*action_kit_api.StartResult, error) {
 	log.Info().Msgf("Starting deployment rollout restart attack for %+v", state)
 
 	cmd := exec.Command("kubectl",
@@ -145,31 +112,10 @@ func StartDeploymentRolloutRestart(body []byte) (*DeploymentRolloutRestartState,
 		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart: %s", cmdOut), cmdErr))
 	}
 
-	return &state, nil
+	return nil, nil
 }
 
-func deploymentRolloutRestartStatus(w http.ResponseWriter, _ *http.Request, body []byte) {
-	result, err := RolloutRestartStatus(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		exthttp.WriteBody(w, result)
-	}
-}
-
-func RolloutRestartStatus(body []byte) (*action_kit_api.StatusResult, *extension_kit.ExtensionError) {
-	var request action_kit_api.ActionStatusRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
-	var state DeploymentRolloutRestartState
-	err = utils.DecodeActionState(request.State, &state)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse attack state", err))
-	}
-
+func (f DeploymentRolloutRestartAction) Status(_ context.Context, state *DeploymentRolloutRestartState) (*action_kit_api.StatusResult, error) {
 	if !state.Wait {
 		return extutil.Ptr(action_kit_api.StatusResult{
 			Completed: true,

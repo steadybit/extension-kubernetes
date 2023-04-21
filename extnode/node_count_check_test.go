@@ -5,9 +5,7 @@ package extnode
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/stretchr/testify/require"
@@ -32,11 +30,9 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 			},
 		}),
 	}
-	reqJson, err := json.Marshal(request)
-	require.NoError(t, err)
 
 	clientset := testclient.NewSimpleClientset()
-	_, err = clientset.
+	_, err := clientset.
 		CoreV1().
 		Nodes().
 		Create(context.Background(), &corev1.Node{
@@ -57,18 +53,18 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 				GenerateName: "node1",
 			},
 		}, metav1.CreateOptions{})
-
 	require.NoError(t, err)
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
+	action := NewNodeCountCheckAction()
+	state := action.NewEmptyState()
 
 	// When
-	state, extErr := prepareNodeCountCheckInternal(client, reqJson)
+	prepareNodeCountCheckInternal(k8sclient, &state, request)
 
 	// Then
-	require.Nil(t, extErr)
 	require.True(t, state.Timeout.After(time.Now()))
 	require.Equal(t, "nodeCountAtLeast", state.NodeCountCheckMode)
 	require.Equal(t, "test", state.Cluster)
@@ -76,27 +72,15 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 	require.Equal(t, 2, state.NodeCount)
 }
 
-func getStatusRequestBodyCheck(t *testing.T, state NodeCountCheckState) []byte {
-	var encodedState action_kit_api.ActionState
-	err := extconversion.Convert(state, &encodedState)
-	require.NoError(t, err)
-	request := action_kit_api.ActionStatusRequestBody{
-		State: encodedState,
-	}
-	reqJson, err := json.Marshal(request)
-	require.NoError(t, err)
-	return reqJson
-}
-
 func TestStatusCheckNodeCountAtLeastSuccess(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, NodeCountCheckState{
+	state := NodeCountCheckState{
 		Timeout:            time.Now().Add(time.Minute * 1),
 		NodeCountCheckMode: "nodeCountAtLeast",
 		Cluster:            "test",
 		NodeCount:          2,
 		InitialNodeCount:   1,
-	})
+	}
 
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
@@ -146,10 +130,10 @@ func TestStatusCheckNodeCountAtLeastSuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusNodeCountCheckInternal(client, reqJson)
+	result := statusNodeCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -158,13 +142,13 @@ func TestStatusCheckNodeCountAtLeastSuccess(t *testing.T) {
 
 func TestStatusCheckNodeCountAtFail(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, NodeCountCheckState{
+	state := NodeCountCheckState{
 		Timeout:            time.Now().Add(time.Minute * -1),
 		NodeCountCheckMode: "nodeCountAtLeast",
 		Cluster:            "test",
 		NodeCount:          2,
 		InitialNodeCount:   1,
-	})
+	}
 
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
@@ -192,10 +176,10 @@ func TestStatusCheckNodeCountAtFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusNodeCountCheckInternal(client, reqJson)
+	result := statusNodeCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -204,13 +188,13 @@ func TestStatusCheckNodeCountAtFail(t *testing.T) {
 
 func TestStatusCheckNodeCountDecreasedBySuccess(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, NodeCountCheckState{
+	state := NodeCountCheckState{
 		Timeout:            time.Now().Add(time.Minute * 1),
 		NodeCountCheckMode: "nodeCountDecreasedBy",
 		Cluster:            "test",
 		NodeCount:          2,
 		InitialNodeCount:   3,
-	})
+	}
 
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
@@ -238,10 +222,10 @@ func TestStatusCheckNodeCountDecreasedBySuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusNodeCountCheckInternal(client, reqJson)
+	result := statusNodeCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -250,13 +234,13 @@ func TestStatusCheckNodeCountDecreasedBySuccess(t *testing.T) {
 
 func TestStatusCheckNodeCountDecreasedByFail(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, NodeCountCheckState{
+	state := NodeCountCheckState{
 		Timeout:            time.Now().Add(time.Minute * -1),
 		NodeCountCheckMode: "nodeCountDecreasedBy",
 		Cluster:            "test",
 		NodeCount:          2,
 		InitialNodeCount:   3,
-	})
+	}
 
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
@@ -306,10 +290,10 @@ func TestStatusCheckNodeCountDecreasedByFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusNodeCountCheckInternal(client, reqJson)
+	result := statusNodeCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -318,13 +302,13 @@ func TestStatusCheckNodeCountDecreasedByFail(t *testing.T) {
 
 func TestStatusCheckNodeCountIncreasedBySuccess(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, NodeCountCheckState{
+	state := NodeCountCheckState{
 		Timeout:            time.Now().Add(time.Minute * 1),
 		NodeCountCheckMode: "nodeCountIncreasedBy",
 		Cluster:            "test",
 		NodeCount:          2,
 		InitialNodeCount:   0,
-	})
+	}
 
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
@@ -374,10 +358,10 @@ func TestStatusCheckNodeCountIncreasedBySuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusNodeCountCheckInternal(client, reqJson)
+	result := statusNodeCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -386,13 +370,13 @@ func TestStatusCheckNodeCountIncreasedBySuccess(t *testing.T) {
 
 func TestStatusCheckNodeCountIncreasedByFail(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, NodeCountCheckState{
+	state := NodeCountCheckState{
 		Timeout:            time.Now().Add(time.Minute * -1),
 		NodeCountCheckMode: "nodeCountIncreasedBy",
 		Cluster:            "test",
 		NodeCount:          2,
 		InitialNodeCount:   0,
-	})
+	}
 
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
@@ -420,10 +404,10 @@ func TestStatusCheckNodeCountIncreasedByFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusNodeCountCheckInternal(client, reqJson)
+	result := statusNodeCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)

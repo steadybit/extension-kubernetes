@@ -35,15 +35,17 @@ func main() {
 	extconfig.ValidateConfiguration()
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
-	extdeployment.RegisterDeploymentRolloutRestartAttackHandlers()
-	extdeployment.RegisterDeploymentRolloutStatusCheckHandlers()
+
+	action_kit_sdk.RegisterAction(extdeployment.NewDeploymentRolloutRestartAction())
+	action_kit_sdk.RegisterAction(extdeployment.NewCheckDeploymentRolloutStatusAction())
+	action_kit_sdk.RegisterAction(extdeployment.NewPodCountCheckAction())
+	action_kit_sdk.RegisterAction(extdeployment.NewPodCountMetricsAction())
+	action_kit_sdk.RegisterAction(extnode.NewNodeCountCheckAction())
+	action_kit_sdk.RegisterAction(extevents.NewK8sEventsAction())
+
 	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
-	extevents.RegisterK8sEventsHandlers()
-	extdeployment.RegisterPodCountMetricsHandlers()
-	extdeployment.RegisterPodCountCheckHandlers()
-	extnode.RegisterNodeCountCheckHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
 
 	action_kit_sdk.InstallSignalHandler()
@@ -62,34 +64,7 @@ type ExtensionListResponse struct {
 
 func getExtensionList() ExtensionListResponse {
 	return ExtensionListResponse{
-		ActionList: action_kit_api.ActionList{
-			Actions: []action_kit_api.DescribingEndpointReference{
-				{
-					Method: "GET",
-					Path:   "/deployment/attack/rollout-restart",
-				},
-				{
-					Method: "GET",
-					Path:   "/deployment/check/rollout-status",
-				},
-				{
-					Method: "GET",
-					Path:   "/events",
-				},
-				{
-					Method: "GET",
-					Path:   "/pod-count/metrics",
-				},
-				{
-					Method: "GET",
-					Path:   "/pod-count/check",
-				},
-				{
-					Method: "GET",
-					Path:   "/node-count/check",
-				},
-			},
-		},
+		ActionList: action_kit_sdk.GetActionList(),
 		DiscoveryList: discovery_kit_api.DiscoveryList{
 			Discoveries: []discovery_kit_api.DescribingEndpointReference{
 				{

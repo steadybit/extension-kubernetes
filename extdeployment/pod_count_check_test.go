@@ -5,9 +5,7 @@ package extdeployment
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/stretchr/testify/require"
@@ -33,40 +31,29 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 			},
 		}),
 	}
-	reqJson, err := json.Marshal(request)
-	require.NoError(t, err)
+	action := NewPodCountCheckAction()
+	state := action.NewEmptyState()
 
 	// When
-	state, extErr := preparePodCountCheckInternal(reqJson)
+	result, err := action.Prepare(context.TODO(), &state, request)
 
 	// Then
-	require.Nil(t, extErr)
+	require.Nil(t, err)
+	require.Nil(t, result)
 	require.True(t, state.Timeout.After(time.Now()))
 	require.Equal(t, "podCountMin1", state.PodCountCheckMode)
 	require.Equal(t, "shop", state.Namespace)
 	require.Equal(t, "checkout", state.Deployment)
 }
 
-func getStatusRequestBodyCheck(t *testing.T, state PodCountCheckState) []byte {
-	var encodedState action_kit_api.ActionState
-	err := extconversion.Convert(state, &encodedState)
-	require.NoError(t, err)
-	request := action_kit_api.ActionStatusRequestBody{
-		State: encodedState,
-	}
-	reqJson, err := json.Marshal(request)
-	require.NoError(t, err)
-	return reqJson
-}
-
 func TestStatusCheckDeploymentNotFound(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, PodCountCheckState{
+	state := PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * 1),
 		PodCountCheckMode: "podCountMin1",
 		Namespace:         "shop",
 		Deployment:        "checkout",
-	})
+	}
 
 	clientset := testclient.NewSimpleClientset()
 	_, err := clientset.
@@ -82,10 +69,10 @@ func TestStatusCheckDeploymentNotFound(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountCheckInternal(client, reqJson)
+	result := statusPodCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.False(t, result.Completed)
@@ -94,12 +81,12 @@ func TestStatusCheckDeploymentNotFound(t *testing.T) {
 
 func TestStatusCheckPodCountMin1Success(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, PodCountCheckState{
+	state := PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * 1),
 		PodCountCheckMode: "podCountMin1",
 		Namespace:         "shop",
 		Deployment:        "checkout",
-	})
+	}
 
 	desiredCount := int32(1)
 
@@ -123,10 +110,10 @@ func TestStatusCheckPodCountMin1Success(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountCheckInternal(client, reqJson)
+	result := statusPodCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -135,12 +122,12 @@ func TestStatusCheckPodCountMin1Success(t *testing.T) {
 
 func TestStatusCheckPodCountMin1Fail(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, PodCountCheckState{
+	state := PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * -1),
 		PodCountCheckMode: "podCountMin1",
 		Namespace:         "shop",
 		Deployment:        "checkout",
-	})
+	}
 
 	desiredCount := int32(1)
 
@@ -164,10 +151,10 @@ func TestStatusCheckPodCountMin1Fail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountCheckInternal(client, reqJson)
+	result := statusPodCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -176,12 +163,12 @@ func TestStatusCheckPodCountMin1Fail(t *testing.T) {
 
 func TestStatusCheckPodCountEqualsDesiredCountSuccess(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, PodCountCheckState{
+	state := PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * 1),
 		PodCountCheckMode: "podCountEqualsDesiredCount",
 		Namespace:         "shop",
 		Deployment:        "checkout",
-	})
+	}
 
 	desiredCount := int32(2)
 
@@ -205,10 +192,10 @@ func TestStatusCheckPodCountEqualsDesiredCountSuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountCheckInternal(client, reqJson)
+	result := statusPodCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -217,12 +204,12 @@ func TestStatusCheckPodCountEqualsDesiredCountSuccess(t *testing.T) {
 
 func TestStatusCheckPodCountEqualsDesiredCountFail(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, PodCountCheckState{
+	state := PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * -1),
 		PodCountCheckMode: "podCountEqualsDesiredCount",
 		Namespace:         "shop",
 		Deployment:        "checkout",
-	})
+	}
 
 	desiredCount := int32(2)
 
@@ -246,10 +233,10 @@ func TestStatusCheckPodCountEqualsDesiredCountFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountCheckInternal(client, reqJson)
+	result := statusPodCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -258,12 +245,12 @@ func TestStatusCheckPodCountEqualsDesiredCountFail(t *testing.T) {
 
 func TestStatusCheckPodCountLessThanDesiredCountSuccess(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, PodCountCheckState{
+	state := PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * 1),
 		PodCountCheckMode: "podCountLessThanDesiredCount",
 		Namespace:         "shop",
 		Deployment:        "checkout",
-	})
+	}
 
 	desiredCount := int32(2)
 
@@ -287,10 +274,10 @@ func TestStatusCheckPodCountLessThanDesiredCountSuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountCheckInternal(client, reqJson)
+	result := statusPodCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)
@@ -299,12 +286,12 @@ func TestStatusCheckPodCountLessThanDesiredCountSuccess(t *testing.T) {
 
 func TestStatusCheckPodCountLessThanDesiredCountFail(t *testing.T) {
 	// Given
-	reqJson := getStatusRequestBodyCheck(t, PodCountCheckState{
+	state := PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * -1),
 		PodCountCheckMode: "podCountLessThanDesiredCount",
 		Namespace:         "shop",
 		Deployment:        "checkout",
-	})
+	}
 
 	desiredCount := int32(2)
 
@@ -328,10 +315,10 @@ func TestStatusCheckPodCountLessThanDesiredCountFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "")
 
 	// When
-	result := statusPodCountCheckInternal(client, reqJson)
+	result := statusPodCountCheckInternal(k8sclient, &state)
 
 	// Then
 	require.True(t, result.Completed)

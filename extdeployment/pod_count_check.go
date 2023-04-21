@@ -4,26 +4,15 @@
 package extdeployment
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extconversion"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
-	"math"
-	"net/http"
 	"time"
 )
-
-func RegisterPodCountCheckHandlers() {
-	exthttp.RegisterHttpHandler("/pod-count/check", exthttp.GetterAsHandler(getPodCountCheckDescription))
-	exthttp.RegisterHttpHandler("/pod-count/check/prepare", preparePodCountCheck)
-	exthttp.RegisterHttpHandler("/pod-count/check/start", startPodCountCheck)
-	exthttp.RegisterHttpHandler("/pod-count/check/status", statusPodCountCheck)
-}
 
 const (
 	podCountMin1                 = "podCountMin1"
@@ -31,7 +20,28 @@ const (
 	podCountLessThanDesiredCount = "podCountLessThanDesiredCount"
 )
 
-func getPodCountCheckDescription() action_kit_api.ActionDescription {
+type PodCountCheckAction struct {
+}
+
+type PodCountCheckState struct {
+	Timeout           time.Time
+	PodCountCheckMode string
+	Namespace         string
+	Deployment        string
+}
+
+func NewPodCountCheckAction() action_kit_sdk.Action[PodCountCheckState] {
+	return PodCountCheckAction{}
+}
+
+var _ action_kit_sdk.Action[PodCountCheckState] = (*PodCountCheckAction)(nil)
+var _ action_kit_sdk.ActionWithStatus[PodCountCheckState] = (*PodCountCheckAction)(nil)
+
+func (f PodCountCheckAction) NewEmptyState() PodCountCheckState {
+	return PodCountCheckState{}
+}
+
+func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          podCountCheckActionId,
 		Label:       "Pod Count",
@@ -86,106 +96,37 @@ func getPodCountCheckDescription() action_kit_api.ActionDescription {
 				}),
 			},
 		},
-		Prepare: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/pod-count/check/prepare",
-		},
-		Start: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/pod-count/check/start",
-		},
+		Prepare: action_kit_api.MutatingEndpointReference{},
+		Start:   action_kit_api.MutatingEndpointReference{},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			Method:       "POST",
-			Path:         "/pod-count/check/status",
 			CallInterval: extutil.Ptr("1s"),
 		}),
 	}
 }
 
-type PodCountCheckState struct {
-	Timeout           time.Time
-	PodCountCheckMode string
-	Namespace         string
-	Deployment        string
+func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+	duration := request.Config["duration"].(int)
+	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
+	state.PodCountCheckMode = request.Config["podCountCheckMode"].(string)
+	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
+	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
+	return nil, nil
 }
 
-func preparePodCountCheck(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := preparePodCountCheckInternal(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		var convertedState action_kit_api.ActionState
-		err := extconversion.Convert(state, &convertedState)
-		if err != nil {
-			exthttp.WriteError(w, extension_kit.ToError("Failed to encode action state", err))
-		} else {
-			exthttp.WriteBody(w, action_kit_api.PrepareResult{
-				State: convertedState,
-			})
-		}
-	}
+func (f PodCountCheckAction) Start(_ context.Context, _ *PodCountCheckState) (*action_kit_api.StartResult, error) {
+	return nil, nil
 }
 
-func preparePodCountCheckInternal(body []byte) (*PodCountCheckState, *extension_kit.ExtensionError) {
-	var request action_kit_api.PrepareActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
-	duration := math.Round(request.Config["duration"].(float64))
-	timeout := time.Now().Add(time.Millisecond * time.Duration(duration))
-	podCountCheckMode := request.Config["podCountCheckMode"].(string)
-	namespace := request.Target.Attributes["k8s.namespace"][0]
-	deployment := request.Target.Attributes["k8s.deployment"][0]
-
-	return extutil.Ptr(PodCountCheckState{
-		Timeout:           timeout,
-		PodCountCheckMode: podCountCheckMode,
-		Namespace:         namespace,
-		Deployment:        deployment,
-	}), nil
+func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState) (*action_kit_api.StatusResult, error) {
+	return statusPodCountCheckInternal(client.K8S, state), nil
 }
 
-func startPodCountCheck(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	exthttp.WriteBody(w, action_kit_api.StartActionResponse{})
-}
-
-func statusPodCountCheck(w http.ResponseWriter, _ *http.Request, body []byte) {
-	result := statusPodCountCheckInternal(client.K8S, body)
-	exthttp.WriteBody(w, result)
-}
-
-func statusPodCountCheckInternal(k8s *client.Client, body []byte) action_kit_api.StatusResult {
-	var request action_kit_api.ActionStatusRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return action_kit_api.StatusResult{
-			Error: extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  "Failed to parse request body",
-				Detail: extutil.Ptr(err.Error()),
-				Status: extutil.Ptr(action_kit_api.Errored),
-			}),
-		}
-	}
-
-	var state PodCountCheckState
-	err = extconversion.Convert(request.State, &state)
-	if err != nil {
-		return action_kit_api.StatusResult{
-			Error: extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  "Failed to decode action state",
-				Detail: extutil.Ptr(err.Error()),
-				Status: extutil.Ptr(action_kit_api.Errored),
-			}),
-		}
-	}
-
+func statusPodCountCheckInternal(k8s *client.Client, state *PodCountCheckState) *action_kit_api.StatusResult {
 	now := time.Now()
 
 	deployment := k8s.DeploymentByNamespaceAndName(state.Namespace, state.Deployment)
 	if deployment == nil {
-		return action_kit_api.StatusResult{
+		return &action_kit_api.StatusResult{
 			Error: extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("Deployment %s not found", state.Deployment),
 				Status: extutil.Ptr(action_kit_api.Errored),
@@ -198,7 +139,7 @@ func statusPodCountCheckInternal(k8s *client.Client, body []byte) action_kit_api
 	if deployment.Spec.Replicas != nil {
 		desiredCount = *deployment.Spec.Replicas
 	} else if state.PodCountCheckMode == podCountEqualsDesiredCount || state.PodCountCheckMode == podCountLessThanDesiredCount {
-		return action_kit_api.StatusResult{
+		return &action_kit_api.StatusResult{
 			Error: extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("Deployment %s has no desired count.", state.Deployment),
 				Status: extutil.Ptr(action_kit_api.Errored),
@@ -225,12 +166,12 @@ func statusPodCountCheckInternal(k8s *client.Client, body []byte) action_kit_api
 	}
 
 	if now.After(state.Timeout) {
-		return action_kit_api.StatusResult{
+		return &action_kit_api.StatusResult{
 			Completed: true,
 			Error:     checkError,
 		}
 	} else {
-		return action_kit_api.StatusResult{
+		return &action_kit_api.StatusResult{
 			Completed: checkError == nil,
 		}
 	}

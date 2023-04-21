@@ -4,31 +4,39 @@
 package extdeployment
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extconversion"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
-	"math"
-	"net/http"
 	"time"
 )
 
-func RegisterPodCountMetricsHandlers() {
-	exthttp.RegisterHttpHandler("/pod-count/metrics", exthttp.GetterAsHandler(getPodCountMetricsDescription))
-	exthttp.RegisterHttpHandler("/pod-count/metrics/prepare", preparePodCountMetrics)
-	exthttp.RegisterHttpHandler("/pod-count/metrics/start", startPodCountMetrics)
-	exthttp.RegisterHttpHandler("/pod-count/metrics/status", statusPodCountMetrics)
+type PodCountMetricsAction struct {
 }
 
-func getPodCountMetricsDescription() action_kit_api.ActionDescription {
+type PodCountMetricsState struct {
+	End         time.Time
+	LastMetrics map[string]int32
+}
+
+func NewPodCountMetricsAction() action_kit_sdk.Action[PodCountMetricsState] {
+	return PodCountMetricsAction{}
+}
+
+var _ action_kit_sdk.Action[PodCountMetricsState] = (*PodCountMetricsAction)(nil)
+var _ action_kit_sdk.ActionWithStatus[PodCountMetricsState] = (*PodCountMetricsAction)(nil)
+
+func (f PodCountMetricsAction) NewEmptyState() PodCountMetricsState {
+	return PodCountMetricsState{}
+}
+
+func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          podCountMetricActionId,
 		Label:       "Pod Count Metrics",
@@ -66,99 +74,35 @@ func getPodCountMetricsDescription() action_kit_api.ActionDescription {
 				PredefinedWidgetId: "com.steadybit.widget.predefined.DeploymentReadinessWidget",
 			},
 		}),
-		Prepare: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/pod-count/metrics/prepare",
-		},
-		Start: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/pod-count/metrics/start",
-		},
+		Prepare: action_kit_api.MutatingEndpointReference{},
+		Start:   action_kit_api.MutatingEndpointReference{},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			Method:       "POST",
-			Path:         "/pod-count/metrics/status",
 			CallInterval: extutil.Ptr("2s"),
 		}),
 	}
 }
 
-type PodCountMetricsState struct {
-	End         time.Time
-	LastMetrics map[string]int32
+func (f PodCountMetricsAction) Prepare(_ context.Context, state *PodCountMetricsState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+	duration := request.Config["duration"].(int)
+	state.End = time.Now().Add(time.Millisecond * time.Duration(duration))
+	state.LastMetrics = make(map[string]int32)
+	return nil, nil
 }
 
-func preparePodCountMetrics(w http.ResponseWriter, _ *http.Request, body []byte) {
-	state, err := preparePodCountMetricsInternal(body)
-	if err != nil {
-		exthttp.WriteError(w, *err)
-	} else {
-		var convertedState action_kit_api.ActionState
-		err := extconversion.Convert(state, &convertedState)
-		if err != nil {
-			exthttp.WriteError(w, extension_kit.ToError("Failed to encode action state", err))
-		} else {
-			exthttp.WriteBody(w, action_kit_api.PrepareResult{
-				State: convertedState,
-			})
-		}
-	}
+func (f PodCountMetricsAction) Start(_ context.Context, _ *PodCountMetricsState) (*action_kit_api.StartResult, error) {
+	return nil, nil
 }
 
-func preparePodCountMetricsInternal(body []byte) (*PodCountMetricsState, *extension_kit.ExtensionError) {
-	var request action_kit_api.PrepareActionRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError("Failed to parse request body", err))
-	}
-
-	duration := math.Round(request.Config["duration"].(float64))
-	end := time.Now().Add(time.Millisecond * time.Duration(duration))
-
-	return extutil.Ptr(PodCountMetricsState{
-		End:         end,
-		LastMetrics: make(map[string]int32),
-	}), nil
+func (f PodCountMetricsAction) Status(_ context.Context, state *PodCountMetricsState) (*action_kit_api.StatusResult, error) {
+	return statusPodCountMetricsInternal(client.K8S, state), nil
 }
 
-func startPodCountMetrics(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	exthttp.WriteBody(w, action_kit_api.StartActionResponse{})
-}
-
-func statusPodCountMetrics(w http.ResponseWriter, _ *http.Request, body []byte) {
-	result := statusPodCountMetricsInternal(client.K8S, body)
-	exthttp.WriteBody(w, result)
-}
-
-func statusPodCountMetricsInternal(k8s *client.Client, body []byte) action_kit_api.StatusResult {
-	var request action_kit_api.ActionStatusRequestBody
-	err := json.Unmarshal(body, &request)
-	if err != nil {
-		return action_kit_api.StatusResult{
-			Error: extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  "Failed to parse request body",
-				Detail: extutil.Ptr(err.Error()),
-				Status: extutil.Ptr(action_kit_api.Errored),
-			}),
-		}
-	}
-
+func statusPodCountMetricsInternal(k8s *client.Client, state *PodCountMetricsState) *action_kit_api.StatusResult {
 	now := time.Now()
-
-	var state PodCountMetricsState
-	err = extconversion.Convert(request.State, &state)
-	if err != nil {
-		return action_kit_api.StatusResult{
-			Error: extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  "Failed to decode action state",
-				Detail: extutil.Ptr(err.Error()),
-				Status: extutil.Ptr(action_kit_api.Errored),
-			}),
-		}
-	}
 
 	var metrics []action_kit_api.Metric
 	for _, d := range k8s.Deployments() {
-		if hasChanges(d, &state) {
+		if hasChanges(d, state) {
 			for _, m := range toMetrics(d, now) {
 				state.LastMetrics[getMetricKey(d, *m.Name)] = int32(m.Value)
 				metrics = append(metrics, m)
@@ -166,22 +110,9 @@ func statusPodCountMetricsInternal(k8s *client.Client, body []byte) action_kit_a
 		}
 	}
 
-	var convertedState action_kit_api.ActionState
-	err = extconversion.Convert(state, &convertedState)
-	if err != nil {
-		return action_kit_api.StatusResult{
-			Error: extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  "Failed to encode action state",
-				Detail: extutil.Ptr(err.Error()),
-				Status: extutil.Ptr(action_kit_api.Errored),
-			}),
-		}
-	}
-
-	return action_kit_api.StatusResult{
+	return &action_kit_api.StatusResult{
 		Completed: now.After(state.End),
 		Metrics:   extutil.Ptr(metrics),
-		State:     &convertedState,
 	}
 }
 
