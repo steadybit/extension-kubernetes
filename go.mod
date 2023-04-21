@@ -10,6 +10,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.29.1
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.5.1
+	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.3.0
 	github.com/steadybit/extension-kit v1.7.10
 	github.com/stretchr/testify v1.8.1

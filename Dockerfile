@@ -25,7 +25,7 @@ RUN go build \
     -X 'github.com/steadybit/extension-kit/extbuild.ExtensionName=${NAME}' \
     -X 'github.com/steadybit/extension-kit/extbuild.Version=${VERSION}' \
     -X 'github.com/steadybit/extension-kit/extbuild.Revision=${REVISION}'" \
-    -o /extension-kubernetes
+    -o ./extension
 
 ##
 ## Runtime
@@ -41,9 +41,10 @@ USER $USERNAME
 
 WORKDIR /
 
-COPY --from=build /extension-kubernetes /extension-kubernetes
+COPY --from=build app/extension /extension
 COPY --from=build /usr/bin/kubectl /usr/bin/kubectl
 
 EXPOSE 8088
+EXPOSE 8089
 
-ENTRYPOINT ["/extension-kubernetes"]
+ENTRYPOINT ["/extension"]

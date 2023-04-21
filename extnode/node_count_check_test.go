@@ -120,6 +120,7 @@ func TestStatusCheckNodeCountAtLeastSuccess(t *testing.T) {
 				GenerateName: "node1",
 			},
 		}, metav1.CreateOptions{})
+	require.NoError(t, err)
 	_, err = clientset.
 		CoreV1().
 		Nodes().
@@ -279,6 +280,7 @@ func TestStatusCheckNodeCountDecreasedByFail(t *testing.T) {
 				GenerateName: "node1",
 			},
 		}, metav1.CreateOptions{})
+	require.NoError(t, err)
 	_, err = clientset.
 		CoreV1().
 		Nodes().
@@ -346,6 +348,7 @@ func TestStatusCheckNodeCountIncreasedBySuccess(t *testing.T) {
 				GenerateName: "node1",
 			},
 		}, metav1.CreateOptions{})
+	require.NoError(t, err)
 	_, err = clientset.
 		CoreV1().
 		Nodes().

@@ -5,8 +5,10 @@ package main
 
 import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/exthealth"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kubernetes/client"
@@ -23,6 +25,10 @@ func main() {
 	defer close(stopCh)
 	extlogging.InitZeroLog()
 	extbuild.PrintBuildInformation()
+
+	exthealth.SetReady(false)
+	exthealth.StartProbes(8089)
+
 	client.PrepareClient(stopCh)
 
 	extconfig.ParseConfiguration()
@@ -40,6 +46,10 @@ func main() {
 	extnode.RegisterNodeCountCheckHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
 
+	action_kit_sdk.InstallSignalHandler()
+
+	exthealth.SetReady(true)
+
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8088,
 	})
@@ -55,28 +65,28 @@ func getExtensionList() ExtensionListResponse {
 		ActionList: action_kit_api.ActionList{
 			Actions: []action_kit_api.DescribingEndpointReference{
 				{
-					"GET",
-					"/deployment/attack/rollout-restart",
+					Method: "GET",
+					Path:   "/deployment/attack/rollout-restart",
 				},
 				{
-					"GET",
-					"/deployment/check/rollout-status",
+					Method: "GET",
+					Path:   "/deployment/check/rollout-status",
 				},
 				{
-					"GET",
-					"/events",
+					Method: "GET",
+					Path:   "/events",
 				},
 				{
-					"GET",
-					"/pod-count/metrics",
+					Method: "GET",
+					Path:   "/pod-count/metrics",
 				},
 				{
-					"GET",
-					"/pod-count/check",
+					Method: "GET",
+					Path:   "/pod-count/check",
 				},
 				{
-					"GET",
-					"/node-count/check",
+					Method: "GET",
+					Path:   "/node-count/check",
 				},
 			},
 		},

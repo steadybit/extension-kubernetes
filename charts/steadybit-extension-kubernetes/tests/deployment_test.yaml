@@ -1,0 +1,34 @@
+templates:
+  - deployment.yaml
+tests:
+  - it: manifest should match snapshot without TLS
+    set:
+      kubernetes:
+        clusterName: test
+    asserts:
+      - matchSnapshot: { }
+  - it: manifest should match snapshot with TLS
+    set:
+      kubernetes:
+        clusterName: test
+      tls:
+        server:
+          certificate:
+            fromSecret: server-cert
+    asserts:
+      - matchSnapshot: { }
+  - it: manifest should match snapshot with mutual TLS
+    set:
+      kubernetes:
+        clusterName: test
+      tls:
+        server:
+          certificate:
+            fromSecret: server-cert
+        client:
+          certificates:
+            fromSecrets:
+              - client-cert-a
+              - client-cert-a
+    asserts:
+      - matchSnapshot: {}

@@ -5,7 +5,6 @@ package extevents
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	extension_kit "github.com/steadybit/extension-kit"
@@ -179,7 +178,7 @@ func K8sLogsStatus(k8s *client.Client, body []byte) (*action_kit_api.StatusResul
 			Messages: extutil.Ptr(action_kit_api.Messages{
 				action_kit_api.Message{
 					Level:   extutil.Ptr(action_kit_api.Error),
-					Message: fmt.Sprintf("Timed out reached"),
+					Message: "Timeout reached",
 				},
 			}),
 		}), true, nil

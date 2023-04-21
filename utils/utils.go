@@ -12,7 +12,7 @@ import (
 )
 
 func WriteActionState[T any](w http.ResponseWriter, state T) {
-	err, encodedState := EncodeActionState(state)
+	encodedState, err := EncodeActionState(state)
 	if err != nil {
 		exthttp.WriteError(w, extension_kit.ToError("Failed to encode attack state", err))
 	} else {
@@ -22,10 +22,10 @@ func WriteActionState[T any](w http.ResponseWriter, state T) {
 	}
 }
 
-func EncodeActionState[T any](attackState T) (error, action_kit_api.ActionState) {
+func EncodeActionState[T any](attackState T) (action_kit_api.ActionState, error) {
 	var result action_kit_api.ActionState
 	err := mapstructure.Decode(attackState, &result)
-	return err, result
+	return result, err
 }
 
 func DecodeActionState[T any](attackState action_kit_api.ActionState, result *T) error {

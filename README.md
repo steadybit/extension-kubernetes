@@ -76,11 +76,11 @@ subjects:
 
 ## Deployment
 
-We recommend that you deploy the extension with our [official Helm chart](https://github.com/steadybit/helm-charts/tree/main/charts/steadybit-extension-kubernetes).
+We recommend that you deploy the extension with our [official Helm chart](https://github.com/steadybit/extension-kubernetes/tree/main/charts/steadybit-extension-kubernetes).
 
 ## Agent Configuration
 
-**Note:** When deployed in Kubernetes using our [official Helm chart](https://github.com/steadybit/helm-charts/tree/main/charts/steadybit-extension-kubernetes), this is not necessary because the extension can be auto-discovered.
+**Note:** When deployed in Kubernetes using our [official Helm chart](https://github.com/steadybit/extension-kubernetes/tree/main/charts/steadybit-extension-kubernetes), this is not necessary because the extension can be auto-discovered.
 
 The Steadybit Kubernetes agent needs to be configured to interact with the Kubernetes extension by adding the following environment variables:
 
