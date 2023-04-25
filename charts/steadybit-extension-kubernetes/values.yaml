@@ -7,7 +7,7 @@ kubernetes:
 
 image:
   # image.name -- The container image to use for the steadybit Kubernetes extension.
-  name: steadybit/extension-kubernetes
+  name: ghcr.io/steadybit/extension-kubernetes
   # image.tag -- tag name of the extension-kubernetes container image to use.
   # See https://hub.docker.com/r/steadybit/extension-kubernetes for all tags.
   tag: latest

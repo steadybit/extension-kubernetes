@@ -28,7 +28,7 @@ manifest should match snapshot with TLS:
                   value: /etc/extension/certificates/server-cert/tls.key
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
-              image: steadybit/extension-kubernetes:latest
+              image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
                 httpGet:
@@ -88,7 +88,7 @@ manifest should match snapshot with mutual TLS:
                   value: /etc/extension/certificates/client-cert-a/tls.crt,/etc/extension/certificates/client-cert-a/tls.crt
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
-              image: steadybit/extension-kubernetes:latest
+              image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
                 httpGet:
@@ -149,7 +149,7 @@ manifest should match snapshot without TLS:
                   value: text
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
-              image: steadybit/extension-kubernetes:latest
+              image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
                 httpGet:
