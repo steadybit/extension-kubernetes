@@ -11,6 +11,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"os/exec"
 	"strings"
@@ -24,6 +25,10 @@ type DeploymentRolloutRestartState struct {
 	Namespace  string `json:"namespace"`
 	Deployment string `json:"deployment"`
 	Wait       bool   `json:"wait"`
+}
+
+type DeploymentRolloutRestartConfig struct {
+	Wait bool
 }
 
 func NewDeploymentRolloutRestartAction() action_kit_sdk.Action[DeploymentRolloutRestartState] {
@@ -82,19 +87,15 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 }
 
 func (f DeploymentRolloutRestartAction) Prepare(_ context.Context, state *DeploymentRolloutRestartState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	wait := false
-	if request.Config["wait"] != nil {
-		switch v := request.Config["wait"].(type) {
-		case bool:
-			wait = v
-		case string:
-			wait = v == "true"
-		}
+	var config DeploymentRolloutRestartConfig
+	err := extconversion.Convert(request.Config, &config)
+	if err != nil {
+		return nil, err
 	}
 	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
-	state.Wait = wait
+	state.Wait = config.Wait
 	return nil, nil
 }
 

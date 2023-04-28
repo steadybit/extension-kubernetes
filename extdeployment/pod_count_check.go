@@ -9,6 +9,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"time"
@@ -28,6 +29,10 @@ type PodCountCheckState struct {
 	PodCountCheckMode string
 	Namespace         string
 	Deployment        string
+}
+type PodCountCheckConfig struct {
+	Duration          int
+	PodCountCheckMode string
 }
 
 func NewPodCountCheckAction() action_kit_sdk.Action[PodCountCheckState] {
@@ -105,9 +110,13 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	duration := request.Config["duration"].(int)
-	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
-	state.PodCountCheckMode = request.Config["podCountCheckMode"].(string)
+	var config PodCountCheckConfig
+	err := extconversion.Convert(request.Config, &config)
+	if err != nil {
+		return nil, err
+	}
+	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
+	state.PodCountCheckMode = config.PodCountCheckMode
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
 	return nil, nil

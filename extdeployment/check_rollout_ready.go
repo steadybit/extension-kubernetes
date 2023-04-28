@@ -10,6 +10,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"os/exec"
 	"strings"
@@ -24,6 +25,10 @@ type CheckDeploymentRolloutStatusState struct {
 	Namespace  string `json:"namespace"`
 	Deployment string `json:"deployment"`
 	TimeoutEnd *int64 `json:"timeoutEnd"`
+}
+
+type CheckDeploymentRolloutConfig struct {
+	Duration int
 }
 
 func NewCheckDeploymentRolloutStatusAction() action_kit_sdk.Action[CheckDeploymentRolloutStatusState] {
@@ -74,9 +79,15 @@ func (f CheckDeploymentRolloutStatusAction) Describe() action_kit_api.ActionDesc
 }
 
 func (f CheckDeploymentRolloutStatusAction) Prepare(_ context.Context, state *CheckDeploymentRolloutStatusState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+	var config CheckDeploymentRolloutConfig
+	err := extconversion.Convert(request.Config, &config)
+	if err != nil {
+		return nil, err
+	}
+
 	var timeoutEnd *int64
-	if request.Config["duration"] != nil {
-		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * request.Config["duration"].(int))).Unix())
+	if config.Duration != 0 {
+		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * config.Duration)).Unix())
 	}
 	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]

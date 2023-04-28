@@ -9,6 +9,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcluster"
@@ -23,6 +24,10 @@ type PodCountMetricsAction struct {
 type PodCountMetricsState struct {
 	End         time.Time
 	LastMetrics map[string]int32
+}
+
+type PodCountMetricsConfig struct {
+	Duration int
 }
 
 func NewPodCountMetricsAction() action_kit_sdk.Action[PodCountMetricsState] {
@@ -83,8 +88,12 @@ func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f PodCountMetricsAction) Prepare(_ context.Context, state *PodCountMetricsState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	duration := request.Config["duration"].(int)
-	state.End = time.Now().Add(time.Millisecond * time.Duration(duration))
+	var config PodCountMetricsConfig
+	err := extconversion.Convert(request.Config, &config)
+	if err != nil {
+		return nil, err
+	}
+	state.End = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
 	state.LastMetrics = make(map[string]int32)
 	return nil, nil
 }

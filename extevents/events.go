@@ -9,6 +9,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcluster"
@@ -26,6 +27,10 @@ type K8sEventsAction struct {
 type K8sEventsState struct {
 	LastEventTime *int64 `json:"lastEventTime"`
 	TimeoutEnd    *int64 `json:"timeoutEnd"`
+}
+
+type K8sEventsConfig struct {
+	Duration int
 }
 
 func NewK8sEventsAction() action_kit_sdk.Action[K8sEventsState] {
@@ -87,11 +92,16 @@ func (f K8sEventsAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f K8sEventsAction) Prepare(_ context.Context, state *K8sEventsState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	var timeoutEnd *int64
-	if request.Config["duration"] != nil {
-		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * request.Config["duration"].(int))).Unix())
+	var config K8sEventsConfig
+	err := extconversion.Convert(request.Config, &config)
+	if err != nil {
+		return nil, err
 	}
 
+	var timeoutEnd *int64
+	if config.Duration != 0 {
+		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * config.Duration)).Unix())
+	}
 	state.LastEventTime = extutil.Ptr(time.Now().Unix())
 	state.TimeoutEnd = timeoutEnd
 	return nil, nil

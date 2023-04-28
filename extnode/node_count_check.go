@@ -6,9 +6,11 @@ package extnode
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcluster"
@@ -30,6 +32,12 @@ type NodeCountCheckState struct {
 	Cluster            string
 	NodeCount          int
 	InitialNodeCount   int
+}
+
+type NodeCountCheckConfig struct {
+	Duration           int
+	NodeCountCheckMode string
+	NodeCount          int
 }
 
 func NewNodeCountCheckAction() action_kit_sdk.Action[NodeCountCheckState] {
@@ -121,11 +129,15 @@ func (f NodeCountCheckAction) Prepare(_ context.Context, state *NodeCountCheckSt
 }
 
 func prepareNodeCountCheckInternal(k8s *client.Client, state *NodeCountCheckState, request action_kit_api.PrepareActionRequestBody) {
-	duration := request.Config["duration"].(int)
-	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(duration))
+	var config NodeCountCheckConfig
+	err := extconversion.Convert(request.Config, &config)
+	if err != nil {
+		log.Error().Msgf("failed to convert config: %v", err)
+	}
+	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
 	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
-	state.NodeCountCheckMode = request.Config["nodeCountCheckMode"].(string)
-	state.NodeCount = request.Config["nodeCount"].(int)
+	state.NodeCountCheckMode = config.NodeCountCheckMode
+	state.NodeCount = config.NodeCount
 	state.InitialNodeCount = k8s.NodesReadyCount()
 }
 
