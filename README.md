@@ -22,6 +22,8 @@ A [Steadybit](https://www.steadybit.com/) attack and check implementation for Ku
 
 ## Configuration
 
+The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
+
 The process requires access rights to interact with the Kubernetes API.
 
 ```yaml
