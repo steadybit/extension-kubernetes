@@ -80,9 +80,8 @@ func (f CheckDeploymentRolloutStatusAction) Describe() action_kit_api.ActionDesc
 
 func (f CheckDeploymentRolloutStatusAction) Prepare(_ context.Context, state *CheckDeploymentRolloutStatusState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var config CheckDeploymentRolloutConfig
-	err := extconversion.Convert(request.Config, &config)
-	if err != nil {
-		return nil, err
+	if err := extconversion.Convert(request.Config, &config); err != nil {
+		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
 
 	var timeoutEnd *int64

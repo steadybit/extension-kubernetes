@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
@@ -111,9 +112,8 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 
 func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var config PodCountCheckConfig
-	err := extconversion.Convert(request.Config, &config)
-	if err != nil {
-		return nil, err
+	if err := extconversion.Convert(request.Config, &config); err != nil {
+		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
 	state.PodCountCheckMode = config.PodCountCheckMode

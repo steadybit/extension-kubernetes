@@ -88,9 +88,8 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 
 func (f DeploymentRolloutRestartAction) Prepare(_ context.Context, state *DeploymentRolloutRestartState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var config DeploymentRolloutRestartConfig
-	err := extconversion.Convert(request.Config, &config)
-	if err != nil {
-		return nil, err
+	if err := extconversion.Convert(request.Config, &config); err != nil {
+		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
 	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]

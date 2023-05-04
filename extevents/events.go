@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
@@ -93,9 +94,8 @@ func (f K8sEventsAction) Describe() action_kit_api.ActionDescription {
 
 func (f K8sEventsAction) Prepare(_ context.Context, state *K8sEventsState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var config K8sEventsConfig
-	err := extconversion.Convert(request.Config, &config)
-	if err != nil {
-		return nil, err
+	if err := extconversion.Convert(request.Config, &config); err != nil {
+		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
 
 	var timeoutEnd *int64
