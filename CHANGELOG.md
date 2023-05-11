@@ -1,12 +1,19 @@
 # Changelog
 
+## v2.2.0
+
+- Code refactorings
+
 ## v2.1.1
+
 - Kubernetes Event Log will now listen to a stop method and send the last messages before exiting
 
 ## v2.1.0
+
  - Kubernetes Event Log and Pod Metrics will need a cluster-selection to support multiple kubernetes clusters
 
 ## v2.0.0
+ - 
  - Added Discoveries for Deployments and Container
  - Added Pod Count Check and Node Count check
  - Added Pod Count Metrics and Event Logs
