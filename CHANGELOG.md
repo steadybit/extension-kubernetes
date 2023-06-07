@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.3.0
+
+- Read only file system
+
 ## v2.2.0
 
 - Code refactorings
