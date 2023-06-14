@@ -44,3 +44,9 @@ tests:
           name: env-secrets
     asserts:
       - matchSnapshot: {}
+  - it: manifest should match snapshot with clusterName from parent chart
+    set:
+      global:
+        clusterName: test
+    asserts:
+      - matchSnapshot: { }

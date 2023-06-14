@@ -61,6 +61,58 @@ manifest should match snapshot with TLS:
               secret:
                 optional: false
                 secretName: server-cert
+manifest should match snapshot with clusterName from parent chart:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels: null
+      name: RELEASE-NAME-steadybit-extension-kubernetes
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: steadybit-extension-kubernetes
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: steadybit-extension-kubernetes
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_CLUSTER_NAME
+                  value: test
+              image: ghcr.io/steadybit/extension-kubernetes:latest
+              imagePullPolicy: Always
+              livenessProbe:
+                httpGet:
+                  path: /health/liveness
+                  port: 8089
+              name: extension
+              readinessProbe:
+                httpGet:
+                  path: /health/readiness
+                  port: 8089
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+              securityContext:
+                readOnlyRootFilesystem: true
+                runAsGroup: 10000
+                runAsNonRoot: true
+                runAsUser: 10000
+              volumeMounts: null
+          serviceAccountName: steadybit-extension-kubernetes
+          volumes: null
 manifest should match snapshot with extra env vars:
   1: |
     apiVersion: apps/v1

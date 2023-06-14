@@ -83,6 +83,7 @@ helm upgrade steadybit-extension-kubernetes \\
   --timeout 5m0s \\
   --create-namespace \\
   --namespace steadybit-extension \\
+  --set kubernetes.clusterName=<NAME_OF_YOUR_CLUSTER> \\
   steadybit/steadybit-extension-kubernetes
 ```
 

@@ -31,7 +31,7 @@ spec:
           env:
             {{- include "extensionlib.deployment.env" (list .) | nindent 12 }}
             - name: STEADYBIT_EXTENSION_CLUSTER_NAME
-              value: {{ .Values.kubernetes.clusterName | quote }}
+              value:  {{ if and .Values.global .Values.global.clusterName }}{{ .Values.global.clusterName | quote }}{{ else }}{{ .Values.kubernetes.clusterName }}{{ end }}
             {{- with .Values.extraEnv }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
