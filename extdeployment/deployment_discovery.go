@@ -91,7 +91,9 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 				}
 			}
 			attributes["k8s.pod.name"] = podNames
-			attributes["k8s.container.id"] = containerIds
+			if containerIds != nil {
+				attributes["k8s.container.id"] = containerIds
+			}
 		}
 
 		targets[i] = discovery_kit_api.Target{

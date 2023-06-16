@@ -110,6 +110,95 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	}, target.Attributes)
 }
 
+func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client, clientset := getTestClient(stopCh)
+	extconfig.Config.ClusterName = "development"
+
+	_, err := clientset.CoreV1().
+		Pods("default").
+		Create(context.Background(), &v1.Pod{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop-pod",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city": "kevelaer",
+				},
+			},
+			Status: v1.PodStatus{
+				ContainerStatuses: []v1.ContainerStatus{
+					{
+						Name:  "MrFancyPants",
+						Image: "nginx",
+					},
+				},
+			},
+			Spec: v1.PodSpec{
+				NodeName: "worker-1",
+				Containers: []v1.Container{
+					{
+						Name:            "nginx",
+						Image:           "nginx",
+						ImagePullPolicy: "Always",
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = clientset.
+		AppsV1().
+		Deployments("default").
+		Create(context.Background(), &appsv1.Deployment{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city": "Kevelaer",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: extutil.Ptr(metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"best-city": "kevelaer",
+					},
+				}),
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	// When
+	assert.Eventually(t, func() bool {
+		return len(getDiscoveredDeploymentTargets(client)) == 1
+	}, time.Minute, 100*time.Millisecond)
+
+	// Then
+	targets := getDiscoveredDeploymentTargets(client)
+	require.Len(t, targets, 1)
+	target := targets[0]
+	assert.Equal(t, "development/default/shop", target.Id)
+	assert.Equal(t, "shop", target.Label)
+	assert.Equal(t, deploymentTargetType, target.TargetType)
+	assert.Equal(t, map[string][]string{
+		"k8s.namespace":                  {"default"},
+		"k8s.deployment":                 {"shop"},
+		"k8s.deployment.label.best-city": {"Kevelaer"},
+		"k8s.cluster-name":               {"development"},
+		"k8s.pod.name":                   {"shop-pod"},
+		"k8s.distribution":               {"kubernetes"},
+	}, target.Attributes)
+}
+
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
 	client := client.CreateClient(clientset, stopCh, "")
