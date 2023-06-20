@@ -95,6 +95,7 @@ You may alternatively start the Docker container manually.
 docker run \\
   --env STEADYBIT_LOG_LEVEL=info \\
   --expose 8088 \\
+  --env STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME=<NAME_OF_YOUR_CLUSTER> \\
   ghcr.io/steadybit/extension-kubernetes:latest
 ```
 
