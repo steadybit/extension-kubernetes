@@ -92,10 +92,6 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 						Name:    "k8s.pod.label.",
 					},
 					{
-						Matcher: discovery_kit_api.StartsWith,
-						Name:    "k8s.deployment.label.",
-					},
-					{
 						Matcher: discovery_kit_api.Equals,
 						Name:    "k8s.replicaset",
 					},
