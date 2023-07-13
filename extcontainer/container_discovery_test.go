@@ -109,7 +109,7 @@ func Test_getDiscoveredContainer(t *testing.T) {
 	target := targets[0]
 	assert.Equal(t, "crio://abcdef", target.Id)
 	assert.Equal(t, "MrFancyPants", target.Label)
-	assert.Equal(t, KubernetesContainerTargetType, target.TargetType)
+	assert.Equal(t, kubernetesContainerTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
 		"k8s.cluster-name":          {"development"},
 		"k8s.container.id":          {"crio://abcdef"},
