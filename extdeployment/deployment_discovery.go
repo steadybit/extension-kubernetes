@@ -11,6 +11,7 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"net/http"
 )
 
@@ -52,7 +53,32 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 				},
 			},
 		},
-	}
+		EnrichmentRules: extutil.Ptr([]discovery_kit_api.TargetEnrichmentRule{
+			{
+				Src: discovery_kit_api.SourceOrDestination{
+					Type: deploymentTargetType,
+					Selector: map[string]string{
+						"k8s.cluster-name": "${dest.k8s.cluster-name}",
+						"k8s.namespace":    "${dest.k8s.namespace}",
+						"k8s.deployment":   "${dest.k8s.deployment}",
+					},
+				},
+				Dest: discovery_kit_api.SourceOrDestination{
+					Type: extcontainer.KubernetesContainerTargetType,
+					Selector: map[string]string{
+						"k8s.cluster-name": "${src.k8s.cluster-name}",
+						"k8s.namespace":    "${src.k8s.namespace}",
+						"k8s.deployment":   "${src.k8s.deployment}",
+					},
+				},
+				Attributes: []discovery_kit_api.Attribute{
+					{
+						Matcher: discovery_kit_api.StartsWith,
+						Name:    "k8s.deployment.label.",
+					},
+				},
+			},
+		})}
 }
 
 func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
