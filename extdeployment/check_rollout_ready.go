@@ -119,7 +119,7 @@ func (f CheckDeploymentRolloutStatusAction) Status(_ context.Context, state *Che
 		fmt.Sprintf("deployment/%s", state.Deployment))
 	cmdOut, cmdErr := cmd.CombinedOutput()
 	if cmdErr != nil {
-		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to execute rollout status check: %s", cmdOut), cmdErr))
+		return nil, extension_kit.ToError(fmt.Sprintf("Failed to execute rollout status check: %s", cmdOut), cmdErr)
 	}
 
 	cmdOutStr := string(cmdOut)
