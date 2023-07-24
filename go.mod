@@ -13,8 +13,8 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.3.0
 	github.com/steadybit/extension-kit v1.8.2
 	github.com/stretchr/testify v1.8.4
-	k8s.io/api v0.28.0-alpha.4
-	k8s.io/apimachinery v0.28.0-alpha.4
+	k8s.io/api v0.28.0-beta.0
+	k8s.io/apimachinery v0.28.0-beta.0
 	k8s.io/client-go v0.28.0-alpha.4
 )
 
