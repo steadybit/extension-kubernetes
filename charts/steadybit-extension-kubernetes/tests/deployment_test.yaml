@@ -32,6 +32,19 @@ tests:
               - client-cert-a
     asserts:
       - matchSnapshot: {}
+  - it: manifest should match snapshot with mutual TLS using containerPaths
+    set:
+      tls:
+        server:
+          certificate:
+            path: /etc/tls/server.crt
+            key:
+              path: /etc/tls/server.key
+        client:
+          certificates:
+            paths:
+              - /etc/tls/ca.crt
+              - /etc/tls/ca2.crt
   - it: manifest should match snapshot with extra env vars
     set:
       extraEnv:
