@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.3.1
+
+- update dependencies
+
 ## v2.3.0
 
 - Read only file system
