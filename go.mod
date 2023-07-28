@@ -11,11 +11,11 @@ require (
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.6.3
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.4
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.3.0
-	github.com/steadybit/extension-kit v1.8.2
+	github.com/steadybit/extension-kit v1.8.3
 	github.com/stretchr/testify v1.8.4
-	k8s.io/api v0.28.0-alpha.4
-	k8s.io/apimachinery v0.28.0-alpha.4
-	k8s.io/client-go v0.28.0-alpha.4
+	k8s.io/api v0.29.0-alpha.0
+	k8s.io/apimachinery v0.29.0-alpha.0
+	k8s.io/client-go v0.29.0-alpha.0
 )
 
 require (
@@ -57,7 +57,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230718181711-3c0fae5ee9fd // indirect
-	k8s.io/utils v0.0.0-20230711102312-30195339c3c7 // indirect
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.3.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
