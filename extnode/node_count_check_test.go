@@ -22,7 +22,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		Config: map[string]interface{}{
 			"duration":           1000 * 10,
 			"nodeCountCheckMode": "nodeCountAtLeast",
-			"nodeCount":          2,
+			"nodeCount":          "2",
 		},
 		Target: extutil.Ptr(action_kit_api.Target{
 			Attributes: map[string][]string{
