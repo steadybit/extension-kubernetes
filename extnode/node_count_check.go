@@ -6,9 +6,9 @@ package extnode
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
@@ -37,7 +37,7 @@ type NodeCountCheckState struct {
 type NodeCountCheckConfig struct {
 	Duration           int
 	NodeCountCheckMode string
-	NodeCount          int
+	NodeCount          int `json:",string"`
 }
 
 func NewNodeCountCheckAction() action_kit_sdk.Action[NodeCountCheckState] {
@@ -124,21 +124,20 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f NodeCountCheckAction) Prepare(_ context.Context, state *NodeCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	prepareNodeCountCheckInternal(client.K8S, state, request)
-	return nil, nil
+	return prepareNodeCountCheckInternal(client.K8S, state, request)
 }
 
-func prepareNodeCountCheckInternal(k8s *client.Client, state *NodeCountCheckState, request action_kit_api.PrepareActionRequestBody) {
+func prepareNodeCountCheckInternal(k8s *client.Client, state *NodeCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var config NodeCountCheckConfig
-	err := extconversion.Convert(request.Config, &config)
-	if err != nil {
-		log.Error().Msgf("failed to convert config: %v", err)
+	if err := extconversion.Convert(request.Config, &config); err != nil {
+		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
 	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
 	state.NodeCountCheckMode = config.NodeCountCheckMode
 	state.NodeCount = config.NodeCount
 	state.InitialNodeCount = k8s.NodesReadyCount()
+	return nil, nil
 }
 
 func (f NodeCountCheckAction) Start(_ context.Context, _ *NodeCountCheckState) (*action_kit_api.StartResult, error) {
