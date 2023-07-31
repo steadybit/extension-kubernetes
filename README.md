@@ -74,17 +74,17 @@ our [official Helm chart](https://github.com/steadybit/extension-kubernetes/tree
 ### Helm
 
 ```sh
-helm repo add steadybit https://steadybit.github.io/extension-kubernetes
+helm repo add steadybit-extension-kubernetes https://steadybit.github.io/extension-kubernetes
 helm repo update
 
-helm upgrade steadybit-extension-kubernetes \\
-  --install \\
-  --wait \\
-  --timeout 5m0s \\
-  --create-namespace \\
-  --namespace steadybit-extension \\
-  --set kubernetes.clusterName=<NAME_OF_YOUR_CLUSTER> \\
-  steadybit/steadybit-extension-kubernetes
+helm upgrade steadybit-extension-kubernetes \
+  --install \
+  --wait \
+  --timeout 5m0s \
+  --create-namespace \
+  --namespace steadybit-extension \
+  --set kubernetes.clusterName=<NAME_OF_YOUR_CLUSTER> \
+  steadybit-extension-kubernetes/steadybit-extension-kubernetes
 ```
 
 ### Docker
