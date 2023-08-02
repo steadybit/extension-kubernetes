@@ -4,7 +4,7 @@
 
 A [Steadybit](https://www.steadybit.com/) extension implementation for Kubernetes.
 
-Learn about the capabilities of this extension in our [Reliability Hub](https://hub.steadybit.com/extension/com.github.steadybit.extension_kubernetes).
+Learn about the capabilities of this extension in our [Reliability Hub](https://hub.steadybit.com/extension/com.steadybit.extension_kubernetes).
 
 ## Configuration
 
