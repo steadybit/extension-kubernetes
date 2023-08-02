@@ -48,7 +48,7 @@ func (f K8sEventsAction) NewEmptyState() K8sEventsState {
 
 func (f K8sEventsAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          "com.github.steadybit.extension_kubernetes.kubernetes_logs",
+		Id:          "com.steadybit.extension_kubernetes.kubernetes_logs",
 		Label:       "Kubernetes Event Logs",
 		Description: "Collect event logs from a Kubernetes",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
