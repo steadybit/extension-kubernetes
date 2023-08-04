@@ -50,7 +50,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 					},
 				},
 				Dest: discovery_kit_api.SourceOrDestination{
-					Type: "container",
+					Type: "com.steadybit.extension_container.container",
 					Selector: map[string]string{
 						"container.id.stripped": "${src.k8s.container.id.stripped}",
 					},
@@ -116,7 +116,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 					},
 				},
 				Dest: discovery_kit_api.SourceOrDestination{
-					Type: "host",
+					Type: "com.steadybit.extension_host.host",
 					Selector: map[string]string{
 						"host.hostname": "${src.k8s.node.name}",
 					},
