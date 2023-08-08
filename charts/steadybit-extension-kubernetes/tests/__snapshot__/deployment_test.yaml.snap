@@ -3,7 +3,8 @@ manifest should match snapshot with TLS:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      labels: null
+      labels:
+        steadybit.com/discovery-enabled: "false"
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
     spec:
@@ -15,6 +16,7 @@ manifest should match snapshot with TLS:
         metadata:
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
+            steadybit.com/discovery-enabled: "false"
         spec:
           containers:
             - env:
@@ -28,6 +30,8 @@ manifest should match snapshot with TLS:
                   value: /etc/extension/certificates/server-cert/tls.key
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
+                - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+                  value: false
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
@@ -66,7 +70,8 @@ manifest should match snapshot with clusterName from parent chart:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      labels: null
+      labels:
+        steadybit.com/discovery-enabled: "false"
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
     spec:
@@ -78,6 +83,7 @@ manifest should match snapshot with clusterName from parent chart:
         metadata:
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
+            steadybit.com/discovery-enabled: "false"
         spec:
           containers:
             - env:
@@ -87,6 +93,8 @@ manifest should match snapshot with clusterName from parent chart:
                   value: text
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
+                - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+                  value: false
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
@@ -118,7 +126,8 @@ manifest should match snapshot with extra env vars:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      labels: null
+      labels:
+        steadybit.com/discovery-enabled: "false"
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
     spec:
@@ -130,6 +139,7 @@ manifest should match snapshot with extra env vars:
         metadata:
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
+            steadybit.com/discovery-enabled: "false"
         spec:
           containers:
             - env:
@@ -139,6 +149,8 @@ manifest should match snapshot with extra env vars:
                   value: text
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: null
+                - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+                  value: false
                 - name: FOO
                   value: bar
               envFrom:
@@ -177,7 +189,8 @@ manifest should match snapshot with mutual TLS:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      labels: null
+      labels:
+        steadybit.com/discovery-enabled: "false"
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
     spec:
@@ -189,6 +202,7 @@ manifest should match snapshot with mutual TLS:
         metadata:
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
+            steadybit.com/discovery-enabled: "false"
         spec:
           containers:
             - env:
@@ -204,6 +218,8 @@ manifest should match snapshot with mutual TLS:
                   value: /etc/extension/certificates/client-cert-a/tls.crt,/etc/extension/certificates/client-cert-a/tls.crt
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
+                - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+                  value: false
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
@@ -249,7 +265,8 @@ manifest should match snapshot without TLS:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      labels: null
+      labels:
+        steadybit.com/discovery-enabled: "false"
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
     spec:
@@ -261,6 +278,7 @@ manifest should match snapshot without TLS:
         metadata:
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
+            steadybit.com/discovery-enabled: "false"
         spec:
           containers:
             - env:
@@ -270,6 +288,8 @@ manifest should match snapshot without TLS:
                   value: text
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
+                - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+                  value: false
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
