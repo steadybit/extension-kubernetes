@@ -112,7 +112,7 @@ func (f K8sEventsAction) Start(_ context.Context, state *K8sEventsState) (*actio
 	return nil, nil
 }
 
-func (f K8sEventsAction) Status(ctx context.Context, state *K8sEventsState) (*action_kit_api.StatusResult, error) {
+func (f K8sEventsAction) Status(_ context.Context, state *K8sEventsState) (*action_kit_api.StatusResult, error) {
 	return statusInternal(client.K8S, state), nil
 }
 
@@ -144,7 +144,7 @@ func getMessages(k8s *client.Client, state *K8sEventsState) *action_kit_api.Mess
 	return messages
 }
 
-func (f K8sEventsAction) Stop(ctx context.Context, state *K8sEventsState) (*action_kit_api.StopResult, error) {
+func (f K8sEventsAction) Stop(_ context.Context, state *K8sEventsState) (*action_kit_api.StopResult, error) {
 	return stopInternal(client.K8S, state), nil
 }
 
