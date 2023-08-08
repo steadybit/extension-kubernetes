@@ -103,4 +103,5 @@ extraEnv: []
 extraEnvFrom: []
 
 discovery:
+  # discovery.disableDefaultExcludes -- Specifies whether the default excludes should be disabled.
   disableDefaultExcludes: false
