@@ -11,7 +11,10 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	"net/http"
+	"os"
+	"strings"
 )
 
 func RegisterDeploymentDiscoveryHandlers() {
@@ -63,8 +66,21 @@ func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) 
 func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Target {
 	deployments := k8s.Deployments()
 
-	targets := make([]discovery_kit_api.Target, len(deployments))
-	for i, d := range deployments {
+	filteredDeployments := make([]*appsv1.Deployment, 0, len(deployments))
+	disableDefaultExcludes := os.Getenv("STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES")
+	if strings.ToLower(disableDefaultExcludes) == "true" {
+		filteredDeployments = deployments
+	} else {
+		for _, d := range deployments {
+			if client.IsExcludedFromDiscovery(d.ObjectMeta) {
+				continue
+			}
+			filteredDeployments = append(filteredDeployments, d)
+		}
+	}
+
+	targets := make([]discovery_kit_api.Target, len(filteredDeployments))
+	for i, d := range filteredDeployments {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, d.Namespace, d.Name)
 		attributes := map[string][]string{
 			"k8s.namespace":    {d.Namespace},

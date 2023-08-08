@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -302,4 +303,16 @@ func createClientset() (*kubernetes.Clientset, string) {
 	log.Info().Msgf("Cluster connected! Kubernetes Server Version %+v", info)
 
 	return clientset, config.APIPath
+}
+
+func IsExcludedFromDiscovery (objectMeta metav1.ObjectMeta) bool {
+	discoveryEnabled, keyExists := objectMeta.Labels["steadybit.com/discovery-enabled"]
+	if keyExists && strings.ToLower(discoveryEnabled) == "false" {
+		return true
+	}
+	steadybitAgent, steadybitAgentKeyExists := objectMeta.Labels["com.steadybit.agent"]
+	if steadybitAgentKeyExists && strings.ToLower(steadybitAgent) == "true" {
+		return true
+	}
+	return false
 }

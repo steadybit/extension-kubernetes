@@ -11,7 +11,9 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	corev1 "k8s.io/api/core/v1"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -181,8 +183,22 @@ func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
 
 func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Target {
 	pods := k8s.Pods()
-	targets := make([]discovery_kit_api.Target, 0, len(pods))
-	for _, pod := range pods {
+
+	filteredPods := make([]*corev1.Pod, 0, len(pods))
+	disableDefaultExcludes := os.Getenv("STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES")
+	if strings.ToLower(disableDefaultExcludes) == "true" {
+		filteredPods = pods
+	} else {
+		for _, p := range pods {
+			if client.IsExcludedFromDiscovery(p.ObjectMeta) {
+				continue
+			}
+			filteredPods = append(filteredPods, p)
+		}
+	}
+
+	targets := make([]discovery_kit_api.Target, 0, len(filteredPods))
+	for _, pod := range filteredPods {
 		podMetadata := pod.ObjectMeta
 		ownerReferences := client.OwnerReferences(k8s, &podMetadata)
 		services := k8s.ServicesByPod(pod)

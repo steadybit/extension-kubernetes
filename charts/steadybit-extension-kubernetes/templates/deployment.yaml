@@ -7,6 +7,7 @@ metadata:
   {{- range $key, $value := .Values.extraLabels }}
     {{ $key }}: {{ $value }}
   {{- end }}
+  {{- include "extensionlib.labels" (list .) | nindent 6 }}
 spec:
   replicas: 1
   selector:
@@ -16,6 +17,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: {{ include "extensionlib.names.name" . }}
+        {{- include "extensionlib.labels" (list .) | nindent 8 }}
     spec:
       containers:
         - image: {{ .Values.image.name }}:{{ .Values.image.tag }}
@@ -32,6 +34,8 @@ spec:
             {{- include "extensionlib.deployment.env" (list .) | nindent 12 }}
             - name: STEADYBIT_EXTENSION_CLUSTER_NAME
               value:  {{ if and .Values.global .Values.global.clusterName }}{{ .Values.global.clusterName | quote }}{{ else }}{{ .Values.kubernetes.clusterName }}{{ end }}
+            - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+              value:  {{ .Values.discovery.disableDefaultExcludes }}
             {{- with .Values.extraEnv }}
               {{- toYaml . | nindent 12 }}
             {{- end }}

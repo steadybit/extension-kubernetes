@@ -101,3 +101,6 @@ extraEnv: []
 #  - secretRef:
 #    name: env-secrets
 extraEnvFrom: []
+
+discovery:
+  disableDefaultExcludes: false

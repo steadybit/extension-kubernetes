@@ -8,9 +8,10 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 
 ## Configuration
 
-| Environment Variable                          | Helm value               | Meaning                            | required |
-|-----------------------------------------------|--------------------------|------------------------------------|----------|
-| `STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME` | `kubernetes.clusterName` | The name of the kubernetes cluster | yes      |
+| Environment Variable                           | Helm value                         | Meaning                            | required | default |
+|------------------------------------------------|------------------------------------|------------------------------------|----------|---------|
+| `STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME`  | `kubernetes.clusterName`           | The name of the kubernetes cluster | yes      |         |
+| `STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES` | `discovery.disableDefaultExcludes` | Disable Discovery excludes         | false    | `false` |
 
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 
@@ -103,3 +104,7 @@ docker run \
 
 Make sure to register the extension at the steadybit platform. Please refer to
 the [documentation](https://docs.steadybit.com/integrate-with-steadybit/extensions/extension-installation) for more information.
+
+## mark resources as "do not discover"
+
+to exclude a deployment / namespace / pod from discovery you can add the label `"steadybit.com/discovery-enabled": "false"` to the resource labels
