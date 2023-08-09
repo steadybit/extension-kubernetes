@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.3.3
+
+- migration to new unified steadybit actionIds and targetTypes
+- ignore all labeled deployments and containers from discovery
+
 ## v2.3.2
 
 - fix node count check config parsing

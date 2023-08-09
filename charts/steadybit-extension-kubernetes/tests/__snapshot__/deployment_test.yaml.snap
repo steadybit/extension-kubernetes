@@ -31,7 +31,7 @@ manifest should match snapshot with TLS:
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
                 - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
-                  value: false
+                  value: "false"
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
@@ -94,7 +94,7 @@ manifest should match snapshot with clusterName from parent chart:
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
                 - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
-                  value: false
+                  value: "false"
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
@@ -150,7 +150,7 @@ manifest should match snapshot with extra env vars:
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: null
                 - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
-                  value: false
+                  value: "false"
                 - name: FOO
                   value: bar
               envFrom:
@@ -219,7 +219,7 @@ manifest should match snapshot with mutual TLS:
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
                 - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
-                  value: false
+                  value: "false"
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
@@ -289,7 +289,7 @@ manifest should match snapshot without TLS:
                 - name: STEADYBIT_EXTENSION_CLUSTER_NAME
                   value: test
                 - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
-                  value: false
+                  value: "false"
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:
