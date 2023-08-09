@@ -63,3 +63,10 @@ tests:
         clusterName: test
     asserts:
       - matchSnapshot: { }
+
+  - it: manifest should match snapshot with discover all deployments
+    set:
+      discovery:
+        disableDefaultExcludes: true
+    asserts:
+      - matchSnapshot: { }
