@@ -1,3 +1,62 @@
+manifest should match snapshot using podAnnotations and Labels:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-enabled: "false"
+      name: RELEASE-NAME-steadybit-extension-kubernetes
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: steadybit-extension-kubernetes
+      template:
+        metadata:
+          annotations:
+            some-annotation: some-annotation-value
+          labels:
+            app.kubernetes.io/name: steadybit-extension-kubernetes
+            some-label: some-label-value
+            steadybit.com/discovery-enabled: "false"
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_CLUSTER_NAME
+                  value: test
+                - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+                  value: "false"
+              image: ghcr.io/steadybit/extension-kubernetes:latest
+              imagePullPolicy: Always
+              livenessProbe:
+                httpGet:
+                  path: /health/liveness
+                  port: 8089
+              name: extension
+              readinessProbe:
+                httpGet:
+                  path: /health/readiness
+                  port: 8089
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+              securityContext:
+                readOnlyRootFilesystem: true
+                runAsGroup: 10000
+                runAsNonRoot: true
+                runAsUser: 10000
+              volumeMounts: null
+          serviceAccountName: steadybit-extension-kubernetes
+          volumes: null
 manifest should match snapshot with TLS:
   1: |
     apiVersion: apps/v1
@@ -14,6 +73,7 @@ manifest should match snapshot with TLS:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
+          annotations: null
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-enabled: "false"
@@ -81,6 +141,7 @@ manifest should match snapshot with clusterName from parent chart:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
+          annotations: null
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-enabled: "false"
@@ -137,6 +198,7 @@ manifest should match snapshot with discover all deployments:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
+          annotations: null
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-enabled: "false"
@@ -193,6 +255,7 @@ manifest should match snapshot with extra env vars:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
+          annotations: null
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-enabled: "false"
@@ -256,6 +319,7 @@ manifest should match snapshot with mutual TLS:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
+          annotations: null
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-enabled: "false"
@@ -316,6 +380,69 @@ manifest should match snapshot with mutual TLS:
               secret:
                 optional: false
                 secretName: server-cert
+manifest should match snapshot with mutual TLS using containerPaths:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-enabled: "false"
+      name: RELEASE-NAME-steadybit-extension-kubernetes
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/name: steadybit-extension-kubernetes
+      template:
+        metadata:
+          annotations: null
+          labels:
+            app.kubernetes.io/name: steadybit-extension-kubernetes
+            steadybit.com/discovery-enabled: "false"
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_TLS_SERVER_CERT
+                  value: /etc/tls/server.crt
+                - name: STEADYBIT_EXTENSION_TLS_SERVER_KEY
+                  value: /etc/tls/server.key
+                - name: STEADYBIT_EXTENSION_TLS_CLIENT_CAS
+                  value: /etc/tls/ca.crt,/etc/tls/ca2.crt
+                - name: STEADYBIT_EXTENSION_CLUSTER_NAME
+                  value: null
+                - name: STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES
+                  value: "false"
+              image: ghcr.io/steadybit/extension-kubernetes:latest
+              imagePullPolicy: Always
+              livenessProbe:
+                httpGet:
+                  path: /health/liveness
+                  port: 8089
+              name: extension
+              readinessProbe:
+                httpGet:
+                  path: /health/readiness
+                  port: 8089
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+              securityContext:
+                readOnlyRootFilesystem: true
+                runAsGroup: 10000
+                runAsNonRoot: true
+                runAsUser: 10000
+              volumeMounts: null
+          serviceAccountName: steadybit-extension-kubernetes
+          volumes: null
 manifest should match snapshot without TLS:
   1: |
     apiVersion: apps/v1
@@ -332,6 +459,7 @@ manifest should match snapshot without TLS:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
+          annotations: null
           labels:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-enabled: "false"

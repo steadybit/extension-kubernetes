@@ -7,6 +7,16 @@ tests:
         clusterName: test
     asserts:
       - matchSnapshot: { }
+  - it: manifest should match snapshot using podAnnotations and Labels
+    set:
+      kubernetes:
+        clusterName: test
+      podAnnotations:
+        some-annotation: "some-annotation-value"
+      podLabels:
+        some-label: "some-label-value"
+    asserts:
+      - matchSnapshot: { }
   - it: manifest should match snapshot with TLS
     set:
       kubernetes:
@@ -45,6 +55,8 @@ tests:
             paths:
               - /etc/tls/ca.crt
               - /etc/tls/ca2.crt
+    asserts:
+      - matchSnapshot: { }
   - it: manifest should match snapshot with extra env vars
     set:
       extraEnv:
