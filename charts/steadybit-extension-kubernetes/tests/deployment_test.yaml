@@ -75,10 +75,15 @@ tests:
         clusterName: test
     asserts:
       - matchSnapshot: { }
-
   - it: manifest should match snapshot with disabled excludes
     set:
       discovery:
         disableExcludes: true
     asserts:
       - matchSnapshot: { }
+  - it: manifest should match snapshot with extra labels
+    set:
+      extraLabels:
+        tags.datadoghq.com/service: steadybit-extension
+    asserts:
+      - matchSnapshot: {}
