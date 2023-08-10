@@ -183,8 +183,8 @@ func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
 				Name:      "shop-ignored",
 				Namespace: "default",
 				Labels: map[string]string{
-					"best-city":                       "Kevelaer",
-					"steadybit.com/discovery-enabled": "false",
+					"best-city":                        "Kevelaer",
+					"steadybit.com/discovery-disabled": "true",
 				},
 			},
 			Status: v1.PodStatus{
@@ -274,8 +274,8 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 				Name:      "shop-ignored",
 				Namespace: "default",
 				Labels: map[string]string{
-					"best-city":                       "Kevelaer",
-					"steadybit.com/discovery-enabled": "false",
+					"best-city":                        "Kevelaer",
+					"steadybit.com/discovery-disabled": "true",
 				},
 			},
 			Status: v1.PodStatus{

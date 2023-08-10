@@ -244,8 +244,8 @@ func Test_getDiscoveredDeploymentsShouldIgnoreLabeledDeployments(t *testing.T) {
 				Name:      "shop-ignore",
 				Namespace: "default",
 				Labels: map[string]string{
-					"best-city":                       "Kevelaer",
-					"steadybit.com/discovery-enabled": "false",
+					"best-city":                        "Kevelaer",
+					"steadybit.com/discovery-disabled": "true",
 				},
 			},
 			Spec: appsv1.DeploymentSpec{
@@ -312,8 +312,8 @@ func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDis
 				Name:      "shop-ignore",
 				Namespace: "default",
 				Labels: map[string]string{
-					"best-city":                       "Kevelaer",
-					"steadybit.com/discovery-enabled": "false",
+					"best-city":                        "Kevelaer",
+					"steadybit.com/discovery-disabled": "true",
 				},
 			},
 			Spec: appsv1.DeploymentSpec{

@@ -110,5 +110,5 @@ extraEnv: []
 extraEnvFrom: []
 
 discovery:
-  # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-enabled` (mainly for internal use)
+  # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-disabled` (mainly for internal use)
   disableExcludes: false

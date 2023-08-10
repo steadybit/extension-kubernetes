@@ -305,9 +305,9 @@ func createClientset() (*kubernetes.Clientset, string) {
 	return clientset, config.APIPath
 }
 
-func IsExcludedFromDiscovery (objectMeta metav1.ObjectMeta) bool {
-	discoveryEnabled, keyExists := objectMeta.Labels["steadybit.com/discovery-enabled"]
-	if keyExists && strings.ToLower(discoveryEnabled) == "false" {
+func IsExcludedFromDiscovery(objectMeta metav1.ObjectMeta) bool {
+	discoveryEnabled, keyExists := objectMeta.Labels["steadybit.com/discovery-disabled"]
+	if keyExists && strings.ToLower(discoveryEnabled) == "true" {
 		return true
 	}
 	steadybitAgent, steadybitAgentKeyExists := objectMeta.Labels["com.steadybit.agent"]
