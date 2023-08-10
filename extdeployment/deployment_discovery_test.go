@@ -25,6 +25,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	defer close(stopCh)
 	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
+	extconfig.Config.LabelFilter = []string{"secret-label"}
 
 	_, err := clientset.CoreV1().
 		Pods("default").
@@ -74,7 +75,8 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 				Name:      "shop",
 				Namespace: "default",
 				Labels: map[string]string{
-					"best-city": "Kevelaer",
+					"best-city":    "Kevelaer",
+					"secret-label": "secret-value",
 				},
 			},
 			Spec: appsv1.DeploymentSpec{

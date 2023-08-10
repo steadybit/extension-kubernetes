@@ -23,6 +23,7 @@ func Test_getDiscoveredContainer(t *testing.T) {
 	defer close(stopCh)
 	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
+	extconfig.Config.LabelFilter = []string{"secret-label"}
 
 	_, err := clientset.CoreV1().
 		Services("default").
@@ -73,7 +74,8 @@ func Test_getDiscoveredContainer(t *testing.T) {
 				Name:      "shop",
 				Namespace: "default",
 				Labels: map[string]string{
-					"best-city": "Kevelaer",
+					"best-city":    "Kevelaer",
+					"secret-label": "secret-value",
 				},
 			},
 			Status: v1.PodStatus{

@@ -12,6 +12,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/utils/strings/slices"
 	"net/http"
 	"os"
 	"strings"
@@ -58,7 +59,7 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDiscoveredDeployments(w http.ResponseWriter, r *http.Request, _ []byte) {
+func getDiscoveredDeployments(w http.ResponseWriter, _ *http.Request, _ []byte) {
 	targets := getDiscoveredDeploymentTargets(client.K8S)
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
 }
@@ -90,7 +91,9 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 		}
 
 		for key, value := range d.ObjectMeta.Labels {
-			attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
+			if !slices.Contains(extconfig.Config.LabelFilter, key) {
+				attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
+			}
 		}
 
 		pods := k8s.PodsByDeployment(d)

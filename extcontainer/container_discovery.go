@@ -5,13 +5,14 @@ package extcontainer
 
 import (
 	"fmt"
-	discovery_kit_api "github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/strings/slices"
 	"net/http"
 	"os"
 	"strconv"
@@ -176,7 +177,7 @@ func getContainerTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDiscoveredContainer(w http.ResponseWriter, r *http.Request, _ []byte) {
+func getDiscoveredContainer(w http.ResponseWriter, _ *http.Request, _ []byte) {
 	targets := getDiscoveredContainerTargets(client.K8S)
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
 }
@@ -224,7 +225,9 @@ func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Targe
 			}
 
 			for key, value := range podMetadata.Labels {
-				attributes[fmt.Sprintf("k8s.pod.label.%v", key)] = []string{value}
+				if !slices.Contains(extconfig.Config.LabelFilter, key) {
+					attributes[fmt.Sprintf("k8s.pod.label.%v", key)] = []string{value}
+				}
 			}
 
 			for _, service := range services {
