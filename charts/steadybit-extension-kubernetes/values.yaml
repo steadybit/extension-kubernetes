@@ -110,5 +110,5 @@ extraEnv: []
 extraEnvFrom: []
 
 discovery:
-  # discovery.disableDefaultExcludes -- Specifies whether the default excludes should be disabled.
-  disableDefaultExcludes: false
+  # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-enabled` (mainly for internal use)
+  disableExcludes: false

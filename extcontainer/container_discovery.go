@@ -14,7 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -186,8 +185,7 @@ func getDiscoveredContainerTargets(k8s *client.Client) []discovery_kit_api.Targe
 	pods := k8s.Pods()
 
 	filteredPods := make([]*corev1.Pod, 0, len(pods))
-	disableDefaultExcludes := os.Getenv("STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES")
-	if strings.ToLower(disableDefaultExcludes) == "true" {
+	if extconfig.Config.DisableDiscoveryExcludes {
 		filteredPods = pods
 	} else {
 		for _, p := range pods {

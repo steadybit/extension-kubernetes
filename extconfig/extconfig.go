@@ -12,8 +12,9 @@ import (
 // through environment variables. Learn more through the documentation of the envconfig package.
 // https://github.com/kelseyhightower/envconfig
 type Specification struct {
-	ClusterName string   `required:"true" split_words:"true"`
-	LabelFilter []string `required:"false" split_words:"true" default:"controller-revision-hash,pod-template-generation,pod-template-hash"`
+	ClusterName              string   `required:"true" split_words:"true"`
+	LabelFilter              []string `required:"false" split_words:"true" default:"controller-revision-hash,pod-template-generation,pod-template-hash"`
+	DisableDiscoveryExcludes bool     `required:"false" split_words:"true" default:"false"`
 }
 
 var (

@@ -68,7 +68,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 		Deployments("default").
 		Create(context.Background(), &appsv1.Deployment{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "Pod",
+				Kind:       "Deployment",
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -92,7 +92,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	// When
 	assert.Eventually(t, func() bool {
 		return len(getDiscoveredDeploymentTargets(client)) == 1
-	}, time.Minute, 100*time.Millisecond)
+	}, time.Second, 100*time.Millisecond)
 
 	// Then
 	targets := getDiscoveredDeploymentTargets(client)
@@ -159,7 +159,7 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 		Deployments("default").
 		Create(context.Background(), &appsv1.Deployment{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "Pod",
+				Kind:       "Deployment",
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -182,7 +182,7 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 	// When
 	assert.Eventually(t, func() bool {
 		return len(getDiscoveredDeploymentTargets(client)) == 1
-	}, time.Minute, 100*time.Millisecond)
+	}, time.Second, 100*time.Millisecond)
 
 	// Then
 	targets := getDiscoveredDeploymentTargets(client)
@@ -199,6 +199,141 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 		"k8s.pod.name":                   {"shop-pod"},
 		"k8s.distribution":               {"kubernetes"},
 	}, target.Attributes)
+}
+
+func Test_getDiscoveredDeploymentsShouldIgnoreLabeledDeployments(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client, clientset := getTestClient(stopCh)
+	extconfig.Config.ClusterName = "development"
+
+	_, err := clientset.
+		AppsV1().
+		Deployments("default").
+		Create(context.Background(), &appsv1.Deployment{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city": "Kevelaer",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: extutil.Ptr(metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"best-city": "kevelaer",
+					},
+				}),
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+	_, err = clientset.
+		AppsV1().
+		Deployments("default").
+		Create(context.Background(), &appsv1.Deployment{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop-ignore",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city":                       "Kevelaer",
+					"steadybit.com/discovery-enabled": "false",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: extutil.Ptr(metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"best-city": "kevelaer",
+					},
+				}),
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	// When
+	assert.Eventually(t, func() bool {
+		return len(getDiscoveredDeploymentTargets(client)) >= 1
+	}, time.Second, 100*time.Millisecond)
+
+	// Then
+	targets := getDiscoveredDeploymentTargets(client)
+	require.Len(t, targets, 1)
+}
+
+func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDisabled(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client, clientset := getTestClient(stopCh)
+	extconfig.Config.ClusterName = "development"
+	extconfig.Config.DisableDiscoveryExcludes = true
+
+	_, err := clientset.
+		AppsV1().
+		Deployments("default").
+		Create(context.Background(), &appsv1.Deployment{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city": "Kevelaer",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: extutil.Ptr(metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"best-city": "kevelaer",
+					},
+				}),
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+	_, err = clientset.
+		AppsV1().
+		Deployments("default").
+		Create(context.Background(), &appsv1.Deployment{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop-ignore",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city":                       "Kevelaer",
+					"steadybit.com/discovery-enabled": "false",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: extutil.Ptr(metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"best-city": "kevelaer",
+					},
+				}),
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	// When
+	assert.Eventually(t, func() bool {
+		return len(getDiscoveredDeploymentTargets(client)) >= 1
+	}, time.Second, 100*time.Millisecond)
+
+	// Then
+	targets := getDiscoveredDeploymentTargets(client)
+	require.Len(t, targets, 2)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {

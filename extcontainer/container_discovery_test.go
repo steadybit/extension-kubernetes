@@ -103,7 +103,7 @@ func Test_getDiscoveredContainer(t *testing.T) {
 	// When
 	assert.Eventually(t, func() bool {
 		return len(getDiscoveredContainerTargets(client)) == 1
-	}, time.Minute, 100*time.Millisecond)
+	}, time.Second, 100*time.Millisecond)
 
 	// Then
 	targets := getDiscoveredContainerTargets(client)
@@ -127,6 +127,187 @@ func Test_getDiscoveredContainer(t *testing.T) {
 		"k8s.service.namespace":     {"default"},
 		"k8s.distribution":          {"openshift"},
 	}, target.Attributes)
+}
+
+func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client, clientset := getTestClient(stopCh)
+	extconfig.Config.ClusterName = "development"
+
+	_, err := clientset.CoreV1().
+		Pods("default").
+		Create(context.Background(), &v1.Pod{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city": "Kevelaer",
+				},
+			},
+			Status: v1.PodStatus{
+				ContainerStatuses: []v1.ContainerStatus{
+					{
+						ContainerID: "crio://abcdef",
+						Name:        "MrFancyPants",
+						Image:       "nginx",
+					},
+				},
+			},
+			Spec: v1.PodSpec{
+				NodeName: "worker-1",
+				Containers: []v1.Container{
+					{
+						Name:            "nginx",
+						Image:           "nginx",
+						ImagePullPolicy: "Always",
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = clientset.CoreV1().
+		Pods("default").
+		Create(context.Background(), &v1.Pod{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop-ignored",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city":                       "Kevelaer",
+					"steadybit.com/discovery-enabled": "false",
+				},
+			},
+			Status: v1.PodStatus{
+				ContainerStatuses: []v1.ContainerStatus{
+					{
+						ContainerID: "crio://abcdef",
+						Name:        "MrFancyPants",
+						Image:       "nginx",
+					},
+				},
+			},
+			Spec: v1.PodSpec{
+				NodeName: "worker-1",
+				Containers: []v1.Container{
+					{
+						Name:            "nginx",
+						Image:           "nginx",
+						ImagePullPolicy: "Always",
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	// When
+	assert.Eventually(t, func() bool {
+		return len(getDiscoveredContainerTargets(client)) == 1
+	}, time.Second, 100*time.Millisecond)
+
+	// Then
+	targets := getDiscoveredContainerTargets(client)
+	require.Len(t, targets, 1)
+}
+
+func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client, clientset := getTestClient(stopCh)
+	extconfig.Config.ClusterName = "development"
+	extconfig.Config.DisableDiscoveryExcludes = true
+
+	_, err := clientset.CoreV1().
+		Pods("default").
+		Create(context.Background(), &v1.Pod{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city": "Kevelaer",
+				},
+			},
+			Status: v1.PodStatus{
+				ContainerStatuses: []v1.ContainerStatus{
+					{
+						ContainerID: "crio://abcdef",
+						Name:        "MrFancyPants",
+						Image:       "nginx",
+					},
+				},
+			},
+			Spec: v1.PodSpec{
+				NodeName: "worker-1",
+				Containers: []v1.Container{
+					{
+						Name:            "nginx",
+						Image:           "nginx",
+						ImagePullPolicy: "Always",
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = clientset.CoreV1().
+		Pods("default").
+		Create(context.Background(), &v1.Pod{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop-ignored",
+				Namespace: "default",
+				Labels: map[string]string{
+					"best-city":                       "Kevelaer",
+					"steadybit.com/discovery-enabled": "false",
+				},
+			},
+			Status: v1.PodStatus{
+				ContainerStatuses: []v1.ContainerStatus{
+					{
+						ContainerID: "crio://abcdef",
+						Name:        "MrFancyPants",
+						Image:       "nginx",
+					},
+				},
+			},
+			Spec: v1.PodSpec{
+				NodeName: "worker-1",
+				Containers: []v1.Container{
+					{
+						Name:            "nginx",
+						Image:           "nginx",
+						ImagePullPolicy: "Always",
+					},
+				},
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	// When
+	assert.Eventually(t, func() bool {
+		return len(getDiscoveredContainerTargets(client)) >= 1
+	}, time.Second, 100*time.Millisecond)
+
+	// Then
+	targets := getDiscoveredContainerTargets(client)
+	require.Len(t, targets, 2)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {

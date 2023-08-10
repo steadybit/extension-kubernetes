@@ -8,11 +8,11 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 
 ## Configuration
 
-| Environment Variable                           | Helm value                         | Meaning                                                                  | required | default |
-|------------------------------------------------|------------------------------------|--------------------------------------------------------------------------|----------|---------|
-| `STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME`  | `kubernetes.clusterName`           | The name of the kubernetes cluster                                       | yes      |         |
-| `STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES` | `discovery.disableDefaultExcludes` | Ignore discovery excludes specified by `steadybit.com/discovery-enabled` | false    | `false` |
-| `STEADYBIT_EXTENSION_LABEL_FILTER`             |                                    | These labels will be ignored and not added to the discovered targets     | false    | `false` |
+| Environment Variable                             | Helm value                  | Meaning                                                                  | required | default |
+|--------------------------------------------------|-----------------------------|--------------------------------------------------------------------------|----------|---------|
+| `STEADYBIT_EXTENSION_KUBERNETES_CLUSTER_NAME`    | `kubernetes.clusterName`    | The name of the kubernetes cluster                                       | yes      |         |
+| `STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES` | `discovery.disableExcludes` | Ignore discovery excludes specified by `steadybit.com/discovery-enabled` | false    | `false` |
+| `STEADYBIT_EXTENSION_LABEL_FILTER`               |                             | These labels will be ignored and not added to the discovered targets     | false    | `false` |
 
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 

@@ -14,8 +14,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/utils/strings/slices"
 	"net/http"
-	"os"
-	"strings"
 )
 
 func RegisterDeploymentDiscoveryHandlers() {
@@ -68,8 +66,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 	deployments := k8s.Deployments()
 
 	filteredDeployments := make([]*appsv1.Deployment, 0, len(deployments))
-	disableDefaultExcludes := os.Getenv("STEADYBIT_EXTENSION_DISABLE_DEFAULT_EXCLUDES")
-	if strings.ToLower(disableDefaultExcludes) == "true" {
+	if extconfig.Config.DisableDiscoveryExcludes {
 		filteredDeployments = deployments
 	} else {
 		for _, d := range deployments {
