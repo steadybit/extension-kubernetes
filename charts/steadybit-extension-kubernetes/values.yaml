@@ -112,3 +112,8 @@ extraEnvFrom: []
 discovery:
   # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-disabled` (mainly for internal use)
   disableExcludes: false
+
+probes:
+  readiness:
+    # probes.readiness.initialDelaySeconds -- Specifies the initialDelaySeconds for the readiness probe. You migth want to increase this value depending on your cluster size.
+    initialDelaySeconds: 30
