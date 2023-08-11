@@ -48,9 +48,16 @@ resources:
     cpu: "50m"
   limits:
     # resources.limits.memory -- The limit of memory to be used
-    memory: "128Mi"
+    #  You might want to increase this value depending on your cluster size. Customers with 2500 Container / 500 Deployments are reporting memory usage around 400Mi.
+    memory: "512Mi"
     # resources.limits.cpu -- The limit of cpu share to be used during its interval
-    cpu: "200m"
+    cpu: "500m"
+
+probes:
+  readiness:
+    # probes.readiness.initialDelaySeconds -- Specifies the initialDelaySeconds for the readiness probe.
+    #  You might want to increase this value depending on your cluster size. Customers with 2500 Container / 500 Deployments are reporting startup times around 5s.
+    initialDelaySeconds: 10
 
 serviceAccount:
   # serviceAccount.create -- Specifies whether a ServiceAccount should be created.
@@ -112,8 +119,3 @@ extraEnvFrom: []
 discovery:
   # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-disabled` (mainly for internal use)
   disableExcludes: false
-
-probes:
-  readiness:
-    # probes.readiness.initialDelaySeconds -- Specifies the initialDelaySeconds for the readiness probe. You migth want to increase this value depending on your cluster size.
-    initialDelaySeconds: 30
