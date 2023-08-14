@@ -163,10 +163,11 @@ func eventsToMessages(events *[]corev1.Event) *action_kit_api.Messages {
 	}
 	for _, event := range *events {
 		messages = append(messages, action_kit_api.Message{
-			Message:   event.Message,
-			Type:      extutil.Ptr(LogType),
-			Level:     convertToLevel(event.Type),
-			Timestamp: extutil.Ptr(event.LastTimestamp.Time),
+			Message:         event.Message,
+			Type:            extutil.Ptr(LogType),
+			Level:           convertToLevel(event.Type),
+			Timestamp:       extutil.Ptr(event.LastTimestamp.Time),
+			TimestampSource: extutil.Ptr(action_kit_api.TimestampSourceExternal),
 			Fields: extutil.Ptr(action_kit_api.MessageFields{
 				"reason":       event.Reason,
 				"cluster-name": clusterName,
