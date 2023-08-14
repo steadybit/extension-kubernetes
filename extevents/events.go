@@ -54,7 +54,7 @@ func (f K8sEventsAction) Describe() action_kit_api.ActionDescription {
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(logIcon),
 		Category:    extutil.Ptr("kubernetes"),
-		TimeControl: action_kit_api.Internal,
+		TimeControl: action_kit_api.TimeControlInternal,
 		Kind:        action_kit_api.Other,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType:          extcluster.ClusterTargetType,

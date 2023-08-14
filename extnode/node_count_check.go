@@ -60,7 +60,7 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Icon:        extutil.Ptr(nodeCountCheckIcon),
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Check,
-		TimeControl: action_kit_api.Internal,
+		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType:          extcluster.ClusterTargetType,
 			QuantityRestriction: extutil.Ptr(action_kit_api.ExactlyOne),

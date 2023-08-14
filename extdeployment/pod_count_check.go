@@ -56,7 +56,7 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Icon:        extutil.Ptr(podCountCheckIcon),
 		Category:    extutil.Ptr("kubernetes"),
 		Kind:        action_kit_api.Check,
-		TimeControl: action_kit_api.Internal,
+		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType:          deploymentTargetType,
 			QuantityRestriction: extutil.Ptr(action_kit_api.All),
