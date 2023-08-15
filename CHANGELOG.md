@@ -1,5 +1,10 @@
 # Changelog
 
+
+## v2.3.5
+
+- update dependencies
+
 ## v2.3.4
 
 - ignore container with label `steadybit.com.discovery-disabled"="true"` during discovery
