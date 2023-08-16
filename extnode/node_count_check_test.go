@@ -22,7 +22,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		Config: map[string]interface{}{
 			"duration":           1000 * 10,
 			"nodeCountCheckMode": "nodeCountAtLeast",
-			"nodeCount":          "2",
+			"nodeCount":          2,
 		},
 		Target: extutil.Ptr(action_kit_api.Target{
 			Attributes: map[string][]string{
@@ -62,7 +62,8 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 	state := action.NewEmptyState()
 
 	// When
-	prepareNodeCountCheckInternal(k8sclient, &state, request)
+	_, err = prepareNodeCountCheckInternal(k8sclient, &state, request)
+	require.NoError(t, err)
 
 	// Then
 	require.True(t, state.Timeout.After(time.Now()))

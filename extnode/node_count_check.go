@@ -37,7 +37,7 @@ type NodeCountCheckState struct {
 type NodeCountCheckConfig struct {
 	Duration           int
 	NodeCountCheckMode string
-	NodeCount          int `json:",string"`
+	NodeCount          int
 }
 
 func NewNodeCountCheckAction() action_kit_sdk.Action[NodeCountCheckState] {

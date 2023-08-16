@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v2.3.6
+
+- fix node count check config parsing
+
 ## v2.3.5
 
 - update dependencies
