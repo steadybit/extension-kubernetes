@@ -9,10 +9,12 @@ ARG TARGETARCH
 ARG NAME
 ARG VERSION
 ARG REVISION
+ARG ADDITIONAL_BUILD_PARAMS
 
 WORKDIR /app
 
 COPY go.mod ./
+#COPY go.docker.mod ./go.mod
 COPY go.sum ./
 RUN go mod download
 RUN wget -P /usr/bin "https://storage.googleapis.com/kubernetes-release/release/$(wget -O - https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl"
@@ -25,7 +27,8 @@ RUN go build \
     -X 'github.com/steadybit/extension-kit/extbuild.ExtensionName=${NAME}' \
     -X 'github.com/steadybit/extension-kit/extbuild.Version=${VERSION}' \
     -X 'github.com/steadybit/extension-kit/extbuild.Revision=${REVISION}'" \
-    -o ./extension
+    -o ./extension \
+    ${ADDITIONAL_BUILD_PARAMS}
 
 ##
 ## Runtime

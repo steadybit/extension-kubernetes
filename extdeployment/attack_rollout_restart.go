@@ -50,7 +50,7 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(deploymentIcon),
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
-			TargetType: deploymentTargetType,
+			TargetType: DeploymentTargetType,
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "default",

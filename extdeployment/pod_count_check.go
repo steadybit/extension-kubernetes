@@ -58,7 +58,7 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
-			TargetType:          deploymentTargetType,
+			TargetType:          DeploymentTargetType,
 			QuantityRestriction: extutil.Ptr(action_kit_api.All),
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
