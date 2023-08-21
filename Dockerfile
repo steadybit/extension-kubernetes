@@ -14,7 +14,6 @@ ARG ADDITIONAL_BUILD_PARAMS
 WORKDIR /app
 
 COPY go.mod ./
-#COPY go.docker.mod ./go.mod
 COPY go.sum ./
 RUN go mod download
 RUN wget -P /usr/bin "https://storage.googleapis.com/kubernetes-release/release/$(wget -O - https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl"

@@ -6,6 +6,7 @@ package e2e
 import (
 	"context"
 	"github.com/rs/zerolog/log"
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kubernetes/extcluster"
@@ -15,6 +16,17 @@ import (
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+)
+
+var (
+	target = action_kit_api.Target{
+		Name: "test",
+		Attributes: map[string][]string{
+			"k8s.cluster-name": {"e2e-cluster"},
+			"k8s.namespace":    {"default"},
+			"k8s.deployment":   {"nginx"},
+		},
+	}
 )
 
 func TestWithMinikube(t *testing.T) {
@@ -34,7 +46,72 @@ func TestWithMinikube(t *testing.T) {
 			Name: "discovery",
 			Test: testDiscovery,
 		},
+		{
+			Name: "checkRolloutReady",
+			Test: testCheckRolloutReady,
+		},
 	})
+}
+
+func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testCheckRolloutReady")
+
+	nginxDeployment := e2e.NginxDeployment{Minikube: m}
+	err := nginxDeployment.Deploy("nginx")
+	require.NoError(t, err, "failed to create deployment")
+	defer func() { _ = nginxDeployment.Delete() }()
+
+	tests := []struct {
+		name            string
+		wantedCompleted bool
+	}{
+		{
+			name:            "should check status ok",
+			wantedCompleted: true,
+		},
+		{
+			name:            "should check status not completed",
+			wantedCompleted: false,
+		},
+	}
+
+	require.NoError(t, err)
+
+	for _, tt := range tests {
+
+		config := struct {
+			Duration int `json:"duration"`
+		}{
+			Duration: 10000,
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantedCompleted {
+				exec, err := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "restart", "deployment/nginx")
+				require.NoError(t, err)
+				log.Info().Msgf("kubectl rollout restart deployment/nginx: %s", exec)
+			} else {
+				exec, err := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "restart", "deployment/nginx")
+				require.NoError(t, err)
+				log.Info().Msgf("kubectl rollout restart deployment/nginx: %s", exec)
+				exec, err = m.PodExec(e.Pod, "extension", "kubectl", "rollout", "pause", "deployment/nginx")
+				require.NoError(t, err)
+				log.Info().Msgf("kubectl rollout pause deployment/nginx: %s", exec)
+			}
+
+			action, err := e.RunAction(extdeployment.RolloutStatusActionId, &target, config, nil)
+			defer func() { _ = action.Cancel() }()
+			require.NoError(t, err)
+
+			err = action.Wait()
+			if tt.wantedCompleted {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+
 }
 
 func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {

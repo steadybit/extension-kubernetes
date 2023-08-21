@@ -44,7 +44,7 @@ func (f CheckDeploymentRolloutStatusAction) NewEmptyState() CheckDeploymentRollo
 
 func (f CheckDeploymentRolloutStatusAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
-		Id:          rolloutStatusActionId,
+		Id:          RolloutStatusActionId,
 		Label:       "Deployment Rollout Status",
 		Description: "Check the rollout status of the deployment. The check succeeds when no rollout is pending, i.e., `kubectl rollout status` exits with status code `0`.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
