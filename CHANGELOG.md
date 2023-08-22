@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v2.4.0 (prepared)
+
+- `kubernetes-container` are handled as enrichment data and not as targets anymore. (This requires at least agent 1.0.92 and platform 1.0.79)
+
 ## v2.3.6
 
 - fix node count check config parsing

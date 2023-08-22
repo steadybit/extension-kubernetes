@@ -102,16 +102,15 @@ func Test_getDiscoveredContainer(t *testing.T) {
 
 	// When
 	assert.Eventually(t, func() bool {
-		return len(getDiscoveredContainerTargets(client)) == 1
+		return len(getDiscoveredContainerEnrichmentData(client)) == 1
 	}, time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredContainerTargets(client)
+	targets := getDiscoveredContainerEnrichmentData(client)
 	require.Len(t, targets, 1)
 	target := targets[0]
 	assert.Equal(t, "crio://abcdef", target.Id)
-	assert.Equal(t, "MrFancyPants", target.Label)
-	assert.Equal(t, KubernetesContainerTargetType, target.TargetType)
+	assert.Equal(t, KubernetesContainerEnrichmentDataType, target.EnrichmentDataType)
 	assert.Equal(t, map[string][]string{
 		"k8s.cluster-name":          {"development"},
 		"k8s.container.id":          {"crio://abcdef"},
@@ -211,11 +210,11 @@ func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
 
 	// When
 	assert.Eventually(t, func() bool {
-		return len(getDiscoveredContainerTargets(client)) == 1
+		return len(getDiscoveredContainerEnrichmentData(client)) == 1
 	}, time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredContainerTargets(client)
+	targets := getDiscoveredContainerEnrichmentData(client)
 	require.Len(t, targets, 1)
 }
 
@@ -302,11 +301,11 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 
 	// When
 	assert.Eventually(t, func() bool {
-		return len(getDiscoveredContainerTargets(client)) >= 1
+		return len(getDiscoveredContainerEnrichmentData(client)) >= 1
 	}, time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredContainerTargets(client)
+	targets := getDiscoveredContainerEnrichmentData(client)
 	require.Len(t, targets, 2)
 }
 

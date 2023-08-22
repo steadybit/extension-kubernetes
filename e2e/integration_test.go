@@ -138,13 +138,13 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, target.Attributes["k8s.pod.name"][0], nginxDeployment.Pods[0].Name)
 	assert.Equal(t, target.Attributes["k8s.distribution"][0], "kubernetes")
 
-	target, err = e2e.PollForTarget(ctx, e, extcontainer.KubernetesContainerTargetType, func(target discovery_kit_api.Target) bool {
+	target, err = e2e.PollForTarget(ctx, e, extcontainer.KubernetesContainerEnrichmentDataType, func(target discovery_kit_api.Target) bool {
 		log.Debug().Msgf("target: %v", target.Attributes["k8s.container.name"])
 		return e2e.HasAttribute(target, "k8s.container.name", "nginx")
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, target.TargetType, extcontainer.KubernetesContainerTargetType)
+	assert.Equal(t, target.TargetType, extcontainer.KubernetesContainerEnrichmentDataType)
 	assert.Equal(t, target.Attributes["k8s.container.name"][0], "nginx")
 	assert.Equal(t, target.Attributes["k8s.container.ready"][0], "true")
 	assert.Equal(t, target.Attributes["k8s.container.image"][0], "nginx:stable-alpine")

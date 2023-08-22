@@ -105,6 +105,16 @@ func getExtensionList() ExtensionListResponse {
 					Path:   "/attribute-descriptions",
 				},
 			},
+			TargetEnrichmentRules: []discovery_kit_api.DescribingEndpointReference{
+				{
+					Method: "GET",
+					Path:   "/container/discovery/rules/k8s-container-to-container",
+				},
+				{
+					Method: "GET",
+					Path:   "/container/discovery/rules/k8s-container-to-host",
+				},
+			},
 		},
 	}
 }
