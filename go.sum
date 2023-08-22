@@ -69,8 +69,8 @@ github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/
 github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
 github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 h1:K6RDEckDVWvDI9JAJYCmNdQXq6neHJOYx3V6jnqNEec=
-github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
-github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/google/uuid v1.3.1 h1:KjJaJ9iWZ3jOFZIf1Lqf4laDRCasjl0BCmnEGxkdLb4=
+github.com/google/uuid v1.3.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/imdario/mergo v0.3.16 h1:wwQJbIsHYGMUyLSPrEq1CT16AhnhNJQ51+4fdHUnCl4=
 github.com/imdario/mergo v0.3.16/go.mod h1:WBLT9ZmE3lPoWsEzCh9LPo3TiwVN+ZKEjmz+hD27ysY=
@@ -139,8 +139,8 @@ github.com/steadybit/action-kit/go/action_kit_api/v2 v2.7.1 h1:MsKlrW9xdZEd+MmBl
 github.com/steadybit/action-kit/go/action_kit_api/v2 v2.7.1/go.mod h1:Jf2HU+unQ/YDvPOpx0H+6S65GHiRTF+iPywirKAQPqk=
 github.com/steadybit/action-kit/go/action_kit_sdk v1.1.5 h1:X7g9KpreF/A/mDCHKwWkNsBGk/H4xNkn+MGQG5ukdgg=
 github.com/steadybit/action-kit/go/action_kit_sdk v1.1.5/go.mod h1:ABoB087BeiUAfRsLnVEmQ5KDMww7N/v57siEvjmhJtw=
-github.com/steadybit/action-kit/go/action_kit_test v1.0.12 h1:EbcmDBf7XfrH/TbnU1QhxnyKytHJYNfkqLBcw02erEY=
-github.com/steadybit/action-kit/go/action_kit_test v1.0.12/go.mod h1:DxkLlM4OlN0PmvtHv8i0BYsGcES2LnAjnU49bvjD9v8=
+github.com/steadybit/action-kit/go/action_kit_test v1.0.13 h1:Cy62goFioI8RQM3hK0Wxg8AVZZYCv6Nkzf1rHvcxugs=
+github.com/steadybit/action-kit/go/action_kit_test v1.0.13/go.mod h1:UseNXxIwhtgOUpoB7t5DKkTAd97ulObJKoKo/+q56KY=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.4.1 h1:J9eFfHazLk8Jlk5xZg3yiAON7W61Dm+okeNvAwLl1RY=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.4.1/go.mod h1:OnIfjrBhmMQCYxriHmr8mT1wCpvqIZxwBHWnanFhgNA=
 github.com/steadybit/extension-kit v1.8.7 h1:C4PWMT3c0TA1HUZlO2ooe1SBK8w3wAsJtq/hsXurbQI=

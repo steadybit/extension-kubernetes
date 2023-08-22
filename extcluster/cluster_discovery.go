@@ -53,7 +53,7 @@ func getClusterTargetDescription() discovery_kit_api.TargetDescription {
 
 func getDiscoveredCluster(w http.ResponseWriter, _ *http.Request, _ []byte) {
 	targets := getDiscoveredClusterTargets()
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
+	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
 }
 
 func getDiscoveredClusterTargets() []discovery_kit_api.Target {

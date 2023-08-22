@@ -59,7 +59,7 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 
 func getDiscoveredDeployments(w http.ResponseWriter, _ *http.Request, _ []byte) {
 	targets := getDiscoveredDeploymentTargets(client.K8S)
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveredTargets{Targets: targets})
+	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
 }
 
 func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Target {
