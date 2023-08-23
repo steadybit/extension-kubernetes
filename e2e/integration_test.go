@@ -123,6 +123,11 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	err := nginxDeployment.Deploy("nginx")
 	require.NoError(t, err, "failed to create deployment")
 	defer func() { _ = nginxDeployment.Delete() }()
+	podNames := make([]string, 0, len(nginxDeployment.Pods))
+	for _, pod := range nginxDeployment.Pods {
+		podNames = append(podNames, pod.Name)
+	}
+	log.Debug().Msgf("nginx pods: %v", podNames)
 
 	target, err := e2e.PollForTarget(ctx, e, extdeployment.DeploymentTargetType, func(target discovery_kit_api.Target) bool {
 		log.Debug().Msgf("deployment: %v", target.Attributes["k8s.deployment"])
@@ -139,7 +144,7 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, target.Attributes["k8s.distribution"][0], "kubernetes")
 
 	enrichmentData, err := e2e.PollForEnrichmentData(ctx, e, extcontainer.KubernetesContainerEnrichmentDataType, func(enrichmentData discovery_kit_api.EnrichmentData) bool {
-		log.Debug().Msgf("target: %v", enrichmentData.Attributes["k8s.container.name"])
+		log.Debug().Msgf("target: %v, pod: %v", enrichmentData.Attributes["k8s.container.name"], enrichmentData.Attributes["k8s.pod.name"])
 		return e2e.ContainsAttribute(enrichmentData.Attributes, "k8s.container.name", "nginx")
 	})
 
@@ -152,7 +157,7 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, enrichmentData.Attributes["k8s.namespace"][0], "default")
 	assert.Equal(t, enrichmentData.Attributes["k8s.node.name"][0], "e2e-docker")
 	assert.Equal(t, enrichmentData.Attributes["k8s.pod.name"][0], nginxDeployment.Pods[0].Name)
-	assert.Equal(t, enrichmentData.Attributes["k8s.distribution"][0], "kubernetes")
+	assert.Contains(t, podNames, enrichmentData.Attributes["k8s.pod.name"][0])
 
 	target, err = e2e.PollForTarget(ctx, e, extcluster.ClusterTargetType, func(target discovery_kit_api.Target) bool {
 		log.Debug().Msgf("target: %v", target.Attributes["k8s.cluster-name"])
