@@ -21,6 +21,7 @@ manifest should match snapshot using podAnnotations and Labels:
             some-label: some-label-value
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -81,6 +82,7 @@ manifest should match snapshot with TLS:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -152,6 +154,7 @@ manifest should match snapshot with clusterName from parent chart:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -212,6 +215,7 @@ manifest should match snapshot with disabled excludes:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -274,6 +278,7 @@ manifest should match snapshot with extra env vars:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -343,6 +348,7 @@ manifest should match snapshot with extra labels:
             steadybit.com/discovery-disabled: "true"
             tags.datadoghq.com/service: steadybit-extension
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -403,6 +409,7 @@ manifest should match snapshot with mutual TLS:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -483,6 +490,7 @@ manifest should match snapshot with mutual TLS using containerPaths:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
@@ -549,6 +557,7 @@ manifest should match snapshot without TLS:
             app.kubernetes.io/name: steadybit-extension-kubernetes
             steadybit.com/discovery-disabled: "true"
         spec:
+          automountServiceAccountToken: true
           containers:
             - env:
                 - name: STEADYBIT_LOG_LEVEL
