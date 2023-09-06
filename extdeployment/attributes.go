@@ -25,15 +25,15 @@ func getAttributeDescriptions() discovery_kit_api.AttributeDescriptions {
 			{
 				Attribute: "k8s.namespace",
 				Label: discovery_kit_api.PluralLabel{
-					One:   "namespace name",
-					Other: "namespace names",
+					One:   "Namespace name",
+					Other: "Namespace names",
 				},
 			},
 			{
 				Attribute: "k8s.cluster-name",
 				Label: discovery_kit_api.PluralLabel{
-					One:   "cluster name",
-					Other: "cluster names",
+					One:   "Cluster name",
+					Other: "Cluster names",
 				},
 			},
 			{
