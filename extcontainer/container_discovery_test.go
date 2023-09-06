@@ -5,7 +5,7 @@ package extcontainer
 
 import (
 	"context"
-	"github.com/steadybit/extension-kubernetes/client"
+	kclient "github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -123,7 +123,6 @@ func Test_getDiscoveredContainer(t *testing.T) {
 		"k8s.pod.name":              {"shop"},
 		"k8s.pod.label.best-city":   {"Kevelaer"},
 		"k8s.service.name":          {"shop-kevelaer"},
-		"k8s.service.namespace":     {"default"},
 		"k8s.distribution":          {"openshift"},
 	}, target.Attributes)
 }
@@ -309,8 +308,8 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 	require.Len(t, targets, 2)
 }
 
-func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
+func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	client := client.CreateClient(clientset, stopCh, "/oapi")
+	client := kclient.CreateClient(clientset, stopCh, "/oapi")
 	return client, clientset
 }

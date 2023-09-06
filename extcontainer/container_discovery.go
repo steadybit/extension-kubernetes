@@ -104,10 +104,6 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 				Name:    "k8s.service.name",
 			},
 			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.service.namespace",
-			},
-			{
 				Matcher: discovery_kit_api.StartsWith,
 				Name:    "k8s.pod.label.",
 			},
@@ -239,7 +235,7 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 
 			for _, service := range services {
 				attributes["k8s.service.name"] = []string{service.Name}
-				attributes["k8s.service.namespace"] = []string{service.Namespace}
+				attributes["k8s.namespace"] = []string{service.Namespace}
 			}
 
 			for _, ownerRef := range ownerReferences.OwnerRefs {
