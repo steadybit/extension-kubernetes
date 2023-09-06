@@ -97,6 +97,10 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			},
 			{
 				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.container.id",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
 				Name:    "k8s.container.image",
 			},
 			{
@@ -106,6 +110,10 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			{
 				Matcher: discovery_kit_api.StartsWith,
 				Name:    "k8s.pod.label.",
+			},
+			{
+				Matcher: discovery_kit_api.StartsWith,
+				Name:    "k8s.label.",
 			},
 			{
 				Matcher: discovery_kit_api.Equals,
@@ -230,6 +238,7 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 			for key, value := range podMetadata.Labels {
 				if !slices.Contains(extconfig.Config.LabelFilter, key) {
 					attributes[fmt.Sprintf("k8s.pod.label.%v", key)] = []string{value}
+					attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 				}
 			}
 

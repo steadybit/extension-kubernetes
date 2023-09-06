@@ -20,6 +20,7 @@ func RegisterDeploymentDiscoveryHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/discovery", exthttp.GetterAsHandler(getDeploymentDiscoveryDescription))
 	exthttp.RegisterHttpHandler("/deployment/discovery/target-description", exthttp.GetterAsHandler(getDeploymentTargetDescription))
 	exthttp.RegisterHttpHandler("/deployment/discovery/discovered-targets", getDiscoveredDeployments)
+	exthttp.RegisterHttpHandler("/deployment/discovery/rules/k8s-deployment-to-container", exthttp.GetterAsHandler(getDeploymentToContainerEnrichmentRule))
 }
 
 func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
@@ -90,6 +91,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 		for key, value := range d.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {
 				attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
+				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
 
@@ -107,7 +109,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 				}
 			}
 			attributes["k8s.pod.name"] = podNames
-			if containerIds != nil {
+			if len(containerIds) > 0 {
 				attributes["k8s.container.id"] = containerIds
 			}
 		}
@@ -120,4 +122,33 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 		}
 	}
 	return targets
+}
+
+func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
+	return discovery_kit_api.TargetEnrichmentRule{
+		Id:      "com.steadybit.extension_kubernetes.kubernetes-deployment-to-container",
+		Version: extbuild.GetSemverVersionStringOrUnknown(),
+		Src: discovery_kit_api.SourceOrDestination{
+			Type: DeploymentTargetType,
+			Selector: map[string]string{
+				"k8s.container.id": "${dest.container.id}",
+			},
+		},
+		Dest: discovery_kit_api.SourceOrDestination{
+			Type: "com.steadybit.extension_container.container",
+			Selector: map[string]string{
+				"k8s.container.id": "${src.container.id}",
+			},
+		},
+		Attributes: []discovery_kit_api.Attribute{
+			{
+				Matcher: discovery_kit_api.StartsWith,
+				Name:    "k8s.deployment.label.",
+			},
+			{
+				Matcher: discovery_kit_api.StartsWith,
+				Name:    "k8s.label.",
+			},
+		},
+	}
 }

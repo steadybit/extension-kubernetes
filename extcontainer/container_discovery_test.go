@@ -122,6 +122,7 @@ func Test_getDiscoveredContainer(t *testing.T) {
 		"k8s.node.name":             {"worker-1"},
 		"k8s.pod.name":              {"shop"},
 		"k8s.pod.label.best-city":   {"Kevelaer"},
+		"k8s.label.best-city":       {"Kevelaer"},
 		"k8s.service.name":          {"shop-kevelaer"},
 		"k8s.distribution":          {"openshift"},
 	}, target.Attributes)
