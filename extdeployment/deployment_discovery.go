@@ -21,6 +21,7 @@ func RegisterDeploymentDiscoveryHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/discovery/target-description", exthttp.GetterAsHandler(getDeploymentTargetDescription))
 	exthttp.RegisterHttpHandler("/deployment/discovery/discovered-targets", getDiscoveredDeployments)
 	exthttp.RegisterHttpHandler("/deployment/discovery/rules/k8s-deployment-to-container", exthttp.GetterAsHandler(getDeploymentToContainerEnrichmentRule))
+	exthttp.RegisterHttpHandler("/deployment/discovery/rules/container-to-k8s-deployment", exthttp.GetterAsHandler(getContainerToDeploymentEnrichmentRule))
 }
 
 func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
@@ -131,13 +132,13 @@ func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichment
 		Src: discovery_kit_api.SourceOrDestination{
 			Type: DeploymentTargetType,
 			Selector: map[string]string{
-				"k8s.container.id": "${dest.container.id}",
+				"k8s.container.id": "${dest.k8s.container.id}",
 			},
 		},
 		Dest: discovery_kit_api.SourceOrDestination{
 			Type: "com.steadybit.extension_container.container",
 			Selector: map[string]string{
-				"k8s.container.id": "${src.container.id}",
+				"k8s.container.id": "${src.k8s.container.id}",
 			},
 		},
 		Attributes: []discovery_kit_api.Attribute{
@@ -148,6 +149,31 @@ func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichment
 			{
 				Matcher: discovery_kit_api.StartsWith,
 				Name:    "k8s.label.",
+			},
+		},
+	}
+}
+
+func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
+	return discovery_kit_api.TargetEnrichmentRule{
+		Id:      "com.steadybit.extension_kubernetes.container-to-kubernetes-deployment",
+		Version: extbuild.GetSemverVersionStringOrUnknown(),
+		Src: discovery_kit_api.SourceOrDestination{
+			Type: "com.steadybit.extension_container.container",
+			Selector: map[string]string{
+				"k8s.container.id": "${dest.k8s.container.id}",
+			},
+		},
+		Dest: discovery_kit_api.SourceOrDestination{
+			Type: DeploymentTargetType,
+			Selector: map[string]string{
+				"k8s.container.id": "${src.k8s.container.id}",
+			},
+		},
+		Attributes: []discovery_kit_api.Attribute{
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "host.hostname",
 			},
 		},
 	}
