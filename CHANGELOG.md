@@ -1,7 +1,6 @@
 # Changelog
 
-
-## v2.4.0 (prepared)
+## v2.4.0
 
 - `kubernetes-container` are handled as enrichment data and not as targets anymore. (This requires at least agent 1.0.92 and platform 1.0.79)
 
