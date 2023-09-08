@@ -14,6 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/utils/strings/slices"
 	"net/http"
+	"strings"
 )
 
 func RegisterDeploymentDiscoveryHandlers() {
@@ -100,6 +101,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 		if len(pods) > 0 {
 			podNames := make([]string, len(pods))
 			var containerIds []string
+			var containerIdsWithoutPrefix []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
 				for _, container := range pod.Status.ContainerStatuses {
@@ -107,11 +109,15 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 						continue
 					}
 					containerIds = append(containerIds, container.ContainerID)
+					containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 				}
 			}
 			attributes["k8s.pod.name"] = podNames
 			if len(containerIds) > 0 {
 				attributes["k8s.container.id"] = containerIds
+			}
+			if len(containerIdsWithoutPrefix) > 0 {
+				attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
 			}
 		}
 
@@ -132,13 +138,13 @@ func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichment
 		Src: discovery_kit_api.SourceOrDestination{
 			Type: DeploymentTargetType,
 			Selector: map[string]string{
-				"k8s.container.id": "${dest.k8s.container.id}",
+				"k8s.container.id.stripped": "${dest.container.id.stripped}",
 			},
 		},
 		Dest: discovery_kit_api.SourceOrDestination{
 			Type: "com.steadybit.extension_container.container",
 			Selector: map[string]string{
-				"k8s.container.id": "${src.k8s.container.id}",
+				"container.id.stripped": "${src.k8s.container.id.stripped}",
 			},
 		},
 		Attributes: []discovery_kit_api.Attribute{
@@ -161,13 +167,13 @@ func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichment
 		Src: discovery_kit_api.SourceOrDestination{
 			Type: "com.steadybit.extension_container.container",
 			Selector: map[string]string{
-				"k8s.container.id": "${dest.k8s.container.id}",
+				"container.id.stripped": "${dest.k8s.container.id.stripped}",
 			},
 		},
 		Dest: discovery_kit_api.SourceOrDestination{
 			Type: DeploymentTargetType,
 			Selector: map[string]string{
-				"k8s.container.id": "${src.k8s.container.id}",
+				"k8s.container.id.stripped": "${src.container.id.stripped}",
 			},
 		},
 		Attributes: []discovery_kit_api.Attribute{

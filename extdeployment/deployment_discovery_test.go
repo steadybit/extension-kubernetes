@@ -109,6 +109,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 		"k8s.cluster-name":               {"development"},
 		"k8s.pod.name":                   {"shop-pod"},
 		"k8s.container.id":               {"crio://abcdef"},
+		"k8s.container.id.stripped":      {"abcdef"},
 		"k8s.distribution":               {"kubernetes"},
 	}, target.Attributes)
 }
