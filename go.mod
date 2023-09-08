@@ -8,10 +8,11 @@ go 1.20
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.30.0
-	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.7.1
-	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.5
+	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.7.2
+	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.6
 	github.com/steadybit/action-kit/go/action_kit_test v1.1.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.4.2
+	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.0.2
 	github.com/steadybit/extension-kit v1.8.8
 	github.com/stretchr/testify v1.8.4
 	k8s.io/api v0.29.0-alpha.0
@@ -39,7 +40,7 @@ require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/flosch/pongo2/v4 v4.0.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
-	github.com/getkin/kin-openapi v0.119.0 // indirect
+	github.com/getkin/kin-openapi v0.120.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.9.1 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
@@ -95,7 +96,6 @@ require (
 	github.com/schollz/closestmatch v2.1.0+incompatible // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.0.2 // indirect
 	github.com/tdewolff/minify/v2 v2.12.9 // indirect
 	github.com/tdewolff/parse/v2 v2.6.8 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
