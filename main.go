@@ -21,6 +21,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
 	"github.com/steadybit/extension-kubernetes/extnode"
+	"github.com/steadybit/weakspot-kit/go/weakspot_kit_api"
 	"github.com/steadybit/extension-kubernetes/extpod"
 	"github.com/steadybit/extension-kubernetes/extstatefulset"
 	_ "net/http/pprof" //allow pprof
@@ -78,6 +79,7 @@ func main() {
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
+	extcontainer.RegisterContainerWeakspotHandlers()
 	extnode.RegisterNodeDiscoveryHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
 
@@ -95,6 +97,7 @@ func main() {
 type ExtensionListResponse struct {
 	action_kit_api.ActionList       `json:",inline"`
 	discovery_kit_api.DiscoveryList `json:",inline"`
+	weakspot_kit_api.WeakspotList   `json:",inline"`
 }
 
 func getExtensionList() ExtensionListResponse {
@@ -195,6 +198,14 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/node/discovery/rules/k8s-node-to-host",
+				},
+			},
+		},
+		WeakspotList: weakspot_kit_api.WeakspotList{
+			Weakspots: []weakspot_kit_api.DescribingEndpointReference{
+				{
+					Method: "GET",
+					Path:   "/container/weakspots/k8s-cpu-limit",
 				},
 			},
 		},
