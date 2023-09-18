@@ -49,7 +49,7 @@ func getContainerWeakspotDescriptionCPULimit() weakspot_kit_api.WeakspotDescript
 		Icon:       kubernetesContainerIcon,
 		Tags:      &[]string{"kubernetes", "container", "cpu", "limit"},
 		AssesmentBaseQuery: "target.type=\"com.steadybit.extension_container.container\" and k8s.container.ready=\"true\"",
-		AssesmentQueryAddon: "k8s.container.cpu.limit=\"\"",
+		AssesmentQueryAddon: "k8s.container.cpu.limit=\"0\"",
 		Experiments: &[]weakspot_kit_api.Experiment{
 			string(experimentTemplateCpuLimit),
 		},
