@@ -3,3 +3,5 @@ extension-kubernetes.iml
 /coverage.out
 go.docker.mod
 /e2e/e2e-coverage-docker.out
+/licenses
+
