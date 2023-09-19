@@ -13,6 +13,7 @@ ARG ADDITIONAL_BUILD_PARAMS
 
 WORKDIR /app
 
+RUN apk add build-base
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
