@@ -37,6 +37,7 @@ func TestWithMinikube(t *testing.T) {
 		ExtraArgs: func(m *e2e.Minikube) []string {
 			return []string{
 				"--set", "kubernetes.clusterName=e2e-cluster",
+				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
 				//"--set", "logging.level=debug",
 			}
 		},
@@ -161,6 +162,7 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, enrichmentData.Attributes["k8s.pod.label.app"][0], "nginx")
 	assert.Equal(t, enrichmentData.Attributes["k8s.namespace"][0], "default")
 	assert.Equal(t, enrichmentData.Attributes["k8s.node.name"][0], "e2e-docker")
+	assert.NotContains(t, enrichmentData.Attributes, "k8s.label.app")
 
 	podNames := make([]string, 0, len(nginxDeployment.Pods))
 	for _, pod := range nginxDeployment.Pods {

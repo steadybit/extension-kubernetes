@@ -122,3 +122,9 @@ extraEnvFrom: []
 discovery:
   # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-disabled` (mainly for internal use)
   disableExcludes: false
+  attributes:
+    excludes:
+      # discovery.attributes.excludes.container -- List of attributes to exclude from container discovery.
+      container: []
+      # discovery.attributes.excludes.deployment -- List of attributes to exclude from deployment discovery.
+      deployment: []

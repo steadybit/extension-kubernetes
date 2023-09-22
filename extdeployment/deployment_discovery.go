@@ -128,7 +128,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			Attributes: attributes,
 		}
 	}
-	return targets
+	return discovery_kit_api.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributeExcludesDeployment)
 }
 
 func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
