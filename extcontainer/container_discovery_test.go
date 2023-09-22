@@ -52,6 +52,25 @@ func Test_getDiscoveredContainer(t *testing.T) {
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop-kevelaer-v2",
+				Namespace: "default",
+			},
+			Spec: v1.ServiceSpec{
+				Selector: map[string]string{
+					"best-city": "Kevelaer",
+				},
+			},
+		}, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = clientset.CoreV1().
+		Services("default").
+		Create(context.Background(), &v1.Service{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Service",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
 				Name:      "shop-solingen",
 				Namespace: "default",
 			},
@@ -123,7 +142,7 @@ func Test_getDiscoveredContainer(t *testing.T) {
 		"k8s.pod.name":              {"shop"},
 		"k8s.pod.label.best-city":   {"Kevelaer"},
 		"k8s.label.best-city":       {"Kevelaer"},
-		"k8s.service.name":          {"shop-kevelaer"},
+		"k8s.service.name":          {"shop-kevelaer", "shop-kevelaer-v2"},
 		"k8s.distribution":          {"openshift"},
 	}, target.Attributes)
 }

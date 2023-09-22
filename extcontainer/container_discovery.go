@@ -219,7 +219,6 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 			if container.ContainerID == "" {
 				continue
 			}
-
 			containerIdWithoutPrefix := strings.SplitAfter(container.ContainerID, "://")[1]
 
 			attributes := map[string][]string{
@@ -242,9 +241,12 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 				}
 			}
 
-			for _, service := range services {
-				attributes["k8s.service.name"] = []string{service.Name}
-				attributes["k8s.namespace"] = []string{service.Namespace}
+			if len(services) > 0 {
+				var serviceNames = make([]string, 0, len(services))
+				for _, service := range services {
+					serviceNames = append(serviceNames, service.Name)
+				}
+				attributes["k8s.service.name"] = serviceNames
 			}
 
 			for _, ownerRef := range ownerReferences.OwnerRefs {
