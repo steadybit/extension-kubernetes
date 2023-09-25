@@ -6,6 +6,7 @@ package extcontainer
 import (
 	"fmt"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
@@ -260,5 +261,5 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 			})
 		}
 	}
-	return discovery_kit_api.ApplyAttributeExcludesToEnrichmentData(enrichmentDataList, extconfig.Config.DiscoveryAttributesExcludesContainer)
+	return discovery_kit_commons.ApplyAttributeExcludesToEnrichmentData(enrichmentDataList, extconfig.Config.DiscoveryAttributesExcludesContainer)
 }

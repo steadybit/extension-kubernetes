@@ -6,6 +6,7 @@ package extdeployment
 import (
 	"fmt"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
@@ -128,7 +129,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			Attributes: attributes,
 		}
 	}
-	return discovery_kit_api.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDeployment)
+	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDeployment)
 }
 
 func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
