@@ -260,5 +260,5 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 			})
 		}
 	}
-	return discovery_kit_api.ApplyAttributeExcludesToEnrichmentData(enrichmentDataList, extconfig.Config.DiscoveryAttributeExcludesContainer)
+	return discovery_kit_api.ApplyAttributeExcludesToEnrichmentData(enrichmentDataList, extconfig.Config.DiscoveryAttributesExcludesContainer)
 }
