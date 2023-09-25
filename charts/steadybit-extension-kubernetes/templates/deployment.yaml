@@ -48,10 +48,14 @@ spec:
             {{- include "extensionlib.deployment.env" (list .) | nindent 12 }}
             - name: STEADYBIT_EXTENSION_CLUSTER_NAME
               value: {{ if and .Values.global .Values.global.clusterName }}{{ .Values.global.clusterName | quote }}{{ else }}{{ .Values.kubernetes.clusterName }}{{ end }}
+            {{- if .Values.discovery.attributes.excludes.container }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTE_EXCLUDES_CONTAINER
               value: {{ join "," .Values.discovery.attributes.excludes.container | quote }}
+            {{- end }}
+            {{- if .Values.discovery.attributes.excludes.deployment }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTE_EXCLUDES_DEPLOYMENT
               value: {{ join "," .Values.discovery.attributes.excludes.deployment | quote }}
+            {{- end }}
             {{- if .Values.discovery.disableExcludes }}
             - name: STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES
               value: "true"
