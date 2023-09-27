@@ -12,8 +12,8 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/strings/slices"
 	"net/http"
 	"strconv"
 	"strings"
@@ -247,6 +247,7 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 				for _, service := range services {
 					serviceNames = append(serviceNames, service.Name)
 				}
+				slices.Sort(serviceNames)
 				attributes["k8s.service.name"] = serviceNames
 			}
 
