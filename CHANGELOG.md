@@ -1,5 +1,10 @@
 # Changelog
 
+
+## v2.4.2
+
+- Possibility to exclude attributes from discovery
+
 ## v2.4.1
 
 - fix k8s.service.name attribute incorrect for containers in multiple services
