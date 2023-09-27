@@ -20,6 +20,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
 	"github.com/steadybit/extension-kubernetes/extnode"
+	_ "net/http/pprof" //allow pprof
 )
 
 func main() {
