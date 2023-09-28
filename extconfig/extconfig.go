@@ -12,10 +12,10 @@ import (
 // through environment variables. Learn more through the documentation of the envconfig package.
 // https://github.com/kelseyhightower/envconfig
 type Specification struct {
-	ClusterName              string   `required:"true" split_words:"true"`
-	LabelFilter              []string `required:"false" split_words:"true" default:"controller-revision-hash,pod-template-generation,pod-template-hash"`
-	DisableDiscoveryExcludes bool     `required:"false" split_words:"true" default:"false"`
-	DiscoveryAttributesExcludesContainer []string `json:"discoveryAttributesExcludesContainer" split_words:"true" required:"false"`
+	ClusterName                           string   `required:"true" split_words:"true"`
+	LabelFilter                           []string `required:"false" split_words:"true" default:"controller-revision-hash,pod-template-generation,pod-template-hash"`
+	DisableDiscoveryExcludes              bool     `required:"false" split_words:"true" default:"false"`
+	DiscoveryAttributesExcludesContainer  []string `json:"discoveryAttributesExcludesContainer" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDeployment []string `json:"discoveryAttributesExcludesDeployment" split_words:"true" required:"false"`
 }
 
