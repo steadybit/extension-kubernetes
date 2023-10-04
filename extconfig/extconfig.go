@@ -17,6 +17,7 @@ type Specification struct {
 	DisableDiscoveryExcludes              bool     `required:"false" split_words:"true" default:"false"`
 	DiscoveryAttributesExcludesContainer  []string `json:"discoveryAttributesExcludesContainer" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDeployment []string `json:"discoveryAttributesExcludesDeployment" split_words:"true" required:"false"`
+	DiscoveryAttributesExcludesPod        []string `json:"discoveryAttributesExcludesPod" split_words:"true" required:"false"`
 }
 
 var (

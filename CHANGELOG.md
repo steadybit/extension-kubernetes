@@ -1,6 +1,12 @@
 # Changelog
 
 
+## v2.5.x (NEXT RELEASE)
+
+- Discoveries added
+  - pods
+- Attack "Delete Pod" added - Requires "delete" permission for "pod" resources
+
 ## v2.4.2
 
 - Possibility to exclude attributes from discovery
@@ -55,7 +61,7 @@
  - Kubernetes Event Log and Pod Metrics will need a cluster-selection to support multiple kubernetes clusters
 
 ## v2.0.0
- - 
+
  - Added Discoveries for Deployments and Container
  - Added Pod Count Check and Node Count check
  - Added Pod Count Metrics and Event Logs
@@ -71,7 +77,7 @@
 
 ## v1.1.1
 
- - Rollout readiness check always fails when a timeout is specified. 
+ - Rollout readiness check always fails when a timeout is specified.
 
 ## v1.1.0
 

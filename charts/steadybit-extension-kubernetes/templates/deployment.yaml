@@ -59,6 +59,10 @@ spec:
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DEPLOYMENT
               value: {{ join "," .Values.discovery.attributes.excludes.deployment | quote }}
             {{- end }}
+            {{- if .Values.discovery.attributes.excludes.pod }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_POD
+              value: {{ join "," .Values.discovery.attributes.excludes.pod | quote }}
+            {{- end }}
             {{- if .Values.discovery.disableExcludes }}
             - name: STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES
               value: "true"

@@ -20,6 +20,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
 	"github.com/steadybit/extension-kubernetes/extnode"
+	"github.com/steadybit/extension-kubernetes/extpod"
 	_ "net/http/pprof" //allow pprof
 )
 
@@ -44,11 +45,13 @@ func main() {
 	action_kit_sdk.RegisterAction(extdeployment.NewCheckDeploymentRolloutStatusAction())
 	action_kit_sdk.RegisterAction(extdeployment.NewPodCountCheckAction())
 	action_kit_sdk.RegisterAction(extdeployment.NewPodCountMetricsAction())
+	action_kit_sdk.RegisterAction(extpod.NewDeletePodAction())
 	action_kit_sdk.RegisterAction(extnode.NewNodeCountCheckAction())
 	action_kit_sdk.RegisterAction(extevents.NewK8sEventsAction())
 
 	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
+	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
 
@@ -79,6 +82,10 @@ func getExtensionList() ExtensionListResponse {
 				},
 				{
 					Method: "GET",
+					Path:   "/pod/discovery",
+				},
+				{
+					Method: "GET",
 					Path:   "/container/discovery",
 				},
 				{
@@ -90,6 +97,10 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/deployment/discovery/target-description",
+				},
+				{
+					Method: "GET",
+					Path:   "/pod//discovery/target-description",
 				},
 				{
 					Method: "GET",

@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
+	"github.com/steadybit/extension-kubernetes/extpod"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -55,6 +56,10 @@ func TestWithMinikube(t *testing.T) {
 		{
 			Name: "checkRolloutReady",
 			Test: testCheckRolloutReady,
+		},
+		{
+			Name: "deletePod",
+			Test: testDeletePod,
 		},
 	})
 }
@@ -174,7 +179,48 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		log.Debug().Msgf("target: %v", target.Attributes["k8s.cluster-name"])
 		return e2e.HasAttribute(target, "k8s.cluster-name", "e2e-cluster")
 	})
-
 	require.NoError(t, err)
 	assert.Equal(t, target.TargetType, extcluster.ClusterTargetType)
+
+	target, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		log.Debug().Msgf("pod: %v", target.Attributes["k8s.pod.name"])
+		return e2e.HasAttribute(target, "k8s.deployment", "nginx")
+	})
+	require.NoError(t, err)
+	assert.Equal(t, target.TargetType, extpod.PodTargetType)
+}
+
+func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testDiscovery")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	//Start Deployment with 2 pods
+	nginxDeployment := e2e.NginxDeployment{Minikube: m}
+	err := nginxDeployment.Deploy("nginx")
+	require.NoError(t, err, "failed to create deployment")
+	defer func() { _ = nginxDeployment.Delete() }()
+	podName1 := nginxDeployment.Pods[0].Name
+	podName2 := nginxDeployment.Pods[1].Name
+
+	//Delete both pods
+	_, err = e.RunAction(extpod.DeletePodActionId, &action_kit_api.Target{
+		Name:       podName1,
+		Attributes: map[string][]string{"k8s.pod.name": {podName1}, "k8s.namespace": {"default"}},
+	}, nil, nil)
+	require.NoError(t, err)
+	_, err = e.RunAction(extpod.DeletePodActionId, &action_kit_api.Target{
+		Name:       podName2,
+		Attributes: map[string][]string{"k8s.pod.name": {podName2}, "k8s.namespace": {"default"}},
+	}, nil, nil)
+	require.NoError(t, err)
+
+	//Check if new pods are coming up
+	_, err = e2e.PollForTarget(ctx, e, extdeployment.DeploymentTargetType, func(target discovery_kit_api.Target) bool {
+		log.Debug().Msgf("pod: %v", target.Attributes["k8s.pod.name"])
+		return e2e.HasAttribute(target, "k8s.deployment", "nginx") &&
+			podName1 != target.Attributes["k8s.pod.name"][0] &&
+			podName2 != target.Attributes["k8s.pod.name"][0]
+	})
+	require.NoError(t, err)
 }

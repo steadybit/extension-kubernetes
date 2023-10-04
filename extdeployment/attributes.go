@@ -18,8 +18,8 @@ func getAttributeDescriptions() discovery_kit_api.AttributeDescriptions {
 			{
 				Attribute: "k8s.container.name",
 				Label: discovery_kit_api.PluralLabel{
-					One:   "container name",
-					Other: "container names",
+					One:   "Container name",
+					Other: "Container names",
 				},
 			},
 			{
@@ -39,8 +39,22 @@ func getAttributeDescriptions() discovery_kit_api.AttributeDescriptions {
 			{
 				Attribute: "k8s.deployment",
 				Label: discovery_kit_api.PluralLabel{
-					One:   "deployment name",
-					Other: "deployment names",
+					One:   "Deployment name",
+					Other: "Deployment names",
+				},
+			},
+			{
+				Attribute: "k8s.statefulset",
+				Label: discovery_kit_api.PluralLabel{
+					One:   "StatefulSet name",
+					Other: "StatefulSet names",
+				},
+			},
+			{
+				Attribute: "k8s.daemonset",
+				Label: discovery_kit_api.PluralLabel{
+					One:   "DaemonSet name",
+					Other: "DaemonSet names",
 				},
 			},
 		},

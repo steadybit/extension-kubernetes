@@ -93,9 +93,26 @@ tests:
         runAsUser: 2222
     asserts:
       - matchSnapshot: {}
-
   - it: manifest should match snapshot with priority class
     set:
       priorityClassName: my-priority-class
+    asserts:
+      - matchSnapshot: {}
+  - it: manifest should match snapshot with attribute excluded
+    set:
+      kubernetes:
+        clusterName: test
+      discovery:
+        attributes:
+          excludes:
+            container:
+              - "k8s.label.*"
+              - "attribute.123.container"
+            deployment:
+              - "k8s.label.*"
+              - "attribute.123.deployment"
+            pod:
+              - "k8s.label.*"
+              - "attribute.123.pod"
     asserts:
       - matchSnapshot: {}

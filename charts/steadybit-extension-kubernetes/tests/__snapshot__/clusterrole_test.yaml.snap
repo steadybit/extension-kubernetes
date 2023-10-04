@@ -29,3 +29,9 @@ manifest should match snapshot:
           - get
           - list
           - watch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - delete
