@@ -15,7 +15,6 @@ import (
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -91,10 +90,6 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			{
 				Matcher: discovery_kit_api.Equals,
 				Name:    "k8s.container.name",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.container.ready",
 			},
 			{
 				Matcher: discovery_kit_api.Equals,
@@ -227,7 +222,6 @@ func getDiscoveredContainerEnrichmentData(k8s *client.Client) []discovery_kit_ap
 				"k8s.container.id":          {container.ContainerID},
 				"k8s.container.id.stripped": {containerIdWithoutPrefix},
 				"k8s.container.name":        {container.Name},
-				"k8s.container.ready":       {strconv.FormatBool(container.Ready)},
 				"k8s.container.image":       {container.Image},
 				"k8s.namespace":             {podMetadata.Namespace},
 				"k8s.node.name":             {pod.Spec.NodeName},

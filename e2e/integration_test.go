@@ -162,7 +162,6 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 	assert.Equal(t, enrichmentData.EnrichmentDataType, extcontainer.KubernetesContainerEnrichmentDataType)
 	assert.Equal(t, enrichmentData.Attributes["k8s.container.name"][0], "nginx")
-	assert.Equal(t, enrichmentData.Attributes["k8s.container.ready"][0], "true")
 	assert.Equal(t, enrichmentData.Attributes["k8s.container.image"][0], "nginx:stable-alpine")
 	assert.Equal(t, enrichmentData.Attributes["k8s.pod.label.app"][0], "nginx")
 	assert.Equal(t, enrichmentData.Attributes["k8s.namespace"][0], "default")

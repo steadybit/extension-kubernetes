@@ -135,7 +135,6 @@ func Test_getDiscoveredContainer(t *testing.T) {
 		"k8s.container.id":          {"crio://abcdef"},
 		"k8s.container.id.stripped": {"abcdef"},
 		"k8s.container.name":        {"MrFancyPants"},
-		"k8s.container.ready":       {"false"},
 		"k8s.container.image":       {"nginx"},
 		"k8s.namespace":             {"default"},
 		"k8s.node.name":             {"worker-1"},

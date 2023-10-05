@@ -11,6 +11,7 @@
 - Performance - Add hostnames to kubernetes-deployment during discovery instead of adding it via enrichment rule
 - Added `pprof` endpoints for debugging purposes
 - Memory optimizations
+- Removed the attribute `k8s.container.ready` as this causes unnecessary enrichment noise
 
 ## v2.4.2
 
