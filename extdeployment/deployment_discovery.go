@@ -183,6 +183,11 @@ func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichment
 				"ignore": "${src.ignore}",
 			},
 		},
-		Attributes: []discovery_kit_api.Attribute{},
+		Attributes: []discovery_kit_api.Attribute{
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "ignore.me",
+			},
+		},
 	}
 }
