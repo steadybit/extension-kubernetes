@@ -172,12 +172,16 @@ func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichment
 		Id:      "com.steadybit.extension_kubernetes.container-to-kubernetes-deployment",
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
 		Src: discovery_kit_api.SourceOrDestination{
-			Type:     "com.steadybit.ignore-me",
-			Selector: map[string]string{},
+			Type: "com.steadybit.ignore-me",
+			Selector: map[string]string{
+				"ignore": "${dest.ignore}",
+			},
 		},
 		Dest: discovery_kit_api.SourceOrDestination{
-			Type:     "com.steadybit.ignore-me",
-			Selector: map[string]string{},
+			Type: "com.steadybit.ignore-me",
+			Selector: map[string]string{
+				"ignore": "${src.ignore}",
+			},
 		},
 		Attributes: []discovery_kit_api.Attribute{},
 	}
