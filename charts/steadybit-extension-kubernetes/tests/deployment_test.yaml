@@ -111,6 +111,12 @@ tests:
             deployment:
               - "k8s.label.*"
               - "attribute.123.deployment"
+            daemonSet:
+              - "k8s.label.*"
+              - "attribute.123.daemonSet"
+            statefulSet:
+              - "k8s.label.*"
+              - "attribute.123.statefulSet"
             pod:
               - "k8s.label.*"
               - "attribute.123.pod"

@@ -57,15 +57,15 @@ func (c *Client) Pods() []*corev1.Pod {
 	return pods
 }
 
-func (c *Client) PodsByDeployment(deployment *appsv1.Deployment) []*corev1.Pod {
-	selector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
+func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namespace string) []*corev1.Pod {
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error while creating a selector from deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, deployment.Spec.Selector)
+		log.Error().Err(err).Msgf("Error while creating a selector  %s", labelSelector)
 		return nil
 	}
-	list, err := c.podsLister.Pods(deployment.Namespace).List(selector)
+	list, err := c.podsLister.Pods(namespace).List(selector)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching Pods for Deployment %s/%s - selector %s", deployment.Name, deployment.Namespace, selector)
+		log.Error().Err(err).Msgf("Error while fetching Pods for selector %s in namespace %s", selector, namespace)
 		return nil
 	}
 	return list
@@ -101,6 +101,14 @@ func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 	return result
 }
 
+func (c *Client) DaemonSets() []*appsv1.DaemonSet {
+	daemonSets, err := c.daemonSetsLister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching DaemonSets")
+		return []*appsv1.DaemonSet{}
+	}
+	return daemonSets
+}
 func (c *Client) DaemonSetByNamespaceAndName(namespace string, name string) *appsv1.DaemonSet {
 	key := fmt.Sprintf("%s/%s", namespace, name)
 	item, _, err := c.daemonSetsInformer.GetIndexer().GetByKey(key)
@@ -136,6 +144,14 @@ func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *ap
 	} else {
 		return nil
 	}
+}
+func (c *Client) StatefulSets() []*appsv1.StatefulSet {
+	statefulSets, err := c.statefulSetsLister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching StatefulSets")
+		return []*appsv1.StatefulSet{}
+	}
+	return statefulSets
 }
 func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *appsv1.StatefulSet {
 	key := fmt.Sprintf("%s/%s", namespace, name)

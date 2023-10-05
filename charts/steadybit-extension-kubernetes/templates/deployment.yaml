@@ -59,6 +59,14 @@ spec:
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DEPLOYMENT
               value: {{ join "," .Values.discovery.attributes.excludes.deployment | quote }}
             {{- end }}
+            {{- if .Values.discovery.attributes.excludes.daemonSet }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DAEMON_SET
+              value: {{ join "," .Values.discovery.attributes.excludes.daemonSet | quote }}
+            {{- end }}
+            {{- if .Values.discovery.attributes.excludes.statefulSet }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_STATEFUL_SET
+              value: {{ join "," .Values.discovery.attributes.excludes.statefulSet | quote }}
+            {{- end }}
             {{- if .Values.discovery.attributes.excludes.pod }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_POD
               value: {{ join "," .Values.discovery.attributes.excludes.pod | quote }}

@@ -98,7 +98,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			}
 		}
 
-		pods := k8s.PodsByDeployment(d)
+		pods := k8s.PodsByLabelSelector(d.Spec.Selector, d.Namespace)
 		if len(pods) > 0 {
 			podNames := make([]string, len(pods))
 			var containerIds []string

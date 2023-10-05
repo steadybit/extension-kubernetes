@@ -9,7 +9,9 @@ func transformDaemonset(i interface{}) (interface{}, error) {
 	d := i.(*appsv1.DaemonSet)
 	d.ObjectMeta.Annotations = nil
 	d.ObjectMeta.ManagedFields = nil
-	d.Spec = appsv1.DaemonSetSpec{}
+	newDaemonSetSpec := appsv1.DaemonSetSpec{}
+	newDaemonSetSpec.Selector = d.Spec.Selector
+	d.Spec = newDaemonSetSpec
 	d.Status = appsv1.DaemonSetStatus{}
 	return d, nil
 }
@@ -60,7 +62,9 @@ func transformStatefulSet(i interface{}) (interface{}, error) {
 	s := i.(*appsv1.StatefulSet)
 	s.ObjectMeta.Annotations = nil
 	s.ObjectMeta.ManagedFields = nil
-	s.Spec = appsv1.StatefulSetSpec{}
+	newStatefulSetSpec := appsv1.StatefulSetSpec{}
+	newStatefulSetSpec.Selector = s.Spec.Selector
+	s.Spec = newStatefulSetSpec
 	s.Status = appsv1.StatefulSetStatus{}
 	return s, nil
 }

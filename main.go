@@ -17,10 +17,12 @@ import (
 	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/steadybit/extension-kubernetes/extcontainer"
+	"github.com/steadybit/extension-kubernetes/extdaemonset"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
 	"github.com/steadybit/extension-kubernetes/extnode"
 	"github.com/steadybit/extension-kubernetes/extpod"
+	"github.com/steadybit/extension-kubernetes/extstatefulset"
 	_ "net/http/pprof" //allow pprof
 )
 
@@ -51,6 +53,8 @@ func main() {
 
 	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
+	extdaemonset.RegisterStatefulSetDiscoveryHandlers()
+	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
@@ -82,6 +86,14 @@ func getExtensionList() ExtensionListResponse {
 				},
 				{
 					Method: "GET",
+					Path:   "/statefulset/discovery",
+				},
+				{
+					Method: "GET",
+					Path:   "/daemonset/discovery",
+				},
+				{
+					Method: "GET",
 					Path:   "/pod/discovery",
 				},
 				{
@@ -97,6 +109,14 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/deployment/discovery/target-description",
+				},
+				{
+					Method: "GET",
+					Path:   "/statefulset/discovery/target-description",
+				},
+				{
+					Method: "GET",
+					Path:   "/daemonset/discovery/target-description",
 				},
 				{
 					Method: "GET",
@@ -129,6 +149,14 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/deployment/discovery/rules/k8s-deployment-to-container",
+				},
+				{
+					Method: "GET",
+					Path:   "/statefulset/discovery/rules/k8s-statefulset-to-container",
+				},
+				{
+					Method: "GET",
+					Path:   "/daemonset/discovery/rules/k8s-daemonset-to-container",
 				},
 				{
 					Method: "GET",

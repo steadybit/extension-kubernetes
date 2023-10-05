@@ -131,5 +131,9 @@ discovery:
       container: []
       # discovery.attributes.excludes.deployment -- List of attributes to exclude from deployment discovery.
       deployment: []
+      # discovery.attributes.excludes.daemonSet -- List of attributes to exclude from daemonSet discovery.
+      daemonSet: []
+      # discovery.attributes.excludes.statefulSet -- List of attributes to exclude from statefulSet discovery.
+      statefulSet: []
       # discovery.attributes.excludes.pod -- List of attributes to exclude from pod discovery.
       pod: []
