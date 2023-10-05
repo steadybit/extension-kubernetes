@@ -8,6 +8,7 @@
 - Attack "Delete Pod" added - Requires "delete" permission for "pod" resources
 - Performance - Add hostnames to kubernetes-deployment during discovery instead of adding it via enrichment rule
 - Added `pprof` endpoints for debugging purposes
+- Memory optimizations
 
 ## v2.4.2
 

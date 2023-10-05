@@ -202,22 +202,53 @@ func PrepareClient(stopCh <-chan struct{}) {
 func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string) *Client {
 	factory := informers.NewSharedInformerFactory(clientset, 0)
 
-	// DeploymentsInformer.SetTransform() // TODO - Check whether we could use transformers to remove stuff --> save RAM?
 	daemonSets := factory.Apps().V1().DaemonSets()
 	daemonSetsInformer := daemonSets.Informer()
+	err := daemonSetsInformer.SetTransform(transformDaemonset)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add daemonset transformer")
+	}
 	deployments := factory.Apps().V1().Deployments()
 	deploymentsInformer := deployments.Informer()
+	err = deploymentsInformer.SetTransform(transformDeployment)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add deployment transformer")
+	}
 	pods := factory.Core().V1().Pods()
 	podsInformer := pods.Informer()
+	err = podsInformer.SetTransform(transformPod)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add pod transformer")
+	}
 	replicaSets := factory.Apps().V1().ReplicaSets()
 	replicaSetsInformer := replicaSets.Informer()
+	err = replicaSetsInformer.SetTransform(transformReplicaSet)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add replicaSet transformer")
+	}
 	services := factory.Core().V1().Services()
 	servicesInformer := services.Informer()
+	err = servicesInformer.SetTransform(transformService)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add service transformer")
+	}
 	statefulSets := factory.Apps().V1().StatefulSets()
 	statefulSetsInformer := statefulSets.Informer()
+	err = statefulSetsInformer.SetTransform(transformStatefulSet)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add statefulSet transformer")
+	}
 	eventsInformer := factory.Core().V1().Events().Informer()
+	err = eventsInformer.SetTransform(transformEvents)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add events transformer")
+	}
 	nodes := factory.Core().V1().Nodes()
 	nodesInformer := nodes.Informer()
+	err = nodesInformer.SetTransform(transformNodes)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add nodes transformer")
+	}
 
 	defer runtime.HandleCrash()
 
