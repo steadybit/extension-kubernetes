@@ -71,6 +71,7 @@ func transformStatefulSet(i interface{}) (interface{}, error) {
 
 func transformEvents(i interface{}) (interface{}, error) {
 	event := i.(*corev1.Event)
+	event.ObjectMeta.ManagedFields = nil
 	return event, nil
 }
 
