@@ -103,6 +103,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			podNames := make([]string, len(pods))
 			var containerIds []string
 			var containerIdsWithoutPrefix []string
+			var hostnames []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
 				for _, container := range pod.Status.ContainerStatuses {
@@ -112,6 +113,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 					containerIds = append(containerIds, container.ContainerID)
 					containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 				}
+				hostnames = append(hostnames, pod.Spec.NodeName)
 			}
 			attributes["k8s.pod.name"] = podNames
 			if len(containerIds) > 0 {
@@ -119,6 +121,9 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			}
 			if len(containerIdsWithoutPrefix) > 0 {
 				attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
+			}
+			if len(hostnames) > 0 {
+				attributes["host.hostname"] = hostnames
 			}
 		}
 
@@ -161,27 +166,19 @@ func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichment
 	}
 }
 
+// Can be removed in the future (enrichment rules are currently not deleted automatically, therefore we need to "disable" the rule by making it non-matching)
 func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 	return discovery_kit_api.TargetEnrichmentRule{
 		Id:      "com.steadybit.extension_kubernetes.container-to-kubernetes-deployment",
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
 		Src: discovery_kit_api.SourceOrDestination{
-			Type: "com.steadybit.extension_container.container",
-			Selector: map[string]string{
-				"container.id.stripped": "${dest.k8s.container.id.stripped}",
-			},
+			Type:     "com.steadybit.ignore-me",
+			Selector: map[string]string{},
 		},
 		Dest: discovery_kit_api.SourceOrDestination{
-			Type: DeploymentTargetType,
-			Selector: map[string]string{
-				"k8s.container.id.stripped": "${src.container.id.stripped}",
-			},
+			Type:     "com.steadybit.ignore-me",
+			Selector: map[string]string{},
 		},
-		Attributes: []discovery_kit_api.Attribute{
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "host.hostname",
-			},
-		},
+		Attributes: []discovery_kit_api.Attribute{},
 	}
 }

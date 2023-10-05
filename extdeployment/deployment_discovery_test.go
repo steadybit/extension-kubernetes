@@ -102,6 +102,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, DeploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
+		"host.hostname":                  {"worker-1"},
 		"k8s.namespace":                  {"default"},
 		"k8s.deployment":                 {"shop"},
 		"k8s.deployment.label.best-city": {"Kevelaer"},
@@ -194,6 +195,7 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, DeploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
+		"host.hostname":                  {"worker-1"},
 		"k8s.namespace":                  {"default"},
 		"k8s.deployment":                 {"shop"},
 		"k8s.deployment.label.best-city": {"Kevelaer"},

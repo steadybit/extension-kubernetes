@@ -6,6 +6,7 @@
 - Discoveries added
   - pods
 - Attack "Delete Pod" added - Requires "delete" permission for "pod" resources
+- Performance - Add hostnames to kubernetes-deployment during discovery instead of adding it via enrichment rule
 
 ## v2.4.2
 
