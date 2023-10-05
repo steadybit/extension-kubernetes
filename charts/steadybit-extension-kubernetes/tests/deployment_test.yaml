@@ -120,5 +120,8 @@ tests:
             pod:
               - "k8s.label.*"
               - "attribute.123.pod"
+            node:
+              - "k8s.label.*"
+              - "attribute.123.node"
     asserts:
       - matchSnapshot: {}

@@ -57,6 +57,7 @@ func main() {
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
+	extnode.RegisterNodeDiscoveryHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
 
 	action_kit_sdk.InstallSignalHandler()
@@ -104,6 +105,10 @@ func getExtensionList() ExtensionListResponse {
 					Method: "GET",
 					Path:   "/cluster/discovery",
 				},
+				{
+					Method: "GET",
+					Path:   "/node/discovery",
+				},
 			},
 			TargetTypes: []discovery_kit_api.DescribingEndpointReference{
 				{
@@ -129,6 +134,10 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/cluster/discovery/target-description",
+				},
+				{
+					Method: "GET",
+					Path:   "/node/discovery/target-description",
 				},
 			},
 			TargetAttributes: []discovery_kit_api.DescribingEndpointReference{

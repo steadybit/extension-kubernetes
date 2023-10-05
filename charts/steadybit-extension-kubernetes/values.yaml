@@ -137,3 +137,5 @@ discovery:
       statefulSet: []
       # discovery.attributes.excludes.pod -- List of attributes to exclude from pod discovery.
       pod: []
+      # discovery.attributes.excludes.node -- List of attributes to exclude from node discovery.
+      node: []

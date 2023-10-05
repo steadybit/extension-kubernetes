@@ -179,6 +179,8 @@ manifest should match snapshot with attribute excluded:
                   value: k8s.label.*,attribute.123.statefulSet
                 - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_POD
                   value: k8s.label.*,attribute.123.pod
+                - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_NODE
+                  value: k8s.label.*,attribute.123.node
               image: ghcr.io/steadybit/extension-kubernetes:latest
               imagePullPolicy: Always
               livenessProbe:

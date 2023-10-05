@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
+	"github.com/steadybit/extension-kubernetes/extnode"
 	"github.com/steadybit/extension-kubernetes/extpod"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -187,6 +188,13 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, target.TargetType, extpod.PodTargetType)
+
+	target, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+		log.Debug().Msgf("node: %v", target.Attributes["k8s.pod.name"])
+		return true
+	})
+	require.NoError(t, err)
+	assert.Equal(t, target.TargetType, extnode.NodeTargetType)
 }
 
 func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
