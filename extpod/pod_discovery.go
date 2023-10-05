@@ -52,7 +52,7 @@ func getPodTargetDescription() discovery_kit_api.TargetDescription {
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
-					Attribute: "k8s.cluster-name",
+					Attribute: "k8s.pod.name",
 					Direction: "ASC",
 				},
 			},
@@ -86,6 +86,7 @@ func getDiscoveredPodTargets(k8s *client.Client) []discovery_kit_api.Target {
 			"k8s.namespace":    {p.Namespace},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
 			"k8s.node.name":    {p.Spec.NodeName},
+			"host.hostname":    {p.Spec.NodeName},
 		}
 
 		for key, value := range p.ObjectMeta.Labels {

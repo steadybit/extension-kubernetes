@@ -88,6 +88,7 @@ func Test_getDiscoveredPods(t *testing.T) {
 	assert.Equal(t, "shop-pod", target.Label)
 	assert.Equal(t, PodTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
+		"host.hostname":             {"worker-1"},
 		"k8s.cluster-name":          {"development"},
 		"k8s.container.id":          {"crio://abcdef"},
 		"k8s.container.id.stripped": {"abcdef"},
@@ -145,6 +146,7 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 	assert.Equal(t, "shop-pod", target.Label)
 	assert.Equal(t, PodTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
+		"host.hostname":    {"worker-1"},
 		"k8s.cluster-name": {"development"},
 		"k8s.namespace":    {"default"},
 		"k8s.node.name":    {"worker-1"},
