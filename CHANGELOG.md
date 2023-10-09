@@ -8,7 +8,8 @@
   - daemonsets
   - statefulsets
   - nodes
-- Attack "Delete Pod" added - Requires "delete" permission for "pod" resources
+- Attack "Delete Pod" added - :exclamation: Requires new permission `delete` for `pod` resources
+- Attack "Drain node" added - :exclamation: Requires new permission `create` for `pods/eviction` resources and `patch` for `nodes` resources
 - Performance - Add hostnames to kubernetes-deployment during discovery instead of adding it via enrichment rule
 - Added `pprof` endpoints for debugging purposes
 - Memory optimizations
