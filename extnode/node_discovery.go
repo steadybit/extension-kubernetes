@@ -101,7 +101,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			daemonSets := make(map[string]bool)
 			replicaSets := make(map[string]bool)
 			for _, pod := range pods {
-				if pod.Spec.NodeName == node.Name {
+				if pod.Spec.NodeName == node.Name && !client.IsExcludedFromDiscovery(pod.ObjectMeta) {
 					podNames = append(podNames, pod.Name)
 					for _, container := range pod.Status.ContainerStatuses {
 						if container.ContainerID == "" {
