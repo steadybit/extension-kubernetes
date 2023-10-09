@@ -14,7 +14,7 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.4.2
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.1.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.0.2
-	github.com/steadybit/extension-kit v1.8.8
+	github.com/steadybit/extension-kit v1.8.9
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	k8s.io/api v0.29.0-alpha.1
