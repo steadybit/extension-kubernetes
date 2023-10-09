@@ -185,10 +185,10 @@ func stdOutToLog(lines []string, node string) {
 func extractErrorFromStdOut(lines []string) *string {
 	//Find error, last log lines first
 	for i := len(lines) - 1; i >= 0; i-- {
-		if strings.Contains(lines[i], "error:") {
-			split := strings.SplitAfter(lines[i], "error:")
+		if strings.Contains(lines[i], "error: ") {
+			split := strings.SplitAfter(lines[i], "error: ")
 			if len(split) > 1 {
-				return &split[1]
+				return extutil.Ptr(strings.Join(split[1:], ""))
 			}
 		}
 	}
