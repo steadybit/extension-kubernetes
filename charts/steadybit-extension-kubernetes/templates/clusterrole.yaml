@@ -19,7 +19,6 @@ rules:
       - get
       - list
       - watch
-      - patch
   - apiGroups: [""]
     resources:
       - services
@@ -30,9 +29,28 @@ rules:
       - get
       - list
       - watch
+  {{/* Required for Rollout Restart Attack */}}
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - patch
+  {{/* Required for Delete Pod Attack */}}
   - apiGroups: [""]
     resources:
       - pods
     verbs:
       - delete
+  {{/* Required for Drain Node Attack */}}
+  - apiGroups: [""]
+    resources:
+      - pods/eviction
+    verbs:
+      - create
+  - apiGroups: [""]
+    resources:
+      - nodes
+    verbs:
+      - patch
 {{- end }}

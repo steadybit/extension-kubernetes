@@ -17,7 +17,6 @@ manifest should match snapshot:
           - get
           - list
           - watch
-          - patch
       - apiGroups:
           - ""
         resources:
@@ -30,8 +29,26 @@ manifest should match snapshot:
           - list
           - watch
       - apiGroups:
+          - apps
+        resources:
+          - deployments
+        verbs:
+          - patch
+      - apiGroups:
           - ""
         resources:
           - pods
         verbs:
           - delete
+      - apiGroups:
+          - ""
+        resources:
+          - pods/eviction
+        verbs:
+          - create
+      - apiGroups:
+          - ""
+        resources:
+          - nodes
+        verbs:
+          - patch

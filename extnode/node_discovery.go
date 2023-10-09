@@ -15,6 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	"net/http"
+	"strings"
 )
 
 func RegisterNodeDiscoveryHandlers() {
@@ -30,7 +31,7 @@ func getNodeDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			Method:       "GET",
 			Path:         "/node/discovery/discovered-targets",
-			CallInterval: extutil.Ptr("5m"),
+			CallInterval: extutil.Ptr("1m"),
 		},
 	}
 }
@@ -90,6 +91,65 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			}
 		}
 
+		pods := k8s.Pods()
+		if len(pods) > 0 {
+			var podNames []string
+			var containerIds []string
+			var containerIdsWithoutPrefix []string
+			deployments := make(map[string]bool)
+			statefulSets := make(map[string]bool)
+			daemonSets := make(map[string]bool)
+			replicaSets := make(map[string]bool)
+			for _, pod := range pods {
+				if pod.Spec.NodeName == node.Name {
+					podNames = append(podNames, pod.Name)
+					for _, container := range pod.Status.ContainerStatuses {
+						if container.ContainerID == "" {
+							continue
+						}
+						containerIds = append(containerIds, container.ContainerID)
+						containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
+					}
+					ownerReferences := client.OwnerReferences(k8s, &pod.ObjectMeta)
+					for _, ownerReference := range ownerReferences.OwnerRefs {
+						if ownerReference.Kind == "replicaset" {
+							replicaSets[ownerReference.Name] = true
+						}
+						if ownerReference.Kind == "statefulset" {
+							statefulSets[ownerReference.Name] = true
+						}
+						if ownerReference.Kind == "deployment" {
+							deployments[ownerReference.Name] = true
+						}
+						if ownerReference.Kind == "daemonset" {
+							daemonSets[ownerReference.Name] = true
+						}
+					}
+				}
+			}
+			if len(containerIds) > 0 {
+				attributes["k8s.container.id"] = containerIds
+			}
+			if len(containerIdsWithoutPrefix) > 0 {
+				attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
+			}
+			if len(podNames) > 0 {
+				attributes["k8s.pod.name"] = podNames
+			}
+			if len(replicaSets) > 0 {
+				attributes["k8s.replicaset"] = keys(replicaSets)
+			}
+			if len(statefulSets) > 0 {
+				attributes["k8s.statefulset"] = keys(statefulSets)
+			}
+			if len(deployments) > 0 {
+				attributes["k8s.deployment"] = keys(deployments)
+			}
+			if len(daemonSets) > 0 {
+				attributes["k8s.daemonset"] = keys(daemonSets)
+			}
+		}
+
 		targets[i] = discovery_kit_api.Target{
 			Id:         node.Name,
 			TargetType: NodeTargetType,
@@ -98,4 +158,14 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 		}
 	}
 	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesNode)
+}
+
+func keys(m map[string]bool) []string {
+	keys := make([]string, len(m))
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	return keys
 }
