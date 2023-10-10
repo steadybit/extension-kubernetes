@@ -22,6 +22,7 @@ func RegisterNodeDiscoveryHandlers() {
 	exthttp.RegisterHttpHandler("/node/discovery", exthttp.GetterAsHandler(getNodeDiscoveryDescription))
 	exthttp.RegisterHttpHandler("/node/discovery/target-description", exthttp.GetterAsHandler(getNodeTargetDescription))
 	exthttp.RegisterHttpHandler("/node/discovery/discovered-targets", getDiscoveredNodes)
+	exthttp.RegisterHttpHandler("/node/discovery/rules/k8s-node-to-host", exthttp.GetterAsHandler(getNodeToHostEnrichmentRule))
 }
 
 func getNodeDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
@@ -58,6 +59,60 @@ func getNodeTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
+func getNodeToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
+	return discovery_kit_api.TargetEnrichmentRule{
+		Id:      "com.steadybit.extension_kubernetes.kubernetes-node-to-host",
+		Version: extbuild.GetSemverVersionStringOrUnknown(),
+
+		Src: discovery_kit_api.SourceOrDestination{
+			Type: NodeTargetType,
+			Selector: map[string]string{
+				"k8s.node.name": "${dest.host.hostname}",
+			},
+		},
+		Dest: discovery_kit_api.SourceOrDestination{
+			Type: "com.steadybit.extension_host.host",
+			Selector: map[string]string{
+				"host.hostname": "${src.k8s.node.name}",
+			},
+		},
+		Attributes: []discovery_kit_api.Attribute{
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.cluster-name",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.distribution",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.namespace",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.replicaset",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.daemonset",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.deployment",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.statefulset",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.pod.name",
+			},
+		},
+	}
+}
+
 func getDiscoveredNodes(w http.ResponseWriter, _ *http.Request, _ []byte) {
 	targets := getDiscoveredNodeTargets(client.K8S)
 	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
@@ -83,6 +138,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			"k8s.node.name":    {node.Name},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
 			"host.hostname":    {node.Name},
+			"k8s.distribution": {k8s.Distribution},
 		}
 
 		for key, value := range node.ObjectMeta.Labels {
@@ -100,6 +156,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			statefulSets := make(map[string]bool)
 			daemonSets := make(map[string]bool)
 			replicaSets := make(map[string]bool)
+			namespaces := make(map[string]bool)
 			for _, pod := range pods {
 				if pod.Spec.NodeName == node.Name && !client.IsExcludedFromDiscovery(pod.ObjectMeta) {
 					podNames = append(podNames, pod.Name)
@@ -110,6 +167,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 						containerIds = append(containerIds, container.ContainerID)
 						containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 					}
+					namespaces[pod.Namespace] = true
 					ownerReferences := client.OwnerReferences(k8s, &pod.ObjectMeta)
 					for _, ownerReference := range ownerReferences.OwnerRefs {
 						if ownerReference.Kind == "replicaset" {
@@ -147,6 +205,9 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			}
 			if len(daemonSets) > 0 {
 				attributes["k8s.daemonset"] = keys(daemonSets)
+			}
+			if len(namespaces) > 0 {
+				attributes["k8s.namespace"] = keys(namespaces)
 			}
 		}
 

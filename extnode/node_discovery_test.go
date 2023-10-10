@@ -149,6 +149,8 @@ func Test_getDiscoveredPods(t *testing.T) {
 		"k8s.container.id":          {"crio://abcdef"},
 		"k8s.container.id.stripped": {"abcdef"},
 		"k8s.deployment":            {"shop"},
+		"k8s.distribution":          {"kubernetes"},
+		"k8s.namespace":             {"default"},
 		"k8s.node.name":             {"node-123"},
 		"k8s.pod.name":              {"shop-pod-11"},
 	}, target.Attributes)

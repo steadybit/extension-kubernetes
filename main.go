@@ -173,6 +173,10 @@ func getExtensionList() ExtensionListResponse {
 					Method: "GET",
 					Path:   "/deployment/discovery/rules/container-to-k8s-deployment",
 				},
+				{
+					Method: "GET",
+					Path:   "/node/discovery/rules/k8s-node-to-host",
+				},
 			},
 		},
 	}

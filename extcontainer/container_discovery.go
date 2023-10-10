@@ -131,58 +131,29 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 	}
 }
 
+// Can be removed in the future (enrichment rules are currently not deleted automatically, therefore we need to "disable" the rule by making it non-matching)
 func getContainerToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 	return discovery_kit_api.TargetEnrichmentRule{
 		Id:      "com.steadybit.extension_kubernetes.kubernetes-container-to-host",
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
-
 		Src: discovery_kit_api.SourceOrDestination{
-			Type: KubernetesContainerEnrichmentDataType,
+			Type: "com.steadybit.ignore-me",
 			Selector: map[string]string{
-				"k8s.node.name": "${dest.host.hostname}",
+				"ignore": "${dest.ignore}",
 			},
 		},
 		Dest: discovery_kit_api.SourceOrDestination{
-			Type: "com.steadybit.extension_host.host",
+			Type: "com.steadybit.ignore-me",
 			Selector: map[string]string{
-				"host.hostname": "${src.k8s.node.name}",
+				"ignore": "${src.ignore}",
 			},
 		},
 		Attributes: []discovery_kit_api.Attribute{
 			{
 				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.cluster-name",
+				Name:    "ignore.me",
 			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.distribution",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.namespace",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.replicaset",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.daemonset",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.deployment",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.statefulset",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.pod.name",
-			},
-		},
-	}
+		}}
 }
 
 func getDiscoveredContainer(w http.ResponseWriter, _ *http.Request, _ []byte) {
