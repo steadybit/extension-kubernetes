@@ -61,22 +61,10 @@ func (f DeletePodAction) Describe() action_kit_api.ActionDescription {
 		TimeControl: action_kit_api.TimeControlInternal,
 		Kind:        action_kit_api.Attack,
 		Parameters:  []action_kit_api.ActionParameter{},
-		Prepare: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/pod/attack/delete-pod/prepare",
-		},
-		Start: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/pod/attack/delete-pod/start",
-		},
-		Status: &action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			Method: "POST",
-			Path:   "/pod/attack/delete-pod/status",
-		},
-		Stop: &action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/pod/attack/delete-pod/stop",
-		},
+		Prepare:     action_kit_api.MutatingEndpointReference{},
+		Start:       action_kit_api.MutatingEndpointReference{},
+		Status:      &action_kit_api.MutatingEndpointReferenceWithCallInterval{},
+		Stop:        &action_kit_api.MutatingEndpointReference{},
 	}
 }
 

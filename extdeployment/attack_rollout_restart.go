@@ -71,18 +71,9 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 				DefaultValue: extutil.Ptr("false"),
 			},
 		},
-		Prepare: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/deployment/attack/rollout-restart/prepare",
-		},
-		Start: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/deployment/attack/rollout-restart/start",
-		},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			Method: "POST",
-			Path:   "/deployment/attack/rollout-restart/status",
-		}),
+		Prepare: action_kit_api.MutatingEndpointReference{},
+		Start:   action_kit_api.MutatingEndpointReference{},
+		Status:  extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{}),
 	}
 }
 

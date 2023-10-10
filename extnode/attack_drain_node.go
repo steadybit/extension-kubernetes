@@ -71,22 +71,10 @@ func (f DrainNodeAction) Describe() action_kit_api.ActionDescription {
 				Order:        extutil.Ptr(0),
 			},
 		},
-		Prepare: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/node/attack/drain-node/prepare",
-		},
-		Start: action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/node/attack/drain-node/start",
-		},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			Method: "POST",
-			Path:   "/node/attack/drain-node/status",
-		}),
-		Stop: extutil.Ptr(action_kit_api.MutatingEndpointReference{
-			Method: "POST",
-			Path:   "/node/attack/drain-node/stop",
-		}),
+		Prepare: action_kit_api.MutatingEndpointReference{},
+		Start:   action_kit_api.MutatingEndpointReference{},
+		Status:  &action_kit_api.MutatingEndpointReferenceWithCallInterval{},
+		Stop:    &action_kit_api.MutatingEndpointReference{},
 	}
 }
 
