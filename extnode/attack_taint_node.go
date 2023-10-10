@@ -99,7 +99,7 @@ func (f TaintNodeAction) Describe() action_kit_api.ActionDescription {
 			{
 				Label:        "Effect",
 				Name:         "effect",
-				Type:         action_kit_api.StringArray,
+				Type:         action_kit_api.String,
 				Description:  extutil.Ptr("The effect of the taint."),
 				Advanced:     extutil.Ptr(false),
 				Required:     extutil.Ptr(true),
