@@ -68,6 +68,10 @@ func TestWithMinikube(t *testing.T) {
 			Name: "drainNode",
 			Test: testDrainNode,
 		},
+		{
+			Name: "taintNode",
+			Test: testTaintNode,
+		},
 	})
 }
 
@@ -282,6 +286,86 @@ func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-drain-") {
+				return true
+			}
+		}
+		return false
+	})
+	log.Info().Msgf("pods are rescheduled")
+	require.NoError(t, err)
+}
+
+func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testTaintNode")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	//Start Deployment with 2 pods
+	nginxDeployment := e2e.NginxDeployment{Minikube: m}
+	err := nginxDeployment.Deploy("nginx-test-taint")
+	require.NoError(t, err, "failed to create deployment")
+	defer func() { _ = nginxDeployment.Delete() }()
+	podName1 := nginxDeployment.Pods[0].Name
+	podName2 := nginxDeployment.Pods[1].Name
+	assert.Len(t, nginxDeployment.Pods, 2)
+	log.Info().Msgf("Pods before Attack: podName1: %v, podName2: %v", podName1, podName2)
+
+	//Check if node discovery is working and listing both pods
+	nodeTarget, err := e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+		return slices.Contains(target.Attributes["k8s.pod.name"], podName1) && slices.Contains(target.Attributes["k8s.pod.name"], podName2)
+	})
+	require.NoError(t, err)
+
+	//Taint node
+	config := struct {
+		Duration int    `json:"duration"`
+		Key      string `json:"key"`
+		Value    string `json:"value"`
+		Effect   string `json:"effect"`
+	}{
+		Duration: 10000,
+		Key:      "allowed",
+		Value:    "nothing",
+		Effect:   "NoSchedule",
+	}
+	_, err = e.RunAction(extnode.DrainNodeActionId, &action_kit_api.Target{
+		Name: nodeTarget.Id,
+		Attributes: map[string][]string{
+			"host.hostname": nodeTarget.Attributes["host.hostname"],
+		},
+	}, config, nil)
+	require.NoError(t, err)
+	attackStarted := time.Now()
+
+	//Delete both pods
+	_, err = e.RunAction(extpod.DeletePodActionId, &action_kit_api.Target{
+		Name:       podName1,
+		Attributes: map[string][]string{"k8s.pod.name": {podName1}, "k8s.namespace": {"default"}},
+	}, nil, nil)
+	require.NoError(t, err)
+	_, err = e.RunAction(extpod.DeletePodActionId, &action_kit_api.Target{
+		Name:       podName1,
+		Attributes: map[string][]string{"k8s.pod.name": {podName2}, "k8s.namespace": {"default"}},
+	}, nil, nil)
+	require.NoError(t, err)
+
+	// pods are removed and do not come back as long as the node is tainted
+	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+		containsNginxPod := false
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, "nginx-test-taint-") {
+				containsNginxPod = true
+			}
+		}
+		return time.Since(attackStarted).Seconds() > 5 && !containsNginxPod
+	})
+	require.NoError(t, err)
+	log.Info().Msgf("pods didn't come back within 5 seconds, node seems to be tainted")
+
+	// pods are rescheduled after attack
+	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, "nginx-test-taint-") {
 				return true
 			}
 		}

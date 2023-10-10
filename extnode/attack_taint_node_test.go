@@ -11,11 +11,14 @@ import (
 	"testing"
 )
 
-func TestDrainNodeExtractsState(t *testing.T) {
+func TestTaintNodeExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
 			"duration": 100000,
+			"key":      "test",
+			"value":    "abc",
+			"effect":   "NoSchedule",
 		},
 		Target: extutil.Ptr(action_kit_api.Target{
 			Attributes: map[string][]string{
@@ -24,7 +27,7 @@ func TestDrainNodeExtractsState(t *testing.T) {
 		}),
 	}
 
-	action := NewDrainNodeAction()
+	action := NewTaintNodeAction()
 	state := action.NewEmptyState()
 
 	// When
@@ -33,4 +36,5 @@ func TestDrainNodeExtractsState(t *testing.T) {
 
 	// Then
 	require.Equal(t, "test", state.Node)
+	require.Equal(t, "test=abc:NoSchedule", state.Taint)
 }

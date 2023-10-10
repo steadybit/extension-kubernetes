@@ -42,7 +42,7 @@ rules:
       - pods
     verbs:
       - delete
-  {{/* Required for Drain Node Attack */}}
+  {{/* Required for Drain/Taint Node Attacks */}}
   - apiGroups: [""]
     resources:
       - pods/eviction

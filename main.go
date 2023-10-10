@@ -50,6 +50,7 @@ func main() {
 	action_kit_sdk.RegisterAction(extpod.NewDeletePodAction())
 	action_kit_sdk.RegisterAction(extnode.NewNodeCountCheckAction())
 	action_kit_sdk.RegisterAction(extnode.NewDrainNodeAction())
+	action_kit_sdk.RegisterAction(extnode.NewTaintNodeAction())
 	action_kit_sdk.RegisterAction(extevents.NewK8sEventsAction())
 
 	extdeployment.RegisterAttributeDescriptionHandlers()
