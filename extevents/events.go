@@ -53,7 +53,7 @@ func (f K8sEventsAction) Describe() action_kit_api.ActionDescription {
 		Description: "Collect event logs from a Kubernetes",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(logIcon),
-		Category:    extutil.Ptr("kubernetes"),
+		Category:    extutil.Ptr("Kubernetes"),
 		TimeControl: action_kit_api.TimeControlInternal,
 		Kind:        action_kit_api.Other,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{

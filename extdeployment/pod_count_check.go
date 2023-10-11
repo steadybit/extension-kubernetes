@@ -54,7 +54,7 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Description: "Verify pod counts",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(podCountCheckIcon),
-		Category:    extutil.Ptr("kubernetes"),
+		Category:    extutil.Ptr("Kubernetes"),
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{

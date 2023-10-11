@@ -49,7 +49,7 @@ func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 		Description: "Collects information about pod counts (desired vs. actual count).",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(podCountMetricIcon),
-		Category:    extutil.Ptr("kubernetes"),
+		Category:    extutil.Ptr("Kubernetes"),
 		Kind:        action_kit_api.Other,
 		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{

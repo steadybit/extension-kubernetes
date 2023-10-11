@@ -58,7 +58,7 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Description: "Verify node counts",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(nodeCountCheckIcon),
-		Category:    extutil.Ptr("kubernetes"),
+		Category:    extutil.Ptr("Kubernetes"),
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{

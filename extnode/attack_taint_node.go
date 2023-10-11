@@ -64,7 +64,6 @@ func (f TaintNodeAction) Describe() action_kit_api.ActionDescription {
 				},
 			}),
 		}),
-		Category:    extutil.Ptr("state"),
 		TimeControl: action_kit_api.TimeControlExternal,
 		Kind:        action_kit_api.Attack,
 		Parameters: []action_kit_api.ActionParameter{

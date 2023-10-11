@@ -59,7 +59,6 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 				},
 			}),
 		}),
-		Category:    extutil.Ptr("state"),
 		TimeControl: action_kit_api.TimeControlInternal,
 		Kind:        action_kit_api.Attack,
 		Parameters: []action_kit_api.ActionParameter{

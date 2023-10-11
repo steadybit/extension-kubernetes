@@ -59,7 +59,7 @@ func (f CheckDeploymentRolloutStatusAction) Describe() action_kit_api.ActionDesc
 				},
 			}),
 		}),
-		Category:    extutil.Ptr("kubernetes"),
+		Category:    extutil.Ptr("Kubernetes"),
 		TimeControl: action_kit_api.TimeControlInternal,
 		Kind:        action_kit_api.Check,
 		Parameters: []action_kit_api.ActionParameter{
