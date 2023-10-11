@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestTaintNodeExtractsState(t *testing.T) {
+func TestTaintNodePreparesCommands(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
@@ -35,6 +35,6 @@ func TestTaintNodeExtractsState(t *testing.T) {
 	require.NoError(t, err)
 
 	// Then
-	require.Equal(t, "test", state.Node)
-	require.Equal(t, "test=abc:NoSchedule", state.Taint)
+	require.Equal(t, []string{"kubectl", "taint", "node", "test", "test=abc:NoSchedule"}, state.Opts.Command)
+	require.Equal(t, []string{"kubectl", "taint", "node", "test", "test=abc:NoSchedule-"}, *state.Opts.RollbackCommand)
 }

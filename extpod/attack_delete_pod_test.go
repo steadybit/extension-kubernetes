@@ -11,14 +11,13 @@ import (
 	"testing"
 )
 
-func TestDeletePodExtractsState(t *testing.T) {
+func TestDeletePodPreparesCommands(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Target: extutil.Ptr(action_kit_api.Target{
 			Attributes: map[string][]string{
-				"k8s.cluster-name": {"test"},
-				"k8s.namespace":    {"shop"},
-				"k8s.pod.name":     {"checkout-xyz1234"},
+				"k8s.namespace": {"shop"},
+				"k8s.pod.name":  {"checkout-xyz1234"},
 			},
 		}),
 	}
@@ -31,6 +30,6 @@ func TestDeletePodExtractsState(t *testing.T) {
 	require.NoError(t, err)
 
 	// Then
-	require.Equal(t, "shop", state.Namespace)
-	require.Equal(t, "checkout-xyz1234", state.Pod)
+	require.Equal(t, []string{"kubectl", "delete", "pod", "--namespace", "shop", "checkout-xyz1234"}, state.Opts.Command)
+	require.Nil(t, state.Opts.RollbackCommand)
 }

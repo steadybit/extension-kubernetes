@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestDrainNodeExtractsState(t *testing.T) {
+func TestDrainNodePrepareCommands(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
@@ -32,5 +32,6 @@ func TestDrainNodeExtractsState(t *testing.T) {
 	require.NoError(t, err)
 
 	// Then
-	require.Equal(t, "test", state.Node)
+	require.Equal(t, []string{"kubectl", "drain", "test", "--pod-selector=steadybit.com/extension!=true,steadybit.com/outpost!=true,steadybit.com/agent!=true", "--delete-emptydir-data", "--ignore-daemonsets", "--force"}, state.Opts.Command)
+	require.Equal(t, []string{"kubectl", "uncordon", "test"}, *state.Opts.RollbackCommand)
 }
