@@ -13,8 +13,8 @@
 - Attack "Taint node" added - :exclamation: Requires new permission `patch` for `nodes` resources
 - Attack "Scale Deployment" added - :exclamation: Requires new permission  `get`, `update` and `patch` for `deployments/scale` resources
 - Attack "Scale StatefulSet" added - :exclamation: Requires new permission `get`, `update` and `patch` for `statefulsets/scale` resources
-- Performance - Add hostnames to kubernetes-deployment during discovery instead of adding it via enrichment rule
-- Performance - Enrich hosts via kubernetes-node instead of frequent enrichments via kubernetes-container
+- Performance - Add hostnames to `kubernetes-deployment` during discovery instead of adding it via enrichment rule
+- Performance - Enrich hosts via `kubernetes-node` instead of frequent enrichments via `kubernetes-container`
 - Added `pprof` endpoints for debugging purposes
 - Memory optimizations
 - Removed the attribute `k8s.container.ready` as this causes unnecessary enrichment noise
