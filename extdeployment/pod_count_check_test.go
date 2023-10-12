@@ -21,65 +21,6 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"duration":            1000 * 10,
-			"podCountCheckMode":   "podCountIncreased",
-			"expectedChangeCount": 1,
-		},
-		Target: extutil.Ptr(action_kit_api.Target{
-			Attributes: map[string][]string{
-				"k8s.cluster-name": {"test"},
-				"k8s.namespace":    {"shop"},
-				"k8s.deployment":   {"checkout"},
-			},
-		}),
-	}
-	action := NewPodCountCheckAction()
-	state := action.NewEmptyState()
-
-	clientset := testclient.NewSimpleClientset()
-	_, err := clientset.
-		AppsV1().
-		Deployments("shop").
-		Create(context.Background(), &appsv1.Deployment{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Deployment",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "checkout",
-				Namespace: "shop",
-			},
-			Status: appsv1.DeploymentStatus{
-				ReadyReplicas: 3,
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
-	assert.Eventually(t, func() bool {
-		return k8sclient.DeploymentByNamespaceAndName("shop", "checkout") != nil
-	}, time.Second, 100*time.Millisecond)
-
-	// When
-	result, err := preparePodCountCheckInternal(k8sclient, &state, request)
-
-	// Then
-	require.Nil(t, err)
-	require.Nil(t, result)
-	require.True(t, state.Timeout.After(time.Now()))
-	require.Equal(t, "podCountIncreased", state.PodCountCheckMode)
-	require.Equal(t, "shop", state.Namespace)
-	require.Equal(t, "checkout", state.Deployment)
-	require.Equal(t, 3, state.InitialCount)
-	require.Equal(t, 1, *state.ExpectedChangeCount)
-}
-
-func TestPrepareCheckExtractsStateSupportOmittingExpectedChangeCount(t *testing.T) {
-	// Given
-	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
 			"duration":          1000 * 10,
 			"podCountCheckMode": "podCountIncreased",
 		},
@@ -131,7 +72,6 @@ func TestPrepareCheckExtractsStateSupportOmittingExpectedChangeCount(t *testing.
 	require.Equal(t, "shop", state.Namespace)
 	require.Equal(t, "checkout", state.Deployment)
 	require.Equal(t, 3, state.InitialCount)
-	require.Nil(t, state.ExpectedChangeCount)
 }
 
 func TestStatusCheckDeploymentNotFound(t *testing.T) {
@@ -169,9 +109,8 @@ func TestStatusCheckDeploymentNotFound(t *testing.T) {
 
 func Test_statusPodCountCheckInternal(t *testing.T) {
 	type preparedState struct {
-		podCountCheckMode   string
-		initialCount        int
-		expectedChangeCount *int
+		podCountCheckMode string
+		initialCount      int
 	}
 	tests := []struct {
 		name               string
@@ -251,26 +190,6 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			wantedErrorMessage: extutil.Ptr("checkout's pod count didn't increase. Initial count: 2, current count: 2."),
 		},
 		{
-			name: "podCountIncreasedByXSuccess",
-			preparedState: preparedState{
-				podCountCheckMode:   podCountIncreased,
-				initialCount:        1,
-				expectedChangeCount: extutil.Ptr(3),
-			},
-			readyCount:         4,
-			wantedErrorMessage: nil,
-		},
-		{
-			name: "podCountIncreasedByXFailure",
-			preparedState: preparedState{
-				podCountCheckMode:   podCountIncreased,
-				initialCount:        1,
-				expectedChangeCount: extutil.Ptr(3),
-			},
-			readyCount:         3,
-			wantedErrorMessage: extutil.Ptr("checkout's pod count didn't increase by 3. Initial count: 1, current count: 3."),
-		},
-		{
 			name: "podCountDecreasedSuccess",
 			preparedState: preparedState{
 				podCountCheckMode: podCountDecreased,
@@ -288,37 +207,16 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			readyCount:         2,
 			wantedErrorMessage: extutil.Ptr("checkout's pod count didn't decrease. Initial count: 2, current count: 2."),
 		},
-		{
-			name: "podCountDecreasedByXSuccess",
-			preparedState: preparedState{
-				podCountCheckMode:   podCountDecreased,
-				initialCount:        4,
-				expectedChangeCount: extutil.Ptr(2),
-			},
-			readyCount:         2,
-			wantedErrorMessage: nil,
-		},
-		{
-			name: "podCountDecreasedByXFailure",
-			preparedState: preparedState{
-				podCountCheckMode:   podCountDecreased,
-				initialCount:        4,
-				expectedChangeCount: extutil.Ptr(2),
-			},
-			readyCount:         3,
-			wantedErrorMessage: extutil.Ptr("checkout's pod count didn't decrease by 2. Initial count: 4, current count: 3."),
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			state := PodCountCheckState{
-				Timeout:             time.Now().Add(time.Minute * -1),
-				PodCountCheckMode:   tt.preparedState.podCountCheckMode,
-				Namespace:           "shop",
-				Deployment:          "checkout",
-				InitialCount:        tt.preparedState.initialCount,
-				ExpectedChangeCount: tt.preparedState.expectedChangeCount,
+				Timeout:           time.Now().Add(time.Minute * -1),
+				PodCountCheckMode: tt.preparedState.podCountCheckMode,
+				Namespace:         "shop",
+				Deployment:        "checkout",
+				InitialCount:      tt.preparedState.initialCount,
 			}
 
 			clientset := testclient.NewSimpleClientset()
