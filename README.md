@@ -30,27 +30,7 @@ metadata:
   name: extension-kubernetes
 rules:
   - apiGroups:
-      - apps
-    resources:
-      - deployments
-      - replicasets
-      - daemonsets
-      - statefulsets
-    verbs:
-      - get
-      - list
-      - watch
-      - patch
-  - apiGroups: [""]
-    resources:
-      - services
-      - pods
-      - nodes
-      - events
-    verbs:
-      - get
-      - list
-      - watch
+    - "Please have a look at /charts/steadybit-extension-kubernetes/templates/clusterrole.yaml for a recent list of required permission"
 ---
 apiVersion: v1
 kind: ServiceAccount

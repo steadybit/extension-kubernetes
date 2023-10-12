@@ -8,6 +8,7 @@ metadata:
     {{ $key }}: {{ $value }}
   {{- end }}
 rules:
+  {{/* Required for Discoveries */}}
   - apiGroups:
       - apps
     resources:
@@ -19,6 +20,7 @@ rules:
       - get
       - list
       - watch
+  {{/* Required for Discoveries */}}
   - apiGroups: [""]
     resources:
       - services
@@ -35,6 +37,24 @@ rules:
     resources:
       - deployments
     verbs:
+      - patch
+  {{/* Required for Scale Deployments Attack */}}
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/scale
+    verbs:
+      - get
+      - update
+      - patch
+{{/* Required for Scale StatefulSets Attack */}}
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets/scale
+    verbs:
+      - get
+      - update
       - patch
   {{/* Required for Delete Pod Attack */}}
   - apiGroups: [""]

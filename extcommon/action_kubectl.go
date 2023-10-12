@@ -57,7 +57,12 @@ func (a KubectlAction) Describe() action_kit_api.ActionDescription {
 func (a KubectlAction) Prepare(ctx context.Context, state *KubectlActionState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	opts, err := a.OptsProvider(ctx, request)
 	if err != nil {
-		return nil, extension_kit.ToError("Failed to prepare settings.", err)
+		extensionError, isExtensionError := err.(extension_kit.ExtensionError)
+		if isExtensionError {
+			return nil, extensionError
+		} else {
+			return nil, extension_kit.ToError("Failed to prepare settings.", err)
+		}
 	}
 	state.Opts = *opts
 	return nil, nil

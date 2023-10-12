@@ -72,6 +72,10 @@ func TestWithMinikube(t *testing.T) {
 			Name: "taintNode",
 			Test: testTaintNode,
 		},
+		{
+			Name: "scaleDeployment",
+			Test: testScaleDeployment,
+		},
 	})
 }
 
@@ -373,4 +377,72 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	})
 	log.Info().Msgf("pods are rescheduled")
 	require.NoError(t, err)
+}
+
+func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testScaleDeployment")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	//Start Deployment with 2 pods
+	nginxDeployment := e2e.NginxDeployment{Minikube: m}
+	err := nginxDeployment.Deploy("nginx-test-scale")
+	require.NoError(t, err, "failed to create deployment")
+	defer func() { _ = nginxDeployment.Delete() }()
+	assert.Len(t, nginxDeployment.Pods, 2)
+
+	//Check if node discovery is working and listing 2 pods
+	nodeTarget, err := e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+		count := 0
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, "nginx-test-scale-") {
+				count++
+			}
+		}
+		return count == 2
+	})
+	require.NoError(t, err)
+
+	//Taint node
+	config := struct {
+		Duration     int `json:"duration"`
+		ReplicaCount int `json:"replicaCount"`
+	}{
+		Duration:     10000,
+		ReplicaCount: 3,
+	}
+	_, err = e.RunAction(extdeployment.ScaleDeploymentActionId, &action_kit_api.Target{
+		Name: nodeTarget.Id,
+		Attributes: map[string][]string{
+			"k8s.namespace":  {"default"},
+			"k8s.deployment": {"nginx-test-scale"},
+		},
+	}, config, nil)
+	require.NoError(t, err)
+
+	// pods are upscaled
+	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+		count := 0
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, "nginx-test-scale-") {
+				count++
+			}
+		}
+		return count == 3
+	})
+	require.NoError(t, err)
+	log.Info().Msgf("pods are scaled to 3")
+
+	// pod scale is reverted to 2 after attack
+	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+		count := 0
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, "nginx-test-scale-") {
+				count++
+			}
+		}
+		return count == 2
+	})
+	require.NoError(t, err)
+	log.Info().Msgf("pod replica count is back to 2")
 }

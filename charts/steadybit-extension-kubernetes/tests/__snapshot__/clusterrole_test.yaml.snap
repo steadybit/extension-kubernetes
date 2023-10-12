@@ -35,6 +35,22 @@ manifest should match snapshot:
         verbs:
           - patch
       - apiGroups:
+          - apps
+        resources:
+          - deployments/scale
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - apps
+        resources:
+          - statefulsets/scale
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
           - ""
         resources:
           - pods

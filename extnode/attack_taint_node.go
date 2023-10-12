@@ -51,7 +51,7 @@ func getTaintNodeDescription() action_kit_api.ActionDescription {
 				Label:        "Duration",
 				Name:         "duration",
 				Type:         action_kit_api.Duration,
-				Description:  extutil.Ptr("The duration of the attack. The taint will be removed after the attack."),
+				Description:  extutil.Ptr("The duration of the action. The taint will be removed after the action."),
 				Advanced:     extutil.Ptr(false),
 				Required:     extutil.Ptr(true),
 				DefaultValue: extutil.Ptr("180s"),

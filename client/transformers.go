@@ -63,6 +63,7 @@ func transformStatefulSet(i interface{}) (interface{}, error) {
 	s.ObjectMeta.Annotations = nil
 	s.ObjectMeta.ManagedFields = nil
 	newStatefulSetSpec := appsv1.StatefulSetSpec{}
+	newStatefulSetSpec.Replicas = s.Spec.Replicas
 	newStatefulSetSpec.Selector = s.Spec.Selector
 	s.Spec = newStatefulSetSpec
 	s.Status = appsv1.StatefulSetStatus{}
