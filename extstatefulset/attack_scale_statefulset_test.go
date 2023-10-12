@@ -5,10 +5,12 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
+	"time"
 )
 
 func TestScaleStatefulSetPreparesCommands(t *testing.T) {
@@ -55,6 +57,9 @@ func TestScaleStatefulSetPreparesCommands(t *testing.T) {
 		StatefulSets("demo").
 		Create(context.Background(), ss, metav1.CreateOptions{})
 	require.NoError(t, err)
+	assert.Eventually(t, func() bool {
+		return testClient.StatefulSetByNamespaceAndName("demo", "shop") != nil
+	}, time.Second, 100*time.Millisecond)
 
 	client.K8S = testClient
 
