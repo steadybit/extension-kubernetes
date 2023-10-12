@@ -42,7 +42,7 @@ func getPodTargetDescription() discovery_kit_api.TargetDescription {
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Pod", Other: "Kubernetes Pods"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr(podIcon),
+		Icon:     extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTEwLjQ0OCAyLjY1Nkw0LjY1NSA1LjU2Yy0uMDY2LjAzNC0uMTMxLjA3LS4xOTUuMTA3bDYuNTY5IDMuNjVhMiAyIDAgMDAxLjk0MiAwbDYuNTMtMy42MjhjLS4wNy0uMDQtLjE0LS4wNzgtLjIxNC0uMTEzTDEzLjA4IDIuNjI4YTMgMyAwIDAwLTIuNjMxLjAyOHptMTAuMzY2IDQuNTkxbC02Ljg3MSAzLjgxOGE0IDQgMCAwMS0uOTQzLjM3NnY5Ljk2N2wuMDgtLjAzNiA2LjIwNy0yLjk0OUEzIDMgMCAwMDIxIDE1LjcxM1Y4LjI4NmMwLS4zNi0uMDY1LS43MTItLjE4Ni0xLjAzOXpNMTEgMjEuNTU1VjExLjQ0MWE0IDQgMCAwMS0uOTQzLS4zNzZMMy4xNzIgNy4yMzlBMi45OTcgMi45OTcgMCAwMDMgOC4yNDJ2Ny41MTZhMyAzIDAgMDAxLjY1NSAyLjY4MWw1Ljc5MyAyLjkwNGMuMTc4LjA5LjM2My4xNi41NTIuMjEyeiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+"),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.pod.name"},

@@ -43,7 +43,7 @@ func getNodeTargetDescription() discovery_kit_api.TargetDescription {
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Node", Other: "Kubernetes Nodes"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr(nodeIcon),
+		Icon:     extutil.Ptr("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M11.65%202.064a.993.993%200%2001.7%200l10%203.776a1.01%201.01%200%20010%201.889l-10%203.773a.993.993%200%2001-.7%200l-10-3.773A1.008%201.008%200%20011%206.784c0-.42.259-.796.65-.944l10-3.776zM1.063%2017.03a.998.998%200%20011.287-.591L12%2020.082l9.649-3.644a.998.998%200%20011.287.59%201.01%201.01%200%2001-.586%201.299l-10%203.776a.993.993%200%2001-.7%200l-10-3.776a1.01%201.01%200%2001-.586-1.298zm1.287-5.89a.998.998%200%2000-1.287.59%201.01%201.01%200%2000.586%201.299l10%203.776a.993.993%200%2000.7%200l10-3.776a1.01%201.01%200%2000.586-1.298.998.998%200%2000-1.287-.59L12%2014.782l-9.649-3.644z%22%20fill%3D%22currentColor%22%2F%3E%3C%2Fsvg%3E"),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.node.name"},
