@@ -20,20 +20,25 @@ const (
 	podCountMin1                 = "podCountMin1"
 	podCountEqualsDesiredCount   = "podCountEqualsDesiredCount"
 	podCountLessThanDesiredCount = "podCountLessThanDesiredCount"
+	podCountDecreased            = "podCountDecreased"
+	podCountIncreased            = "podCountIncreased"
 )
 
 type PodCountCheckAction struct {
 }
 
 type PodCountCheckState struct {
-	Timeout           time.Time
-	PodCountCheckMode string
-	Namespace         string
-	Deployment        string
+	Timeout             time.Time
+	PodCountCheckMode   string
+	Namespace           string
+	Deployment          string
+	InitialCount        int
+	ExpectedChangeCount *int
 }
 type PodCountCheckConfig struct {
-	Duration          int
-	PodCountCheckMode string
+	Duration            int
+	PodCountCheckMode   string
+	ExpectedChangeCount *int
 }
 
 func NewPodCountCheckAction() action_kit_sdk.Action[PodCountCheckState] {
@@ -99,7 +104,25 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 						Label: "ready count < desired count",
 						Value: podCountLessThanDesiredCount,
 					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "actual count increases",
+						Value: podCountIncreased,
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "actual count decreases",
+						Value: podCountDecreased,
+					},
 				}),
+			},
+			{
+				Name:         "expectedChangeCount",
+				Label:        "Expected Change Count",
+				Description:  extutil.Ptr("When using 'actual count in-/decreases', check the exact change of the pod count."),
+				Type:         action_kit_api.Integer,
+				DefaultValue: extutil.Ptr("10s"),
+				Order:        extutil.Ptr(3),
+				Required:     extutil.Ptr(false),
+				Advanced:     extutil.Ptr(true),
 			},
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
@@ -111,14 +134,28 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+	return preparePodCountCheckInternal(client.K8S, state, request)
+}
+
+func preparePodCountCheckInternal(k8s *client.Client, state *PodCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var config PodCountCheckConfig
 	if err := extconversion.Convert(request.Config, &config); err != nil {
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
+
+	namespace := request.Target.Attributes["k8s.namespace"][0]
+	deployment := request.Target.Attributes["k8s.deployment"][0]
+	d := k8s.DeploymentByNamespaceAndName(namespace, deployment)
+	if d == nil {
+		return nil, extension_kit.ToError(fmt.Sprintf("Failed to find deployment %s/%s.", namespace, deployment), nil)
+	}
+
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
 	state.PodCountCheckMode = config.PodCountCheckMode
-	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
-	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
+	state.ExpectedChangeCount = config.ExpectedChangeCount
+	state.Namespace = namespace
+	state.Deployment = deployment
+	state.InitialCount = int(d.Status.ReadyReplicas)
 	return nil, nil
 }
 
@@ -143,10 +180,10 @@ func statusPodCountCheckInternal(k8s *client.Client, state *PodCountCheckState) 
 		}
 	}
 
-	readyCount := deployment.Status.ReadyReplicas
-	desiredCount := int32(0)
+	readyCount := int(deployment.Status.ReadyReplicas)
+	desiredCount := 0
 	if deployment.Spec.Replicas != nil {
-		desiredCount = *deployment.Spec.Replicas
+		desiredCount = int(*deployment.Spec.Replicas)
 	} else if state.PodCountCheckMode == podCountEqualsDesiredCount || state.PodCountCheckMode == podCountLessThanDesiredCount {
 		return &action_kit_api.StatusResult{
 			Error: extutil.Ptr(action_kit_api.ActionKitError{
@@ -172,6 +209,38 @@ func statusPodCountCheckInternal(k8s *client.Client, state *PodCountCheckState) 
 			Title:  fmt.Sprintf("%s has all %d desired pods ready.", state.Deployment, desiredCount),
 			Status: extutil.Ptr(action_kit_api.Failed),
 		})
+	} else if state.PodCountCheckMode == podCountIncreased {
+		if state.ExpectedChangeCount != nil {
+			if readyCount != (state.InitialCount + *state.ExpectedChangeCount) {
+				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+					Title:  fmt.Sprintf("%s's pod count didn't increase by %d. Initial count: %d, current count: %d.", state.Deployment, *state.ExpectedChangeCount, state.InitialCount, readyCount),
+					Status: extutil.Ptr(action_kit_api.Failed),
+				})
+			}
+		} else {
+			if readyCount <= state.InitialCount {
+				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+					Title:  fmt.Sprintf("%s's pod count didn't increase. Initial count: %d, current count: %d.", state.Deployment, state.InitialCount, readyCount),
+					Status: extutil.Ptr(action_kit_api.Failed),
+				})
+			}
+		}
+	} else if state.PodCountCheckMode == podCountDecreased {
+		if state.ExpectedChangeCount != nil {
+			if readyCount != (state.InitialCount - *state.ExpectedChangeCount) {
+				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+					Title:  fmt.Sprintf("%s's pod count didn't decrease by %d. Initial count: %d, current count: %d.", state.Deployment, *state.ExpectedChangeCount, state.InitialCount, readyCount),
+					Status: extutil.Ptr(action_kit_api.Failed),
+				})
+			}
+		} else {
+			if readyCount >= state.InitialCount {
+				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+					Title:  fmt.Sprintf("%s's pod count didn't decrease. Initial count: %d, current count: %d.", state.Deployment, state.InitialCount, readyCount),
+					Status: extutil.Ptr(action_kit_api.Failed),
+				})
+			}
+		}
 	}
 
 	if now.After(state.Timeout) {

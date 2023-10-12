@@ -13,6 +13,7 @@
 - Attack "Taint node" added - :exclamation: Requires new permission `patch` for `nodes` resources
 - Attack "Scale Deployment" added - :exclamation: Requires new permission  `get`, `update` and `patch` for `deployments/scale` resources
 - Attack "Scale StatefulSet" added - :exclamation: Requires new permission `get`, `update` and `patch` for `statefulsets/scale` resources
+- Added options to check if a pod count increased or decreased to the existing pod count check action
 - Performance - Add hostnames to `kubernetes-deployment` during discovery instead of adding it via enrichment rule
 - Performance - Enrich hosts via `kubernetes-node` instead of frequent enrichments via `kubernetes-container`
 - Added `pprof` endpoints for debugging purposes
