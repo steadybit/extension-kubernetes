@@ -30,6 +30,11 @@ func main() {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	extlogging.InitZeroLog()
+
+	extconfig.ParseConfiguration()
+	extconfig.ValidateConfiguration()
+	initKlogBridge(extconfig.Config.LogKubernetesHttpRequests)
+
 	extbuild.PrintBuildInformation()
 	extruntime.LogRuntimeInformation(zerolog.DebugLevel)
 
@@ -37,9 +42,6 @@ func main() {
 	exthealth.StartProbes(8089)
 
 	client.PrepareClient(stopCh)
-
-	extconfig.ParseConfiguration()
-	extconfig.ValidateConfiguration()
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 
