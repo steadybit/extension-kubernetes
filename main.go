@@ -52,6 +52,7 @@ func main() {
 	action_kit_sdk.RegisterAction(extdeployment.NewScaleDeploymentAction())
 	action_kit_sdk.RegisterAction(extstatefulset.NewScaleStatefulSetAction())
 	action_kit_sdk.RegisterAction(extpod.NewDeletePodAction())
+	action_kit_sdk.RegisterAction(extpod.NewCrashLoopAction())
 	action_kit_sdk.RegisterAction(extnode.NewNodeCountCheckAction())
 	action_kit_sdk.RegisterAction(extnode.NewDrainNodeAction())
 	action_kit_sdk.RegisterAction(extnode.NewTaintNodeAction())

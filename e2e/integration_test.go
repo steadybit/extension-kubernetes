@@ -65,6 +65,10 @@ func TestWithMinikube(t *testing.T) {
 			Name: "scaleDeployment",
 			Test: testScaleDeployment,
 		},
+		{
+			Name: "causeCrashLoop",
+			Test: testCauseCrashLoop,
+		},
 	})
 }
 
@@ -400,7 +404,7 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	})
 	require.NoError(t, err)
 
-	//Taint node
+	//scale deployment
 	config := struct {
 		Duration     int `json:"duration"`
 		ReplicaCount int `json:"replicaCount"`
@@ -442,4 +446,54 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("pod replica count is back to 2")
+}
+
+func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testCauseCrashLoop")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	//Start Deployment with 2 pods
+	nginxDeployment := e2e.NginxDeployment{Minikube: m}
+	err := nginxDeployment.Deploy("nginx-test-crashloop")
+	require.NoError(t, err, "failed to create deployment")
+	defer func() { _ = nginxDeployment.Delete() }()
+	assert.Len(t, nginxDeployment.Pods, 2)
+	podName1 := nginxDeployment.Pods[0].Name
+	initialContainerId := nginxDeployment.Pods[0].Status.ContainerStatuses[0].ContainerID
+
+	//Check if pod discovery show pod with container
+	nodeTarget, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.pod.name", podName1) && e2e.HasAttribute(target, "k8s.container.id", initialContainerId)
+	})
+	require.NoError(t, err)
+
+	//CrashLoopPod
+	config := struct {
+		Duration int `json:"duration"`
+	}{
+		Duration: 10000,
+	}
+	_, err = e.RunAction(extpod.CrashLoopActionId, &action_kit_api.Target{
+		Name: nodeTarget.Id,
+		Attributes: map[string][]string{
+			"k8s.namespace": {"default"},
+			"k8s.pod.name":  {podName1},
+		},
+	}, config, nil)
+	require.NoError(t, err)
+
+	// pod got a new container
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		if e2e.HasAttribute(target, "k8s.pod.name", podName1) {
+			for _, containerId := range target.Attributes["k8s.container.id"] {
+				if initialContainerId != containerId {
+					log.Info().Msgf("pods has a new container - old containerId: %v, new containerId: %v", initialContainerId, containerId)
+					return true
+				}
+			}
+		}
+		return false
+	})
+	require.NoError(t, err)
 }

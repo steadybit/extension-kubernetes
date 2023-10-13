@@ -68,3 +68,9 @@ manifest should match snapshot:
           - nodes
         verbs:
           - patch
+      - apiGroups:
+          - ""
+        resources:
+          - pods/exec
+        verbs:
+          - create

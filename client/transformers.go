@@ -30,6 +30,7 @@ func transformPod(i interface{}) (interface{}, error) {
 	pod.ObjectMeta.ManagedFields = nil
 	newPodSpec := corev1.PodSpec{}
 	newPodSpec.NodeName = pod.Spec.NodeName
+	newPodSpec.HostPID = pod.Spec.HostPID
 	pod.Spec = newPodSpec
 	newPodStatus := corev1.PodStatus{}
 	newPodStatus.ContainerStatuses = pod.Status.ContainerStatuses

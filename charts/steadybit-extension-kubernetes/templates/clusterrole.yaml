@@ -73,4 +73,10 @@ rules:
       - nodes
     verbs:
       - patch
+  {{/* Required for Crash Loop Pod Attack */}}
+  - apiGroups: [""]
+    resources:
+      - pods/exec
+    verbs:
+      - create
 {{- end }}

@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -57,6 +58,12 @@ func (c *Client) Pods() []*corev1.Pod {
 	return pods
 }
 
+func (c *Client) PodByNamespaceAndName(namespace string, name string) *corev1.Pod {
+	item, err := c.podsLister.Pods(namespace).Get(name)
+	logGetError(fmt.Sprintf("pod %s/%s", namespace, name), err)
+	return item
+}
+
 func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namespace string) []*corev1.Pod {
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
@@ -78,6 +85,12 @@ func (c *Client) Deployments() []*appsv1.Deployment {
 		return []*appsv1.Deployment{}
 	}
 	return deployments
+}
+
+func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *appsv1.Deployment {
+	item, err := c.deploymentsLister.Deployments(namespace).Get(name)
+	logGetError(fmt.Sprintf("deployment %s/%s", namespace, name), err)
+	return item
 }
 
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
@@ -109,42 +122,19 @@ func (c *Client) DaemonSets() []*appsv1.DaemonSet {
 	}
 	return daemonSets
 }
+
 func (c *Client) DaemonSetByNamespaceAndName(namespace string, name string) *appsv1.DaemonSet {
-	key := fmt.Sprintf("%s/%s", namespace, name)
-	item, _, err := c.daemonSetsInformer.GetIndexer().GetByKey(key)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error during lookup of DaemonSet %s/%s", namespace, name)
-	}
-	if item != nil {
-		return item.(*appsv1.DaemonSet)
-	} else {
-		return nil
-	}
+	item, err := c.daemonSetsLister.DaemonSets(namespace).Get(name)
+	logGetError(fmt.Sprintf("daemonset %s/%s", namespace, name), err)
+	return item
 }
-func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *appsv1.Deployment {
-	key := fmt.Sprintf("%s/%s", namespace, name)
-	item, _, err := c.deploymentsInformer.GetIndexer().GetByKey(key)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error during lookup of Deployment %s/%s", namespace, name)
-	}
-	if item != nil {
-		return item.(*appsv1.Deployment)
-	} else {
-		return nil
-	}
-}
+
 func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *appsv1.ReplicaSet {
-	key := fmt.Sprintf("%s/%s", namespace, name)
-	item, _, err := c.replicaSetsInformer.GetIndexer().GetByKey(key)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error during lookup of ReplicaSet %s/%s", namespace, name)
-	}
-	if item != nil {
-		return item.(*appsv1.ReplicaSet)
-	} else {
-		return nil
-	}
+	item, err := c.replicaSetsLister.ReplicaSets(namespace).Get(name)
+	logGetError(fmt.Sprintf("replicaset %s/%s", namespace, name), err)
+	return item
 }
+
 func (c *Client) StatefulSets() []*appsv1.StatefulSet {
 	statefulSets, err := c.statefulSetsLister.List(labels.Everything())
 	if err != nil {
@@ -153,17 +143,11 @@ func (c *Client) StatefulSets() []*appsv1.StatefulSet {
 	}
 	return statefulSets
 }
+
 func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *appsv1.StatefulSet {
-	key := fmt.Sprintf("%s/%s", namespace, name)
-	item, _, err := c.statefulSetsInformer.GetIndexer().GetByKey(key)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error during lookup of StatefulSet %s/%s", namespace, name)
-	}
-	if item != nil {
-		return item.(*appsv1.StatefulSet)
-	} else {
-		return nil
-	}
+	item, err := c.statefulSetsLister.StatefulSets(namespace).Get(name)
+	logGetError(fmt.Sprintf("statefulset %s/%s", namespace, name), err)
+	return item
 }
 
 func (c *Client) NodesReadyCount() int {
@@ -197,6 +181,15 @@ func (c *Client) Events(since time.Time) *[]corev1.Event {
 		return result[i].LastTimestamp.Time.Before(result[j].LastTimestamp.Time)
 	})
 	return &result
+}
+
+func logGetError(resource string, err error) {
+	if err != nil {
+		var t *k8sErrors.StatusError
+		if !errors.As(err, &t) || t.ErrStatus.Reason != metav1.StatusReasonNotFound {
+			log.Error().Err(err).Msgf("Error while getting %s", resource)
+		}
+	}
 }
 
 func filterEvents(events []interface{}, since time.Time) []corev1.Event {
