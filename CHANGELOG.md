@@ -20,6 +20,7 @@
 - Added `pprof` endpoints for debugging purposes
 - Memory optimizations
 - Removed the attribute `k8s.container.ready` as this causes unnecessary enrichment noise
+- Added additional attributes to support legacy weak spot analysis in the platform
 
 ## v2.4.2
 
