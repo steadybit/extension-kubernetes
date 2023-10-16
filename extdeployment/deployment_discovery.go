@@ -89,7 +89,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			"k8s.deployment":                   {d.Name},
 			"k8s.cluster-name":                 {extconfig.Config.ClusterName},
 			"k8s.distribution":                 {k8s.Distribution},
-			"k8s.deployment.strategy":          {fmt.Sprintf("%s", d.Spec.Strategy.Type)},
+			"k8s.deployment.strategy":          {string(d.Spec.Strategy.Type)},
 			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", d.Spec.MinReadySeconds)},
 		}
 
