@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -110,9 +111,21 @@ func Test_getDiscoveredContainer(t *testing.T) {
 				NodeName: "worker-1",
 				Containers: []v1.Container{
 					{
-						Name:            "nginx",
+						Name:            "MrFancyPants",
 						Image:           "nginx",
 						ImagePullPolicy: "Always",
+						Resources: v1.ResourceRequirements{
+							Limits: v1.ResourceList{
+								"cpu":    resource.MustParse("1"),
+								"memory": resource.MustParse("2"),
+							},
+						},
+						LivenessProbe: &v1.Probe{
+							PeriodSeconds: 5,
+						},
+						ReadinessProbe: &v1.Probe{
+							PeriodSeconds: 5,
+						},
 					},
 				},
 			},
@@ -131,18 +144,23 @@ func Test_getDiscoveredContainer(t *testing.T) {
 	assert.Equal(t, "crio://abcdef", target.Id)
 	assert.Equal(t, KubernetesContainerEnrichmentDataType, target.EnrichmentDataType)
 	assert.Equal(t, map[string][]string{
-		"k8s.cluster-name":          {"development"},
-		"k8s.container.id":          {"crio://abcdef"},
-		"k8s.container.id.stripped": {"abcdef"},
-		"k8s.container.name":        {"MrFancyPants"},
-		"k8s.container.image":       {"nginx"},
-		"k8s.namespace":             {"default"},
-		"k8s.node.name":             {"worker-1"},
-		"k8s.pod.name":              {"shop"},
-		"k8s.pod.label.best-city":   {"Kevelaer"},
-		"k8s.label.best-city":       {"Kevelaer"},
-		"k8s.service.name":          {"shop-kevelaer", "shop-kevelaer-v2"},
-		"k8s.distribution":          {"openshift"},
+		"k8s.cluster-name":                        {"development"},
+		"k8s.container.id":                        {"crio://abcdef"},
+		"k8s.container.id.stripped":               {"abcdef"},
+		"k8s.container.name":                      {"MrFancyPants"},
+		"k8s.container.image":                     {"nginx"},
+		"k8s.container.image.pull-policy":         {"Always"},
+		"k8s.container.limit.cpu":                 {"1000"},
+		"k8s.container.limit.memory":              {"2000"},
+		"k8s.container.probes.liveness.existent":  {"true"},
+		"k8s.container.probes.readiness.existent": {"true"},
+		"k8s.namespace":                           {"default"},
+		"k8s.node.name":                           {"worker-1"},
+		"k8s.pod.name":                            {"shop"},
+		"k8s.pod.label.best-city":                 {"Kevelaer"},
+		"k8s.label.best-city":                     {"Kevelaer"},
+		"k8s.service.name":                        {"shop-kevelaer", "shop-kevelaer-v2"},
+		"k8s.distribution":                        {"openshift"},
 	}, target.Attributes)
 }
 

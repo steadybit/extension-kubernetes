@@ -85,6 +85,11 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 						"best-city": "kevelaer",
 					},
 				}),
+				Strategy: appsv1.DeploymentStrategy{
+					Type: appsv1.RollingUpdateDeploymentStrategyType,
+				},
+				MinReadySeconds: 10,
+				Replicas:        extutil.Ptr(int32(3)),
 			},
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
@@ -102,16 +107,19 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, DeploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
-		"host.hostname":                  {"worker-1"},
-		"k8s.namespace":                  {"default"},
-		"k8s.deployment":                 {"shop"},
-		"k8s.deployment.label.best-city": {"Kevelaer"},
-		"k8s.label.best-city":            {"Kevelaer"},
-		"k8s.cluster-name":               {"development"},
-		"k8s.pod.name":                   {"shop-pod"},
-		"k8s.container.id":               {"crio://abcdef"},
-		"k8s.container.id.stripped":      {"abcdef"},
-		"k8s.distribution":               {"kubernetes"},
+		"host.hostname":                    {"worker-1"},
+		"k8s.namespace":                    {"default"},
+		"k8s.deployment":                   {"shop"},
+		"k8s.deployment.label.best-city":   {"Kevelaer"},
+		"k8s.label.best-city":              {"Kevelaer"},
+		"k8s.deployment.min-ready-seconds": {"10"},
+		"k8s.deployment.replicas":          {"3"},
+		"k8s.deployment.strategy":          {"RollingUpdate"},
+		"k8s.cluster-name":                 {"development"},
+		"k8s.pod.name":                     {"shop-pod"},
+		"k8s.container.id":                 {"crio://abcdef"},
+		"k8s.container.id.stripped":        {"abcdef"},
+		"k8s.distribution":                 {"kubernetes"},
 	}, target.Attributes)
 }
 
@@ -195,14 +203,16 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, DeploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
-		"host.hostname":                  {"worker-1"},
-		"k8s.namespace":                  {"default"},
-		"k8s.deployment":                 {"shop"},
-		"k8s.deployment.label.best-city": {"Kevelaer"},
-		"k8s.label.best-city":            {"Kevelaer"},
-		"k8s.cluster-name":               {"development"},
-		"k8s.pod.name":                   {"shop-pod"},
-		"k8s.distribution":               {"kubernetes"},
+		"host.hostname":                    {"worker-1"},
+		"k8s.namespace":                    {"default"},
+		"k8s.deployment":                   {"shop"},
+		"k8s.deployment.label.best-city":   {"Kevelaer"},
+		"k8s.label.best-city":              {"Kevelaer"},
+		"k8s.deployment.min-ready-seconds": {"0"},
+		"k8s.deployment.strategy":          {""},
+		"k8s.cluster-name":                 {"development"},
+		"k8s.pod.name":                     {"shop-pod"},
+		"k8s.distribution":                 {"kubernetes"},
 	}, target.Attributes)
 }
 

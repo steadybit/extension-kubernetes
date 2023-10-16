@@ -31,6 +31,18 @@ func transformPod(i interface{}) (interface{}, error) {
 	newPodSpec := corev1.PodSpec{}
 	newPodSpec.NodeName = pod.Spec.NodeName
 	newPodSpec.HostPID = pod.Spec.HostPID
+	newPodSpec.Containers = make([]corev1.Container, len(pod.Spec.Containers))
+	for index, container := range pod.Spec.Containers {
+		newContainer := corev1.Container{}
+		newContainer.Name = container.Name
+		newContainer.ImagePullPolicy = container.ImagePullPolicy
+		newContainer.LivenessProbe = container.LivenessProbe
+		newContainer.ReadinessProbe = container.ReadinessProbe
+		newContainer.Resources = container.Resources
+		newContainer.Resources.Requests = nil
+		newContainer.Resources.Claims = nil
+		newPodSpec.Containers[index] = newContainer
+	}
 	pod.Spec = newPodSpec
 	newPodStatus := corev1.PodStatus{}
 	newPodStatus.ContainerStatuses = pod.Status.ContainerStatuses

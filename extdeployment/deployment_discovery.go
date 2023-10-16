@@ -85,10 +85,16 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 	for i, d := range filteredDeployments {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, d.Namespace, d.Name)
 		attributes := map[string][]string{
-			"k8s.namespace":    {d.Namespace},
-			"k8s.deployment":   {d.Name},
-			"k8s.cluster-name": {extconfig.Config.ClusterName},
-			"k8s.distribution": {k8s.Distribution},
+			"k8s.namespace":                    {d.Namespace},
+			"k8s.deployment":                   {d.Name},
+			"k8s.cluster-name":                 {extconfig.Config.ClusterName},
+			"k8s.distribution":                 {k8s.Distribution},
+			"k8s.deployment.strategy":          {fmt.Sprintf("%s", d.Spec.Strategy.Type)},
+			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", d.Spec.MinReadySeconds)},
+		}
+
+		if d.Spec.Replicas != nil {
+			attributes["k8s.deployment.replicas"] = []string{fmt.Sprintf("%d", *d.Spec.Replicas)}
 		}
 
 		for key, value := range d.ObjectMeta.Labels {
