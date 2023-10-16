@@ -1,6 +1,11 @@
 # Changelog
 
 
+## v2.5.y (NEXT NEXT RELEASE)
+
+- Advises:
+  - Preview of the new Steadybit Advises feature as cpu limit advise
+
 ## v2.5.0
 
 - Discoveries added
