@@ -152,7 +152,25 @@ func statusInternal(k8s *client.Client, state *CrashLoopState) (*action_kit_api.
 		cmd := exec.Command(command[0], command[1:]...)
 		cmdOut, cmdErr := cmd.CombinedOutput()
 		if cmdErr != nil {
-			return nil, extension_kit.ToError(fmt.Sprintf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdOut), cmdErr)
+			commandFallback := []string{"kubectl",
+				"exec",
+				state.Pod,
+				"-c",
+				cs.Name,
+				"-n",
+				state.Namespace,
+				"--",
+				"/bin/sh",
+				"-c",
+				"kill 1",
+			}
+			log.Debug().Msgf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdOut)
+			log.Info().Msgf("Killing container %s in pod %s with fallback command '%s'", cs.Name, state.Pod, strings.Join(commandFallback, " "))
+			cmdFallback := exec.Command(commandFallback[0], commandFallback[1:]...)
+			cmdFallbackOut, cmdFallbackErr := cmdFallback.CombinedOutput()
+			if cmdFallbackErr != nil {
+				return nil, extension_kit.ToError(fmt.Sprintf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdFallbackOut), cmdErr)
+			}
 		}
 	}
 
