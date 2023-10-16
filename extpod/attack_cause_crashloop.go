@@ -133,7 +133,6 @@ func statusInternal(k8s *client.Client, state *CrashLoopState) (*action_kit_api.
 			continue
 		}
 
-		log.Info().Msgf("Container %+v", cs)
 		if cs.State.Running == nil {
 			continue
 		}
@@ -171,6 +170,7 @@ func statusInternal(k8s *client.Client, state *CrashLoopState) (*action_kit_api.
 			cmdFallback := exec.Command(commandFallback[0], commandFallback[1:]...)
 			cmdFallbackOut, cmdFallbackErr := cmdFallback.CombinedOutput()
 			if cmdFallbackErr != nil {
+				log.Info().Msgf("Failed to kill container %+v", cs)
 				return nil, extension_kit.ToError(fmt.Sprintf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdFallbackOut), cmdErr)
 			}
 		}
