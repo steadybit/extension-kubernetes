@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthealth"
@@ -21,7 +22,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
 	"github.com/steadybit/extension-kubernetes/extnode"
-	"github.com/steadybit/weakspot-kit/go/weakspot_kit_api"
 	"github.com/steadybit/extension-kubernetes/extpod"
 	"github.com/steadybit/extension-kubernetes/extstatefulset"
 	_ "net/http/pprof" //allow pprof
@@ -79,7 +79,7 @@ func main() {
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
-	extcontainer.RegisterContainerWeakspotHandlers()
+	extcontainer.RegisterContainerAdviceHandlers()
 	extnode.RegisterNodeDiscoveryHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
 
@@ -97,7 +97,7 @@ func main() {
 type ExtensionListResponse struct {
 	action_kit_api.ActionList       `json:",inline"`
 	discovery_kit_api.DiscoveryList `json:",inline"`
-	weakspot_kit_api.WeakspotList   `json:",inline"`
+	advice_kit_api.AdviceList   `json:",inline"`
 }
 
 func getExtensionList() ExtensionListResponse {
@@ -201,11 +201,11 @@ func getExtensionList() ExtensionListResponse {
 				},
 			},
 		},
-		WeakspotList: weakspot_kit_api.WeakspotList{
-			Weakspots: []weakspot_kit_api.DescribingEndpointReference{
+		AdviceList: advice_kit_api.AdviceList{
+			Advices: []advice_kit_api.DescribingEndpointReference{
 				{
 					Method: "GET",
-					Path:   "/container/weakspots/k8s-cpu-limit",
+					Path:   "/container/advices/k8s-cpu-limit",
 				},
 			},
 		},
