@@ -20,7 +20,7 @@
 - Added `pprof` endpoints for debugging purposes
 - Memory optimizations
 - Removed the attribute `k8s.container.ready` as this causes unnecessary enrichment noise
-- Added additional attributes to support legacy weak spot analysis in the platform
+- Added additional attributes to support advices / weakspots - :exclamation: Requires new permission `get`, `list`, and `watch` for `horizontalpodautoscalers` resources
 
 ## v2.4.2
 

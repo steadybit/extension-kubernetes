@@ -84,6 +84,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 	targets := make([]discovery_kit_api.Target, len(filteredDeployments))
 	for i, d := range filteredDeployments {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, d.Namespace, d.Name)
+		hpa := k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(d.Namespace, d.Name)
 		attributes := map[string][]string{
 			"k8s.namespace":                    {d.Namespace},
 			"k8s.deployment":                   {d.Name},
@@ -91,6 +92,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			"k8s.distribution":                 {k8s.Distribution},
 			"k8s.deployment.strategy":          {string(d.Spec.Strategy.Type)},
 			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", d.Spec.MinReadySeconds)},
+			"k8s.deployment.hpa.existent":      {fmt.Sprintf("%v", hpa != nil)},
 		}
 
 		if d.Spec.Replicas != nil {

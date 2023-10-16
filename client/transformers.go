@@ -2,6 +2,7 @@ package client
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -98,4 +99,11 @@ func transformNodes(i interface{}) (interface{}, error) {
 	newNodeStatus.Conditions = node.Status.Conditions
 	node.Status = newNodeStatus
 	return node, nil
+}
+
+func transformHPA(i interface{}) (interface{}, error) {
+	hpa := i.(*autoscalingv1.HorizontalPodAutoscaler)
+	hpa.ObjectMeta.Annotations = nil
+	hpa.ObjectMeta.ManagedFields = nil
+	return hpa, nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -92,6 +93,26 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 				Replicas:        extutil.Ptr(int32(3)),
 			},
 		}, metav1.CreateOptions{})
+
+	_, err = clientset.
+		AutoscalingV1().
+		HorizontalPodAutoscalers("default").
+		Create(context.Background(), &autoscalingv1.HorizontalPodAutoscaler{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "HorizontalPodAutoscaler",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "shop",
+				Namespace: "default",
+			},
+			Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
+				ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+					Kind: "Deployment",
+					Name: "shop",
+				},
+			},
+		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
 	// When
@@ -112,6 +133,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 		"k8s.deployment":                   {"shop"},
 		"k8s.deployment.label.best-city":   {"Kevelaer"},
 		"k8s.label.best-city":              {"Kevelaer"},
+		"k8s.deployment.hpa.existent":      {"true"},
 		"k8s.deployment.min-ready-seconds": {"10"},
 		"k8s.deployment.replicas":          {"3"},
 		"k8s.deployment.strategy":          {"RollingUpdate"},
@@ -210,6 +232,7 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 		"k8s.label.best-city":              {"Kevelaer"},
 		"k8s.deployment.min-ready-seconds": {"0"},
 		"k8s.deployment.strategy":          {""},
+		"k8s.deployment.hpa.existent":      {"false"},
 		"k8s.cluster-name":                 {"development"},
 		"k8s.pod.name":                     {"shop-pod"},
 		"k8s.distribution":                 {"kubernetes"},

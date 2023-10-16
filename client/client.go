@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/rs/zerolog/log"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	listerAppsv1 "k8s.io/client-go/listers/apps/v1"
+	listerAutoscalingv1 "k8s.io/client-go/listers/autoscaling/v1"
 	listerCorev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -47,6 +49,8 @@ type Client struct {
 	eventsInformer       cache.SharedIndexInformer
 	nodesLister          listerCorev1.NodeLister
 	nodesInformer        cache.SharedIndexInformer
+	hpaLister            listerAutoscalingv1.HorizontalPodAutoscalerLister
+	hpaInformer          cache.SharedIndexInformer
 }
 
 func (c *Client) Pods() []*corev1.Pod {
@@ -183,6 +187,20 @@ func (c *Client) Events(since time.Time) *[]corev1.Event {
 	return &result
 }
 
+func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace string, reference string) *autoscalingv1.HorizontalPodAutoscaler {
+	hpas, err := c.hpaLister.HorizontalPodAutoscalers(namespace).List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching horizontal pod autoscalers")
+		return nil
+	}
+	for _, hpa := range hpas {
+		if hpa.Spec.ScaleTargetRef.Kind == "Deployment" && hpa.Spec.ScaleTargetRef.Name == reference {
+			return hpa
+		}
+	}
+	return nil
+}
+
 func logGetError(resource string, err error) {
 	if err != nil {
 		var t *k8sErrors.StatusError
@@ -258,6 +276,12 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add nodes transformer")
 	}
+	hpa := factory.Autoscaling().V1().HorizontalPodAutoscalers()
+	hpaInformer := hpa.Informer()
+	err = hpaInformer.SetTransform(transformHPA)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to add hpa transformer")
+	}
 
 	defer runtime.HandleCrash()
 
@@ -273,6 +297,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		statefulSetsInformer.HasSynced,
 		eventsInformer.HasSynced,
 		nodesInformer.HasSynced,
+		hpaInformer.HasSynced,
 	) {
 		log.Fatal().Msg("Timed out waiting for caches to sync")
 	}
@@ -300,6 +325,8 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		eventsInformer:       eventsInformer,
 		nodesLister:          nodes.Lister(),
 		nodesInformer:        nodesInformer,
+		hpaLister:            hpa.Lister(),
+		hpaInformer:          hpaInformer,
 	}
 }
 
