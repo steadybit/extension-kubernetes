@@ -93,6 +93,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 				Replicas:        extutil.Ptr(int32(3)),
 			},
 		}, metav1.CreateOptions{})
+	require.NoError(t, err)
 
 	_, err = clientset.
 		AutoscalingV1().
