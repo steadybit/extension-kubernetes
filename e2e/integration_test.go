@@ -472,7 +472,7 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	config := struct {
 		Duration int `json:"duration"`
 	}{
-		Duration: 10000,
+		Duration: 15000,
 	}
 	_, err = e.RunAction(extpod.CrashLoopActionId, &action_kit_api.Target{
 		Name: nodeTarget.Id,
