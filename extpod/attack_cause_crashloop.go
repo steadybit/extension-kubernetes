@@ -132,6 +132,8 @@ func statusInternal(k8s *client.Client, state *CrashLoopState) (*action_kit_api.
 		if state.Container != nil && *state.Container != cs.Name {
 			continue
 		}
+
+		log.Info().Msgf("Container %+v", cs)
 		if cs.State.Running == nil {
 			continue
 		}
