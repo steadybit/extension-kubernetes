@@ -464,6 +464,7 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 	//Check if pod discovery show pod with container
 	nodeTarget, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		log.Info().Msgf("pod: %v, container.id: %v - wanted %v, %v", target.Attributes["k8s.pod.name"], target.Attributes["k8s.container.id"], podName1, initialContainerId)
 		return e2e.HasAttribute(target, "k8s.pod.name", podName1) && e2e.HasAttribute(target, "k8s.container.id", initialContainerId)
 	})
 	require.NoError(t, err)
