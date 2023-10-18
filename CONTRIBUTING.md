@@ -13,7 +13,6 @@ with the following text to agree our CLA: "I have read the CLA Document and I he
 
 ## Local installation in Minikube
 
-- `make build`
 - `make container`
 - `minikube image load extension-kubernetes:latest`
 - ```

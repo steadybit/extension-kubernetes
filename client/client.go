@@ -34,6 +34,7 @@ var K8S *Client
 
 type Client struct {
 	Distribution         string
+	permissions          *PermissionCheckResult
 	daemonSetsLister     listerAppsv1.DaemonSetLister
 	daemonSetsInformer   cache.SharedIndexInformer
 	deploymentsLister    listerAppsv1.DeploymentLister
@@ -51,6 +52,10 @@ type Client struct {
 	nodesInformer        cache.SharedIndexInformer
 	hpaLister            listerAutoscalingv1.HorizontalPodAutoscalerLister
 	hpaInformer          cache.SharedIndexInformer
+}
+
+func (c *Client) Permissions() *PermissionCheckResult {
+	return c.permissions
 }
 
 func (c *Client) Pods() []*corev1.Pod {
@@ -222,65 +227,95 @@ func filterEvents(events []interface{}, since time.Time) []corev1.Event {
 
 func PrepareClient(stopCh <-chan struct{}) {
 	clientset, rootApiPath := createClientset()
-	K8S = CreateClient(clientset, stopCh, rootApiPath)
+	permissions := checkPermissions(clientset)
+	K8S = CreateClient(clientset, stopCh, rootApiPath, permissions)
 }
 
 // CreateClient is visible for testing
-func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string) *Client {
+func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string, permissions *PermissionCheckResult) *Client {
 	factory := informers.NewSharedInformerFactory(clientset, 0)
+	distribution := "kubernetes"
+	if isOpenShift(rootApiPath) {
+		distribution = "openshift"
+	}
+	client := &Client{
+		Distribution: distribution,
+		permissions:  permissions,
+	}
+
+	var syncs []cache.InformerSynced
 
 	daemonSets := factory.Apps().V1().DaemonSets()
-	daemonSetsInformer := daemonSets.Informer()
-	err := daemonSetsInformer.SetTransform(transformDaemonset)
+	client.daemonSetsInformer = daemonSets.Informer()
+	client.daemonSetsLister = daemonSets.Lister()
+	syncs = append(syncs, client.daemonSetsInformer.HasSynced)
+	err := client.daemonSetsInformer.SetTransform(transformDaemonset)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add daemonset transformer")
 	}
 	deployments := factory.Apps().V1().Deployments()
-	deploymentsInformer := deployments.Informer()
-	err = deploymentsInformer.SetTransform(transformDeployment)
+	client.deploymentsInformer = deployments.Informer()
+	client.deploymentsLister = deployments.Lister()
+	syncs = append(syncs, client.deploymentsInformer.HasSynced)
+	err = client.deploymentsInformer.SetTransform(transformDeployment)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add deployment transformer")
 	}
 	pods := factory.Core().V1().Pods()
-	podsInformer := pods.Informer()
-	err = podsInformer.SetTransform(transformPod)
+	client.podsInformer = pods.Informer()
+	client.podsLister = pods.Lister()
+	syncs = append(syncs, client.podsInformer.HasSynced)
+	err = client.podsInformer.SetTransform(transformPod)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add pod transformer")
 	}
 	replicaSets := factory.Apps().V1().ReplicaSets()
-	replicaSetsInformer := replicaSets.Informer()
-	err = replicaSetsInformer.SetTransform(transformReplicaSet)
+	client.replicaSetsInformer = replicaSets.Informer()
+	client.replicaSetsLister = replicaSets.Lister()
+	syncs = append(syncs, client.replicaSetsInformer.HasSynced)
+	err = client.replicaSetsInformer.SetTransform(transformReplicaSet)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add replicaSet transformer")
 	}
 	services := factory.Core().V1().Services()
-	servicesInformer := services.Informer()
-	err = servicesInformer.SetTransform(transformService)
+	client.servicesInformer = services.Informer()
+	client.servicesLister = services.Lister()
+	syncs = append(syncs, client.servicesInformer.HasSynced)
+	err = client.servicesInformer.SetTransform(transformService)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add service transformer")
 	}
 	statefulSets := factory.Apps().V1().StatefulSets()
-	statefulSetsInformer := statefulSets.Informer()
-	err = statefulSetsInformer.SetTransform(transformStatefulSet)
+	client.statefulSetsInformer = statefulSets.Informer()
+	client.statefulSetsLister = statefulSets.Lister()
+	syncs = append(syncs, client.statefulSetsInformer.HasSynced)
+	err = client.statefulSetsInformer.SetTransform(transformStatefulSet)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add statefulSet transformer")
 	}
-	eventsInformer := factory.Core().V1().Events().Informer()
-	err = eventsInformer.SetTransform(transformEvents)
+	client.eventsInformer = factory.Core().V1().Events().Informer()
+	syncs = append(syncs, client.eventsInformer.HasSynced)
+	err = client.eventsInformer.SetTransform(transformEvents)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add events transformer")
 	}
 	nodes := factory.Core().V1().Nodes()
-	nodesInformer := nodes.Informer()
-	err = nodesInformer.SetTransform(transformNodes)
+	client.nodesInformer = nodes.Informer()
+	client.nodesLister = nodes.Lister()
+	syncs = append(syncs, client.nodesInformer.HasSynced)
+	err = client.nodesInformer.SetTransform(transformNodes)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to add nodes transformer")
 	}
-	hpa := factory.Autoscaling().V1().HorizontalPodAutoscalers()
-	hpaInformer := hpa.Informer()
-	err = hpaInformer.SetTransform(transformHPA)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to add hpa transformer")
+	if permissions.CanReadHorizontalPodAutoscalers() {
+		hpa := factory.Autoscaling().V1().HorizontalPodAutoscalers()
+		client.hpaInformer = hpa.Informer()
+		client.hpaLister = hpa.Lister()
+		syncs = append(syncs, client.hpaInformer.HasSynced)
+		err = client.hpaInformer.SetTransform(transformHPA)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to add hpa transformer")
+		}
 	}
 
 	defer runtime.HandleCrash()
@@ -288,46 +323,12 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	go factory.Start(stopCh)
 
 	log.Info().Msgf("Start Kubernetes cache sync.")
-	if !cache.WaitForCacheSync(stopCh,
-		daemonSetsInformer.HasSynced,
-		deploymentsInformer.HasSynced,
-		podsInformer.HasSynced,
-		replicaSetsInformer.HasSynced,
-		servicesInformer.HasSynced,
-		statefulSetsInformer.HasSynced,
-		eventsInformer.HasSynced,
-		nodesInformer.HasSynced,
-		hpaInformer.HasSynced,
-	) {
+	if !cache.WaitForCacheSync(stopCh, syncs...) {
 		log.Fatal().Msg("Timed out waiting for caches to sync")
 	}
 	log.Info().Msgf("Caches synced.")
 
-	distribution := "kubernetes"
-	if isOpenShift(rootApiPath) {
-		distribution = "openshift"
-	}
-
-	return &Client{
-		Distribution:         distribution,
-		daemonSetsLister:     daemonSets.Lister(),
-		daemonSetsInformer:   daemonSetsInformer,
-		deploymentsLister:    deployments.Lister(),
-		deploymentsInformer:  deploymentsInformer,
-		podsLister:           pods.Lister(),
-		podsInformer:         podsInformer,
-		replicaSetsLister:    replicaSets.Lister(),
-		replicaSetsInformer:  replicaSetsInformer,
-		servicesLister:       services.Lister(),
-		servicesInformer:     servicesInformer,
-		statefulSetsLister:   statefulSets.Lister(),
-		statefulSetsInformer: statefulSetsInformer,
-		eventsInformer:       eventsInformer,
-		nodesLister:          nodes.Lister(),
-		nodesInformer:        nodesInformer,
-		hpaLister:            hpa.Lister(),
-		hpaInformer:          hpaInformer,
-	}
+	return client
 }
 
 func isOpenShift(rootApiPath string) bool {

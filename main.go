@@ -45,17 +45,31 @@ func main() {
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 
-	action_kit_sdk.RegisterAction(extdeployment.NewDeploymentRolloutRestartAction())
+	if client.K8S.Permissions().IsRolloutRestartPermitted() {
+		action_kit_sdk.RegisterAction(extdeployment.NewDeploymentRolloutRestartAction())
+	}
 	action_kit_sdk.RegisterAction(extdeployment.NewCheckDeploymentRolloutStatusAction())
 	action_kit_sdk.RegisterAction(extdeployment.NewPodCountCheckAction())
 	action_kit_sdk.RegisterAction(extdeployment.NewPodCountMetricsAction())
-	action_kit_sdk.RegisterAction(extdeployment.NewScaleDeploymentAction())
-	action_kit_sdk.RegisterAction(extstatefulset.NewScaleStatefulSetAction())
-	action_kit_sdk.RegisterAction(extpod.NewDeletePodAction())
-	action_kit_sdk.RegisterAction(extpod.NewCrashLoopAction())
+	if client.K8S.Permissions().IsScaleDeploymentPermitted() {
+		action_kit_sdk.RegisterAction(extdeployment.NewScaleDeploymentAction())
+	}
+	if client.K8S.Permissions().IsScaleStatefulSetPermitted() {
+		action_kit_sdk.RegisterAction(extstatefulset.NewScaleStatefulSetAction())
+	}
+	if client.K8S.Permissions().IsDeletePodPermitted() {
+		action_kit_sdk.RegisterAction(extpod.NewDeletePodAction())
+	}
+	if client.K8S.Permissions().IsCrashLoopPodPermitted() {
+		action_kit_sdk.RegisterAction(extpod.NewCrashLoopAction())
+	}
 	action_kit_sdk.RegisterAction(extnode.NewNodeCountCheckAction())
-	action_kit_sdk.RegisterAction(extnode.NewDrainNodeAction())
-	action_kit_sdk.RegisterAction(extnode.NewTaintNodeAction())
+	if client.K8S.Permissions().IsDrainNodePermitted() {
+		action_kit_sdk.RegisterAction(extnode.NewDrainNodeAction())
+	}
+	if client.K8S.Permissions().IsTaintNodePermitted() {
+		action_kit_sdk.RegisterAction(extnode.NewTaintNodeAction())
+	}
 	action_kit_sdk.RegisterAction(extevents.NewK8sEventsAction())
 
 	extdeployment.RegisterAttributeDescriptionHandlers()
