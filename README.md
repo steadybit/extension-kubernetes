@@ -23,6 +23,8 @@ The extension supports all environment variables provided by [steadybit/extensio
 
 The process requires access rights to interact with the Kubernetes API.
 
+Please have a look at [/charts/steadybit-extension-kubernetes/templates/clusterrole.yaml](/charts/steadybit-extension-kubernetes/templates/clusterrole.yaml) for a recent list of required permission
+
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -30,7 +32,7 @@ metadata:
   name: extension-kubernetes
 rules:
   - apiGroups:
-    - "Please have a look at /charts/steadybit-extension-kubernetes/templates/clusterrole.yaml for a recent list of required permission"
+    - ...
 ---
 apiVersion: v1
 kind: ServiceAccount
