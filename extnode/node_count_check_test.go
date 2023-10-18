@@ -57,7 +57,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 	action := NewNodeCountCheckAction()
 	state := action.NewEmptyState()
 
@@ -131,7 +131,7 @@ func TestStatusCheckNodeCountAtLeastSuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusNodeCountCheckInternal(k8sclient, &state)
@@ -177,7 +177,7 @@ func TestStatusCheckNodeCountAtFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusNodeCountCheckInternal(k8sclient, &state)
@@ -223,7 +223,7 @@ func TestStatusCheckNodeCountDecreasedBySuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusNodeCountCheckInternal(k8sclient, &state)
@@ -291,7 +291,7 @@ func TestStatusCheckNodeCountDecreasedByFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusNodeCountCheckInternal(k8sclient, &state)
@@ -359,7 +359,7 @@ func TestStatusCheckNodeCountIncreasedBySuccess(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusNodeCountCheckInternal(k8sclient, &state)
@@ -405,7 +405,7 @@ func TestStatusCheckNodeCountIncreasedByFail(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusNodeCountCheckInternal(k8sclient, &state)

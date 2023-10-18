@@ -76,7 +76,7 @@ func TestStatusReturnsMetrics(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "")
+	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusPodCountMetricsInternal(client, &state)

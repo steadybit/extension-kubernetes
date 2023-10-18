@@ -93,6 +93,6 @@ func prepareTest(t *testing.T, stopCh chan struct{}) (*K8sEventsState, *client.C
 		}, metav1.CreateOptions{})
 
 	require.NoError(t, err)
-	client := client.CreateClient(clientset, stopCh, "")
+	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 	return &state, client
 }

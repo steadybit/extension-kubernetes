@@ -377,6 +377,6 @@ func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDis
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	client := client.CreateClient(clientset, stopCh, "")
+	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 	return client, clientset
 }

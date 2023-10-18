@@ -41,26 +41,26 @@ func (p *requiredPermission) Key(verb string) string {
 	return result
 }
 
-func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
-	requiredPermissions := []requiredPermission{
-		{group: "apps", resource: "deployments", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "apps", resource: "replicasets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "apps", resource: "daemonsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "apps", resource: "statefulsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "autoscaling", resource: "horizontalpodautoscalers", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
-		{group: "", resource: "services", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "", resource: "pods", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "", resource: "nodes", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "", resource: "events", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
-		{group: "apps", resource: "deployments", verbs: []string{"patch"}, allowGracefulFailure: true},
-		{group: "apps", resource: "deployments", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
-		{group: "apps", resource: "statefulsets", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
-		{group: "", resource: "pods", verbs: []string{"delete"}, allowGracefulFailure: true},
-		{group: "", resource: "pods", subresource: "eviction", verbs: []string{"create"}, allowGracefulFailure: true},
-		{group: "", resource: "nodes", verbs: []string{"patch"}, allowGracefulFailure: true},
-		{group: "", resource: "pods", subresource: "exec", verbs: []string{"create"}, allowGracefulFailure: true},
-	}
+var requiredPermissions = []requiredPermission{
+	{group: "apps", resource: "deployments", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "apps", resource: "replicasets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "apps", resource: "daemonsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "apps", resource: "statefulsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "autoscaling", resource: "horizontalpodautoscalers", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: "", resource: "services", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "", resource: "pods", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "", resource: "nodes", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "", resource: "events", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "apps", resource: "deployments", verbs: []string{"patch"}, allowGracefulFailure: true},
+	{group: "apps", resource: "deployments", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
+	{group: "apps", resource: "statefulsets", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
+	{group: "", resource: "pods", verbs: []string{"delete"}, allowGracefulFailure: true},
+	{group: "", resource: "pods", subresource: "eviction", verbs: []string{"create"}, allowGracefulFailure: true},
+	{group: "", resource: "nodes", verbs: []string{"patch"}, allowGracefulFailure: true},
+	{group: "", resource: "pods", subresource: "exec", verbs: []string{"create"}, allowGracefulFailure: true},
+}
 
+func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
 	result := make(map[string]PermissionCheckOutcome)
 	reviews := client.AuthorizationV1().SelfSubjectAccessReviews()
 	errors := false
@@ -186,4 +186,16 @@ func (p *PermissionCheckResult) IsCrashLoopPodPermitted() bool {
 	return p.hasPermissions([]string{
 		"pods/exec/create",
 	})
+}
+
+func MockAllPermitted() *PermissionCheckResult {
+	result := make(map[string]PermissionCheckOutcome)
+	for _, p := range requiredPermissions {
+		for _, verb := range p.verbs {
+			result[p.Key(verb)] = OK
+		}
+	}
+	return &PermissionCheckResult{
+		Permissions: result,
+	}
 }

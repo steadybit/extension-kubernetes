@@ -347,6 +347,6 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 
 func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	client := kclient.CreateClient(clientset, stopCh, "/oapi")
+	client := kclient.CreateClient(clientset, stopCh, "/oapi", kclient.MockAllPermitted())
 	return client, clientset
 }

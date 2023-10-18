@@ -56,7 +56,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 	assert.Eventually(t, func() bool {
 		return k8sclient.DeploymentByNamespaceAndName("shop", "checkout") != nil
 	}, time.Second, 100*time.Millisecond)
@@ -97,7 +97,7 @@ func TestStatusCheckDeploymentNotFound(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "")
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 	// When
 	result := statusPodCountCheckInternal(k8sclient, &state)
@@ -239,7 +239,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			k8sclient := client.CreateClient(clientset, stopCh, "")
+			k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 
 			result := statusPodCountCheckInternal(k8sclient, &state)
 			require.True(t, result.Completed)
