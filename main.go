@@ -75,6 +75,7 @@ func main() {
 
 	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
+	extdeployment.RegisterDeploymentAdviceHandlers()
 	extdaemonset.RegisterStatefulSetDiscoveryHandlers()
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
@@ -206,6 +207,9 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/container/advices/k8s-cpu-limit",
+				},{
+					Method: "GET",
+					Path:   "/deployment/advices/k8s-deployment-strategy",
 				},
 			},
 		},
