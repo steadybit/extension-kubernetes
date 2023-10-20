@@ -1,8 +1,6 @@
 {
 	"id": "gateway-cpu-overload",
   "name": "gateway: CPU Overload",
-  "team": "ADM",
-  "environment": "Global",
   "lanes": [
     {
       "steps": [
