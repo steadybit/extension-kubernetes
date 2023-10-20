@@ -3,9 +3,9 @@
 ##
 ## Build
 ##
-FROM golang:1.20-alpine AS build
+FROM --platform=$BUILDPLATFORM golang:1.20-alpine AS build
 
-ARG TARGETARCH
+ARG TARGETOS TARGETARCH
 ARG NAME
 ARG VERSION
 ARG REVISION
@@ -18,12 +18,12 @@ RUN apk add build-base
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
-RUN wget -P /usr/bin "https://storage.googleapis.com/kubernetes-release/release/$(wget -O - https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl"
-RUN chmod a+x /usr/bin/kubectl
+
+RUN wget -P /usr/bin "https://storage.googleapis.com/kubernetes-release/release/$(wget -O - https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl" && chmod a+x /usr/bin/kubectl
 
 COPY . .
 
-RUN go build \
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -ldflags="\
     -X 'github.com/steadybit/extension-kit/extbuild.ExtensionName=${NAME}' \
     -X 'github.com/steadybit/extension-kit/extbuild.Version=${VERSION}' \
@@ -35,7 +35,7 @@ RUN if [[ -z "$SKIP_LICENSES_REPORT" ]] ; then make licenses-report ; else mkdir
 ##
 ## Runtime
 ##
-FROM alpine:3.16
+FROM alpine:3.18
 
 LABEL "steadybit.com.discovery-disabled"="true"
 
