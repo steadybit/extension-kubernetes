@@ -27,6 +27,7 @@ func Test_getDiscoveredDaemonSets(t *testing.T) {
 	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.LabelFilter = []string{"secret-label"}
+	extconfig.Config.DiscoveryMaxPodCount = 50
 
 	_, err := clientset.CoreV1().
 		Pods("default").

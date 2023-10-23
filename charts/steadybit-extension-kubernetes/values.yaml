@@ -125,6 +125,8 @@ extraEnvFrom: []
 discovery:
   # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-disabled` (mainly for internal use)
   disableExcludes: false
+  # discovery.maxPodCount -- Skip listing pods, containers and hosts for deployments, statefulsets, etc. if there are more then the given pods.
+  maxPodCount: 50
   attributes:
     excludes:
       # discovery.attributes.excludes.container -- List of attributes to exclude from container discovery.

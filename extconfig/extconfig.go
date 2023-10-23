@@ -22,6 +22,7 @@ type Specification struct {
 	DiscoveryAttributesExcludesDaemonSet   []string `json:"discoveryAttributesExcludesDaemonSet" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesPod         []string `json:"discoveryAttributesExcludesPod" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesNode        []string `json:"discoveryAttributesExcludesNode" split_words:"true" required:"false"`
+	DiscoveryMaxPodCount                   int      `json:"discoveryMaxPodCount" split_words:"true" required:"false" default:"50"`
 }
 
 var (

@@ -27,6 +27,7 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.LabelFilter = []string{"secret-label"}
+	extconfig.Config.DiscoveryMaxPodCount = 50
 
 	_, err := clientset.CoreV1().
 		Pods("default").
@@ -152,6 +153,7 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 	defer close(stopCh)
 	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
+	extconfig.Config.DiscoveryMaxPodCount = 50
 
 	_, err := clientset.CoreV1().
 		Pods("default").
@@ -246,6 +248,7 @@ func Test_getDiscoveredDeploymentsShouldIgnoreLabeledDeployments(t *testing.T) {
 	defer close(stopCh)
 	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
+	extconfig.Config.DiscoveryMaxPodCount = 50
 
 	_, err := clientset.
 		AppsV1().
@@ -314,6 +317,7 @@ func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDis
 	client, clientset := getTestClient(stopCh)
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.DisableDiscoveryExcludes = true
+	extconfig.Config.DiscoveryMaxPodCount = 50
 
 	_, err := clientset.
 		AppsV1().

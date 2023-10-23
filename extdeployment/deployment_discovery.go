@@ -5,6 +5,7 @@ package extdeployment
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/extension-kit/extbuild"
@@ -109,7 +110,13 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 		}
 
 		pods := k8s.PodsByLabelSelector(d.Spec.Selector, d.Namespace)
-		if len(pods) > 0 {
+		if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
+			log.Warn().Msgf("Deployment %s/%s has more than %d pods. Skip listing pods, containers and hosts.", d.Namespace, d.Name, extconfig.Config.DiscoveryMaxPodCount)
+			attributes["k8s.pod.name"] = []string{"too-many-pods"}
+			attributes["k8s.container.id"] = []string{"too-many-pods"}
+			attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}
+			attributes["host.hostname"] = []string{"too-many-pods"}
+		} else if len(pods) > 0 {
 			podNames := make([]string, len(pods))
 			var containerIds []string
 			var containerIdsWithoutPrefix []string

@@ -18,6 +18,7 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DAEMON_SET`   | `discovery.attributes.excludes.daemonSet`   | List of Target Attributes which will be excluded during daemonSet discovery. Checked by key equality and supporting trailing "*"   | false    |         |
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_STATEFUL_SET` | `discovery.attributes.excludes.statefulSet` | List of Target Attributes which will be excluded during statefulSet discovery. Checked by key equality and supporting trailing "*" | false    |         |
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_POD`          | `discovery.attributes.excludes.pod`         | List of Target Attributes which will be excluded during pod discovery. Checked by key equality and supporting trailing "*"         | false    |         |
+| `STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT`                    | `discovery.maxPodCount`                     | Skip listing pods, containers and hosts for deployments, statefulsets, etc. if there are more then the given pods.                 | false    | 50      |
 
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 
