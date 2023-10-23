@@ -203,13 +203,13 @@ func getExtensionList() ExtensionListResponse {
 			},
 		},
 		AdviceList: advice_kit_api.AdviceList{
-			Advices: []advice_kit_api.DescribingEndpointReference{
+			Advice: []advice_kit_api.DescribingEndpointReference{
 				{
 					Method: "GET",
-					Path:   "/container/advices/k8s-cpu-limit",
+					Path:   "/container/advice/k8s-cpu-limit",
 				},{
 					Method: "GET",
-					Path:   "/deployment/advices/k8s-deployment-strategy",
+					Path:   "/deployment/advice/k8s-deployment-strategy",
 				},
 			},
 		},

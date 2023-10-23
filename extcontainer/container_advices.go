@@ -12,7 +12,7 @@ import (
 )
 
 func RegisterContainerAdviceHandlers() {
-	exthttp.RegisterHttpHandler("/container/advices/k8s-cpu-limit", exthttp.GetterAsHandler(getContainerAdviceDescriptionCPULimit))
+	exthttp.RegisterHttpHandler("/container/advice/k8s-cpu-limit", exthttp.GetterAsHandler(getContainerAdviceDescriptionCPULimit))
 }
 
 func getContainerAdviceDescriptionCPULimit() advice_kit_api.AdviceDefinition {

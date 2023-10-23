@@ -11,7 +11,7 @@ require (
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.7.3
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.8
 	github.com/steadybit/action-kit/go/action_kit_test v1.2.1
-	github.com/steadybit/advice-kit/go/advice_kit_api v0.0.0-20231018065709-e099a50d63aa
+	github.com/steadybit/advice-kit/go/advice_kit_api v0.0.0-20231023073253-eb4105f8be8b
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.4.2
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.1.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.0.2
@@ -22,7 +22,6 @@ require (
 	k8s.io/api v0.29.0-alpha.2
 	k8s.io/apimachinery v0.29.0-alpha.2
 	k8s.io/client-go v0.29.0-alpha.2
-	k8s.io/klog/v2 v2.100.1
 	k8s.io/klog/v2 v2.100.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 )

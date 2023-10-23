@@ -12,7 +12,7 @@ import (
 )
 
 func RegisterDeploymentAdviceHandlers() {
-	exthttp.RegisterHttpHandler("/deployment/advices/k8s-deployment-strategy", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionDeploymentStrategy))
+	exthttp.RegisterHttpHandler("/deployment/advice/k8s-deployment-strategy", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionDeploymentStrategy))
 }
 
 func getDeploymentAdviceDescriptionDeploymentStrategy() advice_kit_api.AdviceDefinition {
