@@ -1,7 +1,7 @@
 # Changelog
 
 
-## v2.5.x (NEXT RELEASE)
+## v2.5.0
 
 - Discoveries added
   - pods
