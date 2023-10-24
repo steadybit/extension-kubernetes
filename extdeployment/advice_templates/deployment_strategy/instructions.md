@@ -1,5 +1,3 @@
-# Instructions
-
 Make sure that the <Code inline={true}>deploymentStrategyType</Code> is set to{' '}
 <Code inline={true}>RollingUpdate</Code>.
 
