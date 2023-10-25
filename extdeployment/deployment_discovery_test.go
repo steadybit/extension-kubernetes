@@ -130,20 +130,24 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, DeploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
-		"host.hostname":                    {"worker-1"},
-		"k8s.namespace":                    {"default"},
-		"k8s.deployment":                   {"shop"},
-		"k8s.deployment.label.best-city":   {"Kevelaer"},
-		"k8s.label.best-city":              {"Kevelaer"},
-		"k8s.deployment.hpa.existent":      {"true"},
-		"k8s.deployment.min-ready-seconds": {"10"},
-		"k8s.deployment.replicas":          {"3"},
-		"k8s.deployment.strategy":          {"RollingUpdate"},
-		"k8s.cluster-name":                 {"development"},
-		"k8s.pod.name":                     {"shop-pod"},
-		"k8s.container.id":                 {"crio://abcdef"},
-		"k8s.container.id.stripped":        {"abcdef"},
-		"k8s.distribution":                 {"kubernetes"},
+		"host.hostname":                                {"worker-1"},
+		"k8s.namespace":                                {"default"},
+		"k8s.deployment":                               {"shop"},
+		"k8s.deployment.label.best-city":               {"Kevelaer"},
+		"k8s.label.best-city":                          {"Kevelaer"},
+		"k8s.deployment.hpa.existent":                  {"true"},
+		"k8s.deployment.min-ready-seconds":             {"10"},
+		"k8s.deployment.replicas":                      {"3"},
+		"k8s.deployment.strategy":                      {"RollingUpdate"},
+		"k8s.cluster-name":                             {"development"},
+		"k8s.pod.name":                                 {"shop-pod"},
+		"k8s.container.id":                             {"crio://abcdef"},
+		"k8s.container.id.stripped":                    {"abcdef"},
+		"k8s.distribution":                             {"kubernetes"},
+		"k8s.container.spec.name.limit.cpu.not-set":    {"nginx"},
+		"k8s.container.spec.name.limit.memory.not-set": {"nginx"},
+		"k8s.deployment.advice.limit.cpu.not-set":      {"true"},
+		"k8s.deployment.advice.limit.memory.not-set":   {"true"},
 	}, target.Attributes)
 }
 
@@ -228,17 +232,21 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, DeploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
-		"host.hostname":                    {"worker-1"},
-		"k8s.namespace":                    {"default"},
-		"k8s.deployment":                   {"shop"},
-		"k8s.deployment.label.best-city":   {"Kevelaer"},
-		"k8s.label.best-city":              {"Kevelaer"},
-		"k8s.deployment.min-ready-seconds": {"0"},
-		"k8s.deployment.strategy":          {""},
-		"k8s.deployment.hpa.existent":      {"false"},
-		"k8s.cluster-name":                 {"development"},
-		"k8s.pod.name":                     {"shop-pod"},
-		"k8s.distribution":                 {"kubernetes"},
+		"host.hostname":                                {"worker-1"},
+		"k8s.namespace":                                {"default"},
+		"k8s.deployment":                               {"shop"},
+		"k8s.deployment.label.best-city":               {"Kevelaer"},
+		"k8s.label.best-city":                          {"Kevelaer"},
+		"k8s.deployment.min-ready-seconds":             {"0"},
+		"k8s.deployment.strategy":                      {""},
+		"k8s.deployment.hpa.existent":                  {"false"},
+		"k8s.cluster-name":                             {"development"},
+		"k8s.pod.name":                                 {"shop-pod"},
+		"k8s.distribution":                             {"kubernetes"},
+		"k8s.container.spec.name.limit.cpu.not-set":    {"nginx"},
+		"k8s.container.spec.name.limit.memory.not-set": {"nginx"},
+		"k8s.deployment.advice.limit.cpu.not-set":      {"true"},
+		"k8s.deployment.advice.limit.memory.not-set":   {"true"},
 	}, target.Attributes)
 }
 

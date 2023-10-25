@@ -1,0 +1,51 @@
+{
+	"id": "gateway-cpu-overload",
+  "name": "gateway: CPU Overload",
+  "lanes": [
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "cpuLoad": 100,
+            "workers": 0,
+            "duration": "60s"
+          },
+          "actionType": "com.steadybit.extension_container.stress_cpu",
+          "radius": {
+            "targetType": "com.steadybit.extension_container.container",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "{{k8s.cluster-name}}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "{{k8s.namespace}}"
+                  ]
+                },
+                {
+                  "key": "k8s.deployment",
+                  "operator": "EQUALS",
+                  "values": [
+                    "{{k8s.deployment}}"
+                  ]
+                }
+              ]
+            },
+            "query": null,
+            "percentage": 50
+          }
+        }
+      ]
+    }
+  ]
+}

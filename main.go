@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthealth"
@@ -74,6 +75,7 @@ func main() {
 
 	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
+	extdeployment.RegisterDeploymentAdviceHandlers()
 	extdaemonset.RegisterStatefulSetDiscoveryHandlers()
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
@@ -95,6 +97,7 @@ func main() {
 type ExtensionListResponse struct {
 	action_kit_api.ActionList       `json:",inline"`
 	discovery_kit_api.DiscoveryList `json:",inline"`
+	advice_kit_api.AdviceList   `json:",inline"`
 }
 
 func getExtensionList() ExtensionListResponse {
@@ -195,6 +198,17 @@ func getExtensionList() ExtensionListResponse {
 				{
 					Method: "GET",
 					Path:   "/node/discovery/rules/k8s-node-to-host",
+				},
+			},
+		},
+		AdviceList: advice_kit_api.AdviceList{
+			Advice: []advice_kit_api.DescribingEndpointReference{
+				{
+					Method: "GET",
+					Path:   "/deployment/advice/k8s-cpu-limit",
+				},{
+					Method: "GET",
+					Path:   "/deployment/advice/k8s-deployment-strategy",
 				},
 			},
 		},

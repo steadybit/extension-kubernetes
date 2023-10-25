@@ -1,6 +1,11 @@
 # Changelog
 
 
+## v2.5.1 (NEXT NEXT RELEASE)
+
+- Advises:
+  - Preview of the new Steadybit Advises feature as cpu limit advise
+
 ## v2.5.0
 
 - Discoveries added
@@ -20,7 +25,7 @@
 - Added `pprof` endpoints for debugging purposes
 - Memory optimizations
 - Removed the attribute `k8s.container.ready` as this causes unnecessary enrichment noise
-- Added additional attributes to support advices / weakspots - :exclamation: Requires new permission `get`, `list`, and `watch` for `horizontalpodautoscalers` resources
+- Added additional attributes to support advice / weakspots - :exclamation: Requires new permission `get`, `list`, and `watch` for `horizontalpodautoscalers` resources
 
 ## v2.4.2
 
