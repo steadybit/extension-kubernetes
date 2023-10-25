@@ -80,7 +80,6 @@ func main() {
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
-	extcontainer.RegisterContainerAdviceHandlers()
 	extnode.RegisterNodeDiscoveryHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
 
@@ -206,7 +205,7 @@ func getExtensionList() ExtensionListResponse {
 			Advice: []advice_kit_api.DescribingEndpointReference{
 				{
 					Method: "GET",
-					Path:   "/container/advice/k8s-cpu-limit",
+					Path:   "/deployment/advice/k8s-cpu-limit",
 				},{
 					Method: "GET",
 					Path:   "/deployment/advice/k8s-deployment-strategy",

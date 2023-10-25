@@ -15,7 +15,9 @@ spec:
       requests:
         memory: "64Mi"
         cpu: "250m"
-      <Code p={0} color={'coral'}>{`      limits:
+% startHighlight %
+      limits:
         memory: "128Mi"
-        cpu: "500m"`}</Code>
+        cpu: "500m"
+% endHighlight %
 ```

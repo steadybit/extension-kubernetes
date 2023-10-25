@@ -120,6 +120,8 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			podNames := make([]string, len(pods))
 			var containerIds []string
 			var containerIdsWithoutPrefix []string
+			var containerNamesWithoutLimitCPU []string
+			var containerNamesWithoutLimitMemory []string
 			var hostnames []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
@@ -131,6 +133,14 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 					containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 				}
 				hostnames = append(hostnames, pod.Spec.NodeName)
+				for _, containerSpec := range pod.Spec.Containers {
+					if containerSpec.Resources.Limits.Cpu().MilliValue() == 0 {
+						containerNamesWithoutLimitCPU = append(containerNamesWithoutLimitCPU, containerSpec.Name)
+					}
+					if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
+						containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
+					}
+				}
 			}
 			attributes["k8s.pod.name"] = podNames
 			if len(containerIds) > 0 {
@@ -141,6 +151,14 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			}
 			if len(hostnames) > 0 {
 				attributes["host.hostname"] = hostnames
+			}
+			if len(containerNamesWithoutLimitCPU) > 0 {
+				attributes["k8s.container.spec.name.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
+				attributes["k8s.deployment.advice.limit.cpu.not-set"] = []string{"true"}
+			}
+			if len(containerNamesWithoutLimitMemory) > 0 {
+				attributes["k8s.container.spec.name.limit.memory.not-set"] = containerNamesWithoutLimitMemory
+				attributes["k8s.deployment.advice.limit.memory.not-set"] = []string{"true"}
 			}
 		}
 

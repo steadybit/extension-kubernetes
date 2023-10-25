@@ -8,12 +8,12 @@ metadata:
   name:  ${target.k8s.deployment}
 spec:
   replicas: 5
-		<Code inline color={'coral'}>
-			{`  strategy:
+% startHighlight %
+  strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 3
-      maxUnavailable: 0
-`}
-		</Code>
+    maxSurge: 3
+    maxUnavailable: 0
+% endHighlight %
+
 ```
