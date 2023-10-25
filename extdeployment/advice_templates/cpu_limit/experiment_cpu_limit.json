@@ -1,6 +1,5 @@
 {
-	"id": "gateway-cpu-overload",
-  "name": "gateway: CPU Overload",
+  "name": "CPU Overload",
   "lanes": [
     {
       "steps": [
