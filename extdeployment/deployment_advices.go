@@ -10,7 +10,6 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
 )
-import _ "embed"
 
 func RegisterDeploymentAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/advice/k8s-deployment-strategy", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionDeploymentStrategy))
@@ -20,7 +19,7 @@ func RegisterDeploymentAdviceHandlers() {
 //go:embed advice_templates/cpu_limit/*
 var cpuLimitContent embed.FS
 
-//go:embed advice_templates/cpu_limit/*
+//go:embed advice_templates/deployment_strategy/*
 var deploymentStrategyContent embed.FS
 
 func getDeploymentAdviceDescriptionDeploymentStrategy() advice_kit_api.AdviceDefinition {
