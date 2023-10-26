@@ -4,17 +4,24 @@
 package extdeployment
 
 import (
+	"embed"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
-	"os"
 )
+import _ "embed"
 
 func RegisterDeploymentAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/advice/k8s-deployment-strategy", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionDeploymentStrategy))
 	exthttp.RegisterHttpHandler("/deployment/advice/k8s-cpu-limit", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionCPULimit))
 }
+
+//go:embed advice_templates/cpu_limit/*
+var cpuLimitContent embed.FS
+
+//go:embed advice_templates/cpu_limit/*
+var deploymentStrategyContent embed.FS
 
 func getDeploymentAdviceDescriptionDeploymentStrategy() advice_kit_api.AdviceDefinition {
 	return advice_kit_api.AdviceDefinition{
@@ -28,15 +35,15 @@ func getDeploymentAdviceDescriptionDeploymentStrategy() advice_kit_api.AdviceDef
 		Experiments:                 nil,
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile("./extdeployment/advice_templates/deployment_strategy/instructions.md"),
-				Motivation:  readLocalFile("./extdeployment/advice_templates/deployment_strategy/motivation.md"),
-				Summary:     readLocalFile("./extdeployment/advice_templates/deployment_strategy/action_needed_summary.md"),
+				Instruction: readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/instructions.md"),
+				Motivation:  readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/motivation.md"),
+				Summary:     readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile("./extdeployment/advice_templates/deployment_strategy/validation_needed.md"),
+				Summary: readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile("./extdeployment/advice_templates/deployment_strategy/implemented.md"),
+				Summary: readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/implemented.md"),
 			},
 		},
 	}
@@ -54,27 +61,27 @@ func getDeploymentAdviceDescriptionCPULimit() advice_kit_api.AdviceDefinition {
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:   DeploymentTargetType + ".advice.k8s-cpu-limit.experiment-1",
 			Name: "CPU Overload",
-			Experiment: readLocalFile("./extdeployment/advice_templates/cpu_limit/experiment_cpu_limit.json"),
+			Experiment: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/experiment_cpu_limit.json"),
 		},
 		},
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile("./extdeployment/advice_templates/cpu_limit/instructions.md"),
-				Motivation:  readLocalFile("./extdeployment/advice_templates/cpu_limit/motivation.md"),
-				Summary:     readLocalFile("./extdeployment/advice_templates/cpu_limit/action_needed_summary.md"),
+				Instruction: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/instructions.md"),
+				Motivation:  readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/motivation.md"),
+				Summary:     readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile("./extdeployment/advice_templates/cpu_limit/validation_needed.md"),
+				Summary: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile("./extdeployment/advice_templates/cpu_limit/implemented.md"),
+				Summary: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/implemented.md"),
 			},
 		},
 	}
 }
 
-func readLocalFile(fileName string) string {
-	fileContent, err := os.ReadFile(fileName)
+func readLocalFile(fs embed.FS, fileName string) string {
+	fileContent, err := fs.ReadFile(fileName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to read file: %s", fileName)
 	}
