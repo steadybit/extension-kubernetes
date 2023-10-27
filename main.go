@@ -97,7 +97,7 @@ func main() {
 type ExtensionListResponse struct {
 	action_kit_api.ActionList       `json:",inline"`
 	discovery_kit_api.DiscoveryList `json:",inline"`
-	advice_kit_api.AdviceList   `json:",inline"`
+	advice_kit_api.AdviceList       `json:",inline"`
 }
 
 func getExtensionList() ExtensionListResponse {
@@ -202,15 +202,27 @@ func getExtensionList() ExtensionListResponse {
 			},
 		},
 		AdviceList: advice_kit_api.AdviceList{
-			Advice: []advice_kit_api.DescribingEndpointReference{
-				{
-					Method: "GET",
-					Path:   "/deployment/advice/k8s-cpu-limit",
-				},{
-					Method: "GET",
-					Path:   "/deployment/advice/k8s-deployment-strategy",
-				},
-			},
+			Advice: getAdviceRefs(),
 		},
 	}
+}
+
+func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
+	var refs []advice_kit_api.DescribingEndpointReference
+	refs = make([]advice_kit_api.DescribingEndpointReference, 0)
+	for _, adviceId := range extconfig.Config.ActiveAdviceList {
+		if "*" == adviceId || extdeployment.DeploymentStrategyID == adviceId {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-deployment-strategy",
+			})
+		}
+		if "*" == adviceId || extdeployment.CpuLimitID == adviceId {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-cpu-limit",
+			})
+		}
+	}
+	return refs
 }
