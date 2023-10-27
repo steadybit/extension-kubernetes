@@ -211,13 +211,13 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 	var refs []advice_kit_api.DescribingEndpointReference
 	refs = make([]advice_kit_api.DescribingEndpointReference, 0)
 	for _, adviceId := range extconfig.Config.ActiveAdviceList {
-		if "*" == adviceId || extdeployment.DeploymentStrategyID == adviceId {
+		if adviceId == "*" || adviceId == extdeployment.DeploymentStrategyID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/deployment/advice/k8s-deployment-strategy",
 			})
 		}
-		if "*" == adviceId || extdeployment.CpuLimitID == adviceId {
+		if adviceId == "*" || adviceId == extdeployment.CpuLimitID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/deployment/advice/k8s-cpu-limit",
