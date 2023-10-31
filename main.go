@@ -229,6 +229,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-memory-limit",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.HorizontalPodAutoscalerID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-horizontal-pod-autoscaler",
+			})
+		}
 	}
 	return refs
 }
