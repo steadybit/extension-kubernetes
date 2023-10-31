@@ -235,6 +235,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-horizontal-pod-autoscaler",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.ImageVersioningID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-image-latest-tag",
+			})
+		}
 	}
 	return refs
 }
