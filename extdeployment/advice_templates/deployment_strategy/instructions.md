@@ -1,7 +1,7 @@
 Make sure that the ```deploymentStrategyType``` is set to
 ``RollingUpdate``.
 
-```
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
