@@ -223,6 +223,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-cpu-limit",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.MemoryLimitID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-memory-limit",
+			})
+		}
 	}
 	return refs
 }
