@@ -241,6 +241,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-image-latest-tag",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.ImagePullPolicyID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-image-pull-policy",
+			})
+		}
 	}
 	return refs
 }

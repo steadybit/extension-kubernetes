@@ -123,6 +123,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			var containerNamesWithoutLimitCPU []string
 			var containerNamesWithoutLimitMemory []string
 			var containerWithLatestTag []string
+			var containerWithoutImagePullPolicyAlways []string
 			var hostnames []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
@@ -144,6 +145,9 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 					if strings.HasSuffix(containerSpec.Image, "latest") {
 						containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
 					}
+					if containerSpec.ImagePullPolicy != "Always" {
+						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
+					}
 				}
 			}
 			attributes["k8s.pod.name"] = podNames
@@ -164,6 +168,9 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			}
 			if len(containerWithLatestTag) > 0 {
 				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
+			}
+			if len(containerWithoutImagePullPolicyAlways) > 0 {
+				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
 			}
 		}
 
