@@ -124,6 +124,8 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			var containerNamesWithoutLimitMemory []string
 			var containerWithLatestTag []string
 			var containerWithoutImagePullPolicyAlways []string
+			var containerWithoutLivenessProbe []string
+			var containerWithoutReadinessProbe []string
 			var hostnames []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
@@ -148,6 +150,12 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 					if containerSpec.ImagePullPolicy != "Always" {
 						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
 					}
+					if containerSpec.LivenessProbe == nil {
+						containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
+					}
+					if containerSpec.ReadinessProbe == nil {
+						containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
+					}
 				}
 			}
 			attributes["k8s.pod.name"] = podNames
@@ -171,6 +179,12 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			}
 			if len(containerWithoutImagePullPolicyAlways) > 0 {
 				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
+			}
+			if len(containerWithoutLivenessProbe) > 0 {
+				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
+			}
+			if len(containerWithoutReadinessProbe) > 0 {
+				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
 			}
 		}
 

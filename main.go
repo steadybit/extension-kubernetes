@@ -247,6 +247,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-image-pull-policy",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.LivenessProbeID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-liveness-probe",
+			})
+		}
 	}
 	return refs
 }

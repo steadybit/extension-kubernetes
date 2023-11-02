@@ -1,16 +1,16 @@
 {
-  "name": "Memory Overload",
+  "name": "${target.k8s.deployment}: Memory Overload",
   "lanes": [
     {
       "steps": [
         {
           "type": "action",
           "ignoreFailure": false,
-          "parameters": {
-            "cpuLoad": 100,
-            "workers": 0,
-            "duration": "60s"
-          },
+					"parameters": {
+						"duration": "30s",
+						"percentage": 200,
+						"failOnOomKill": false
+					},
           "actionType": "com.steadybit.extension_container.stress_mem",
           "radius": {
             "targetType": "com.steadybit.extension_container.container",

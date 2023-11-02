@@ -1,17 +1,22 @@
 {
-  "name": "${target.k8s.deployment} CPU Overload",
+  "name": "${target.k8s.deployment}: Pod Lifecycle",
   "lanes": [
     {
       "steps": [
         {
           "type": "action",
           "ignoreFailure": false,
-          "parameters": {
-            "cpuLoad": 100,
-            "workers": 0,
-            "duration": "60s"
-          },
-          "actionType": "com.steadybit.extension_container.stress_cpu",
+					"parameters": {
+						"ip": [],
+						"port": [],
+						"duration": "60s",
+						"hostname": [],
+						"networkDelay": "500ms",
+						"networkInterface": [],
+						"failOnHostNetwork": true,
+						"networkDelayJitter": true
+					},
+          "actionType": "com.steadybit.extension_container.network_delay",
           "radius": {
             "targetType": "com.steadybit.extension_container.container",
             "predicate": {
