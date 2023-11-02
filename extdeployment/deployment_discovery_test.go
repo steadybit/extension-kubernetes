@@ -245,6 +245,8 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 		"k8s.distribution":                             {"kubernetes"},
 		"k8s.container.spec.name.limit.cpu.not-set":    {"nginx"},
 		"k8s.container.spec.name.limit.memory.not-set": {"nginx"},
+		"k8s.container.probes.liveness.not-set":        {"nginx"},
+		"k8s.container.probes.readiness.not-set":       {"nginx"},
 	}, target.Attributes)
 }
 
