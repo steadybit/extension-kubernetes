@@ -259,6 +259,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-readiness-probe",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.SingleReplicaID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-single-replica",
+			})
+		}
 	}
 	return refs
 }
