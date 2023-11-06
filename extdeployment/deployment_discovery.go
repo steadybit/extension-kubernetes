@@ -12,6 +12,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/utils/strings/slices"
@@ -83,6 +84,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 	}
 
 	targets := make([]discovery_kit_api.Target, len(filteredDeployments))
+
 	for i, d := range filteredDeployments {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, d.Namespace, d.Name)
 		attributes := map[string][]string{
@@ -185,6 +187,10 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			}
 			if len(containerWithoutReadinessProbe) > 0 {
 				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
+			}
+			scoreAttributes := extcommon.AddKubeScoreAttributesDeployment(d)
+			for key, value := range scoreAttributes {
+				attributes[key] = value
 			}
 		}
 

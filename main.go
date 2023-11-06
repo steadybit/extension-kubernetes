@@ -149,7 +149,7 @@ func getExtensionList() ExtensionListResponse {
 				},
 				{
 					Method: "GET",
-					Path:   "/pod//discovery/target-description",
+					Path:   "/pod/discovery/target-description",
 				},
 				{
 					Method: "GET",

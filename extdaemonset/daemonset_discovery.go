@@ -12,6 +12,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/utils/strings/slices"
@@ -129,6 +130,11 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			}
 			if len(hostnames) > 0 {
 				attributes["host.hostname"] = hostnames
+			}
+
+			scoreAttributes := extcommon.AddKubeScoreAttributesDaemonSet(ds)
+			for key, value := range scoreAttributes {
+				attributes[key] = value
 			}
 		}
 
