@@ -265,6 +265,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-single-replica",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.HostPodantiaffinityID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/k8s-host-podantiaffinity",
+			})
+		}
 	}
 	return refs
 }
