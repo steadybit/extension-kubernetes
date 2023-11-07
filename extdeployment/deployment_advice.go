@@ -4,11 +4,10 @@
 package extdeployment
 
 import (
-	"embed"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/exthttp"
+	"github.com/steadybit/extension-kubernetes/advice"
 )
 
 const DeploymentStrategyID = DeploymentTargetType + ".advice.k8s-deployment-strategy"
@@ -35,36 +34,6 @@ func RegisterDeploymentAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/advice/k8s-host-podantiaffinity", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionHostPodantiaffinity))
 }
 
-//go:embed advice_templates/cpu_limit/*
-var cpuLimitContent embed.FS
-
-//go:embed advice_templates/memory_limit/*
-var memoryLimitContent embed.FS
-
-//go:embed advice_templates/deployment_strategy/*
-var deploymentStrategyContent embed.FS
-
-//go:embed advice_templates/image_latest_tag/*
-var imageVersioningContent embed.FS
-
-//go:embed advice_templates/image_pull_policy/*
-var imagePullPolicyContent embed.FS
-
-//go:embed advice_templates/horizontal_pod_autoscaler/*
-var horizontalPodAutoscalerContent embed.FS
-
-//go:embed advice_templates/liveness_probe/*
-var livenessProbeContent embed.FS
-
-//go:embed advice_templates/readiness_probe/*
-var readinessProbeContent embed.FS
-
-//go:embed advice_templates/single_replica/*
-var singleReplicaContent embed.FS
-
-//go:embed advice_templates/host_podantiaffinity/*
-var hostPodantiaffinityContent embed.FS
-
 func getDeploymentAdviceDescriptionImageVersioning() advice_kit_api.AdviceDefinition {
 
 	return advice_kit_api.AdviceDefinition{
@@ -78,15 +47,15 @@ func getDeploymentAdviceDescriptionImageVersioning() advice_kit_api.AdviceDefini
 		Experiments:                 nil,
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(imageVersioningContent, "advice_templates/image_latest_tag/instructions.md"),
-				Motivation:  readLocalFile(imageVersioningContent, "advice_templates/image_latest_tag/motivation.md"),
-				Summary:     readLocalFile(imageVersioningContent, "advice_templates/image_latest_tag/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.ImageVersioningContent, "image_latest_tag/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.ImageVersioningContent, "image_latest_tag/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.ImageVersioningContent, "image_latest_tag/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(imageVersioningContent, "advice_templates/image_latest_tag/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.ImageVersioningContent, "image_latest_tag/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(imageVersioningContent, "advice_templates/image_latest_tag/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.ImageVersioningContent, "image_latest_tag/implemented.md"),
 			},
 		},
 	}
@@ -105,15 +74,15 @@ func getDeploymentAdviceDescriptionImagePullPolicy() advice_kit_api.AdviceDefini
 		Experiments:                 nil,
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(imagePullPolicyContent, "advice_templates/image_pull_policy/instructions.md"),
-				Motivation:  readLocalFile(imagePullPolicyContent, "advice_templates/image_pull_policy/motivation.md"),
-				Summary:     readLocalFile(imagePullPolicyContent, "advice_templates/image_pull_policy/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.ImagePullPolicyContent, "image_pull_policy/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.ImagePullPolicyContent, "image_pull_policy/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.ImagePullPolicyContent, "image_pull_policy/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(imagePullPolicyContent, "advice_templates/image_pull_policy/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.ImagePullPolicyContent, "image_pull_policy/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(imagePullPolicyContent, "advice_templates/image_pull_policy/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.ImagePullPolicyContent, "image_pull_policy/implemented.md"),
 			},
 		},
 	}
@@ -132,15 +101,15 @@ func getDeploymentAdviceDescriptionDeploymentStrategy() advice_kit_api.AdviceDef
 		Experiments:                 nil,
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/instructions.md"),
-				Motivation:  readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/motivation.md"),
-				Summary:     readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.DeploymentStrategyContent, "deployment_strategy/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.DeploymentStrategyContent, "deployment_strategy/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.DeploymentStrategyContent, "deployment_strategy/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.DeploymentStrategyContent, "deployment_strategy/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(deploymentStrategyContent, "advice_templates/deployment_strategy/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.DeploymentStrategyContent, "deployment_strategy/implemented.md"),
 			},
 		},
 	}
@@ -159,15 +128,15 @@ func getDeploymentAdviceDescriptionHorizontalPodAutoscaler() advice_kit_api.Advi
 		Experiments:                 nil,
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(horizontalPodAutoscalerContent, "advice_templates/horizontal_pod_autoscaler/instructions.md"),
-				Motivation:  readLocalFile(horizontalPodAutoscalerContent, "advice_templates/horizontal_pod_autoscaler/motivation.md"),
-				Summary:     readLocalFile(horizontalPodAutoscalerContent, "advice_templates/horizontal_pod_autoscaler/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.HorizontalPodAutoscalerContent, "horizontal_pod_autoscaler/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.HorizontalPodAutoscalerContent, "horizontal_pod_autoscaler/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.HorizontalPodAutoscalerContent, "horizontal_pod_autoscaler/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(horizontalPodAutoscalerContent, "advice_templates/horizontal_pod_autoscaler/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.HorizontalPodAutoscalerContent, "horizontal_pod_autoscaler/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(horizontalPodAutoscalerContent, "advice_templates/horizontal_pod_autoscaler/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.HorizontalPodAutoscalerContent, "horizontal_pod_autoscaler/implemented.md"),
 			},
 		},
 	}
@@ -185,20 +154,20 @@ func getDeploymentAdviceDescriptionCPULimit() advice_kit_api.AdviceDefinition {
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         DeploymentTargetType + ".advice.k8s-cpu-limit.experiment-1",
 			Name:       "CPU Overload",
-			Experiment: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/experiment_cpu_limit.json"),
+			Experiment: advice.ReadAdviceFile(advice.CpuLimitContent, "cpu_limit/experiment_cpu_limit.json"),
 		},
 		},
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/instructions.md"),
-				Motivation:  readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/motivation.md"),
-				Summary:     readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.CpuLimitContent, "cpu_limit/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.CpuLimitContent, "cpu_limit/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.CpuLimitContent, "cpu_limit/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.CpuLimitContent, "cpu_limit/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(cpuLimitContent, "advice_templates/cpu_limit/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.CpuLimitContent, "cpu_limit/implemented.md"),
 			},
 		},
 	}
@@ -215,20 +184,20 @@ func getDeploymentAdviceDescriptionSingleReplica() advice_kit_api.AdviceDefiniti
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         DeploymentTargetType + ".advice.k8s-single-replica.experiment-1",
 			Name:       "Pod Failure",
-			Experiment: readLocalFile(singleReplicaContent, "advice_templates/single_replica/experiment_pod_failure.json"),
+			Experiment: advice.ReadAdviceFile(advice.SingleReplicaContent, "single_replica/experiment_pod_failure.json"),
 		},
 		},
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(singleReplicaContent, "advice_templates/single_replica/instructions.md"),
-				Motivation:  readLocalFile(singleReplicaContent, "advice_templates/single_replica/motivation.md"),
-				Summary:     readLocalFile(singleReplicaContent, "advice_templates/single_replica/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.SingleReplicaContent, "single_replica/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.SingleReplicaContent, "single_replica/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.SingleReplicaContent, "single_replica/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(singleReplicaContent, "advice_templates/single_replica/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.SingleReplicaContent, "single_replica/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(singleReplicaContent, "advice_templates/single_replica/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.SingleReplicaContent, "single_replica/implemented.md"),
 			},
 		},
 	}
@@ -246,15 +215,15 @@ func getDeploymentAdviceDescriptionHostPodantiaffinity() advice_kit_api.AdviceDe
 		Experiments: nil,
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(hostPodantiaffinityContent, "advice_templates/host_podantiaffinity/instructions.md"),
-				Motivation:  readLocalFile(hostPodantiaffinityContent, "advice_templates/host_podantiaffinity/motivation.md"),
-				Summary:     readLocalFile(hostPodantiaffinityContent, "advice_templates/host_podantiaffinity/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.HostPodantiaffinityContent, "host_podantiaffinity/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.HostPodantiaffinityContent, "host_podantiaffinity/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.HostPodantiaffinityContent, "host_podantiaffinity/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(hostPodantiaffinityContent, "advice_templates/host_podantiaffinity/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.HostPodantiaffinityContent, "host_podantiaffinity/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(hostPodantiaffinityContent, "advice_templates/host_podantiaffinity/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.HostPodantiaffinityContent, "host_podantiaffinity/implemented.md"),
 			},
 		},
 	}
@@ -272,20 +241,20 @@ func getDeploymentAdviceDescriptionLivenessProbe() advice_kit_api.AdviceDefiniti
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         DeploymentTargetType + ".advice.k8s-liveness-probe.experiment-1",
 			Name:       "Pod Lifecycle",
-			Experiment: readLocalFile(livenessProbeContent, "advice_templates/liveness_probe/experiment_pod_lifecycle.json"),
+			Experiment: advice.ReadAdviceFile(advice.LivenessProbeContent, "liveness_probe/experiment_pod_lifecycle.json"),
 		},
 		},
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(livenessProbeContent, "advice_templates/liveness_probe/instructions.md"),
-				Motivation:  readLocalFile(livenessProbeContent, "advice_templates/liveness_probe/motivation.md"),
-				Summary:     readLocalFile(livenessProbeContent, "advice_templates/liveness_probe/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.LivenessProbeContent, "liveness_probe/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.LivenessProbeContent, "liveness_probe/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.LivenessProbeContent, "liveness_probe/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(livenessProbeContent, "advice_templates/liveness_probe/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.LivenessProbeContent, "liveness_probe/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(livenessProbeContent, "advice_templates/liveness_probe/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.LivenessProbeContent, "liveness_probe/implemented.md"),
 			},
 		},
 	}
@@ -303,15 +272,15 @@ func getDeploymentAdviceDescriptionReadinessProbe() advice_kit_api.AdviceDefinit
 		Experiments: nil,
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(readinessProbeContent, "advice_templates/readiness_probe/instructions.md"),
-				Motivation:  readLocalFile(readinessProbeContent, "advice_templates/readiness_probe/motivation.md"),
-				Summary:     readLocalFile(readinessProbeContent, "advice_templates/readiness_probe/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.ReadinessProbeContent, "readiness_probe/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.ReadinessProbeContent, "readiness_probe/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.ReadinessProbeContent, "readiness_probe/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(readinessProbeContent, "advice_templates/readiness_probe/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.ReadinessProbeContent, "readiness_probe/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(readinessProbeContent, "advice_templates/readiness_probe/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.ReadinessProbeContent, "readiness_probe/implemented.md"),
 			},
 		},
 	}
@@ -330,29 +299,21 @@ func getDeploymentAdviceDescriptionMemoryLimit() advice_kit_api.AdviceDefinition
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         DeploymentTargetType + ".advice.k8s-memory-limit.experiment-1",
 			Name:       "Memory Overload",
-			Experiment: readLocalFile(memoryLimitContent, "advice_templates/memory_limit/experiment_memory_limit.json"),
+			Experiment: advice.ReadAdviceFile(advice.MemoryLimitContent, "memory_limit/experiment_memory_limit.json"),
 		},
 		},
 		Description: advice_kit_api.AdviceDefinitionDescription{
 			ActionNeeded: advice_kit_api.AdviceDefinitionDescriptionActionNeeded{
-				Instruction: readLocalFile(memoryLimitContent, "advice_templates/memory_limit/instructions.md"),
-				Motivation:  readLocalFile(memoryLimitContent, "advice_templates/memory_limit/motivation.md"),
-				Summary:     readLocalFile(memoryLimitContent, "advice_templates/memory_limit/action_needed_summary.md"),
+				Instruction: advice.ReadAdviceFile(advice.MemoryLimitContent, "memory_limit/instructions.md"),
+				Motivation:  advice.ReadAdviceFile(advice.MemoryLimitContent, "memory_limit/motivation.md"),
+				Summary:     advice.ReadAdviceFile(advice.MemoryLimitContent, "memory_limit/action_needed_summary.md"),
 			},
 			ValidationNeeded: advice_kit_api.AdviceDefinitionDescriptionValidationNeeded{
-				Summary: readLocalFile(memoryLimitContent, "advice_templates/memory_limit/validation_needed.md"),
+				Summary: advice.ReadAdviceFile(advice.MemoryLimitContent, "memory_limit/validation_needed.md"),
 			},
 			Implemented: advice_kit_api.AdviceDefinitionDescriptionImplemented{
-				Summary: readLocalFile(memoryLimitContent, "advice_templates/memory_limit/implemented.md"),
+				Summary: advice.ReadAdviceFile(advice.MemoryLimitContent, "memory_limit/implemented.md"),
 			},
 		},
 	}
-}
-
-func readLocalFile(fs embed.FS, fileName string) string {
-	fileContent, err := fs.ReadFile(fileName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to read file: %s", fileName)
-	}
-	return string(fileContent)
 }
