@@ -21,21 +21,21 @@
                   "key": "k8s.cluster-name",
                   "operator": "EQUALS",
                   "values": [
-                    "{{k8s.cluster-name}}"
+                    "${target.k8s.cluster-name}"
                   ]
                 },
                 {
                   "key": "k8s.namespace",
                   "operator": "EQUALS",
                   "values": [
-                    "{{k8s.namespace}}"
+                    "${target.k8s.namespace}"
                   ]
                 },
                 {
                   "key": "k8s.deployment",
                   "operator": "EQUALS",
                   "values": [
-                    "{{k8s.deployment}}"
+                    "${target.k8s.deployment}"
                   ]
                 }
               ]

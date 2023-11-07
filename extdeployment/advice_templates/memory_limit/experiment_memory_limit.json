@@ -16,29 +16,29 @@
             "targetType": "com.steadybit.extension_container.container",
             "predicate": {
               "operator": "AND",
-              "predicates": [
-                {
-                  "key": "k8s.cluster-name",
-                  "operator": "EQUALS",
-                  "values": [
-                    "{{k8s.cluster-name}}"
-                  ]
-                },
-                {
-                  "key": "k8s.namespace",
-                  "operator": "EQUALS",
-                  "values": [
-                    "{{k8s.namespace}}"
-                  ]
-                },
-                {
-                  "key": "k8s.deployment",
-                  "operator": "EQUALS",
-                  "values": [
-                    "{{k8s.deployment}}"
-                  ]
-                }
-              ]
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.deployment}"
+									]
+								}
+							]
             },
             "query": null,
             "percentage": 50
