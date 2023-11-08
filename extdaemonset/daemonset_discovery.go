@@ -110,6 +110,10 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			var containerIds []string
 			var containerIdsWithoutPrefix []string
 			var hostnames []string
+			var containerNamesWithoutLimitCPU []string
+			var containerNamesWithoutLimitMemory []string
+			var containerWithoutLivenessProbe []string
+			var containerWithoutReadinessProbe []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
 				for _, container := range pod.Status.ContainerStatuses {
@@ -120,6 +124,20 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 					containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 				}
 				hostnames = append(hostnames, pod.Spec.NodeName)
+				for _, containerSpec := range pod.Spec.Containers {
+					if containerSpec.Resources.Limits.Cpu().MilliValue() == 0 {
+						containerNamesWithoutLimitCPU = append(containerNamesWithoutLimitCPU, containerSpec.Name)
+					}
+					if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
+						containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
+					}
+					if containerSpec.LivenessProbe == nil {
+						containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
+					}
+					if containerSpec.ReadinessProbe == nil {
+						containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
+					}
+				}
 			}
 			attributes["k8s.pod.name"] = podNames
 			if len(containerIds) > 0 {
@@ -130,6 +148,18 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			}
 			if len(hostnames) > 0 {
 				attributes["host.hostname"] = hostnames
+			}
+			if len(containerNamesWithoutLimitCPU) > 0 {
+				attributes["k8s.container.spec.name.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
+			}
+			if len(containerNamesWithoutLimitMemory) > 0 {
+				attributes["k8s.container.spec.name.limit.memory.not-set"] = containerNamesWithoutLimitMemory
+			}
+			if len(containerWithoutLivenessProbe) > 0 {
+				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
+			}
+			if len(containerWithoutReadinessProbe) > 0 {
+				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
 			}
 
 			scoreAttributes := extcommon.AddKubeScoreAttributesDaemonSet(ds)
