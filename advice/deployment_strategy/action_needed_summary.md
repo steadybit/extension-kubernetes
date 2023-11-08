@@ -1,1 +1,1 @@
-Deploying a new version of ${target.k8s.deployment} causes unavailability of your services due to downtime.
+Deploying a new version of ${target.steadybit.label} causes unavailability of your services due to downtime.

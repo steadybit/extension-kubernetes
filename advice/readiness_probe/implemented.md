@@ -1,1 +1,1 @@
-When ${target.k8s.deployment} will be redeployed, Kubernetes can check if your pod is ready to receive traffic with the configured readiness probe. Your service ${target.k8s.deployment} get assigned traffic when it is able to handle it.
+When ${target.steadybit.label} will be redeployed, Kubernetes can check if your pod is ready to receive traffic with the configured readiness probe. Your service ${target.steadybit.label} get assigned traffic when it is able to handle it.

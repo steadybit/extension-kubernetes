@@ -1,4 +1,4 @@
-When ${target.k8s.deployment} will be redeployed, Kubernetes will possibly not update the container image. This may result in running different versions of ${target.k8s.deployment}.
+When ${target.steadybit.label} will be redeployed, Kubernetes will possibly not update the container image. This may result in running different versions of ${target.steadybit.label}.
 
 #### Kube-Score
 Grade: ${target.k8s.kube-score.container-image-pull-policy.grade}

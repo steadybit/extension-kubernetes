@@ -78,6 +78,7 @@ func main() {
 	extdeployment.RegisterDeploymentAdviceHandlers()
 	extdaemonset.RegisterStatefulSetDiscoveryHandlers()
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
+	extstatefulset.RegisterStatefulsetAdviceHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
 	extnode.RegisterNodeDiscoveryHandlers()
@@ -211,6 +212,7 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 	var refs []advice_kit_api.DescribingEndpointReference
 	refs = make([]advice_kit_api.DescribingEndpointReference, 0)
 	for _, adviceId := range extconfig.Config.ActiveAdviceList {
+		// Deployments
 		if adviceId == "*" || adviceId == extdeployment.DeploymentStrategyID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
@@ -269,6 +271,62 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/deployment/advice/k8s-host-podantiaffinity",
+			})
+		}
+
+		// Statefulsets
+		if adviceId == "*" || adviceId == extstatefulset.CpuLimitID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-cpu-limit",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.MemoryLimitID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-memory-limit",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.HorizontalPodAutoscalerID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-horizontal-pod-autoscaler",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.ImageVersioningID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-image-latest-tag",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.ImagePullPolicyID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-image-pull-policy",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.LivenessProbeID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-liveness-probe",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.ReadinessProbeID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-readiness-probe",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.SingleReplicaID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-single-replica",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.HostPodantiaffinityID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/k8s-host-podantiaffinity",
 			})
 		}
 	}

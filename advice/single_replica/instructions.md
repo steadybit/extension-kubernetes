@@ -1,4 +1,4 @@
-Change ```ReplicaSet``` to two (or more) in your Kubernetes configuration in order to increase the scheduling of additional pods. The availability of your service ${target.k8s.deployment} will most likely improve.
+Change ```ReplicaSet``` to two (or more) in your Kubernetes configuration in order to increase the scheduling of additional pods. The availability of your service ${target.steadybit.label} will most likely improve.
 ```warning
 If you increase the replica we strongly advice you to check if this is supported by your application.
 ```
@@ -9,7 +9,7 @@ kind: ReplicaSet
 metadata:
   name: frontend
   labels:
-    name: ${target.k8s.deployment}
+    name: ${target.steadybit.label}
 spec:
 % startHighlight %
   # modify replicas according to your case
@@ -17,5 +17,5 @@ spec:
 % endHighlight %
   selector:
     matchLabels:
-      tier: ${target.k8s.deployment}
+      tier: ${target.steadybit.label}
 ```

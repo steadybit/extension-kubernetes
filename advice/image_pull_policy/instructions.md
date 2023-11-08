@@ -5,7 +5,7 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-    - name:  ${target.k8s.deployment}
+    - name:  ${target.steadybit.label}
       image: images.my-company.example/app:v4
 % startHighlight %
 			imagePullPolicy: Always

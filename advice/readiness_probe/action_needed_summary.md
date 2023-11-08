@@ -1,1 +1,1 @@
-When ${target.k8s.deployment} will be redeployed, Kubernetes can not check if your pod is ready to receive traffic. Your service ${target.k8s.deployment} may get assigned traffic before it is able to handle it.
+When ${target.steadybit.label} will be redeployed, Kubernetes can not check if your pod is ready to receive traffic. Your service ${target.steadybit.label} may get assigned traffic before it is able to handle it.

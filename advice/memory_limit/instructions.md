@@ -1,4 +1,4 @@
-When your service ${target.k8s.deployment} uses too much memory, it will be limited by the configured
+When your service ${target.steadybit.label} uses too much memory, it will be limited by the configured
 memory limit.
 
 Specify the upper limit to be used by defining the ```limits``` property in your
@@ -9,7 +9,7 @@ kind: Pod
 metadata:
 spec:
   containers:
-  - name: ${target.k8s.deployment}
+  - name: ${target.steadybit.label}
     image: images.my-company.example/app:v4
     resources:
       requests:

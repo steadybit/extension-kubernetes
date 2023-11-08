@@ -1,5 +1,5 @@
 {
-  "name": "${target.k8s.deployment}: Pod Lifecycle",
+  "name": "${target.steadybit.label}: Pod Lifecycle",
   "lanes": [
     {
       "steps": [
@@ -40,7 +40,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.deployment}"
+										"${target.steadybit.label}"
 									]
 								}
 							]

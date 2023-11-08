@@ -1,5 +1,5 @@
 {
-  "name": "${target.k8s.deployment} Pod Failure",
+  "name": "${target.steadybit.label} Pod Failure",
   "lanes": [
     {
       "steps": [
@@ -34,7 +34,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.deployment}"
+										"${target.steadybit.label}"
 									]
 								}
 							]

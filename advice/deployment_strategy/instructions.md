@@ -5,7 +5,7 @@ Make sure that the ```deploymentStrategyType``` is set to
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name:  ${target.k8s.deployment}
+  name:  ${target.steadybit.label}
 spec:
   replicas: 5
 % startHighlight %
