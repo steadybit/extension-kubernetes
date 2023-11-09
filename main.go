@@ -274,6 +274,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-host-podantiaffinity",
 			})
 		}
+		if adviceId == "*" || adviceId == extdeployment.SingleAwsZoneID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/single-aws-zone",
+			})
+		}
 
 		// Statefulsets
 		if adviceId == "*" || adviceId == extstatefulset.CpuLimitID {
@@ -330,6 +336,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/statefulset/advice/k8s-host-podantiaffinity",
 			})
 		}
+		if adviceId == "*" || adviceId == extstatefulset.SingleAwsZoneID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/single-aws-zone",
+			})
+		}
 
 		// Daemonset
 		if adviceId == "*" || adviceId == extdaemonset.CpuLimitID {
@@ -366,6 +378,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/daemonset/advice/k8s-readiness-probe",
+			})
+		}
+		if adviceId == "*" || adviceId == extdaemonset.SingleAwsZoneID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/daemonset/advice/single-aws-zone",
 			})
 		}
 	}

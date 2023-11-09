@@ -36,6 +36,9 @@ var SingleReplicaContent embed.FS
 //go:embed host_podantiaffinity/*
 var HostPodantiaffinityContent embed.FS
 
+//go:embed single_aws_zone/*
+var SingleAwsZoneContent embed.FS
+
 
 func ReadAdviceFile(fs embed.FS, fileName string) string {
 	fileContent, err := fs.ReadFile(fileName)
