@@ -18,7 +18,8 @@ const LivenessProbeID = StatefulSetTargetType + ".advice.k8s-liveness-probe"
 const ReadinessProbeID = StatefulSetTargetType + ".advice.k8s-readiness-probe"
 const SingleReplicaID = StatefulSetTargetType + ".advice.k8s-single-replica"
 const HostPodantiaffinityID = StatefulSetTargetType + ".advice.k8s-host-podantiaffinity"
-const SingleAwsZoneID = StatefulSetTargetType + ".advice.single-aws-zone"
+const SingleAWSZoneID = StatefulSetTargetType + ".advice.single-aws-zone"
+const SingleAzureZoneID = StatefulSetTargetType + ".advice.single-azure-zone"
 
 func RegisterStatefulsetAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/statefulset/advice/k8s-cpu-limit", exthttp.GetterAsHandler(getStatefulsetAdviceDescriptionCPULimit))
@@ -31,6 +32,7 @@ func RegisterStatefulsetAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/statefulset/advice/k8s-single-replica", exthttp.GetterAsHandler(getStatefulsetAdviceDescriptionSingleReplica))
 	exthttp.RegisterHttpHandler("/statefulset/advice/k8s-host-podantiaffinity", exthttp.GetterAsHandler(getStatefulsetAdviceDescriptionHostPodantiaffinity))
 	exthttp.RegisterHttpHandler("/statefulset/advice/single-aws-zone", exthttp.GetterAsHandler(getStatefulsetAdviceDescriptionSingleAwsZone))
+	exthttp.RegisterHttpHandler("/statefulset/advice/single-azure-zone", exthttp.GetterAsHandler(getStatefulsetAdviceDescriptionSingleAzureZone))
 }
 
 func getStatefulsetAdviceDescriptionImageVersioning() advice_kit_api.AdviceDefinition {
@@ -68,7 +70,11 @@ func getStatefulsetAdviceDescriptionHostPodantiaffinity() advice_kit_api.AdviceD
 	return advice.GetAdviceDescriptionHostPodantiaffinity(HostPodantiaffinityID, StatefulSetTargetType, "statefulset")
 }
 func getStatefulsetAdviceDescriptionSingleAwsZone() advice_kit_api.AdviceDefinition {
-	return advice.GetAdviceDescriptionHostPodantiaffinity(SingleAwsZoneID, StatefulSetTargetType, "statefulset")
+	return advice.GetAdviceDescriptionSingleAwsZone(SingleAWSZoneID, StatefulSetTargetType, "statefulset")
+}
+
+func getStatefulsetAdviceDescriptionSingleAzureZone() advice_kit_api.AdviceDefinition {
+	return advice.GetAdviceDescriptionSingleAzureZone(SingleAzureZoneID, StatefulSetTargetType, "statefulset")
 }
 
 

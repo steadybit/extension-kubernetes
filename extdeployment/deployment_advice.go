@@ -19,7 +19,8 @@ const LivenessProbeID = DeploymentTargetType + ".advice.k8s-liveness-probe"
 const ReadinessProbeID = DeploymentTargetType + ".advice.k8s-readiness-probe"
 const SingleReplicaID = DeploymentTargetType + ".advice.k8s-single-replica"
 const HostPodantiaffinityID = DeploymentTargetType + ".advice.k8s-host-podantiaffinity"
-const SingleAwsZoneID = DeploymentTargetType + ".advice.single-aws-zone"
+const SingleAWSZoneID = DeploymentTargetType + ".advice.single-aws-zone"
+const SingleAzureZoneID = DeploymentTargetType + ".advice.single-azure-zone"
 
 func RegisterDeploymentAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/advice/k8s-deployment-strategy", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionDeploymentStrategy))
@@ -33,6 +34,7 @@ func RegisterDeploymentAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/deployment/advice/k8s-single-replica", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionSingleReplica))
 	exthttp.RegisterHttpHandler("/deployment/advice/k8s-host-podantiaffinity", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionHostPodantiaffinity))
 	exthttp.RegisterHttpHandler("/deployment/advice/single-aws-zone", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionSingleAwsZone))
+	exthttp.RegisterHttpHandler("/deployment/advice/single-azure-zone", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionSingleAzureZone))
 }
 
 func getDeploymentAdviceDescriptionImageVersioning() advice_kit_api.AdviceDefinition {
@@ -75,5 +77,9 @@ func getDeploymentAdviceDescriptionMemoryLimit() advice_kit_api.AdviceDefinition
 }
 
 func getDeploymentAdviceDescriptionSingleAwsZone() advice_kit_api.AdviceDefinition {
-	return advice.GetAdviceDescriptionReadinessProbe(SingleAwsZoneID, DeploymentTargetType, "daemonset")
+	return advice.GetAdviceDescriptionSingleAwsZone(SingleAWSZoneID, DeploymentTargetType, "daemonset")
+}
+
+func getDeploymentAdviceDescriptionSingleAzureZone() advice_kit_api.AdviceDefinition {
+	return advice.GetAdviceDescriptionSingleAzureZone(SingleAzureZoneID, DeploymentTargetType, "daemonset")
 }

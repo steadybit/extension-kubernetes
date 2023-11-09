@@ -15,7 +15,8 @@ const ImageVersioningID = DaemonSetTargetType + ".advice.k8s-image-latest-tag"
 const ImagePullPolicyID = DaemonSetTargetType + ".advice.k8s-image-pull-policy"
 const LivenessProbeID = DaemonSetTargetType + ".advice.k8s-liveness-probe"
 const ReadinessProbeID = DaemonSetTargetType + ".advice.k8s-readiness-probe"
-const SingleAwsZoneID = DaemonSetTargetType + ".advice.single-aws-zone"
+const SingleAWSZoneID = DaemonSetTargetType + ".advice.single-aws-zone"
+const SingleAzureZoneID = DaemonSetTargetType + ".advice.single-azure-zone"
 func RegisterDaemonsetAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/daemonset/advice/k8s-cpu-limit", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionCPULimit))
 	exthttp.RegisterHttpHandler("/daemonset/advice/k8s-memory-limit", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionMemoryLimit))
@@ -24,6 +25,7 @@ func RegisterDaemonsetAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/daemonset/advice/k8s-liveness-probe", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionLivenessProbe))
 	exthttp.RegisterHttpHandler("/daemonset/advice/k8s-readiness-probe", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionReadinessProbe))
 	exthttp.RegisterHttpHandler("/daemonset/advice/single-aws-zone", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionSingleAwsZone))
+	exthttp.RegisterHttpHandler("/daemonset/advice/single-azure-zone", exthttp.GetterAsHandler(getDeploymentAdviceDescriptionSingleAzureZone))
 }
 
 func getDeploymentAdviceDescriptionImageVersioning() advice_kit_api.AdviceDefinition {
@@ -51,7 +53,11 @@ func getDeploymentAdviceDescriptionReadinessProbe() advice_kit_api.AdviceDefinit
 }
 
 func getDeploymentAdviceDescriptionSingleAwsZone() advice_kit_api.AdviceDefinition {
-	return advice.GetAdviceDescriptionReadinessProbe(SingleAwsZoneID, DaemonSetTargetType, "daemonset")
+	return advice.GetAdviceDescriptionSingleAwsZone(SingleAWSZoneID, DaemonSetTargetType, "daemonset")
+}
+
+func getDeploymentAdviceDescriptionSingleAzureZone() advice_kit_api.AdviceDefinition {
+	return advice.GetAdviceDescriptionSingleAzureZone(SingleAzureZoneID, DaemonSetTargetType, "daemonset")
 }
 
 

@@ -274,10 +274,16 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/deployment/advice/k8s-host-podantiaffinity",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.SingleAwsZoneID {
+		if adviceId == "*" || adviceId == extdeployment.SingleAWSZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/deployment/advice/single-aws-zone",
+			})
+		}
+		if adviceId == "*" || adviceId == extdeployment.SingleAzureZoneID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/deployment/advice/single-azure-zone",
 			})
 		}
 
@@ -336,10 +342,16 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/statefulset/advice/k8s-host-podantiaffinity",
 			})
 		}
-		if adviceId == "*" || adviceId == extstatefulset.SingleAwsZoneID {
+		if adviceId == "*" || adviceId == extstatefulset.SingleAWSZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/statefulset/advice/single-aws-zone",
+			})
+		}
+		if adviceId == "*" || adviceId == extstatefulset.SingleAzureZoneID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/statefulset/advice/single-azure-zone",
 			})
 		}
 
@@ -380,10 +392,16 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/daemonset/advice/k8s-readiness-probe",
 			})
 		}
-		if adviceId == "*" || adviceId == extdaemonset.SingleAwsZoneID {
+		if adviceId == "*" || adviceId == extdaemonset.SingleAWSZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/daemonset/advice/single-aws-zone",
+			})
+		}
+		if adviceId == "*" || adviceId == extdaemonset.SingleAzureZoneID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/daemonset/advice/single-azure-zone",
 			})
 		}
 	}
