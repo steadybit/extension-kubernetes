@@ -3,6 +3,7 @@ package advice
 import (
 	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extutil"
 )
 
 func GetAdviceDescriptionImageVersioning(id string, targetType string, targetTypeName string) advice_kit_api.AdviceDefinition {
@@ -125,6 +126,7 @@ func GetAdviceDescriptionCPULimit(id string, targetType string, targetTypeName s
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         targetTypeName + ".k8s-cpu-limit.experiment-1",
 			Name:       "CPU Overload",
+			Description: extutil.Ptr("CPU limits are important to avoid unwanted side effects that can be triggered by increased CPU consumption of a single component. With the help of an experiment, a CPU overload can be simulated to check whether Kubernetes applies the configured limit correctly."),
 			Experiment: ReadAdviceFile(CpuLimitContent, "cpu_limit/experiment_cpu_limit.json"),
 		},
 		},
@@ -155,6 +157,7 @@ func GetAdviceDescriptionSingleReplica(id string, targetType string, targetTypeN
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         targetType + ".k8s-single-replica.experiment-1",
 			Name:       "Pod Failure",
+			Description: extutil.Ptr("Pod failures and errors can occur repeatedly during operation. With an experiment these errors are simulated and you can check, whether the functionality of your application is still ensured."),
 			Experiment: ReadAdviceFile(SingleReplicaContent, "single_replica/experiment_pod_failure.json"),
 		},
 		},
@@ -212,6 +215,7 @@ func GetAdviceDescriptionLivenessProbe(id string, targetType string, targetTypeN
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         targetType + ".k8s-liveness-probe.experiment-1",
 			Name:       "Pod Lifecycle",
+			Description: extutil.Ptr("Liveness probes can help improve the availability of pods in a Kubernetes cluster when they are properly confugured and tested. By simulating slow-responding health endpoints as part of an experiment, it is possible to verify that Kubernetes correctly executes the Liveness Probe and restarts the failing pod."),
 			Experiment: ReadAdviceFile(LivenessProbeContent, "liveness_probe/experiment_pod_lifecycle.json"),
 		},
 		},
@@ -270,6 +274,7 @@ func GetAdviceDescriptionMemoryLimit(id string, targetType string, targetTypeNam
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         targetType + ".k8s-memory-limit.experiment-1",
 			Name:       "Memory Overload",
+			Description: extutil.Ptr("Memory limits are important to avoid unwanted side effects that can be triggered by increased memory consumption of a single component. With the help of an experiment, a memory overload can be simulated to check whether Kubernetes applies the configured limit correctly."),
 			Experiment: ReadAdviceFile(MemoryLimitContent, "memory_limit/experiment_memory_limit.json"),
 		},
 		},
@@ -301,6 +306,7 @@ func GetAdviceDescriptionSingleAwsZone(id string, targetType string, targetTypeN
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         targetType + ".single-aws-zone.experiment-1",
 			Name:       "Zone Outage",
+			Description: extutil.Ptr("It is recommended to always split its components into different zones so that in case of a failure of one zone, the system still works well. An experiment can be used to validate whether the system can handle the failure of an entire zone."),
 			Experiment: ReadAdviceFile(SingleAwsZoneContent, "single_aws_zone/experiment_zone_outage.json"),
 		},
 		},
@@ -332,6 +338,7 @@ func GetAdviceDescriptionSingleAzureZone(id string, targetType string, targetTyp
 		Experiments: &[]advice_kit_api.ExperimentTemplate{{
 			Id:         targetType + ".single-azure-zone.experiment-1",
 			Name:       "Zone Outage",
+			Description: extutil.Ptr("It is recommended to always split its components into different zones so that in case of a failure of one zone, the system still works well. An experiment can be used to validate whether the system can handle the failure of an entire zone."),
 			Experiment: ReadAdviceFile(SingleAzureZoneContent, "single_azure_zone/experiment_zone_outage.json"),
 		},
 		},
