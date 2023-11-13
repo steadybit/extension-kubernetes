@@ -1,20 +1,20 @@
 {
-  "name": "${target.steadybit.label} Pod Failure",
-  "lanes": [
-    {
-      "steps": [
-        {
-          "type": "action",
-          "ignoreFailure": false,
-          "parameters": {
+	"name": "${target.steadybit.label} Pod Failure",
+	"lanes": [
+		{
+			"steps": [
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
 						"duration": "60s",
-						"graceful": true,
-          },
-          "actionType": "com.steadybit.extension_container.stop",
-          "radius": {
-            "targetType": "com.steadybit.extension_container.container",
-            "predicate": {
-              "operator": "AND",
+						"graceful": true
+					},
+					"actionType": "com.steadybit.extension_container.stop",
+					"radius": {
+						"targetType": "com.steadybit.extension_container.container",
+						"predicate": {
+							"operator": "AND",
 							"predicates": [
 								{
 									"key": "k8s.cluster-name",
@@ -38,12 +38,12 @@
 									]
 								}
 							]
-            },
-            "query": null,
-            "percentage": 50
-          }
-        }
-      ]
-    }
-  ]
+						},
+						"query": null,
+						"percentage": 50
+					}
+				}
+			]
+		}
+	]
 }
