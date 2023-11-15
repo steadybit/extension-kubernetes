@@ -114,6 +114,8 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			var containerNamesWithoutLimitMemory []string
 			var containerWithoutLivenessProbe []string
 			var containerWithoutReadinessProbe []string
+			var containerWithLatestTag []string
+			var containerWithoutImagePullPolicyAlways []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
 				for _, container := range pod.Status.ContainerStatuses {
@@ -136,6 +138,12 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 					}
 					if containerSpec.ReadinessProbe == nil {
 						containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
+					}
+					if strings.HasSuffix(containerSpec.Image, "latest") {
+						containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
+					}
+					if containerSpec.ImagePullPolicy != "Always" {
+						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
 					}
 				}
 			}
@@ -160,6 +168,12 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			}
 			if len(containerWithoutReadinessProbe) > 0 {
 				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
+			}
+			if len(containerWithLatestTag) > 0 {
+				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
+			}
+			if len(containerWithoutImagePullPolicyAlways) > 0 {
+				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
 			}
 
 			scoreAttributes := extcommon.AddKubeScoreAttributesDaemonSet(ds)

@@ -123,6 +123,8 @@ func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Tar
 			var containerNamesWithoutLimitMemory []string
 			var containerWithoutLivenessProbe []string
 			var containerWithoutReadinessProbe []string
+			var containerWithLatestTag []string
+			var containerWithoutImagePullPolicyAlways []string
 			for podIndex, pod := range pods {
 				podNames[podIndex] = pod.Name
 				for _, container := range pod.Status.ContainerStatuses {
@@ -146,6 +148,12 @@ func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Tar
 					if containerSpec.ReadinessProbe == nil {
 						containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
 					}
+					if strings.HasSuffix(containerSpec.Image, "latest") {
+						containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
+					}
+					if containerSpec.ImagePullPolicy != "Always" {
+						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
+					}
 				}
 			}
 			attributes["k8s.pod.name"] = podNames
@@ -163,6 +171,12 @@ func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Tar
 			}
 			if len(containerNamesWithoutLimitMemory) > 0 {
 				attributes["k8s.container.spec.name.limit.memory.not-set"] = containerNamesWithoutLimitMemory
+			}
+			if len(containerWithLatestTag) > 0 {
+				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
+			}
+			if len(containerWithoutImagePullPolicyAlways) > 0 {
+				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
 			}
 			if len(containerWithoutLivenessProbe) > 0 {
 				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe

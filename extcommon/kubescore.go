@@ -11,6 +11,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"strconv"
 	"strings"
 )
 
@@ -23,6 +24,7 @@ var (
 			Strict: true,
 		},
 	)
+	checks = map[string]string{"deployment-has-host-podantiaffinity": "k8s.specification.host-podantiaffinity"}
 )
 
 func getKubeScore(manifest string) (*scorecard.Scorecard, error) {
@@ -34,8 +36,8 @@ func getKubeScore(manifest string) (*scorecard.Scorecard, error) {
 	cnf := config.Configuration{
 		AllFiles:                              []ks.NamedReader{reader},
 		VerboseOutput:                         0,
-		IgnoreContainerCpuLimitRequirement:    false,
-		IgnoreContainerMemoryLimitRequirement: false,
+		IgnoreContainerCpuLimitRequirement:    true,
+		IgnoreContainerMemoryLimitRequirement: true,
 		IgnoredTests:                          nil,
 		EnabledOptionalTests:                  nil,
 		UseIgnoreChecksAnnotation:             false,
@@ -69,7 +71,7 @@ func AddKubeScoreAttributesDeployment(deployment *appsv1.Deployment) map[string]
 	if deployment.Kind != "" {
 		kind = deployment.Kind
 	}
-	return AddKubeScoreAttributes(deployment, deployment.Namespace, deployment.Name, apiVersion, kind)
+	return AddKubeScoreAttributes(deployment, deployment.Namespace, deployment.Name, apiVersion, kind, checks)
 }
 
 func AddKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]string {
@@ -81,7 +83,7 @@ func AddKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]s
 	if daemonSet.Kind != "" {
 		kind = daemonSet.Kind
 	}
-	return AddKubeScoreAttributes(daemonSet, daemonSet.Namespace, daemonSet.Name, apiVersion, kind)
+	return AddKubeScoreAttributes(daemonSet, daemonSet.Namespace, daemonSet.Name, apiVersion, kind, checks)
 }
 func AddKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[string][]string {
 	apiVersion := "apps/v1"
@@ -92,9 +94,9 @@ func AddKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[stri
 	if statefulSet.Kind != "" {
 		kind = statefulSet.Kind
 	}
-	return AddKubeScoreAttributes(statefulSet, statefulSet.Namespace, statefulSet.Name, apiVersion, kind)
+	return AddKubeScoreAttributes(statefulSet, statefulSet.Namespace, statefulSet.Name, apiVersion, kind, checks)
 }
-func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, apiVersion string, kind string) map[string][]string {
+func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, apiVersion string, kind string, checks map[string]string) map[string][]string {
 	attributes := make(map[string][]string)
 	manifestBuf := new(bytes.Buffer)
 	err := serializer.Encode(obj, manifestBuf)
@@ -109,8 +111,9 @@ func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, a
 		} else {
 			for _, scoredObject := range *scoreCard {
 				for _, check := range scoredObject.Checks {
-					attributes["k8s.kube-score."+check.Check.ID+".grade"] = []string{gradeToString(check)}
-					attributes["k8s.kube-score."+check.Check.ID+".comment"] = []string{check.Check.Comment}
+					if checks[check.Check.ID] != "" {
+						attributes[checks[check.Check.ID]] = []string{strconv.FormatBool(gradeViolatesCheck(check))}
+					}
 				}
 			}
 		}
@@ -118,19 +121,14 @@ func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, a
 	return attributes
 }
 
-func gradeToString(check scorecard.TestScore) string {
+func gradeViolatesCheck(check scorecard.TestScore) bool {
 	switch check.Grade {
-	case scorecard.GradeCritical:
-		return "CRITICAL"
-	case scorecard.GradeWarning:
-		return "WARNING"
+	case scorecard.GradeCritical, scorecard.GradeWarning:
+		return true
 	case scorecard.GradeAlmostOK, scorecard.GradeAllOK:
-		return "OK"
+		return false
 	default:
-		if check.Skipped {
-			return "SKIPPED"
-		}
-		return "UNKNOWN"
+		return false
 	}
 }
 

@@ -124,6 +124,8 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			var containerIdsWithoutPrefix []string
 			var containerNamesWithoutLimitCPU []string
 			var containerNamesWithoutLimitMemory []string
+			var containerWithLatestTag []string
+			var containerWithoutImagePullPolicyAlways []string
 			var containerWithoutLivenessProbe []string
 			var containerWithoutReadinessProbe []string
 			var hostnames []string
@@ -143,6 +145,12 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 					}
 					if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
 						containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
+					}
+					if strings.HasSuffix(containerSpec.Image, "latest") {
+						containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
+					}
+					if containerSpec.ImagePullPolicy != "Always" {
+						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
 					}
 					if containerSpec.LivenessProbe == nil {
 						containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
@@ -167,6 +175,12 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			}
 			if len(containerNamesWithoutLimitMemory) > 0 {
 				attributes["k8s.container.spec.name.limit.memory.not-set"] = containerNamesWithoutLimitMemory
+			}
+			if len(containerWithLatestTag) > 0 {
+				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
+			}
+			if len(containerWithoutImagePullPolicyAlways) > 0 {
+				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
 			}
 			if len(containerWithoutLivenessProbe) > 0 {
 				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
