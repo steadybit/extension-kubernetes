@@ -24,7 +24,7 @@ var (
 			Strict: true,
 		},
 	)
-	checks = map[string]string{"deployment-has-host-podantiaffinity": "k8s.specification.host-podantiaffinity"}
+	checks = map[string]string{"deployment-has-host-podantiaffinity": "k8s.specification.has-host-podantiaffinity"}
 )
 
 func getKubeScore(manifest string) (*scorecard.Scorecard, error) {
@@ -112,7 +112,7 @@ func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, a
 			for _, scoredObject := range *scoreCard {
 				for _, check := range scoredObject.Checks {
 					if checks[check.Check.ID] != "" {
-						attributes[checks[check.Check.ID]] = []string{strconv.FormatBool(gradeViolatesCheck(check))}
+						attributes[checks[check.Check.ID]] = []string{strconv.FormatBool(gradePassedCheck(check))}
 					}
 				}
 			}
@@ -121,12 +121,12 @@ func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, a
 	return attributes
 }
 
-func gradeViolatesCheck(check scorecard.TestScore) bool {
+func gradePassedCheck(check scorecard.TestScore) bool {
 	switch check.Grade {
 	case scorecard.GradeCritical, scorecard.GradeWarning:
-		return true
-	case scorecard.GradeAlmostOK, scorecard.GradeAllOK:
 		return false
+	case scorecard.GradeAlmostOK, scorecard.GradeAllOK:
+		return true
 	default:
 		return false
 	}
