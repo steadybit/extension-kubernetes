@@ -15,6 +15,7 @@ import (
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kit/extruntime"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extadvice"
 	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/steadybit/extension-kubernetes/extcontainer"
@@ -75,15 +76,14 @@ func main() {
 
 	extdeployment.RegisterAttributeDescriptionHandlers()
 	extdeployment.RegisterDeploymentDiscoveryHandlers()
-	extdeployment.RegisterDeploymentAdviceHandlers()
 	extdaemonset.RegisterStatefulSetDiscoveryHandlers()
-	extdaemonset.RegisterDaemonsetAdviceHandlers()
 	extstatefulset.RegisterStatefulSetDiscoveryHandlers()
-	extstatefulset.RegisterStatefulsetAdviceHandlers()
 	extpod.RegisterPodDiscoveryHandlers()
 	extcontainer.RegisterContainerDiscoveryHandlers()
 	extnode.RegisterNodeDiscoveryHandlers()
 	extcluster.RegisterClusterDiscoveryHandlers()
+
+	extadvice.RegisterAdviceHandlers()
 
 	action_kit_sdk.InstallSignalHandler()
 
@@ -214,194 +214,76 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 	refs = make([]advice_kit_api.DescribingEndpointReference, 0)
 	for _, adviceId := range extconfig.Config.ActiveAdviceList {
 		// Deployments
-		if adviceId == "*" || adviceId == extdeployment.DeploymentStrategyID {
+		if adviceId == "*" || adviceId == extadvice.DeploymentStrategyID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-deployment-strategy",
+				Path:   "/advice/k8s-deployment-strategy",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.CpuLimitID {
+		if adviceId == "*" || adviceId == extadvice.CpuLimitID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-cpu-limit",
+				Path:   "/advice/k8s-cpu-limit",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.MemoryLimitID {
+		if adviceId == "*" || adviceId == extadvice.MemoryLimitID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-memory-limit",
+				Path:   "/advice/k8s-memory-limit",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.HorizontalPodAutoscalerID {
+		if adviceId == "*" || adviceId == extadvice.HorizontalPodAutoscalerID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-horizontal-pod-autoscaler",
+				Path:   "/advice/k8s-horizontal-pod-autoscaler",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.ImageVersioningID {
+		if adviceId == "*" || adviceId == extadvice.ImageVersioningID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-image-latest-tag",
+				Path:   "/advice/k8s-image-latest-tag",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.ImagePullPolicyID {
+		if adviceId == "*" || adviceId == extadvice.ImagePullPolicyID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-image-pull-policy",
+				Path:   "/advice/k8s-image-pull-policy",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.LivenessProbeID {
+		if adviceId == "*" || adviceId == extadvice.LivenessProbeID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-liveness-probe",
+				Path:   "/advice/k8s-liveness-probe",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.ReadinessProbeID {
+		if adviceId == "*" || adviceId == extadvice.ReadinessProbeID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-readiness-probe",
+				Path:   "/advice/k8s-readiness-probe",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.SingleReplicaID {
+		if adviceId == "*" || adviceId == extadvice.SingleReplicaID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-single-replica",
+				Path:   "/advice/k8s-single-replica",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.HostPodantiaffinityID {
+		if adviceId == "*" || adviceId == extadvice.HostPodantiaffinityID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/k8s-host-podantiaffinity",
+				Path:   "/advice/k8s-host-podantiaffinity",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.SingleAWSZoneID {
+		if adviceId == "*" || adviceId == extadvice.SingleAWSZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/single-aws-zone",
+				Path:   "/advice/single-aws-zone",
 			})
 		}
-		if adviceId == "*" || adviceId == extdeployment.SingleAzureZoneID {
+		if adviceId == "*" || adviceId == extadvice.SingleAzureZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/deployment/advice/single-azure-zone",
-			})
-		}
-
-		// Statefulsets
-		if adviceId == "*" || adviceId == extstatefulset.CpuLimitID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-cpu-limit",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.MemoryLimitID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-memory-limit",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.HorizontalPodAutoscalerID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-horizontal-pod-autoscaler",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.ImageVersioningID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-image-latest-tag",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.ImagePullPolicyID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-image-pull-policy",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.LivenessProbeID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-liveness-probe",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.ReadinessProbeID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-readiness-probe",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.SingleReplicaID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-single-replica",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.HostPodantiaffinityID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/k8s-host-podantiaffinity",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.SingleAWSZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/single-aws-zone",
-			})
-		}
-		if adviceId == "*" || adviceId == extstatefulset.SingleAzureZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/statefulset/advice/single-azure-zone",
-			})
-		}
-
-		// Daemonset
-		if adviceId == "*" || adviceId == extdaemonset.CpuLimitID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/k8s-cpu-limit",
-			})
-		}
-		if adviceId == "*" || adviceId == extdaemonset.MemoryLimitID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/k8s-memory-limit",
-			})
-		}
-		if adviceId == "*" || adviceId == extdaemonset.ImageVersioningID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/k8s-image-latest-tag",
-			})
-		}
-		if adviceId == "*" || adviceId == extdaemonset.ImagePullPolicyID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/k8s-image-pull-policy",
-			})
-		}
-		if adviceId == "*" || adviceId == extdaemonset.LivenessProbeID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/k8s-liveness-probe",
-			})
-		}
-		if adviceId == "*" || adviceId == extdaemonset.ReadinessProbeID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/k8s-readiness-probe",
-			})
-		}
-		if adviceId == "*" || adviceId == extdaemonset.SingleAWSZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/single-aws-zone",
-			})
-		}
-		if adviceId == "*" || adviceId == extdaemonset.SingleAzureZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/daemonset/advice/single-azure-zone",
+				Path:   "/advice/single-azure-zone",
 			})
 		}
 	}

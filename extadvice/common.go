@@ -1,4 +1,4 @@
-package advice
+package extadvice
 
 import (
 	"embed"
