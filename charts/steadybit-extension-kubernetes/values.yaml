@@ -40,6 +40,24 @@ logging:
   # logging.format -- The format of the log entries. One of text, json
   format: text
 
+probes:
+  # probes.readiness.* -- Configuration of the Kubernetes readiness probe
+  readiness:
+    # probes.readiness.initialDelaySeconds -- Specifies the initialDelaySeconds for the readiness probe.
+    #  You might want to increase this value depending on your cluster size. Customers with 2500 Container / 500 Deployments are reporting startup times around 5s.
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 1
+    failureThreshold: 3
+    successThreshold: 1
+  # probes.liveness.* -- Configuration of the Kubernetes liveness probe
+  liveness:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 5
+    successThreshold: 1
+
 resources:
   requests:
     # resources.requests.memory -- The minimal amount of memory needed
@@ -52,12 +70,6 @@ resources:
     memory: "512Mi"
     # resources.limits.cpu -- The limit of cpu share to be used during its interval
     cpu: "500m"
-
-probes:
-  readiness:
-    # probes.readiness.initialDelaySeconds -- Specifies the initialDelaySeconds for the readiness probe.
-    #  You might want to increase this value depending on your cluster size. Customers with 2500 Container / 500 Deployments are reporting startup times around 5s.
-    initialDelaySeconds: 10
 
 serviceAccount:
   # serviceAccount.create -- Specifies whether a ServiceAccount should be created.
