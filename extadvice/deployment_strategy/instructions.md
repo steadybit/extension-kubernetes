@@ -16,3 +16,6 @@ spec:
 % endHighlight %
 
 ```
+
+### Read More
+[Kubernetes Documentation - Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)

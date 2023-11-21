@@ -3,6 +3,3 @@ Even so, it&apos;s ```DeploymentSpec``` also contains a fixed ```ReplicaSet```.
 
 
 When applying ${target.steadybit.label}&apos;s specification, the number of pods will be reverted to the configured ```replicas``` of pods independent of the desired pod count of the horizontal pod autoscaler.
-
-### Read More
-[Kubernetes Documentation - Horizontal Pod Autoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)

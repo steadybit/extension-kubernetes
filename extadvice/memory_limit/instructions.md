@@ -18,3 +18,6 @@ spec:
         cpu: "500m"
 % endHighlight %
 ```
+
+### Read More
+[Kubernetes Documentation - Managing Container Resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)

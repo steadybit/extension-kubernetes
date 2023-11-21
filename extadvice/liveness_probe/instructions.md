@@ -23,3 +23,6 @@ spec:
 				periodSeconds: 3
   % endHighlight %
 ```
+
+### Read More
+[Kubernetes Documentation - Configure Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)

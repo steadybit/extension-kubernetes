@@ -12,3 +12,6 @@ spec:
 % endHighlight %
 
 ```
+
+### Read more
+[Kubernetes Documentation - Images](https://kubernetes.io/docs/concepts/containers/images/)

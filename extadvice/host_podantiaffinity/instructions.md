@@ -28,3 +28,9 @@ spec:
       - name: ${target.steadybit.label}
 			image: images.my-company.example/app:v4
 ```
+
+### Read More
+[Kubernetes Documentation - Assigning Pods to Nodes](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/)
+
+---
+This advice is powered by [kube-score](https://kube-score.com/).
