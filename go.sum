@@ -199,6 +199,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8m
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f h1:y5//uYreIhSUg3J1GEMiLbxo1LJaP8RfCpH6pymGZus=
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f/go.mod h1:ZdcZmHo+o7JKHSa8/e818NopupXU1YMK5fe1lsApnBw=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
+github.com/oapi-codegen/runtime v1.1.0 h1:rJpoNUawn5XTvekgfkvSZr0RqEnoYpFkyvrzfWeFKWM=
+github.com/oapi-codegen/runtime v1.1.0/go.mod h1:BeSfBkWWWnAnGdyS+S/GnlbmHKzf8/hwkvelJZDeKA8=
 github.com/onsi/ginkgo/v2 v2.13.0 h1:0jY9lJquiL8fcf3M4LAXN5aMlS/b2BV86HFFPCPMgE4=
 github.com/onsi/ginkgo/v2 v2.13.0/go.mod h1:TE309ZR8s5FsKKpuB1YAQYBzCaAfUgatB/xlT/ETL/o=
 github.com/onsi/gomega v1.29.0 h1:KIA/t2t5UBzoirT4H9tsML45GEbo3ouUnBHsCfD2tVg=
@@ -239,8 +241,8 @@ github.com/steadybit/action-kit/go/action_kit_sdk v1.1.8 h1:kcpEVZw0iv5bIE7GNmjC
 github.com/steadybit/action-kit/go/action_kit_sdk v1.1.8/go.mod h1:h2E1gRdpIhWvfQy5XsRIfQi3AujlpdcXxt3tNU9829U=
 github.com/steadybit/action-kit/go/action_kit_test v1.2.1 h1:eBELpUdYHrUz4WL6REq7TcF0zsVH0gpTmMv8Mu4JPjA=
 github.com/steadybit/action-kit/go/action_kit_test v1.2.1/go.mod h1:hk7LFcPmCP+9KzPRdgLHov3f75/dZA+OLgxNGJKWc2s=
-github.com/steadybit/advice-kit/go/advice_kit_api v0.0.1-alpha.3 h1:V9tkEWHgQ6AjRWjZFKjfrDgqBP47ZcyLA4vxBb4MqL8=
-github.com/steadybit/advice-kit/go/advice_kit_api v0.0.1-alpha.3/go.mod h1:Fq7krdH6g1pXqxbLAZ6mtCyUJcMx6V+QNoJ1oYIaRX8=
+github.com/steadybit/advice-kit/go/advice_kit_api v0.0.1-beta.6 h1:6zdIUqV//9MawFzAM/RBkgLrQK6D7HTWZd7dwrTJEY8=
+github.com/steadybit/advice-kit/go/advice_kit_api v0.0.1-beta.6/go.mod h1:Lt4uHjiCFauBvJJxOH+PK+m0jFF+C9aXciM8yKEyib0=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.5.0 h1:kRDryl2fvjXiaVNvWtoN3JGQ+lVS59iR87OVSCTwtpc=
 github.com/steadybit/discovery-kit/go/discovery_kit_api v1.5.0/go.mod h1:vAMfjAw7zpu55b8fdl0QRa4NszbuK4Pg8/nj1iHIO68=
 github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.1.0 h1:g4PjxmmUdHKJQ4FJ9evrIHKm5qgN2r3Rd8AJjiZZ2kI=
