@@ -1,1 +1,1 @@
-When availability zone ${target.aws.zone[0]} is failing, your service ${target.steadybit.label} will be unavailable.
+When availability zone ${target.aws.zone[0]} is unavailable, all of ${target.steadybit.label}'s Kubernetes pods are unavailable as well.

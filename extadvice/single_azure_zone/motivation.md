@@ -1,1 +1,2 @@
-In order to survive an outage of the Azure availability zone ${target.azure.zone[0]} you should spread instances across multiple availability zones.
+An availability zone can be unavailable as they are not redundantly designed.
+In order to survive an outage of the availability zone ${target.azure.zone[0]} you should spread your Kubernetes pods across multiple availability zones.

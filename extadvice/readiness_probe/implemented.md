@@ -1,1 +1,1 @@
-When ${target.steadybit.label} will be redeployed, Kubernetes can check if your pod is ready to receive traffic with the configured readiness probe. Your service ${target.steadybit.label} get assigned traffic when it is able to handle it.
+When Kubernetes redeploys ${target.steadybit.label}, it can determine when a container is ready to accept incoming requests and thus avoids routing requests to the container too early.

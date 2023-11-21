@@ -1,4 +1,4 @@
-Makes sure that the ```podAntiAffinity``` is properly configured, e.g.:
+Configure the ```podAntiAffinity``` properly to achieve spreading across multiple nodes, e.g.:
 
 ```yaml
 apiVersion: apps/v1

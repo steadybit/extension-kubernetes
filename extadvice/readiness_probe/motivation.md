@@ -1,3 +1,6 @@
-Readiness probes are designed to ensure that an application has reached a &quot;ready&quot; state. In many cases there is a period of time between when a webserver process starts and when it is ready to receive traffic. A readiness probe can ensure the traffic is not sent to your pod ${target.steadybit.label} until it is actually ready to receive traffic.
+Readiness probes are designed to indicate that an application has reached a &quot;ready&quot; state and can handle incoming requests.
+Right now, pods of ${target.steadybit.label} immediately receive traffic, even when still starting up.
 
+
+### Read More
 [Kubernetes Documentation - Configure Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)

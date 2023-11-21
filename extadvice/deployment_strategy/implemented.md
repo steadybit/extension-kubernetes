@@ -1,1 +1,1 @@
-Kubernetes is using the deployment strategy ```RollingUpdate``` to minimize downtime.
+${target.steadybit.label} uses the deployment strategy ```RollingUpdate``` to minimize downtime.

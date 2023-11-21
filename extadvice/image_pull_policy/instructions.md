@@ -1,4 +1,4 @@
-Specify the <Code inline>imagePullPolicy</Code> with the value ```Always``` in your kubernetes manifest.
+Specify the <Code inline>imagePullPolicy</Code> with the value ```Always``` in your Kubernetes manifest.
 
 ```yaml
 apiVersion: v1

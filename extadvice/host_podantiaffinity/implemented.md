@@ -1,1 +1,2 @@
-For ${target.steadybit.label} exists a Pod Anti Affinity to control scheduling of pods on the nodes.
+Based on the configured Pod Anti Affinity, Kubernetes will deploy ${target.steadybit.label}&apos;s pod on different nodes, which increases availability.
+

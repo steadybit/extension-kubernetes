@@ -1,8 +1,5 @@
-When your service ${target.steadybit.label} uses too much memory, it will be limited by the configured
-memory limit.
+Specify ${target.steadybit.label}&apos;memory CPU limit by defining the ```limits``` property in your kubernetes manifest.
 
-Specify the upper limit to be used by defining the ```limits``` property in your
-kubernetes manifest:
 ```yaml
 apiVersion: v1
 kind: Pod

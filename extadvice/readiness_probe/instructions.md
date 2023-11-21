@@ -1,4 +1,6 @@
-Specify the ```readinessProbe``` in your kubernetes manifest appropriately for your type of application. A simple example could be a HTTP endpoint which returns a HTTP status between 200 and 400 to indicate that everything is fine.
+Specify the ```readinessProbe``` in your Kubernetes manifest appropriately for your type of application.
+It can be as simple as an HTTP endpoint returning an HTTP status between 200 and 400 to indicate that the container has started successfully.
+
 
 ```yaml
 apiVersion: v1

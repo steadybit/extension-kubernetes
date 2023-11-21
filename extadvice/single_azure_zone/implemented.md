@@ -1,1 +1,2 @@
-When availability zone ${target.azure.zone[0]} is failing, your service ${target.steadybit.label} will be still available, because there are in sum ${target.azure.zone:length}
+When availability zone ${target.azure.zone[0]} fails, your service ${target.steadybit.label} will still be available because you use ${target.azure.zone:length} zones to handle requests.
+

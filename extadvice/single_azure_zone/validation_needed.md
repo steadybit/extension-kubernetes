@@ -1,1 +1,2 @@
-You already took action and configured it. Validate your configuration via the experiment.
+You already took action by spreading the pods across multiple zones.
+Now, validate your configuration by simulating an outage of one zone.

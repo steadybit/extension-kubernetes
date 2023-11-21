@@ -1,3 +1,7 @@
-Applications running for a long periods of time eventually end up in a broken state (e.g. a deadlock). From this state the application can not recover and a simple restart helps to alleviate symptoms. For detecting this, kubernetes can probe liveness to detect whether your container ${target.steadybit.label} is still working.
+Applications running for long periods may eventually end up in a broken state (e.g., a deadlock).
+In this case, the application can't recover independently, whereas a simple restart already helps alleviate symptoms.
+For detecting this, Kubernetes can probe liveness to check whether your container ${target.steadybit.label} is still working.
 
+
+### Read More
 [Kubernetes Documentation - Configure Probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)

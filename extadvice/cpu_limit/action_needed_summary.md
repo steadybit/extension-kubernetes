@@ -1,1 +1,1 @@
-When your service ${target.steadybit.label} uses too much cpu, other services on the same node could become unstable.
+When your Kubernetes pods of ${target.steadybit.label} use too much CPU, other pods on the same node may suffer and become unstable.

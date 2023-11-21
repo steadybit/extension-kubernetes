@@ -1,1 +1,1 @@
-When ${target.steadybit.label} will be redeployed, Kubernetes will possibly always update the container image. This results in running same versions of ${target.steadybit.label}.
+When Kubernetes redeploys ${target.steadybit.label}, it always fetches the container image and thus ensures running the identical versions of ${target.steadybit.label}'s container.

@@ -1,1 +1,3 @@
-When your service ${target.steadybit.label} uses too much cpu, other services on the same node could become unstable.
+Kubernetes cannot detect unresponsive pods of ${target.steadybit.label} and thus will never restart them automatically.
+Eventually, this may cause ${target.steadybit.label} to become unavailable.
+

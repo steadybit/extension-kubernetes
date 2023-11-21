@@ -1,5 +1,4 @@
-Make sure that the ```deploymentStrategyType``` is set to
-``RollingUpdate``.
+Make sure that the ```deploymentStrategyType``` is set to ``RollingUpdate``.
 
 ```yaml
 apiVersion: apps/v1
@@ -12,8 +11,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-    maxSurge: 3
-    maxUnavailable: 0
+      maxSurge: 3
+      maxUnavailable: 0
 % endHighlight %
 
 ```

@@ -1,6 +1,4 @@
-When your service ${target.steadybit.label} uses too much cpu, it will be limited by the configured CPU limit.
-
-Specify the upper limit to be used by defining the ```limits``` property in your kubernetes manifest:
+Specify ${target.steadybit.label}&apos;s CPU limit by defining the ```limits``` property in your kubernetes manifest.
 
 ```yaml
 apiVersion: v1

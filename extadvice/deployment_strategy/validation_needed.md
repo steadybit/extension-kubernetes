@@ -1,1 +1,1 @@
-You already took action and configured it.
+You already took action and configured a ```RollingUpdate``` deployment strategy.

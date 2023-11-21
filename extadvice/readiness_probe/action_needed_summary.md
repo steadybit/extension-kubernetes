@@ -1,1 +1,2 @@
-When ${target.steadybit.label} will be redeployed, Kubernetes can not check if your pod is ready to receive traffic. Your service ${target.steadybit.label} may get assigned traffic before it is able to handle it.
+When Kubernetes redeploys ${target.steadybit.label}, it can't determine when a container is ready to accept incoming requests.
+Your Kubernetes pod ${target.steadybit.label} may receive requests before being able to handle them properly.
