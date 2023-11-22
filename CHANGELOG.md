@@ -1,6 +1,10 @@
 # Changelog
 
 
+## v2.5.2
+
+- Update extension-kit dependency to prevent a concurrent map write error
+
 ## v2.5.1
 
 - Update dependencies
