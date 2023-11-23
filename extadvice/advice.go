@@ -130,7 +130,7 @@ func GetAdviceDescriptionDeploymentStrategy() advice_kit_api.AdviceDefinition {
 		AssessmentQueryApplicable: "target.type=\"" + extdeployment.DeploymentTargetType + "\"",
 		Status: advice_kit_api.AdviceDefinitionStatus{
 			ActionNeeded: advice_kit_api.AdviceDefinitionStatusActionNeeded{
-				AssessmentQuery: "k8s.deployment.strategy!=\"RollingUpdate\" ",
+				AssessmentQuery: "k8s.deployment.strategy IS PRESENT AND k8s.deployment.strategy!=\"RollingUpdate\" ",
 				Description: advice_kit_api.AdviceDefinitionStatusActionNeededDescription{
 					Instruction: ReadAdviceFile(DeploymentStrategyContent, "deployment_strategy/instructions.md"),
 					Motivation:  ReadAdviceFile(DeploymentStrategyContent, "deployment_strategy/motivation.md"),
