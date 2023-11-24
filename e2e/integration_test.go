@@ -247,7 +247,7 @@ func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testDrainNode")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	//Start Deployment with 2 pods
@@ -302,7 +302,7 @@ func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testTaintNode")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
 	//Start Deployment with 2 pods
@@ -328,7 +328,7 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		Value    string `json:"value"`
 		Effect   string `json:"effect"`
 	}{
-		Duration: 10000,
+		Duration: 20_000,
 		Key:      "allowed",
 		Value:    "nothing",
 		Effect:   "NoSchedule",
@@ -362,10 +362,10 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				containsNginxPod = true
 			}
 		}
-		return time.Since(attackStarted).Seconds() > 5 && !containsNginxPod
+		return (time.Since(attackStarted) > 10*time.Second) && !containsNginxPod
 	})
 	require.NoError(t, err)
-	log.Info().Msgf("pods didn't come back within 5 seconds, node seems to be tainted")
+	log.Info().Msgf("pods didn't come back within 10 seconds, node seems to be tainted")
 
 	// pods are rescheduled after attack
 	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
@@ -382,7 +382,7 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testScaleDeployment")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	//Start Deployment with 2 pods
@@ -450,7 +450,7 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testCauseCrashLoop")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 
 	//Start Deployment with 2 pods
@@ -473,7 +473,7 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	config := struct {
 		Duration int `json:"duration"`
 	}{
-		Duration: 15000,
+		Duration: 20_000,
 	}
 	_, err = e.RunAction(extpod.CrashLoopActionId, &action_kit_api.Target{
 		Name: nodeTarget.Id,

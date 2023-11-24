@@ -4,39 +4,51 @@
 package extpod
 
 import (
+	"context"
 	"fmt"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"net/http"
+	"reflect"
 	"strings"
+	"time"
 )
 
-func RegisterPodDiscoveryHandlers() {
-	exthttp.RegisterHttpHandler("/pod/discovery", exthttp.GetterAsHandler(getPodDiscoveryDescription))
-	exthttp.RegisterHttpHandler("/pod/discovery/target-description", exthttp.GetterAsHandler(getPodTargetDescription))
-	exthttp.RegisterHttpHandler("/pod/discovery/discovered-targets", getDiscoveredPods)
+type podDiscovery struct {
+	k8s *client.Client
 }
 
-func getPodDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
+var (
+	_ discovery_kit_sdk.TargetDescriber = (*podDiscovery)(nil)
+)
+
+func NewPodDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
+	discovery := &podDiscovery{k8s: k8s}
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}))
+	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
+		discovery_kit_sdk.WithRefreshTargetsNow(),
+		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, 5*time.Second),
+	)
+}
+
+func (*podDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id:         PodTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			Method:       "GET",
-			Path:         "/pod/discovery/discovered-targets",
-			CallInterval: extutil.Ptr("1m"),
+			CallInterval: extutil.Ptr("30s"),
 		},
 	}
 }
 
-func getPodTargetDescription() discovery_kit_api.TargetDescription {
+func (*podDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       PodTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Pod", Other: "Kubernetes Pods"},
@@ -60,36 +72,32 @@ func getPodTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDiscoveredPods(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	targets := getDiscoveredPodTargets(client.K8S)
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
-}
-func getDiscoveredPodTargets(k8s *client.Client) []discovery_kit_api.Target {
-	pods := k8s.Pods()
+func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
+	pods := p.k8s.Pods()
 
 	filteredPods := make([]*corev1.Pod, 0, len(pods))
 	if extconfig.Config.DisableDiscoveryExcludes {
 		filteredPods = pods
 	} else {
-		for _, d := range pods {
-			if client.IsExcludedFromDiscovery(d.ObjectMeta) {
+		for _, pod := range pods {
+			if client.IsExcludedFromDiscovery(pod.ObjectMeta) {
 				continue
 			}
-			filteredPods = append(filteredPods, d)
+			filteredPods = append(filteredPods, pod)
 		}
 	}
 
 	targets := make([]discovery_kit_api.Target, len(filteredPods))
-	for i, p := range filteredPods {
+	for i, pod := range filteredPods {
 		attributes := map[string][]string{
-			"k8s.pod.name":     {p.Name},
-			"k8s.namespace":    {p.Namespace},
+			"k8s.pod.name":     {pod.Name},
+			"k8s.namespace":    {pod.Namespace},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
-			"k8s.node.name":    {p.Spec.NodeName},
-			"host.hostname":    {p.Spec.NodeName},
+			"k8s.node.name":    {pod.Spec.NodeName},
+			"host.hostname":    {pod.Spec.NodeName},
 		}
 
-		for key, value := range p.ObjectMeta.Labels {
+		for key, value := range pod.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
@@ -97,7 +105,7 @@ func getDiscoveredPodTargets(k8s *client.Client) []discovery_kit_api.Target {
 
 		var containerIds []string
 		var containerIdsWithoutPrefix []string
-		for _, container := range p.Status.ContainerStatuses {
+		for _, container := range pod.Status.ContainerStatuses {
 			if container.ContainerID == "" {
 				continue
 			}
@@ -111,17 +119,17 @@ func getDiscoveredPodTargets(k8s *client.Client) []discovery_kit_api.Target {
 			attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
 		}
 
-		ownerReferences := client.OwnerReferences(k8s, &p.ObjectMeta)
+		ownerReferences := client.OwnerReferences(p.k8s, &pod.ObjectMeta)
 		for _, ownerRef := range ownerReferences.OwnerRefs {
 			attributes[fmt.Sprintf("k8s.%v", ownerRef.Kind)] = []string{ownerRef.Name}
 		}
 
 		targets[i] = discovery_kit_api.Target{
-			Id:         p.Name,
+			Id:         pod.Name,
 			TargetType: PodTargetType,
-			Label:      p.Name,
+			Label:      pod.Name,
 			Attributes: attributes,
 		}
 	}
-	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesPod)
+	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesPod), nil
 }

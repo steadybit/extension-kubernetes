@@ -4,6 +4,7 @@
 package extcluster
 
 import (
+	"context"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,8 +15,10 @@ func Test_getDiscoveredCluster(t *testing.T) {
 	// Given
 	extconfig.Config.ClusterName = "dev-cluster"
 
+	d := &clusterDiscovery{}
+
 	//Then
-	targets := getDiscoveredClusterTargets()
+	targets, _ := d.DiscoverTargets(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
 	assert.Equal(t, "dev-cluster", target.Id)

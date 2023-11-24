@@ -92,13 +92,15 @@ func Test_getDiscoveredDaemonSets(t *testing.T) {
 	require.NoError(t, err)
 	log.Printf("Created daemonset %v", sts.Name)
 
+	d := &daemonSetDiscovery{k8s: client}
 	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredDaemonSetTargets(client)) == 1
-	}, time.Second, 100*time.Millisecond)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverTargets(context.Background())
+		assert.Len(c, ed, 1)
+	}, 1*time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredDaemonSetTargets(client)
+	targets, _ := d.DiscoverTargets(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
 	assert.Equal(t, "development/default/shop", target.Id)

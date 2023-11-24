@@ -4,42 +4,54 @@
 package extstatefulset
 
 import (
+	"context"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
-	"net/http"
+	"reflect"
 	"strings"
+	"time"
 )
 
-func RegisterStatefulSetDiscoveryHandlers() {
-	exthttp.RegisterHttpHandler("/statefulset/discovery", exthttp.GetterAsHandler(getStatefulSetDiscoveryDescription))
-	exthttp.RegisterHttpHandler("/statefulset/discovery/target-description", exthttp.GetterAsHandler(getStatefulSetTargetDescription))
-	exthttp.RegisterHttpHandler("/statefulset/discovery/discovered-targets", getDiscoveredStatefulSets)
-	exthttp.RegisterHttpHandler("/statefulset/discovery/rules/k8s-statefulset-to-container", exthttp.GetterAsHandler(getStatefulSetToContainerEnrichmentRule))
+type statefulSetDiscovery struct {
+	k8s *client.Client
 }
 
-func getStatefulSetDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
+var (
+	_ discovery_kit_sdk.TargetDescriber          = (*statefulSetDiscovery)(nil)
+	_ discovery_kit_sdk.EnrichmentRulesDescriber = (*statefulSetDiscovery)(nil)
+)
+
+func NewStatefulSetDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
+	discovery := &statefulSetDiscovery{k8s: k8s}
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}), reflect.TypeOf(appsv1.StatefulSet{}))
+	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
+		discovery_kit_sdk.WithRefreshTargetsNow(),
+		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, 5*time.Second),
+	)
+}
+
+func (d *statefulSetDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id:         StatefulSetTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			Method:       "GET",
-			Path:         "/statefulset/discovery/discovered-targets",
-			CallInterval: extutil.Ptr("1m"),
+			CallInterval: extutil.Ptr("30s"),
 		},
 	}
 }
 
-func getStatefulSetTargetDescription() discovery_kit_api.TargetDescription {
+func (d *statefulSetDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       StatefulSetTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes StatefulSet", Other: "Kubernetes StatefulSets"},
@@ -62,13 +74,8 @@ func getStatefulSetTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDiscoveredStatefulSets(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	targets := getDiscoveredStatefulSetTargets(client.K8S)
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
-}
-
-func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Target {
-	statefulsets := k8s.StatefulSets()
+func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
+	statefulsets := d.k8s.StatefulSets()
 
 	filteredStatefulSets := make([]*appsv1.StatefulSet, 0, len(statefulsets))
 	if extconfig.Config.DisableDiscoveryExcludes {
@@ -89,11 +96,11 @@ func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Tar
 			"k8s.namespace":    {sts.Namespace},
 			"k8s.statefulset":  {sts.Name},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
-			"k8s.distribution": {k8s.Distribution},
+			"k8s.distribution": {d.k8s.Distribution},
 		}
 
-		if k8s.Permissions().CanReadHorizontalPodAutoscalers() {
-			hpa := k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(sts.Namespace, sts.Name)
+		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
+			hpa := d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(sts.Namespace, sts.Name)
 			attributes["k8s.deployment.hpa.existent"] = []string{fmt.Sprintf("%v", hpa != nil)}
 		}
 
@@ -107,7 +114,7 @@ func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Tar
 			}
 		}
 
-		pods := k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace)
+		pods := d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace)
 		if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
 			log.Warn().Msgf("StatefulSet %s/%s has more than %d pods. Skip listing pods, containers and hosts.", sts.Namespace, sts.Name, extconfig.Config.DiscoveryMaxPodCount)
 			attributes["k8s.pod.name"] = []string{"too-many-pods"}
@@ -185,7 +192,7 @@ func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Tar
 				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
 			}
 
-			scoreAttributes := extcommon.AddKubeScoreAttributesStatefulSet(sts)
+			scoreAttributes := addKubeScoreAttributesStatefulSet(sts)
 			for key, value := range scoreAttributes {
 				attributes[key] = value
 			}
@@ -198,7 +205,13 @@ func getDiscoveredStatefulSetTargets(k8s *client.Client) []discovery_kit_api.Tar
 			Attributes: attributes,
 		}
 	}
-	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesStatefulSet)
+	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesStatefulSet), nil
+}
+
+func (d *statefulSetDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {
+	return []discovery_kit_api.TargetEnrichmentRule{
+		getStatefulSetToContainerEnrichmentRule(),
+	}
 }
 
 func getStatefulSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
@@ -224,4 +237,16 @@ func getStatefulSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmen
 			},
 		},
 	}
+}
+
+func addKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[string][]string {
+	apiVersion := "apps/v1"
+	kind := "Deployment"
+	if statefulSet.APIVersion != "" {
+		apiVersion = statefulSet.APIVersion
+	}
+	if statefulSet.Kind != "" {
+		kind = statefulSet.Kind
+	}
+	return extcommon.AddKubeScoreAttributes(statefulSet, statefulSet.Namespace, statefulSet.Name, apiVersion, kind)
 }

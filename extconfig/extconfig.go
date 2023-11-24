@@ -17,6 +17,13 @@ type Specification struct {
 	ActiveAdviceList                       []string `required:"false" split_words:"true" default:"*"`
 	DisableDiscoveryExcludes               bool     `required:"false" split_words:"true" default:"false"`
 	LogKubernetesHttpRequests              bool     `required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledContainer             bool     `json:"discoveryDisabledContainer" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledDeployment            bool     `json:"discoveryDisabledDeployment" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledStatefulSet           bool     `json:"discoveryDisabledStatefulSet" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledDaemonSet             bool     `json:"discoveryDisabledDaemonSet" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledPod                   bool     `json:"discoveryDisabledPod" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledNode                  bool     `json:"discoveryDisabledNode" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledCluster               bool     `json:"discoveryDisabledCluster" required:"false" split_words:"true" default:"false"`
 	DiscoveryAttributesExcludesContainer   []string `json:"discoveryAttributesExcludesContainer" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDeployment  []string `json:"discoveryAttributesExcludesDeployment" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesStatefulSet []string `json:"discoveryAttributesExcludesStatefulSet" split_words:"true" required:"false"`

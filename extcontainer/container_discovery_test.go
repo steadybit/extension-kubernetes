@@ -132,13 +132,16 @@ func Test_getDiscoveredContainer(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	d := &containerDiscovery{k8s: client}
+
 	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredContainerEnrichmentData(client)) == 1
-	}, time.Second, 100*time.Millisecond)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverEnrichmentData(context.Background())
+		assert.Len(c, ed, 1)
+	}, 1*time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredContainerEnrichmentData(client)
+	targets, _ := d.DiscoverEnrichmentData(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
 	assert.Equal(t, "crio://abcdef", target.Id)
@@ -244,14 +247,13 @@ func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredContainerEnrichmentData(client)) == 1
-	}, time.Second, 100*time.Millisecond)
+	d := &containerDiscovery{k8s: client}
 
 	// Then
-	targets := getDiscoveredContainerEnrichmentData(client)
-	require.Len(t, targets, 1)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverEnrichmentData(context.Background())
+		assert.Len(c, ed, 1)
+	}, 1*time.Second, 100*time.Millisecond)
 }
 
 func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *testing.T) {
@@ -335,14 +337,13 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
-	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredContainerEnrichmentData(client)) >= 1
-	}, time.Second, 100*time.Millisecond)
+	d := &containerDiscovery{k8s: client}
 
 	// Then
-	targets := getDiscoveredContainerEnrichmentData(client)
-	require.Len(t, targets, 2)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverEnrichmentData(context.Background())
+		assert.Len(c, ed, 2)
+	}, 1*time.Second, 100*time.Millisecond)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {

@@ -4,33 +4,42 @@
 package extcluster
 
 import (
+	"context"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/extconfig"
-	"net/http"
+	"time"
 )
 
-func RegisterClusterDiscoveryHandlers() {
-	exthttp.RegisterHttpHandler("/cluster/discovery", exthttp.GetterAsHandler(getClusterDiscoveryDescription))
-	exthttp.RegisterHttpHandler("/cluster/discovery/target-description", exthttp.GetterAsHandler(getClusterTargetDescription))
-	exthttp.RegisterHttpHandler("/cluster/discovery/discovered-targets", getDiscoveredCluster)
+type clusterDiscovery struct {
 }
 
-func getClusterDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
+var (
+	_ discovery_kit_sdk.TargetDescriber = (*clusterDiscovery)(nil)
+)
+
+func NewClusterDiscovery() discovery_kit_sdk.TargetDiscovery {
+	discovery := &clusterDiscovery{}
+	return discovery_kit_sdk.NewCachedTargetDiscovery(
+		discovery,
+		discovery_kit_sdk.WithRefreshTargetsNow(),
+		discovery_kit_sdk.WithRefreshTargetsInterval(context.Background(), 60*time.Second),
+	)
+}
+
+func (c *clusterDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id:         ClusterTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			Method:       "GET",
-			Path:         "/cluster/discovery/discovered-targets",
-			CallInterval: extutil.Ptr("60m"),
+			CallInterval: extutil.Ptr("5m"),
 		},
 	}
 }
 
-func getClusterTargetDescription() discovery_kit_api.TargetDescription {
+func (c *clusterDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       ClusterTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Cluster", Other: "Kubernetes Cluster"},
@@ -51,12 +60,7 @@ func getClusterTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDiscoveredCluster(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	targets := getDiscoveredClusterTargets()
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
-}
-
-func getDiscoveredClusterTargets() []discovery_kit_api.Target {
+func (c *clusterDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
 	return []discovery_kit_api.Target{
 		{
 			Id:         extconfig.Config.ClusterName,
@@ -66,5 +70,5 @@ func getDiscoveredClusterTargets() []discovery_kit_api.Target {
 				"k8s.cluster-name": {extconfig.Config.ClusterName},
 			},
 		},
-	}
+	}, nil
 }

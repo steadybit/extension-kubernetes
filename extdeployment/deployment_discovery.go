@@ -4,43 +4,54 @@
 package extdeployment
 
 import (
+	"context"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
-	"net/http"
+	"reflect"
 	"strings"
+	"time"
 )
 
-func RegisterDeploymentDiscoveryHandlers() {
-	exthttp.RegisterHttpHandler("/deployment/discovery", exthttp.GetterAsHandler(getDeploymentDiscoveryDescription))
-	exthttp.RegisterHttpHandler("/deployment/discovery/target-description", exthttp.GetterAsHandler(getDeploymentTargetDescription))
-	exthttp.RegisterHttpHandler("/deployment/discovery/discovered-targets", getDiscoveredDeployments)
-	exthttp.RegisterHttpHandler("/deployment/discovery/rules/k8s-deployment-to-container", exthttp.GetterAsHandler(getDeploymentToContainerEnrichmentRule))
-	exthttp.RegisterHttpHandler("/deployment/discovery/rules/container-to-k8s-deployment", exthttp.GetterAsHandler(getContainerToDeploymentEnrichmentRule))
+type deploymentDiscovery struct {
+	k8s *client.Client
 }
 
-func getDeploymentDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
+var (
+	_ discovery_kit_sdk.TargetDescriber          = (*deploymentDiscovery)(nil)
+	_ discovery_kit_sdk.EnrichmentRulesDescriber = (*deploymentDiscovery)(nil)
+)
+
+func NewDeploymentDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
+	discovery := &deploymentDiscovery{k8s: k8s}
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}), reflect.TypeOf(appsv1.Deployment{}))
+	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
+		discovery_kit_sdk.WithRefreshTargetsNow(),
+		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, 5*time.Second),
+	)
+}
+
+func (d *deploymentDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id:         DeploymentTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			Method:       "GET",
-			Path:         "/deployment/discovery/discovered-targets",
-			CallInterval: extutil.Ptr("1m"),
+			CallInterval: extutil.Ptr("30s"),
 		},
 	}
 }
 
-func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
+func (d *deploymentDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       DeploymentTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Deployment", Other: "Kubernetes Deployments"},
@@ -63,57 +74,52 @@ func getDeploymentTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDiscoveredDeployments(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	targets := getDiscoveredDeploymentTargets(client.K8S)
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
-}
-
-func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Target {
-	deployments := k8s.Deployments()
+func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
+	deployments := d.k8s.Deployments()
 
 	filteredDeployments := make([]*appsv1.Deployment, 0, len(deployments))
 	if extconfig.Config.DisableDiscoveryExcludes {
 		filteredDeployments = deployments
 	} else {
-		for _, d := range deployments {
-			if client.IsExcludedFromDiscovery(d.ObjectMeta) {
+		for _, deployment := range deployments {
+			if client.IsExcludedFromDiscovery(deployment.ObjectMeta) {
 				continue
 			}
-			filteredDeployments = append(filteredDeployments, d)
+			filteredDeployments = append(filteredDeployments, deployment)
 		}
 	}
 
 	targets := make([]discovery_kit_api.Target, len(filteredDeployments))
 
-	for i, d := range filteredDeployments {
-		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, d.Namespace, d.Name)
+	for i, deployment := range filteredDeployments {
+		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, deployment.Namespace, deployment.Name)
 		attributes := map[string][]string{
-			"k8s.namespace":                    {d.Namespace},
-			"k8s.deployment":                   {d.Name},
+			"k8s.namespace":                    {deployment.Namespace},
+			"k8s.deployment":                   {deployment.Name},
 			"k8s.cluster-name":                 {extconfig.Config.ClusterName},
-			"k8s.distribution":                 {k8s.Distribution},
-			"k8s.deployment.strategy":          {string(d.Spec.Strategy.Type)},
-			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", d.Spec.MinReadySeconds)},
+			"k8s.distribution":                 {d.k8s.Distribution},
+			"k8s.deployment.strategy":          {string(deployment.Spec.Strategy.Type)},
+			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", deployment.Spec.MinReadySeconds)},
 		}
-		if k8s.Permissions().CanReadHorizontalPodAutoscalers() {
-			hpa := k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(d.Namespace, d.Name)
+		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
+			hpa := d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name)
 			attributes["k8s.deployment.hpa.existent"] = []string{fmt.Sprintf("%v", hpa != nil)}
 		}
 
-		if d.Spec.Replicas != nil {
-			attributes["k8s.deployment.replicas"] = []string{fmt.Sprintf("%d", *d.Spec.Replicas)}
+		if deployment.Spec.Replicas != nil {
+			attributes["k8s.deployment.replicas"] = []string{fmt.Sprintf("%d", *deployment.Spec.Replicas)}
 		}
 
-		for key, value := range d.ObjectMeta.Labels {
+		for key, value := range deployment.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {
 				attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
 
-		pods := k8s.PodsByLabelSelector(d.Spec.Selector, d.Namespace)
+		pods := d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace)
 		if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
-			log.Warn().Msgf("Deployment %s/%s has more than %d pods. Skip listing pods, containers and hosts.", d.Namespace, d.Name, extconfig.Config.DiscoveryMaxPodCount)
+			log.Warn().Msgf("Deployment %s/%s has more than %d pods. Skip listing pods, containers and hosts.", deployment.Namespace, deployment.Name, extconfig.Config.DiscoveryMaxPodCount)
 			attributes["k8s.pod.name"] = []string{"too-many-pods"}
 			attributes["k8s.container.id"] = []string{"too-many-pods"}
 			attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}
@@ -188,7 +194,7 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 			if len(containerWithoutReadinessProbe) > 0 {
 				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
 			}
-			scoreAttributes := extcommon.AddKubeScoreAttributesDeployment(d)
+			scoreAttributes := addKubeScoreAttributesDeployment(deployment)
 			for key, value := range scoreAttributes {
 				attributes[key] = value
 			}
@@ -197,11 +203,18 @@ func getDiscoveredDeploymentTargets(k8s *client.Client) []discovery_kit_api.Targ
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
 			TargetType: DeploymentTargetType,
-			Label:      d.Name,
+			Label:      deployment.Name,
 			Attributes: attributes,
 		}
 	}
-	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDeployment)
+	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDeployment), nil
+}
+
+func (d *deploymentDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {
+	return []discovery_kit_api.TargetEnrichmentRule{
+		getDeploymentToContainerEnrichmentRule(),
+		getContainerToDeploymentEnrichmentRule(),
+	}
 }
 
 func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
@@ -257,4 +270,16 @@ func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichment
 			},
 		},
 	}
+}
+
+func addKubeScoreAttributesDeployment(deployment *appsv1.Deployment) map[string][]string {
+	apiVersion := "apps/v1"
+	kind := "Deployment"
+	if deployment.APIVersion != "" {
+		apiVersion = deployment.APIVersion
+	}
+	if deployment.Kind != "" {
+		kind = deployment.Kind
+	}
+	return extcommon.AddKubeScoreAttributes(deployment, deployment.Namespace, deployment.Name, apiVersion, kind)
 }

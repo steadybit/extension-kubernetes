@@ -4,42 +4,55 @@
 package extdaemonset
 
 import (
+	"context"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
-	"net/http"
+	"reflect"
 	"strings"
+	"time"
 )
 
-func RegisterStatefulSetDiscoveryHandlers() {
-	exthttp.RegisterHttpHandler("/daemonset/discovery", exthttp.GetterAsHandler(getDaemonSetDiscoveryDescription))
-	exthttp.RegisterHttpHandler("/daemonset/discovery/target-description", exthttp.GetterAsHandler(getDaemonSetTargetDescription))
-	exthttp.RegisterHttpHandler("/daemonset/discovery/discovered-targets", getDiscoveredDaemonSets)
-	exthttp.RegisterHttpHandler("/daemonset/discovery/rules/k8s-daemonset-to-container", exthttp.GetterAsHandler(getDaemonSetToContainerEnrichmentRule))
+type daemonSetDiscovery struct {
+	k8s *client.Client
 }
 
-func getDaemonSetDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
+var (
+	_ discovery_kit_sdk.TargetDescriber          = (*daemonSetDiscovery)(nil)
+	_ discovery_kit_sdk.EnrichmentRulesDescriber = (*daemonSetDiscovery)(nil)
+)
+
+func NewDaemonSetDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
+	discovery := &daemonSetDiscovery{k8s: k8s}
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}), reflect.TypeOf(appsv1.DaemonSet{}))
+
+	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
+		discovery_kit_sdk.WithRefreshTargetsNow(),
+		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, 5*time.Second),
+	)
+}
+
+func (d *daemonSetDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id:         DaemonSetTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			Method:       "GET",
-			Path:         "/daemonset/discovery/discovered-targets",
-			CallInterval: extutil.Ptr("1m"),
+			CallInterval: extutil.Ptr("30s"),
 		},
 	}
 }
 
-func getDaemonSetTargetDescription() discovery_kit_api.TargetDescription {
+func (d *daemonSetDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       DaemonSetTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes DaemonSet", Other: "Kubernetes DaemonSets"},
@@ -62,13 +75,8 @@ func getDaemonSetTargetDescription() discovery_kit_api.TargetDescription {
 	}
 }
 
-func getDiscoveredDaemonSets(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	targets := getDiscoveredDaemonSetTargets(client.K8S)
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
-}
-
-func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Target {
-	daemonsets := k8s.DaemonSets()
+func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
+	daemonsets := d.k8s.DaemonSets()
 
 	filteredDaemonSets := make([]*appsv1.DaemonSet, 0, len(daemonsets))
 	if extconfig.Config.DisableDiscoveryExcludes {
@@ -89,7 +97,7 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			"k8s.namespace":    {ds.Namespace},
 			"k8s.daemonset":    {ds.Name},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
-			"k8s.distribution": {k8s.Distribution},
+			"k8s.distribution": {d.k8s.Distribution},
 		}
 
 		for key, value := range ds.ObjectMeta.Labels {
@@ -98,7 +106,7 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			}
 		}
 
-		pods := k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace)
+		pods := d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace)
 		if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
 			log.Warn().Msgf("Daemonset %s/%s has more than %d pods. Skip listing pods, containers and hosts.", ds.Namespace, ds.Name, extconfig.Config.DiscoveryMaxPodCount)
 			attributes["k8s.pod.name"] = []string{"too-many-pods"}
@@ -176,7 +184,7 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
 			}
 
-			scoreAttributes := extcommon.AddKubeScoreAttributesDaemonSet(ds)
+			scoreAttributes := addKubeScoreAttributesDaemonSet(ds)
 			for key, value := range scoreAttributes {
 				attributes[key] = value
 			}
@@ -189,7 +197,13 @@ func getDiscoveredDaemonSetTargets(k8s *client.Client) []discovery_kit_api.Targe
 			Attributes: attributes,
 		}
 	}
-	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDaemonSet)
+	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDaemonSet), nil
+}
+
+func (d *daemonSetDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {
+	return []discovery_kit_api.TargetEnrichmentRule{
+		getDaemonSetToContainerEnrichmentRule(),
+	}
 }
 
 func getDaemonSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
@@ -215,4 +229,16 @@ func getDaemonSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			},
 		},
 	}
+}
+
+func addKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]string {
+	apiVersion := "apps/v1"
+	kind := "Deployment"
+	if daemonSet.APIVersion != "" {
+		apiVersion = daemonSet.APIVersion
+	}
+	if daemonSet.Kind != "" {
+		kind = daemonSet.Kind
+	}
+	return extcommon.AddKubeScoreAttributes(daemonSet, daemonSet.Namespace, daemonSet.Name, apiVersion, kind)
 }
