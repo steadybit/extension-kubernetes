@@ -4,40 +4,53 @@
 package extnode
 
 import (
+	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/exthttp"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"net/http"
+	"reflect"
 	"strings"
+	"time"
 )
 
-func RegisterNodeDiscoveryHandlers() {
-	exthttp.RegisterHttpHandler("/node/discovery", exthttp.GetterAsHandler(getNodeDiscoveryDescription))
-	exthttp.RegisterHttpHandler("/node/discovery/target-description", exthttp.GetterAsHandler(getNodeTargetDescription))
-	exthttp.RegisterHttpHandler("/node/discovery/discovered-targets", getDiscoveredNodes)
-	exthttp.RegisterHttpHandler("/node/discovery/rules/k8s-node-to-host", exthttp.GetterAsHandler(getNodeToHostEnrichmentRule))
+type nodeDiscovery struct {
+	k8s *client.Client
 }
 
-func getNodeDiscoveryDescription() discovery_kit_api.DiscoveryDescription {
+var (
+	_ discovery_kit_sdk.TargetDescriber          = (*nodeDiscovery)(nil)
+	_ discovery_kit_sdk.EnrichmentRulesDescriber = (*nodeDiscovery)(nil)
+)
+
+func NewNodeDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
+	discovery := &nodeDiscovery{k8s: k8s}
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}), reflect.TypeOf(corev1.Node{}))
+	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
+		discovery_kit_sdk.WithRefreshTargetsNow(),
+		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, 5*time.Second),
+	)
+}
+
+func (d *nodeDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id:         NodeTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			Method:       "GET",
-			Path:         "/node/discovery/discovered-targets",
-			CallInterval: extutil.Ptr("1m"),
+			CallInterval: extutil.Ptr("30s"),
 		},
 	}
 }
 
-func getNodeTargetDescription() discovery_kit_api.TargetDescription {
+func (*nodeDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       NodeTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Node", Other: "Kubernetes Nodes"},
@@ -56,6 +69,12 @@ func getNodeTargetDescription() discovery_kit_api.TargetDescription {
 				},
 			},
 		},
+	}
+}
+
+func (d *nodeDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {
+	return []discovery_kit_api.TargetEnrichmentRule{
+		getNodeToHostEnrichmentRule(),
 	}
 }
 
@@ -113,22 +132,20 @@ func getNodeToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 	}
 }
 
-func getDiscoveredNodes(w http.ResponseWriter, _ *http.Request, _ []byte) {
-	targets := getDiscoveredNodeTargets(client.K8S)
-	exthttp.WriteBody(w, discovery_kit_api.DiscoveryData{Targets: &targets})
-}
-func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
-	nodes := k8s.Nodes()
+func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
+	log.Warn().Msg("Discovering nodes")
+
+	nodes := d.k8s.Nodes()
 
 	filteredNodes := make([]*corev1.Node, 0, len(nodes))
 	if extconfig.Config.DisableDiscoveryExcludes {
 		filteredNodes = nodes
 	} else {
-		for _, d := range nodes {
-			if client.IsExcludedFromDiscovery(d.ObjectMeta) {
+		for _, node := range nodes {
+			if client.IsExcludedFromDiscovery(node.ObjectMeta) {
 				continue
 			}
-			filteredNodes = append(filteredNodes, d)
+			filteredNodes = append(filteredNodes, node)
 		}
 	}
 
@@ -138,7 +155,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			"k8s.node.name":    {node.Name},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
 			"host.hostname":    {node.Name},
-			"k8s.distribution": {k8s.Distribution},
+			"k8s.distribution": {d.k8s.Distribution},
 		}
 
 		for key, value := range node.ObjectMeta.Labels {
@@ -147,7 +164,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			}
 		}
 
-		pods := k8s.Pods()
+		pods := d.k8s.Pods()
 		if len(pods) > 0 {
 			var podNames []string
 			var containerIds []string
@@ -168,7 +185,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 						containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 					}
 					namespaces[pod.Namespace] = true
-					ownerReferences := client.OwnerReferences(k8s, &pod.ObjectMeta)
+					ownerReferences := client.OwnerReferences(d.k8s, &pod.ObjectMeta)
 					for _, ownerReference := range ownerReferences.OwnerRefs {
 						if ownerReference.Kind == "replicaset" {
 							replicaSets[ownerReference.Name] = true
@@ -218,7 +235,7 @@ func getDiscoveredNodeTargets(k8s *client.Client) []discovery_kit_api.Target {
 			Attributes: attributes,
 		}
 	}
-	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesNode)
+	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesNode), nil
 }
 
 func keys(m map[string]bool) []string {

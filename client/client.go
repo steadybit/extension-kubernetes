@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,31 +28,65 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
 var K8S *Client
 
 type Client struct {
-	Distribution         string
-	permissions          *PermissionCheckResult
-	daemonSetsLister     listerAppsv1.DaemonSetLister
-	daemonSetsInformer   cache.SharedIndexInformer
-	deploymentsLister    listerAppsv1.DeploymentLister
-	deploymentsInformer  cache.SharedIndexInformer
-	podsLister           listerCorev1.PodLister
-	podsInformer         cache.SharedIndexInformer
-	replicaSetsLister    listerAppsv1.ReplicaSetLister
-	replicaSetsInformer  cache.SharedIndexInformer
-	servicesLister       listerCorev1.ServiceLister
-	servicesInformer     cache.SharedIndexInformer
-	statefulSetsLister   listerAppsv1.StatefulSetLister
-	statefulSetsInformer cache.SharedIndexInformer
-	eventsInformer       cache.SharedIndexInformer
-	nodesLister          listerCorev1.NodeLister
-	nodesInformer        cache.SharedIndexInformer
-	hpaLister            listerAutoscalingv1.HorizontalPodAutoscalerLister
-	hpaInformer          cache.SharedIndexInformer
+	Distribution string
+	permissions  *PermissionCheckResult
+
+	daemonSet struct {
+		lister   listerAppsv1.DaemonSetLister
+		informer cache.SharedIndexInformer
+	}
+
+	deployment struct {
+		lister   listerAppsv1.DeploymentLister
+		informer cache.SharedIndexInformer
+	}
+
+	pod struct {
+		lister   listerCorev1.PodLister
+		informer cache.SharedIndexInformer
+	}
+
+	replicaSet struct {
+		lister   listerAppsv1.ReplicaSetLister
+		informer cache.SharedIndexInformer
+	}
+
+	service struct {
+		lister   listerCorev1.ServiceLister
+		informer cache.SharedIndexInformer
+	}
+
+	statefulSet struct {
+		lister   listerAppsv1.StatefulSetLister
+		informer cache.SharedIndexInformer
+	}
+
+	event struct {
+		informer cache.SharedIndexInformer
+	}
+
+	node struct {
+		lister   listerCorev1.NodeLister
+		informer cache.SharedIndexInformer
+	}
+
+	hpa struct {
+		lister   listerAutoscalingv1.HorizontalPodAutoscalerLister
+		informer cache.SharedIndexInformer
+	}
+
+	handlers struct {
+		sync.Mutex
+		l []chan<- interface{}
+	}
+	resourceEventHandler cache.ResourceEventHandlerFuncs
 }
 
 func (c *Client) Permissions() *PermissionCheckResult {
@@ -59,7 +94,7 @@ func (c *Client) Permissions() *PermissionCheckResult {
 }
 
 func (c *Client) Pods() []*corev1.Pod {
-	pods, err := c.podsLister.List(labels.Everything())
+	pods, err := c.pod.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching pods")
 		return []*corev1.Pod{}
@@ -68,7 +103,7 @@ func (c *Client) Pods() []*corev1.Pod {
 }
 
 func (c *Client) PodByNamespaceAndName(namespace string, name string) *corev1.Pod {
-	item, err := c.podsLister.Pods(namespace).Get(name)
+	item, err := c.pod.lister.Pods(namespace).Get(name)
 	logGetError(fmt.Sprintf("pod %s/%s", namespace, name), err)
 	return item
 }
@@ -79,7 +114,7 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 		log.Error().Err(err).Msgf("Error while creating a selector  %s", labelSelector)
 		return nil
 	}
-	list, err := c.podsLister.Pods(namespace).List(selector)
+	list, err := c.pod.lister.Pods(namespace).List(selector)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching Pods for selector %s in namespace %s", selector, namespace)
 		return nil
@@ -88,7 +123,7 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 }
 
 func (c *Client) Deployments() []*appsv1.Deployment {
-	deployments, err := c.deploymentsLister.List(labels.Everything())
+	deployments, err := c.deployment.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching deployments")
 		return []*appsv1.Deployment{}
@@ -97,13 +132,13 @@ func (c *Client) Deployments() []*appsv1.Deployment {
 }
 
 func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *appsv1.Deployment {
-	item, err := c.deploymentsLister.Deployments(namespace).Get(name)
+	item, err := c.deployment.lister.Deployments(namespace).Get(name)
 	logGetError(fmt.Sprintf("deployment %s/%s", namespace, name), err)
 	return item
 }
 
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
-	services, err := c.servicesLister.List(labels.Everything())
+	services, err := c.service.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching services")
 		return []*corev1.Service{}
@@ -124,7 +159,7 @@ func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 }
 
 func (c *Client) DaemonSets() []*appsv1.DaemonSet {
-	daemonSets, err := c.daemonSetsLister.List(labels.Everything())
+	daemonSets, err := c.daemonSet.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching DaemonSets")
 		return []*appsv1.DaemonSet{}
@@ -133,19 +168,19 @@ func (c *Client) DaemonSets() []*appsv1.DaemonSet {
 }
 
 func (c *Client) DaemonSetByNamespaceAndName(namespace string, name string) *appsv1.DaemonSet {
-	item, err := c.daemonSetsLister.DaemonSets(namespace).Get(name)
+	item, err := c.daemonSet.lister.DaemonSets(namespace).Get(name)
 	logGetError(fmt.Sprintf("daemonset %s/%s", namespace, name), err)
 	return item
 }
 
 func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *appsv1.ReplicaSet {
-	item, err := c.replicaSetsLister.ReplicaSets(namespace).Get(name)
+	item, err := c.replicaSet.lister.ReplicaSets(namespace).Get(name)
 	logGetError(fmt.Sprintf("replicaset %s/%s", namespace, name), err)
 	return item
 }
 
 func (c *Client) StatefulSets() []*appsv1.StatefulSet {
-	statefulSets, err := c.statefulSetsLister.List(labels.Everything())
+	statefulSets, err := c.statefulSet.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching StatefulSets")
 		return []*appsv1.StatefulSet{}
@@ -154,7 +189,7 @@ func (c *Client) StatefulSets() []*appsv1.StatefulSet {
 }
 
 func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *appsv1.StatefulSet {
-	item, err := c.statefulSetsLister.StatefulSets(namespace).Get(name)
+	item, err := c.statefulSet.lister.StatefulSets(namespace).Get(name)
 	logGetError(fmt.Sprintf("statefulset %s/%s", namespace, name), err)
 	return item
 }
@@ -173,7 +208,7 @@ func (c *Client) NodesReadyCount() int {
 }
 
 func (c *Client) Nodes() []*corev1.Node {
-	nodes, err := c.nodesLister.List(labels.Everything())
+	nodes, err := c.node.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching nodes")
 		return []*corev1.Node{}
@@ -182,7 +217,7 @@ func (c *Client) Nodes() []*corev1.Node {
 }
 
 func (c *Client) Events(since time.Time) *[]corev1.Event {
-	events := c.eventsInformer.GetIndexer().List()
+	events := c.event.informer.GetIndexer().List()
 	//filter events by time
 	result := filterEvents(events, since)
 	//sort events by time
@@ -193,7 +228,7 @@ func (c *Client) Events(since time.Time) *[]corev1.Event {
 }
 
 func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace string, reference string) *autoscalingv1.HorizontalPodAutoscaler {
-	hpas, err := c.hpaLister.HorizontalPodAutoscalers(namespace).List(labels.Everything())
+	hpas, err := c.hpa.lister.HorizontalPodAutoscalers(namespace).List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching horizontal pod autoscalers")
 		return nil
@@ -233,102 +268,160 @@ func PrepareClient(stopCh <-chan struct{}) {
 
 // CreateClient is visible for testing
 func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string, permissions *PermissionCheckResult) *Client {
-	factory := informers.NewSharedInformerFactory(clientset, 0)
-	distribution := "kubernetes"
-	if isOpenShift(rootApiPath) {
-		distribution = "openshift"
-	}
 	client := &Client{
-		Distribution: distribution,
+		Distribution: "kubernetes",
 		permissions:  permissions,
 	}
+	if isOpenShift(rootApiPath) {
+		client.Distribution = "openshift"
+	}
 
-	var syncs []cache.InformerSynced
+	factory := informers.NewSharedInformerFactory(clientset, 0)
+	client.resourceEventHandler = cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			client.doNotify(obj)
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			client.doNotify(newObj)
+		},
+		DeleteFunc: func(obj interface{}) {
+			client.doNotify(obj)
+		},
+	}
+
+	var informerSyncList []cache.InformerSynced
 
 	daemonSets := factory.Apps().V1().DaemonSets()
-	client.daemonSetsInformer = daemonSets.Informer()
-	client.daemonSetsLister = daemonSets.Lister()
-	syncs = append(syncs, client.daemonSetsInformer.HasSynced)
-	err := client.daemonSetsInformer.SetTransform(transformDaemonset)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to add daemonset transformer")
+	client.daemonSet.informer = daemonSets.Informer()
+	client.daemonSet.lister = daemonSets.Lister()
+	informerSyncList = append(informerSyncList, client.daemonSet.informer.HasSynced)
+	if err := client.daemonSet.informer.SetTransform(transformDaemonset); err != nil {
+		log.Fatal().Err(err).Msg("Failed to add daemonSet transformer")
 	}
+	if _, err := client.daemonSet.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add daemonSet event handler")
+	}
+
 	deployments := factory.Apps().V1().Deployments()
-	client.deploymentsInformer = deployments.Informer()
-	client.deploymentsLister = deployments.Lister()
-	syncs = append(syncs, client.deploymentsInformer.HasSynced)
-	err = client.deploymentsInformer.SetTransform(transformDeployment)
-	if err != nil {
+	client.deployment.informer = deployments.Informer()
+	client.deployment.lister = deployments.Lister()
+	informerSyncList = append(informerSyncList, client.deployment.informer.HasSynced)
+	if err := client.deployment.informer.SetTransform(transformDeployment); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add deployment transformer")
 	}
+	if _, err := client.deployment.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add deployment event handler")
+	}
+
 	pods := factory.Core().V1().Pods()
-	client.podsInformer = pods.Informer()
-	client.podsLister = pods.Lister()
-	syncs = append(syncs, client.podsInformer.HasSynced)
-	err = client.podsInformer.SetTransform(transformPod)
-	if err != nil {
+	client.pod.informer = pods.Informer()
+	client.pod.lister = pods.Lister()
+	informerSyncList = append(informerSyncList, client.pod.informer.HasSynced)
+	if err := client.pod.informer.SetTransform(transformPod); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add pod transformer")
 	}
+	if _, err := client.pod.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add pod event handler")
+	}
+
 	replicaSets := factory.Apps().V1().ReplicaSets()
-	client.replicaSetsInformer = replicaSets.Informer()
-	client.replicaSetsLister = replicaSets.Lister()
-	syncs = append(syncs, client.replicaSetsInformer.HasSynced)
-	err = client.replicaSetsInformer.SetTransform(transformReplicaSet)
-	if err != nil {
+	client.replicaSet.informer = replicaSets.Informer()
+	client.replicaSet.lister = replicaSets.Lister()
+	informerSyncList = append(informerSyncList, client.replicaSet.informer.HasSynced)
+	if err := client.replicaSet.informer.SetTransform(transformReplicaSet); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add replicaSet transformer")
 	}
+	if _, err := client.replicaSet.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add replicaSet event handler")
+	}
+
 	services := factory.Core().V1().Services()
-	client.servicesInformer = services.Informer()
-	client.servicesLister = services.Lister()
-	syncs = append(syncs, client.servicesInformer.HasSynced)
-	err = client.servicesInformer.SetTransform(transformService)
-	if err != nil {
+	client.service.informer = services.Informer()
+	client.service.lister = services.Lister()
+	informerSyncList = append(informerSyncList, client.service.informer.HasSynced)
+	if err := client.service.informer.SetTransform(transformService); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add service transformer")
 	}
+	if _, err := client.service.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add service event handler")
+	}
+
 	statefulSets := factory.Apps().V1().StatefulSets()
-	client.statefulSetsInformer = statefulSets.Informer()
-	client.statefulSetsLister = statefulSets.Lister()
-	syncs = append(syncs, client.statefulSetsInformer.HasSynced)
-	err = client.statefulSetsInformer.SetTransform(transformStatefulSet)
-	if err != nil {
+	client.statefulSet.informer = statefulSets.Informer()
+	client.statefulSet.lister = statefulSets.Lister()
+	informerSyncList = append(informerSyncList, client.statefulSet.informer.HasSynced)
+	if err := client.statefulSet.informer.SetTransform(transformStatefulSet); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add statefulSet transformer")
 	}
-	client.eventsInformer = factory.Core().V1().Events().Informer()
-	syncs = append(syncs, client.eventsInformer.HasSynced)
-	err = client.eventsInformer.SetTransform(transformEvents)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to add events transformer")
+	if _, err := client.statefulSet.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add statefulSet event handler")
 	}
+
 	nodes := factory.Core().V1().Nodes()
-	client.nodesInformer = nodes.Informer()
-	client.nodesLister = nodes.Lister()
-	syncs = append(syncs, client.nodesInformer.HasSynced)
-	err = client.nodesInformer.SetTransform(transformNodes)
-	if err != nil {
+	client.node.informer = nodes.Informer()
+	client.node.lister = nodes.Lister()
+	informerSyncList = append(informerSyncList, client.node.informer.HasSynced)
+	if err := client.node.informer.SetTransform(transformNodes); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add nodes transformer")
 	}
+	if _, err := client.node.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add node event handler")
+	}
+
 	if permissions.CanReadHorizontalPodAutoscalers() {
 		hpa := factory.Autoscaling().V1().HorizontalPodAutoscalers()
-		client.hpaInformer = hpa.Informer()
-		client.hpaLister = hpa.Lister()
-		syncs = append(syncs, client.hpaInformer.HasSynced)
-		err = client.hpaInformer.SetTransform(transformHPA)
-		if err != nil {
+		client.hpa.informer = hpa.Informer()
+		client.hpa.lister = hpa.Lister()
+		informerSyncList = append(informerSyncList, client.hpa.informer.HasSynced)
+		if err := client.hpa.informer.SetTransform(transformHPA); err != nil {
 			log.Fatal().Err(err).Msg("Failed to add hpa transformer")
+		}
+		if _, err := client.hpa.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add hpa event handler")
 		}
 	}
 
-	defer runtime.HandleCrash()
+	events := factory.Core().V1().Events()
+	client.event.informer = events.Informer()
+	informerSyncList = append(informerSyncList, client.event.informer.HasSynced)
+	if err := client.event.informer.SetTransform(transformEvents); err != nil {
+		log.Fatal().Err(err).Msg("Failed to add events transformer")
+	}
 
+	defer runtime.HandleCrash()
 	go factory.Start(stopCh)
 
 	log.Info().Msgf("Start Kubernetes cache sync.")
-	if !cache.WaitForCacheSync(stopCh, syncs...) {
+	if !cache.WaitForCacheSync(stopCh, informerSyncList...) {
 		log.Fatal().Msg("Timed out waiting for caches to sync")
 	}
-	log.Info().Msgf("Caches synced.")
+	log.Info().Msgf("Kubernetes caches synced.")
 
 	return client
+}
+
+func (c *Client) doNotify(event interface{}) {
+	c.handlers.Lock()
+	defer c.handlers.Unlock()
+	for _, ch := range c.handlers.l {
+		ch <- event
+	}
+}
+
+func (c *Client) Notify(ch chan<- interface{}) {
+	c.handlers.Lock()
+	defer c.handlers.Unlock()
+	if !slices.Contains(c.handlers.l, ch) {
+		c.handlers.l = append(c.handlers.l, ch)
+	}
+}
+
+func (c *Client) StopNotify(ch chan<- interface{}) {
+	c.handlers.Lock()
+	defer c.handlers.Unlock()
+	c.handlers.l = slices.DeleteFunc(c.handlers.l, func(e chan<- interface{}) bool {
+		return e == ch
+	})
 }
 
 func isOpenShift(rootApiPath string) bool {

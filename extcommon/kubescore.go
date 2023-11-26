@@ -8,7 +8,6 @@ import (
 	"github.com/zegl/kube-score/parser"
 	"github.com/zegl/kube-score/score"
 	"github.com/zegl/kube-score/scorecard"
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"strconv"
@@ -62,41 +61,7 @@ func getKubeScore(manifest string) (*scorecard.Scorecard, error) {
 	return scoreCard, nil
 }
 
-func AddKubeScoreAttributesDeployment(deployment *appsv1.Deployment) map[string][]string {
-	apiVersion := "apps/v1"
-	kind := "Deployment"
-	if deployment.APIVersion != "" {
-		apiVersion = deployment.APIVersion
-	}
-	if deployment.Kind != "" {
-		kind = deployment.Kind
-	}
-	return AddKubeScoreAttributes(deployment, deployment.Namespace, deployment.Name, apiVersion, kind, checks)
-}
-
-func AddKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]string {
-	apiVersion := "apps/v1"
-	kind := "Deployment"
-	if daemonSet.APIVersion != "" {
-		apiVersion = daemonSet.APIVersion
-	}
-	if daemonSet.Kind != "" {
-		kind = daemonSet.Kind
-	}
-	return AddKubeScoreAttributes(daemonSet, daemonSet.Namespace, daemonSet.Name, apiVersion, kind, checks)
-}
-func AddKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[string][]string {
-	apiVersion := "apps/v1"
-	kind := "Deployment"
-	if statefulSet.APIVersion != "" {
-		apiVersion = statefulSet.APIVersion
-	}
-	if statefulSet.Kind != "" {
-		kind = statefulSet.Kind
-	}
-	return AddKubeScoreAttributes(statefulSet, statefulSet.Namespace, statefulSet.Name, apiVersion, kind, checks)
-}
-func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, apiVersion string, kind string, checks map[string]string) map[string][]string {
+func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, apiVersion string, kind string) map[string][]string {
 	attributes := make(map[string][]string)
 	manifestBuf := new(bytes.Buffer)
 	err := serializer.Encode(obj, manifestBuf)

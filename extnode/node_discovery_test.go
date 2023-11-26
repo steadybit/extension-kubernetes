@@ -131,13 +131,15 @@ func Test_getDiscoveredPods(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	d := &nodeDiscovery{k8s: client}
 	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredNodeTargets(client)) == 1
-	}, time.Second, 100*time.Millisecond)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverTargets(context.Background())
+		assert.Len(c, ed, 1)
+	}, 1*time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredNodeTargets(client)
+	targets, _ := d.DiscoverTargets(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
 	assert.Equal(t, "node-123", target.Id)

@@ -5,57 +5,58 @@ package extdeployment
 
 import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
-	"github.com/steadybit/extension-kit/exthttp"
+	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 )
 
-func RegisterAttributeDescriptionHandlers() {
-	exthttp.RegisterHttpHandler("/attribute-descriptions", exthttp.GetterAsHandler(getAttributeDescriptions))
+type attributeDescriber struct {
 }
 
-func getAttributeDescriptions() discovery_kit_api.AttributeDescriptions {
-	return discovery_kit_api.AttributeDescriptions{
-		Attributes: []discovery_kit_api.AttributeDescription{
-			{
-				Attribute: "k8s.container.name",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "Container name",
-					Other: "Container names",
-				},
+func NewAttributeDescriber() discovery_kit_sdk.AttributeDescriber {
+	return &attributeDescriber{}
+}
+
+func (a *attributeDescriber) DescribeAttributes() []discovery_kit_api.AttributeDescription {
+	return []discovery_kit_api.AttributeDescription{
+		{
+			Attribute: "k8s.container.name",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Container name",
+				Other: "Container names",
 			},
-			{
-				Attribute: "k8s.namespace",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "Namespace name",
-					Other: "Namespace names",
-				},
+		},
+		{
+			Attribute: "k8s.namespace",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Namespace name",
+				Other: "Namespace names",
 			},
-			{
-				Attribute: "k8s.cluster-name",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "Cluster name",
-					Other: "Cluster names",
-				},
+		},
+		{
+			Attribute: "k8s.cluster-name",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Cluster name",
+				Other: "Cluster names",
 			},
-			{
-				Attribute: "k8s.deployment",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "Deployment name",
-					Other: "Deployment names",
-				},
+		},
+		{
+			Attribute: "k8s.deployment",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Deployment name",
+				Other: "Deployment names",
 			},
-			{
-				Attribute: "k8s.statefulset",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "StatefulSet name",
-					Other: "StatefulSet names",
-				},
+		},
+		{
+			Attribute: "k8s.statefulset",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "StatefulSet name",
+				Other: "StatefulSet names",
 			},
-			{
-				Attribute: "k8s.daemonset",
-				Label: discovery_kit_api.PluralLabel{
-					One:   "DaemonSet name",
-					Other: "DaemonSet names",
-				},
+		},
+		{
+			Attribute: "k8s.daemonset",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "DaemonSet name",
+				Other: "DaemonSet names",
 			},
 		},
 	}

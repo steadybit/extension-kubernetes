@@ -117,13 +117,15 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	d := &deploymentDiscovery{k8s: client}
 	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredDeploymentTargets(client)) == 1
-	}, time.Second, 100*time.Millisecond)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverTargets(context.Background())
+		assert.Len(c, ed, 1)
+	}, 1*time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredDeploymentTargets(client)
+	targets, _ := d.DiscoverTargets(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
 	assert.Equal(t, "development/default/shop", target.Id)
@@ -219,13 +221,15 @@ func Test_getDiscoveredDeployments_ignore_empty_container_ids(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	d := &deploymentDiscovery{k8s: client}
 	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredDeploymentTargets(client)) == 1
-	}, time.Second, 100*time.Millisecond)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverTargets(context.Background())
+		assert.Len(c, ed, 1)
+	}, 1*time.Second, 100*time.Millisecond)
 
 	// Then
-	targets := getDiscoveredDeploymentTargets(client)
+	targets, _ := d.DiscoverTargets(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
 	assert.Equal(t, "development/default/shop", target.Id)
@@ -308,14 +312,12 @@ func Test_getDiscoveredDeploymentsShouldIgnoreLabeledDeployments(t *testing.T) {
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	d := &deploymentDiscovery{k8s: client}
 	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredDeploymentTargets(client)) >= 1
-	}, time.Second, 100*time.Millisecond)
-
-	// Then
-	targets := getDiscoveredDeploymentTargets(client)
-	require.Len(t, targets, 1)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverTargets(context.Background())
+		assert.Len(c, ed, 1)
+	}, 1*time.Second, 100*time.Millisecond)
 }
 
 func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDisabled(t *testing.T) {
@@ -377,14 +379,12 @@ func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDis
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
 
+	d := &deploymentDiscovery{k8s: client}
 	// When
-	assert.Eventually(t, func() bool {
-		return len(getDiscoveredDeploymentTargets(client)) >= 1
-	}, time.Second, 100*time.Millisecond)
-
-	// Then
-	targets := getDiscoveredDeploymentTargets(client)
-	require.Len(t, targets, 2)
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverTargets(context.Background())
+		assert.Len(c, ed, 2)
+	}, 1*time.Second, 100*time.Millisecond)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
