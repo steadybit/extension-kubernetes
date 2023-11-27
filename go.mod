@@ -14,7 +14,7 @@ require (
 	github.com/steadybit/advice-kit/go/advice_kit_api v0.0.1-beta.6
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.5.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.1.0
-	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.0.0
+	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.0.1
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.0
 	github.com/steadybit/extension-kit v1.8.11
 	github.com/stretchr/testify v1.8.4
