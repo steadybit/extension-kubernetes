@@ -165,13 +165,13 @@ func statusInternal(k8s *client.Client, state *CrashLoopState) (*action_kit_api.
 				"-c",
 				"kill 1",
 			}
-			log.Debug().Msgf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdOut)
+			log.Info().Err(cmdErr).Msgf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdOut)
 			log.Info().Msgf("Killing container %s in pod %s with fallback command '%s'", cs.Name, state.Pod, strings.Join(commandFallback, " "))
 			cmdFallback := exec.Command(commandFallback[0], commandFallback[1:]...)
 			cmdFallbackOut, cmdFallbackErr := cmdFallback.CombinedOutput()
 			if cmdFallbackErr != nil {
 				log.Info().Msgf("Failed to kill container %+v", cs)
-				return nil, extension_kit.ToError(fmt.Sprintf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdFallbackOut), cmdErr)
+				return nil, extension_kit.ToError(fmt.Sprintf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdFallbackOut), cmdFallbackErr)
 			}
 		}
 	}
