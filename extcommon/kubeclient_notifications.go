@@ -30,7 +30,7 @@ func triggerNotificationsForType(in <-chan interface{}, out chan<- struct{}, typ
 		}
 
 		forward := slices.Index(types, eventType) >= 0
-		log.Warn().Type("type", event).Bool("forward", forward).Strs("types", s).Msg("resource event")
+		log.Trace().Type("type", event).Bool("forward", forward).Strs("types", s).Msg("resource event")
 		if forward {
 			out <- struct{}{}
 		}
