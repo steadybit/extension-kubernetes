@@ -195,7 +195,7 @@ func GetAdviceDescriptionCPULimit() advice_kit_api.AdviceDefinition {
 		AssessmentQueryApplicable: "target.type=\"" + extdaemonset.DaemonSetTargetType + "\" OR target.type=\"" + extdeployment.DeploymentTargetType + "\" OR target.type=\"" + extstatefulset.StatefulSetTargetType + "\"",
 		Status: advice_kit_api.AdviceDefinitionStatus{
 			ActionNeeded: advice_kit_api.AdviceDefinitionStatusActionNeeded{
-				AssessmentQuery: "k8s.container.spec.name.limit.cpu.not-set IS PRESENT AND k8s.container.spec.name.limit.cpu.not-set IS NOT PRESENT",
+				AssessmentQuery: "k8s.container.spec.name.limit.cpu.not-set IS PRESENT",
 				Description: advice_kit_api.AdviceDefinitionStatusActionNeededDescription{
 					Instruction: ReadAdviceFile(CpuLimitContent, "cpu_limit/instructions.md"),
 					Motivation:  ReadAdviceFile(CpuLimitContent, "cpu_limit/motivation.md"),
