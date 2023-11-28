@@ -6,7 +6,6 @@ package extnode
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -133,8 +132,6 @@ func getNodeToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 }
 
 func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
-	log.Warn().Msg("Discovering nodes")
-
 	nodes := d.k8s.Nodes()
 
 	filteredNodes := make([]*corev1.Node, 0, len(nodes))
