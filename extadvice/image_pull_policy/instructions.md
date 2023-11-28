@@ -14,4 +14,4 @@ spec:
 ```
 
 ### Read more
-[Kubernetes Documentation - Images](https://kubernetes.io/docs/concepts/containers/images/)
+[Kubernetes Documentation - Images Pull Policy](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
