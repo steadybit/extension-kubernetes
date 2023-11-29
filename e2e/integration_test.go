@@ -79,10 +79,10 @@ func validateDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testCheckRolloutReady")
 
-	nginxDeployment := e2e.NginxDeployment{Minikube: m}
-	err := nginxDeployment.Deploy("nginx-check-rollout-ready")
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-check-rollout-ready")
 	require.NoError(t, err, "failed to create deployment")
-	defer func() { _ = nginxDeployment.Delete() }()
+	defer func() { _ = nginx.Delete() }()
 
 	tests := []struct {
 		name            string
@@ -150,10 +150,10 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	nginxDeployment := e2e.NginxDeployment{Minikube: m}
-	err := nginxDeployment.Deploy("nginx")
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx")
 	require.NoError(t, err, "failed to create deployment")
-	defer func() { _ = nginxDeployment.Delete() }()
+	defer func() { _ = nginx.Delete() }()
 
 	target, err := e2e.PollForTarget(ctx, e, extdeployment.DeploymentTargetType, func(target discovery_kit_api.Target) bool {
 		return e2e.HasAttribute(target, "k8s.deployment", "nginx")
@@ -165,8 +165,8 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, target.Attributes["k8s.deployment"][0], "nginx")
 	assert.Equal(t, target.Attributes["k8s.deployment.label.app"][0], "nginx")
 	assert.Equal(t, target.Attributes["k8s.cluster-name"][0], "e2e-cluster")
-	assert.Contains(t, target.Attributes["k8s.pod.name"], nginxDeployment.Pods[0].Name)
-	assert.Contains(t, target.Attributes["k8s.pod.name"], nginxDeployment.Pods[1].Name)
+	assert.Contains(t, target.Attributes["k8s.pod.name"], nginx.Pods[0].Name)
+	assert.Contains(t, target.Attributes["k8s.pod.name"], nginx.Pods[1].Name)
 	assert.Equal(t, target.Attributes["k8s.distribution"][0], "kubernetes")
 
 	enrichmentData, err := e2e.PollForEnrichmentData(ctx, e, extcontainer.KubernetesContainerEnrichmentDataType, func(enrichmentData discovery_kit_api.EnrichmentData) bool {
@@ -182,8 +182,8 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, enrichmentData.Attributes["k8s.node.name"][0], "e2e-docker")
 	assert.NotContains(t, enrichmentData.Attributes, "k8s.label.app")
 
-	podNames := make([]string, 0, len(nginxDeployment.Pods))
-	for _, pod := range nginxDeployment.Pods {
+	podNames := make([]string, 0, len(nginx.Pods))
+	for _, pod := range nginx.Pods {
 		podNames = append(podNames, pod.Name)
 	}
 	assert.Contains(t, podNames, enrichmentData.Attributes["k8s.pod.name"][0])
@@ -214,12 +214,12 @@ func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer cancel()
 
 	//Start Deployment with 2 pods
-	nginxDeployment := e2e.NginxDeployment{Minikube: m}
-	err := nginxDeployment.Deploy("nginx-test-delete-pod")
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-test-delete-pod")
 	require.NoError(t, err, "failed to create deployment")
-	defer func() { _ = nginxDeployment.Delete() }()
-	podName1 := nginxDeployment.Pods[0].Name
-	podName2 := nginxDeployment.Pods[1].Name
+	defer func() { _ = nginx.Delete() }()
+	podName1 := nginx.Pods[0].Name
+	podName2 := nginx.Pods[1].Name
 	log.Info().Msgf("Pods before Attack: podName1: %v, podName2: %v", podName1, podName2)
 
 	//Delete both pods
@@ -251,13 +251,13 @@ func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer cancel()
 
 	//Start Deployment with 2 pods
-	nginxDeployment := e2e.NginxDeployment{Minikube: m}
-	err := nginxDeployment.Deploy("nginx-test-drain")
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-test-drain")
 	require.NoError(t, err, "failed to create deployment")
-	defer func() { _ = nginxDeployment.Delete() }()
-	podName1 := nginxDeployment.Pods[0].Name
-	podName2 := nginxDeployment.Pods[1].Name
-	assert.Len(t, nginxDeployment.Pods, 2)
+	defer func() { _ = nginx.Delete() }()
+	podName1 := nginx.Pods[0].Name
+	podName2 := nginx.Pods[1].Name
+	assert.Len(t, nginx.Pods, 2)
 	log.Info().Msgf("Pods before Attack: podName1: %v, podName2: %v", podName1, podName2)
 
 	//Check if node discovery is working and listing both pods
@@ -306,13 +306,13 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer cancel()
 
 	//Start Deployment with 2 pods
-	nginxDeployment := e2e.NginxDeployment{Minikube: m}
-	err := nginxDeployment.Deploy("nginx-test-taint")
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-test-taint")
 	require.NoError(t, err, "failed to create deployment")
-	defer func() { _ = nginxDeployment.Delete() }()
-	podName1 := nginxDeployment.Pods[0].Name
-	podName2 := nginxDeployment.Pods[1].Name
-	assert.Len(t, nginxDeployment.Pods, 2)
+	defer func() { _ = nginx.Delete() }()
+	podName1 := nginx.Pods[0].Name
+	podName2 := nginx.Pods[1].Name
+	assert.Len(t, nginx.Pods, 2)
 	log.Info().Msgf("Pods before Attack: podName1: %v, podName2: %v", podName1, podName2)
 
 	//Check if node discovery is working and listing both pods
@@ -386,11 +386,11 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer cancel()
 
 	//Start Deployment with 2 pods
-	nginxDeployment := e2e.NginxDeployment{Minikube: m}
-	err := nginxDeployment.Deploy("nginx-test-scale")
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-test-scale")
 	require.NoError(t, err, "failed to create deployment")
-	defer func() { _ = nginxDeployment.Delete() }()
-	assert.Len(t, nginxDeployment.Pods, 2)
+	defer func() { _ = nginx.Delete() }()
+	assert.Len(t, nginx.Pods, 2)
 
 	//Check if node discovery is working and listing 2 pods
 	nodeTarget, err := e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
@@ -454,18 +454,16 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer cancel()
 
 	//Start Deployment with 2 pods
-	nginxDeployment := e2e.NginxDeployment{Minikube: m}
-	err := nginxDeployment.Deploy("nginx-test-crashloop")
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-test-crashloop")
 	require.NoError(t, err, "failed to create deployment")
-	defer func() { _ = nginxDeployment.Delete() }()
-	assert.Len(t, nginxDeployment.Pods, 2)
-	podName1 := nginxDeployment.Pods[0].Name
-	initialContainerId := nginxDeployment.Pods[0].Status.ContainerStatuses[0].ContainerID
+	defer func() { _ = nginx.Delete() }()
+	require.Len(t, nginx.Pods, 2)
+	firstPod := nginx.Pods[0]
+	require.Equal(t, int32(0), firstPod.Status.ContainerStatuses[0].RestartCount)
 
-	//Check if pod discovery show pod with container
-	nodeTarget, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
-		log.Info().Msgf("pod: %v, container.id: %v - wanted %v, %v", target.Attributes["k8s.pod.name"], target.Attributes["k8s.container.id"], podName1, initialContainerId)
-		return e2e.HasAttribute(target, "k8s.pod.name", podName1) && e2e.HasAttribute(target, "k8s.container.id", initialContainerId)
+	target, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.pod.name", firstPod.Name)
 	})
 	require.NoError(t, err)
 
@@ -473,28 +471,21 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	config := struct {
 		Duration int `json:"duration"`
 	}{
-		Duration: 20_000,
+		Duration: 30_000,
 	}
-	_, err = e.RunAction(extpod.CrashLoopActionId, &action_kit_api.Target{
-		Name: nodeTarget.Id,
+	action, err := e.RunAction(extpod.CrashLoopActionId, &action_kit_api.Target{
+		Name: target.Id,
 		Attributes: map[string][]string{
 			"k8s.namespace": {"default"},
-			"k8s.pod.name":  {podName1},
+			"k8s.pod.name":  {firstPod.Name},
 		},
 	}, config, nil)
+	defer func() { _ = action.Cancel() }()
 	require.NoError(t, err)
 
-	// pod got a new container
-	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
-		if e2e.HasAttribute(target, "k8s.pod.name", podName1) {
-			for _, containerId := range target.Attributes["k8s.container.id"] {
-				if initialContainerId != containerId {
-					log.Info().Msgf("pods has a new container - old containerId: %v, new containerId: %v", initialContainerId, containerId)
-					return true
-				}
-			}
-		}
-		return false
-	})
-	require.NoError(t, err)
+	assert.EventuallyWithT(t, func(collect *assert.CollectT) {
+		p, err := m.GetPod(firstPod.GetObjectMeta())
+		require.NoError(t, err)
+		assert.GreaterOrEqual(collect, p.Status.ContainerStatuses[0].RestartCount, int32(2))
+	}, 20*time.Second, 1*time.Second, "pod should be restarted at least twice")
 }

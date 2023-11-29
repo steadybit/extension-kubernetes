@@ -1,5 +1,9 @@
 # Changelog
 
+## next
+
+- Crash Loop Attack: validate specified container name with spec
+- Crash Loop Attack: ignore when to be killed container is already gone
 
 ## v2.5.3
 
