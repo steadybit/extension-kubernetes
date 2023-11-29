@@ -22,13 +22,13 @@ type CrashLoopAction struct {
 }
 
 type CrashLoopState struct {
-	Namespace string  `json:"namespace"`
-	Pod       string  `json:"pod"`
-	Container *string `json:"container,omitempty"`
+	Namespace string `json:"namespace"`
+	Pod       string `json:"pod"`
+	Container string `json:"container,omitempty"`
 }
 
 type CrashLoopConfig struct {
-	Container *string `json:"container,omitempty"`
+	Container string `json:"container,omitempty"`
 }
 
 func NewCrashLoopAction() action_kit_sdk.Action[CrashLoopState] {
@@ -88,10 +88,6 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	return f.prepareInternal(client.K8S, state, request)
-}
-
-func (f CrashLoopAction) prepareInternal(k8s *client.Client, state *CrashLoopState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	var config CrashLoopState
 	if err := extconversion.Convert(request.Config, &config); err != nil {
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
@@ -99,12 +95,25 @@ func (f CrashLoopAction) prepareInternal(k8s *client.Client, state *CrashLoopSta
 
 	namespace := request.Target.Attributes["k8s.namespace"][0]
 	podName := request.Target.Attributes["k8s.pod.name"][0]
-	pod := k8s.PodByNamespaceAndName(namespace, podName)
+	pod := client.K8S.PodByNamespaceAndName(namespace, podName)
 	if pod == nil {
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", podName, namespace), nil)
 	}
 	if pod.Spec.HostPID {
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s in namespace %s has hostPID enabled. This is not yet supported", podName, namespace), nil)
+	}
+
+	if config.Container != "" {
+		containerFound := false
+		for _, cs := range pod.Spec.Containers {
+			if config.Container == cs.Name {
+				containerFound = true
+				break
+			}
+		}
+		if !containerFound {
+			return nil, extension_kit.ToError(fmt.Sprintf("Container %s not found in pod specification %s", config.Container, podName), nil)
+		}
 	}
 
 	state.Namespace = namespace
@@ -114,22 +123,22 @@ func (f CrashLoopAction) prepareInternal(k8s *client.Client, state *CrashLoopSta
 }
 
 func (f CrashLoopAction) Start(_ context.Context, state *CrashLoopState) (*action_kit_api.StartResult, error) {
-	_, err := statusInternal(client.K8S, state)
+	_, err := statusInternal(state)
 	return nil, err
 }
 
 func (f CrashLoopAction) Status(_ context.Context, state *CrashLoopState) (*action_kit_api.StatusResult, error) {
-	return statusInternal(client.K8S, state)
+	return statusInternal(state)
 }
 
-func statusInternal(k8s *client.Client, state *CrashLoopState) (*action_kit_api.StatusResult, error) {
-	pod := k8s.PodByNamespaceAndName(state.Namespace, state.Pod)
+func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error) {
+	pod := client.K8S.PodByNamespaceAndName(state.Namespace, state.Pod)
 	if pod == nil {
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", state.Pod, state.Namespace), nil)
 	}
 
 	for _, cs := range pod.Status.ContainerStatuses {
-		if state.Container != nil && *state.Container != cs.Name {
+		if state.Container != "" && state.Container != cs.Name {
 			continue
 		}
 
@@ -137,44 +146,30 @@ func statusInternal(k8s *client.Client, state *CrashLoopState) (*action_kit_api.
 			continue
 		}
 
-		command := []string{"kubectl",
-			"exec",
-			state.Pod,
-			"-c",
-			cs.Name,
-			"-n",
-			state.Namespace,
-			"--",
-			"kill",
-			"1",
-		}
+		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "1"}); err != nil {
+			log.Info().Err(err).Msgf("Failed to kill container %s in pod %s", cs.Name, state.Pod)
 
-		log.Info().Msgf("Killing container %s in pod %s with command '%s'", cs.Name, state.Pod, strings.Join(command, " "))
-		cmd := exec.Command(command[0], command[1:]...)
-		cmdOut, cmdErr := cmd.CombinedOutput()
-		if cmdErr != nil {
-			commandFallback := []string{"kubectl",
-				"exec",
-				state.Pod,
-				"-c",
-				cs.Name,
-				"-n",
-				state.Namespace,
-				"--",
-				"/bin/sh",
-				"-c",
-				"kill 1",
-			}
-			log.Info().Err(cmdErr).Msgf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdOut)
-			log.Info().Msgf("Killing container %s in pod %s with fallback command '%s'", cs.Name, state.Pod, strings.Join(commandFallback, " "))
-			cmdFallback := exec.Command(commandFallback[0], commandFallback[1:]...)
-			cmdFallbackOut, cmdFallbackErr := cmdFallback.CombinedOutput()
-			if cmdFallbackErr != nil {
-				log.Info().Msgf("Failed to kill container %+v", cs)
-				return nil, extension_kit.ToError(fmt.Sprintf("Failed to kill container %s in pod %s: %s", cs.Name, state.Pod, cmdFallbackOut), cmdFallbackErr)
+			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", "kill 1"}); err != nil {
+				return nil, fmt.Errorf("failed to kill container %s in pod %s: %w", cs.Name, state.Pod, err)
 			}
 		}
 	}
 
 	return nil, nil
+}
+
+func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []string) error {
+	cmd := append([]string{"kubectl", "exec", podName, "-c", containerName, "-n", namespace, "--"}, kubeExecCmd...)
+
+	log.Info().Msgf("Killing container %s in pod %s with command '%s'", containerName, podName, strings.Join(cmd, " "))
+
+	if out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput(); err != nil {
+		if strings.Contains(string(out), "container not found") {
+			log.Debug().Msgf("Container %s in pod %s not found. Skipping.", containerName, podName)
+			return nil
+		}
+
+		return fmt.Errorf("failed to kill container %s in pod %s, %w: %s", containerName, podName, err, out)
+	}
+	return nil
 }
