@@ -5,7 +5,7 @@ manifest should match snapshot with TLS:
     metadata:
       annotations:
         steadybit.com/extension-auto-discovery: |
-          {"extensions":[{"port":8088,"protocol":"https","types":["ACTION","DISCOVERY","ADVICE"]}]}
+          {"extensions":[{"port":8088,"protocol":"https","types":["ACTION","DISCOVERY"]}]}
       labels: null
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
@@ -24,7 +24,7 @@ manifest should match snapshot with mutual TLS:
     metadata:
       annotations:
         steadybit.com/extension-auto-discovery: |
-          {"extensions":[{"port":8088,"protocol":"https","types":["ACTION","DISCOVERY","ADVICE"]}]}
+          {"extensions":[{"port":8088,"protocol":"https","types":["ACTION","DISCOVERY"]}]}
       labels: null
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
@@ -43,7 +43,7 @@ manifest should match snapshot with mutual TLS using containerPaths:
     metadata:
       annotations:
         steadybit.com/extension-auto-discovery: |
-          {"extensions":[{"port":8088,"protocol":"https","types":["ACTION","DISCOVERY","ADVICE"]}]}
+          {"extensions":[{"port":8088,"protocol":"https","types":["ACTION","DISCOVERY"]}]}
       labels: null
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
@@ -62,7 +62,7 @@ manifest should match snapshot without TLS:
     metadata:
       annotations:
         steadybit.com/extension-auto-discovery: |
-          {"extensions":[{"port":8088,"protocol":"http","types":["ACTION","DISCOVERY","ADVICE"]}]}
+          {"extensions":[{"port":8088,"protocol":"http","types":["ACTION","DISCOVERY"]}]}
       labels: null
       name: RELEASE-NAME-steadybit-extension-kubernetes
       namespace: NAMESPACE
