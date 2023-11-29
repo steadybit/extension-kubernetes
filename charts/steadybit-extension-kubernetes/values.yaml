@@ -153,3 +153,9 @@ discovery:
       pod: []
       # discovery.attributes.excludes.node -- List of attributes to exclude from node discovery.
       node: []
+
+service:
+  extensionlib:
+    list:
+      - ACTION
+      - DISCOVERY
