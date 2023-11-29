@@ -1,5 +1,90 @@
 {
-  "name": "${target.steadybit.label}: Memory Overload",
+  "name": "Memory Overload of ${target.steadybit.label}",
+	"hypothesis": "In case of a memory overload of ${target.steadybit.label}, all Kubernetes resources work properly, fail gracefully, are restarted, or at least one monitor alert.",
+	"lanes": [
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "40s"
+					},
+					"customLabel": "Wait for Memory stress"
+				},
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "60s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} is e.g., still working, failing gracefully, scaling up, or monitoring alerts"
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "40s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} works properly"
+				},
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "60s",
+						"percentage": 200,
+						"failOnOomKill": false
+					},
+					"customLabel": "Stress Memory of ${target.steadybit.label}",
+					"actionType": "com.steadybit.extension_container.stress_mem",
+					"radius": {
+						"targetType": "com.steadybit.extension_container.container",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.steadybit.label}"
+									]
+								}
+							]
+						},
+						"query": null,
+						"percentage": 50
+					}
+				},
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "60s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} is recovering from high CPU and everything runs smoothly again"
+				}
+			]
+		}
+	],
   "lanes": [
     {
       "steps": [

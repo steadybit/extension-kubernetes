@@ -1,50 +1,88 @@
 {
-  "name": "${target.steadybit.label} CPU Overload",
-  "lanes": [
-    {
-      "steps": [
-        {
-          "type": "action",
-          "ignoreFailure": false,
-          "parameters": {
-            "cpuLoad": 100,
-            "workers": 0,
-            "duration": "60s"
-          },
-          "actionType": "com.steadybit.extension_container.stress_cpu",
-          "radius": {
-            "targetType": "com.steadybit.extension_container.container",
-            "predicate": {
-              "operator": "AND",
-              "predicates": [
-                {
-                  "key": "k8s.cluster-name",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.k8s.cluster-name}"
-                  ]
-                },
-                {
-                  "key": "k8s.namespace",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.k8s.namespace}"
-                  ]
-                },
-                {
-                  "key": "k8s.deployment",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.steadybit.label}"
-                  ]
-                }
-              ]
-            },
-            "query": null,
-            "percentage": 50
-          }
-        }
-      ]
-    }
-  ]
+	"name": "CPU Overload of ${target.steadybit.label}",
+	"hypothesis": "In case of a CPU overload of ${target.steadybit.label}, all Kubernetes resources work properly, fail gracefully, scale up, or at least one monitor alert.",
+	"lanes": [
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "40s"
+					},
+					"customLabel": "Wait for CPU stress"
+				},
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "60s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} is e.g., still working, failing gracefully, scaling up, or monitoring alerts"
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "40s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} works properly"
+				},
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"cpuLoad": 100,
+						"workers": 0,
+						"duration": "60s"
+					},
+					"customLabel": "Stress CPU of ${target.steadybit.label}",
+					"actionType": "com.steadybit.extension_container.stress_cpu",
+					"radius": {
+						"targetType": "com.steadybit.extension_container.container",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.steadybit.label}"
+									]
+								}
+							]
+						},
+						"query": null,
+						"percentage": 50
+					}
+				},
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "60s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} is recovering from high CPU and everything runs smoothly again"
+				}
+			]
+		}
+	]
 }

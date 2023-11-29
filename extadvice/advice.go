@@ -100,18 +100,16 @@ func GetAdviceDescriptionImagePullPolicy() advice_kit_api.AdviceDefinition {
 				},
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
-						Description: "I acknowledge that I have read the instructions and I know what I am doing",
-						Experiment:  nil,
 						Id:          ImagePullPolicyID + ".validation.1",
-						Name:        "Accept misuse",
 						Type:        "TEXT",
+						Name:        "Accept misuse",
+						Description: "I acknowledge that I have read the instructions and I know what I am doing",
 					},
 					{
-						Description: "I acknowledge again that I have read the instructions and I know what I am doing",
-						Experiment:  nil,
 						Id:          ImagePullPolicyID + ".validation.1",
-						Name:        "Really accept misuse",
 						Type:        "TEXT",
+						Name:        "Really accept misuse",
+						Description: "I acknowledge again that I have read the instructions and I know what I am doing",
 					},
 				}),
 			},
@@ -214,9 +212,9 @@ func GetAdviceDescriptionCPULimit() advice_kit_api.AdviceDefinition {
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
 						Id:          "com.steadybit.extension_kubernetes.k8s-cpu-limit.experiment-1",
-						Name:        "CPU Overload",
-						Description: "CPU limits are important to avoid unwanted side effects that can be triggered by increased CPU consumption of a single component. With the help of an experiment, a CPU overload can be simulated to check whether Kubernetes applies the configured limit correctly.",
 						Type:        "EXPERIMENT",
+						Name:        "CPU Overload",
+						Description: "Check how ${target.steadybit.label} behaves when running at the CPU limit and whether your remaining Kubernetes resources at the host function properly.",
 						Experiment:  extutil.Ptr(advice_kit_api.Experiment(ReadAdviceFile(CpuLimitContent, "cpu_limit/experiment_cpu_limit.json"))),
 					},
 				}),
@@ -253,9 +251,9 @@ func GetAdviceDescriptionSingleReplica() advice_kit_api.AdviceDefinition {
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
 						Id:          "com.steadybit.extension_kubernetes.k8s-single-replica.experiment-1",
-						Name:        "Pod Failure",
 						Type:        "EXPERIMENT",
-						Description: "Pod failures and errors can occur repeatedly during operation. With an experiment these errors are simulated and you can check, whether the functionality of your application is still ensured.",
+						Name:        "Single Pod Failure",
+						Description: "In case one pod of ${target.steadybit.label} fails, Kubernetes manages this accordingly by routing the traffic to the other pods within expected failure rates.",
 						Experiment:  extutil.Ptr(advice_kit_api.Experiment(ReadAdviceFile(SingleReplicaContent, "single_replica/experiment_pod_failure.json"))),
 					},
 				}),
@@ -325,9 +323,9 @@ func GetAdviceDescriptionLivenessProbe() advice_kit_api.AdviceDefinition {
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
 						Id:          "com.steadybit.extension_kubernetes.k8s-liveness-probe.experiment-1",
-						Name:        "Pod Lifecycle",
 						Type:        "EXPERIMENT",
-						Description: "Liveness probes can help improve the availability of pods in a Kubernetes cluster when they are properly confugured and tested. By simulating slow-responding health endpoints as part of an experiment, it is possible to verify that Kubernetes correctly executes the Liveness Probe and restarts the failing pod.",
+						Name:        "Container's Unhealthiness Is Detected Within Expected Failure Rates",
+						Description: "Verify that Kubernetes can detect an unhealthy container of gateway, restarts the container, and routes traffic afterward within the expected failure rates.",
 						Experiment:  extutil.Ptr(advice_kit_api.Experiment(ReadAdviceFile(LivenessProbeContent, "liveness_probe/experiment_pod_lifecycle.json"))),
 					},
 				}),
@@ -398,15 +396,15 @@ func GetAdviceDescriptionMemoryLimit() advice_kit_api.AdviceDefinition {
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
 						Id:          "com.steadybit.extension_kubernetes.k8s-memory-limit.experiment-1",
-						Name:        "Memory Overload",
-						Description: "Memory limits are important to avoid unwanted side effects that can be triggered by increased memory consumption of a single component. With the help of an experiment, a memory overload can be simulated to check whether Kubernetes applies the configured limit correctly.",
 						Type:        "EXPERIMENT",
+						Name:        "Memory Overload",
+						Description: "Check how ${target.steadybit.label} behaves when running at the memory limit and whether your remaining Kubernetes resources at the host function properly.",
 						Experiment:  extutil.Ptr(advice_kit_api.Experiment(ReadAdviceFile(MemoryLimitContent, "memory_limit/experiment_memory_limit.json"))),
 					},
 					{
 						Id:          "com.steadybit.extension_kubernetes.k8s-memory-limit.validation-2",
-						Name:        "Acknowledgement",
 						Type:        "TEXT",
+						Name:        "Acknowledgement",
 						Description: "Make sure to configure the memory limit for the container in a reasonable way.",
 					},
 				}),
@@ -445,9 +443,9 @@ func GetAdviceDescriptionSingleAwsZone() advice_kit_api.AdviceDefinition {
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
 						Id:          "com.steadybit.extension_kubernetes.single-aws-zone.experiment-1",
-						Name:        "Zone Outage",
-						Description: "It is recommended to always split its components into different zones so that in case of a failure of one zone, the system still works well. An experiment can be used to validate whether the system can handle the failure of an entire zone.",
 						Type:        "EXPERIMENT",
+						Name:        "Availability Zone Outage",
+						Description: "When a single AWS availability zone fails, there are still pods of ${target.steadybit.label} ready to continue providing offered features.",
 						Experiment:  extutil.Ptr(advice_kit_api.Experiment(ReadAdviceFile(SingleAwsZoneContent, "single_aws_zone/experiment_zone_outage.json"))),
 					},
 				}),
@@ -485,9 +483,9 @@ func GetAdviceDescriptionSingleAzureZone() advice_kit_api.AdviceDefinition {
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
 						Id:          "com.steadybit.extension_kubernetes.single-azure-zone.experiment-1",
-						Name:        "Zone Outage",
-						Description: "It is recommended to always split its components into different zones so that in case of a failure of one zone, the system still works well. An experiment can be used to validate whether the system can handle the failure of an entire zone.",
 						Type:        "EXPERIMENT",
+						Name:        "Availability Zone Outage",
+						Description: "When a single Azure availability zone fails, there are still pods of ${target.steadybit.label} ready to continue providing offered features.",
 						Experiment:  extutil.Ptr(advice_kit_api.Experiment(ReadAdviceFile(SingleAzureZoneContent, "single_azure_zone/experiment_zone_outage.json"))),
 					},
 				}),

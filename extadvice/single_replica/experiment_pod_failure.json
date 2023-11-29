@@ -1,14 +1,118 @@
 {
-	"name": "${target.steadybit.label} Pod Failure",
+	"name": "Single Pod Failure of ${target.steadybit.label}",
+	"hypothesis": "When a pod of ${target.steadybit.label} fails, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. Eventually, the pod is ready again within 60s.",
 	"lanes": [
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "140s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label}'s features are still working within expected failure rates"
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "20s"
+					},
+					"customLabel": "Wait for pod failure"
+				},
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "30s",
+						"podCountCheckMode": "podCountLessThanDesiredCount"
+					},
+					"customLabel": "One pod is detected failing",
+					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.steadybit.label}"
+									]
+								}
+							]
+						},
+						"query": null
+					}
+				}
+			]
+		},
 		{
 			"steps": [
 				{
 					"type": "action",
 					"ignoreFailure": false,
 					"parameters": {
-						"duration": "60s",
-						"graceful": true
+						"duration": "20s",
+						"podCountCheckMode": "podCountEqualsDesiredCount"
+					},
+					"customLabel": "All pods are ready",
+					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.steadybit.label}"
+									]
+								}
+							]
+						},
+						"query": null
+					}
+				},
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"graceful": false
 					},
 					"actionType": "com.steadybit.extension_container.stop",
 					"radius": {
@@ -42,8 +146,47 @@
 						"query": null,
 						"percentage": 50
 					}
+				},
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "60s",
+						"podCountCheckMode": "podCountEqualsDesiredCount"
+					},
+					"customLabel": "Pod restarts within given timeframe so that all pods are eventually ready again",
+					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.steadybit.label}"
+									]
+								}
+							]
+						},
+						"query": null
+					}
 				}
 			]
 		}
-	]
-}
+	]}
