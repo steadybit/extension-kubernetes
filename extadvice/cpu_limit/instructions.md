@@ -1,4 +1,4 @@
-Specify ${target.steadybit.label}&apos;s CPU limit by defining the ```limits``` property in your kubernetes manifest.
+Specify ${target.steadybit.label}&apos;s CPU limit by defining the ```limits``` property in your Kubernetes manifest.
 
 ```yaml
 apiVersion: v1

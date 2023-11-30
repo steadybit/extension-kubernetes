@@ -1,1 +1,2 @@
-You already took action and configured it. Validate your configuration via the experiment.
+You already configured a pod redundancy of your Kubernetes Workload resource for ${target.steadybit.label}.
+Now validate that your redundancy works as expected.
