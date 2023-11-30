@@ -5,12 +5,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-
 //go:embed cpu_limit/*
 var CpuLimitContent embed.FS
 
 //go:embed memory_limit/*
 var MemoryLimitContent embed.FS
+
+//go:embed cpu_limit/*
+var CpuRequestContent embed.FS
+
+//go:embed memory_limit/*
+var MemoryRequestContent embed.FS
 
 //go:embed deployment_strategy/*
 var DeploymentStrategyContent embed.FS
@@ -42,7 +47,6 @@ var SingleAwsZoneContent embed.FS
 //go:embed single_azure_zone/*
 var SingleAzureZoneContent embed.FS
 
-
 func ReadAdviceFile(fs embed.FS, fileName string) string {
 	fileContent, err := fs.ReadFile(fileName)
 	if err != nil {
@@ -50,4 +54,3 @@ func ReadAdviceFile(fs embed.FS, fileName string) string {
 	}
 	return string(fileContent)
 }
-
