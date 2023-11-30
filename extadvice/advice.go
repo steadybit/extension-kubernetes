@@ -61,12 +61,6 @@ func GetAdviceDescriptionImageVersioning() advice_kit_api.AdviceDefinition {
 					Summary: ReadAdviceFile(ImageVersioningContent, "image_latest_tag/implemented.md"),
 				},
 			},
-			ValidationNeeded: advice_kit_api.AdviceDefinitionStatusValidationNeeded{
-				Description: advice_kit_api.AdviceDefinitionStatusValidationNeededDescription{
-					Summary: ReadAdviceFile(ImageVersioningContent, "image_latest_tag/validation_needed.md"),
-				},
-				Validation: nil,
-			},
 		},
 	}
 }
@@ -140,12 +134,6 @@ func GetAdviceDescriptionDeploymentStrategy() advice_kit_api.AdviceDefinition {
 					Summary: ReadAdviceFile(DeploymentStrategyContent, "deployment_strategy/implemented.md"),
 				},
 			},
-			ValidationNeeded: advice_kit_api.AdviceDefinitionStatusValidationNeeded{
-				Description: advice_kit_api.AdviceDefinitionStatusValidationNeededDescription{
-					Summary: ReadAdviceFile(DeploymentStrategyContent, "deployment_strategy/validation_needed.md"),
-				},
-				Validation: nil,
-			},
 		},
 	}
 }
@@ -172,12 +160,6 @@ func GetAdviceDescriptionHorizontalPodAutoscaler() advice_kit_api.AdviceDefiniti
 				Description: advice_kit_api.AdviceDefinitionStatusImplementedDescription{
 					Summary: ReadAdviceFile(HorizontalPodAutoscalerContent, "horizontal_pod_autoscaler/implemented.md"),
 				},
-			},
-			ValidationNeeded: advice_kit_api.AdviceDefinitionStatusValidationNeeded{
-				Description: advice_kit_api.AdviceDefinitionStatusValidationNeededDescription{
-					Summary: ReadAdviceFile(HorizontalPodAutoscalerContent, "horizontal_pod_autoscaler/validation_needed.md"),
-				},
-				Validation: nil,
 			},
 		},
 	}
@@ -284,12 +266,6 @@ func GetAdviceDescriptionHostPodantiaffinity() advice_kit_api.AdviceDefinition {
 					Summary: ReadAdviceFile(HostPodantiaffinityContent, "host_podantiaffinity/implemented.md"),
 				},
 			},
-			ValidationNeeded: advice_kit_api.AdviceDefinitionStatusValidationNeeded{
-				Description: advice_kit_api.AdviceDefinitionStatusValidationNeededDescription{
-					Summary: ReadAdviceFile(HostPodantiaffinityContent, "host_podantiaffinity/validation_needed.md"),
-				},
-				Validation: nil,
-			},
 		},
 	}
 }
@@ -355,12 +331,6 @@ func GetAdviceDescriptionReadinessProbe() advice_kit_api.AdviceDefinition {
 				Description: advice_kit_api.AdviceDefinitionStatusImplementedDescription{
 					Summary: ReadAdviceFile(ReadinessProbeContent, "readiness_probe/implemented.md"),
 				},
-			},
-			ValidationNeeded: advice_kit_api.AdviceDefinitionStatusValidationNeeded{
-				Description: advice_kit_api.AdviceDefinitionStatusValidationNeededDescription{
-					Summary: ReadAdviceFile(ReadinessProbeContent, "readiness_probe/validation_needed.md"),
-				},
-				Validation: nil,
 			},
 		},
 	}
