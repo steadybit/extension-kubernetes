@@ -17,18 +17,10 @@
 		{
 			"steps": [
 				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "20s"
-					},
-					"customLabel": "Wait for pod's unhealthiness"
-				},
-				{
 					"type": "action",
 					"ignoreFailure": false,
 					"parameters": {
-						"duration": "60s",
+						"duration": "80s",
 						"podCountCheckMode": "podCountLessThanDesiredCount"
 					},
 					"customLabel": "One pod is detected unhealthy and restarted",
