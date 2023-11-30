@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -59,6 +60,27 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 						Name:            "nginx",
 						Image:           "nginx",
 						ImagePullPolicy: "Always",
+						Resources: v1.ResourceRequirements{
+							Limits: v1.ResourceList{
+								v1.ResourceCPU: *resource.NewQuantity(1, resource.BinarySI),
+							},
+							Requests: v1.ResourceList{
+								v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
+							},
+						},
+					},
+					{
+						Name:            "shop",
+						Image:           "shop-container",
+						ImagePullPolicy: "Always",
+						Resources: v1.ResourceRequirements{
+							Limits: v1.ResourceList{
+								v1.ResourceMemory: *resource.NewQuantity(750, resource.DecimalSI),
+							},
+							Requests: v1.ResourceList{
+								v1.ResourceCPU: *resource.NewQuantity(500, resource.BinarySI),
+							},
+						},
 					},
 				},
 			},
@@ -132,24 +154,26 @@ func Test_getDiscoveredDeployments(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, DeploymentTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
-		"host.hostname":                                {"worker-1"},
-		"k8s.namespace":                                {"default"},
-		"k8s.deployment":                               {"shop"},
-		"k8s.deployment.label.best-city":               {"Kevelaer"},
-		"k8s.label.best-city":                          {"Kevelaer"},
-		"k8s.deployment.hpa.existent":                  {"true"},
-		"k8s.deployment.min-ready-seconds":             {"10"},
-		"k8s.deployment.replicas":                      {"3"},
-		"k8s.deployment.strategy":                      {"RollingUpdate"},
-		"k8s.cluster-name":                             {"development"},
-		"k8s.pod.name":                                 {"shop-pod"},
-		"k8s.container.id":                             {"crio://abcdef"},
-		"k8s.container.id.stripped":                    {"abcdef"},
-		"k8s.distribution":                             {"kubernetes"},
-		"k8s.container.spec.name.limit.cpu.not-set":    {"nginx"},
-		"k8s.container.spec.name.limit.memory.not-set": {"nginx"},
-		"k8s.container.probes.liveness.not-set":        {"nginx"},
-		"k8s.container.probes.readiness.not-set":       {"nginx"},
+		"host.hostname":                                  {"worker-1"},
+		"k8s.namespace":                                  {"default"},
+		"k8s.deployment":                                 {"shop"},
+		"k8s.deployment.label.best-city":                 {"Kevelaer"},
+		"k8s.label.best-city":                            {"Kevelaer"},
+		"k8s.deployment.hpa.existent":                    {"true"},
+		"k8s.deployment.min-ready-seconds":               {"10"},
+		"k8s.deployment.replicas":                        {"3"},
+		"k8s.deployment.strategy":                        {"RollingUpdate"},
+		"k8s.cluster-name":                               {"development"},
+		"k8s.pod.name":                                   {"shop-pod"},
+		"k8s.container.id":                               {"crio://abcdef"},
+		"k8s.container.id.stripped":                      {"abcdef"},
+		"k8s.distribution":                               {"kubernetes"},
+		"k8s.container.spec.name.limit.cpu.not-set":      {"shop"},
+		"k8s.container.spec.name.limit.memory.not-set":   {"nginx"},
+		"k8s.container.spec.name.request.cpu.not-set":    {"nginx"},
+		"k8s.container.spec.name.request.memory.not-set": {"shop"},
+		"k8s.container.probes.liveness.not-set":          {"nginx", "shop"},
+		"k8s.container.probes.readiness.not-set":         {"nginx", "shop"},
 	}, target.Attributes)
 }
 

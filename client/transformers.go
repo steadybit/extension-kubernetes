@@ -47,7 +47,6 @@ func transformPod(i interface{}) (interface{}, error) {
 			newContainer.LivenessProbe = container.LivenessProbe
 			newContainer.ReadinessProbe = container.ReadinessProbe
 			newContainer.Resources = container.Resources
-			newContainer.Resources.Requests = nil
 			newContainer.Resources.Claims = nil
 			newPodSpec.Containers[index] = newContainer
 		}

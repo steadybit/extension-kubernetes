@@ -120,6 +120,8 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 			var hostnames []string
 			var containerNamesWithoutLimitCPU []string
 			var containerNamesWithoutLimitMemory []string
+			var containerNamesWithoutRequestCPU []string
+			var containerNamesWithoutRequestMemory []string
 			var containerWithoutLivenessProbe []string
 			var containerWithoutReadinessProbe []string
 			var containerWithLatestTag []string
@@ -140,6 +142,12 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 					}
 					if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
 						containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
+					}
+					if containerSpec.Resources.Requests.Cpu().MilliValue() == 0 {
+						containerNamesWithoutRequestCPU = append(containerNamesWithoutRequestCPU, containerSpec.Name)
+					}
+					if containerSpec.Resources.Requests.Memory().MilliValue() == 0 {
+						containerNamesWithoutRequestMemory = append(containerNamesWithoutRequestMemory, containerSpec.Name)
 					}
 					if containerSpec.LivenessProbe == nil {
 						containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
@@ -170,6 +178,12 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 			}
 			if len(containerNamesWithoutLimitMemory) > 0 {
 				attributes["k8s.container.spec.name.limit.memory.not-set"] = containerNamesWithoutLimitMemory
+			}
+			if len(containerNamesWithoutRequestCPU) > 0 {
+				attributes["k8s.container.spec.name.request.cpu.not-set"] = containerNamesWithoutRequestCPU
+			}
+			if len(containerNamesWithoutRequestMemory) > 0 {
+				attributes["k8s.container.spec.name.request.memory.not-set"] = containerNamesWithoutRequestMemory
 			}
 			if len(containerWithoutLivenessProbe) > 0 {
 				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
