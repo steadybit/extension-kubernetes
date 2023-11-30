@@ -11,10 +11,10 @@ var CpuLimitContent embed.FS
 //go:embed memory_limit/*
 var MemoryLimitContent embed.FS
 
-//go:embed cpu_limit/*
+//go:embed cpu_request/*
 var CpuRequestContent embed.FS
 
-//go:embed memory_limit/*
+//go:embed memory_request/*
 var MemoryRequestContent embed.FS
 
 //go:embed deployment_strategy/*
