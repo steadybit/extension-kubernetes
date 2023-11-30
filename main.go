@@ -157,6 +157,18 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/k8s-memory-limit",
 			})
 		}
+		if adviceId == "*" || adviceId == extadvice.CpuRequestID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/advice/k8s-cpu-request",
+			})
+		}
+		if adviceId == "*" || adviceId == extadvice.MemoryRequestID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/advice/k8s-memory-request",
+			})
+		}
 		if adviceId == "*" || adviceId == extadvice.HorizontalPodAutoscalerID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
