@@ -160,7 +160,7 @@ func GetAdviceDescriptionCPULimit() advice_kit_api.AdviceDefinition {
 		AssessmentQueryApplicable: "target.type=\"" + extdaemonset.DaemonSetTargetType + "\" OR target.type=\"" + extdeployment.DeploymentTargetType + "\" OR target.type=\"" + extstatefulset.StatefulSetTargetType + "\"",
 		Status: advice_kit_api.AdviceDefinitionStatus{
 			ActionNeeded: advice_kit_api.AdviceDefinitionStatusActionNeeded{
-				AssessmentQuery: "k8s.container.spec.name.limit.cpu.not-set IS PRESENT",
+				AssessmentQuery: "k8s.container.spec.limit.cpu.not-set IS PRESENT",
 				Description: advice_kit_api.AdviceDefinitionStatusActionNeededDescription{
 					Instruction: ReadAdviceFile(CpuLimitContent, "cpu_limit/instructions.md"),
 					Motivation:  ReadAdviceFile(CpuLimitContent, "cpu_limit/motivation.md"),
@@ -200,7 +200,7 @@ func GetAdviceDescriptionCPURequest() advice_kit_api.AdviceDefinition {
 		AssessmentQueryApplicable: "target.type=\"" + extdaemonset.DaemonSetTargetType + "\" OR target.type=\"" + extdeployment.DeploymentTargetType + "\" OR target.type=\"" + extstatefulset.StatefulSetTargetType + "\"",
 		Status: advice_kit_api.AdviceDefinitionStatus{
 			ActionNeeded: advice_kit_api.AdviceDefinitionStatusActionNeeded{
-				AssessmentQuery: "k8s.container.spec.name.request.cpu.not-set IS PRESENT",
+				AssessmentQuery: "k8s.container.spec.request.cpu.not-set IS PRESENT",
 				Description: advice_kit_api.AdviceDefinitionStatusActionNeededDescription{
 					Instruction: ReadAdviceFile(CpuRequestContent, "cpu_request/instructions.md"),
 					Motivation:  ReadAdviceFile(CpuRequestContent, "cpu_request/motivation.md"),
@@ -372,7 +372,7 @@ func GetAdviceDescriptionMemoryLimit() advice_kit_api.AdviceDefinition {
 
 		Status: advice_kit_api.AdviceDefinitionStatus{
 			ActionNeeded: advice_kit_api.AdviceDefinitionStatusActionNeeded{
-				AssessmentQuery: "k8s.container.spec.name.limit.memory.not-set IS PRESENT",
+				AssessmentQuery: "k8s.container.spec.limit.memory.not-set IS PRESENT",
 				Description: advice_kit_api.AdviceDefinitionStatusActionNeededDescription{
 					Instruction: ReadAdviceFile(MemoryLimitContent, "memory_limit/instructions.md"),
 					Motivation:  ReadAdviceFile(MemoryLimitContent, "memory_limit/motivation.md"),
@@ -412,7 +412,7 @@ func GetAdviceDescriptionMemoryRequest() advice_kit_api.AdviceDefinition {
 		AssessmentQueryApplicable: "target.type=\"" + extdaemonset.DaemonSetTargetType + "\" OR target.type=\"" + extdeployment.DeploymentTargetType + "\" OR target.type=\"" + extstatefulset.StatefulSetTargetType + "\"",
 		Status: advice_kit_api.AdviceDefinitionStatus{
 			ActionNeeded: advice_kit_api.AdviceDefinitionStatusActionNeeded{
-				AssessmentQuery: "k8s.container.spec.name.request.memory.not-set IS PRESENT",
+				AssessmentQuery: "k8s.container.spec.request.memory.not-set IS PRESENT",
 				Description: advice_kit_api.AdviceDefinitionStatusActionNeededDescription{
 					Instruction: ReadAdviceFile(MemoryRequestContent, "memory_request/instructions.md"),
 					Motivation:  ReadAdviceFile(MemoryRequestContent, "memory_request/motivation.md"),

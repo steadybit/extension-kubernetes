@@ -185,16 +185,16 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 				attributes["host.hostname"] = hostnames
 			}
 			if len(containerNamesWithoutLimitCPU) > 0 {
-				attributes["k8s.container.spec.name.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
+				attributes["k8s.container.spec.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
 			}
 			if len(containerNamesWithoutLimitMemory) > 0 {
-				attributes["k8s.container.spec.name.limit.memory.not-set"] = containerNamesWithoutLimitMemory
+				attributes["k8s.container.spec.limit.memory.not-set"] = containerNamesWithoutLimitMemory
 			}
 			if len(containerNamesWithoutRequestCPU) > 0 {
-				attributes["k8s.container.spec.name.request.cpu.not-set"] = containerNamesWithoutRequestCPU
+				attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
 			}
 			if len(containerNamesWithoutRequestMemory) > 0 {
-				attributes["k8s.container.spec.name.request.memory.not-set"] = containerNamesWithoutRequestMemory
+				attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
 			}
 			if len(containerWithLatestTag) > 0 {
 				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag

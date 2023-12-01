@@ -129,22 +129,22 @@ func Test_getDiscoveredStatefulSets(t *testing.T) {
 	assert.Equal(t, "shop", target.Label)
 	assert.Equal(t, StatefulSetTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
-		"host.hostname":                                  {"worker-1"},
-		"k8s.namespace":                                  {"default"},
-		"k8s.statefulset":                                {"shop"},
-		"k8s.label.best-city":                            {"Kevelaer"},
-		"k8s.deployment.hpa.existent":                    {"false"},
-		"k8s.cluster-name":                               {"development"},
-		"k8s.pod.name":                                   {"shop-pod"},
-		"k8s.container.id":                               {"crio://abcdef"},
-		"k8s.container.id.stripped":                      {"abcdef"},
-		"k8s.distribution":                               {"kubernetes"},
-		"k8s.container.spec.name.limit.cpu.not-set":      {"shop"},
-		"k8s.container.spec.name.limit.memory.not-set":   {"nginx"},
-		"k8s.container.spec.name.request.cpu.not-set":    {"nginx"},
-		"k8s.container.spec.name.request.memory.not-set": {"shop"},
-		"k8s.container.probes.liveness.not-set":          {"nginx", "shop"},
-		"k8s.container.probes.readiness.not-set":         {"nginx", "shop"},
+		"host.hostname":                             {"worker-1"},
+		"k8s.namespace":                             {"default"},
+		"k8s.statefulset":                           {"shop"},
+		"k8s.label.best-city":                       {"Kevelaer"},
+		"k8s.deployment.hpa.existent":               {"false"},
+		"k8s.cluster-name":                          {"development"},
+		"k8s.pod.name":                              {"shop-pod"},
+		"k8s.container.id":                          {"crio://abcdef"},
+		"k8s.container.id.stripped":                 {"abcdef"},
+		"k8s.distribution":                          {"kubernetes"},
+		"k8s.container.spec.limit.cpu.not-set":      {"shop"},
+		"k8s.container.spec.limit.memory.not-set":   {"nginx"},
+		"k8s.container.spec.request.cpu.not-set":    {"nginx"},
+		"k8s.container.spec.request.memory.not-set": {"shop"},
+		"k8s.container.probes.liveness.not-set":     {"nginx", "shop"},
+		"k8s.container.probes.readiness.not-set":    {"nginx", "shop"},
 	}, target.Attributes)
 }
 
