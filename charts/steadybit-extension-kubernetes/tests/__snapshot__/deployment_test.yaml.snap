@@ -17,6 +17,7 @@ manifest should match snapshot using podAnnotations and Labels:
       template:
         metadata:
           annotations:
+            oneagent.dynatrace.com/injection: "false"
             some-annotation: some-annotation-value
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
@@ -94,7 +95,8 @@ manifest should match snapshot with TLS:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -181,7 +183,8 @@ manifest should match snapshot with attribute excluded:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -269,7 +272,8 @@ manifest should match snapshot with clusterName from parent chart:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -345,7 +349,8 @@ manifest should match snapshot with disabled excludes:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -423,7 +428,8 @@ manifest should match snapshot with extra env vars:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -507,7 +513,8 @@ manifest should match snapshot with extra labels:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -584,7 +591,8 @@ manifest should match snapshot with mutual TLS:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -680,7 +688,8 @@ manifest should match snapshot with mutual TLS using containerPaths:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -762,7 +771,8 @@ manifest should match snapshot with podSecurityContext:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -840,7 +850,8 @@ manifest should match snapshot with priority class:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
@@ -917,7 +928,8 @@ manifest should match snapshot without TLS:
           app.kubernetes.io/name: steadybit-extension-kubernetes
       template:
         metadata:
-          annotations: null
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
           labels:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/name: steadybit-extension-kubernetes
