@@ -10,7 +10,6 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/extconfig"
-	"time"
 )
 
 type clusterDiscovery struct {
@@ -21,12 +20,7 @@ var (
 )
 
 func NewClusterDiscovery() discovery_kit_sdk.TargetDiscovery {
-	discovery := &clusterDiscovery{}
-	return discovery_kit_sdk.NewCachedTargetDiscovery(
-		discovery,
-		discovery_kit_sdk.WithRefreshTargetsNow(),
-		discovery_kit_sdk.WithRefreshTargetsInterval(context.Background(), 60*time.Second),
-	)
+	return &clusterDiscovery{}
 }
 
 func (c *clusterDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
@@ -34,7 +28,7 @@ func (c *clusterDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 		Id:         ClusterTargetType,
 		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("5m"),
+			CallInterval: extutil.Ptr("60m"),
 		},
 	}
 }

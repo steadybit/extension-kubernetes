@@ -19,6 +19,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extadvice"
 	"github.com/steadybit/extension-kubernetes/extcluster"
+	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/steadybit/extension-kubernetes/extcontainer"
 	"github.com/steadybit/extension-kubernetes/extdaemonset"
@@ -102,7 +103,7 @@ func main() {
 		action_kit_sdk.RegisterAction(extevents.NewK8sEventsAction())
 	}
 
-	discovery_kit_sdk.Register(extdeployment.NewAttributeDescriber())
+	discovery_kit_sdk.Register(extcommon.NewAttributeDescriber())
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 

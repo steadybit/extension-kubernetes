@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2022 Steadybit GmbH
 
-package extdeployment
+package extcommon
 
 import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
