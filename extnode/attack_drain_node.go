@@ -74,6 +74,7 @@ func drainNode() extcommon.KubectlOptsProvider {
 			"kubectl",
 			"uncordon",
 			nodeName,
+			"--ignore-not-found",
 		}
 
 		return &extcommon.KubectlOpts{

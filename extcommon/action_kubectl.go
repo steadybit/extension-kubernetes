@@ -208,14 +208,12 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 
 	// remove cmd state and read remaining stdout
 	cmdState, err := extcmd.GetCmdState(state.CmdStateID)
-	if err != nil {
-		return nil, extension_kit.ToError("Failed to find command state", err)
+	if err == nil {
+		extcmd.RemoveCmdState(state.CmdStateID)
+		// read Stout and log it
+		stdOut := cmdState.GetLines(true)
+		stdOutToLog(stdOut, state.Opts)
 	}
-	extcmd.RemoveCmdState(state.CmdStateID)
-
-	// read Stout and log it
-	stdOut := cmdState.GetLines(true)
-	stdOutToLog(stdOut, state.Opts)
 
 	// rollback action
 	if state.Opts.RollbackCommand != nil {
@@ -224,10 +222,10 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 			Msgf("Rollback %s with command '%s'", state.Opts.LogActionName, strings.Join(*state.Opts.RollbackCommand, " "))
 
 		cmd := exec.Command((*state.Opts.RollbackCommand)[0], (*state.Opts.RollbackCommand)[1:]...)
-		output, err := cmd.CombinedOutput()
+		output, rollbackErr := cmd.CombinedOutput()
 
-		if err != nil {
-			return nil, extension_kit.ToError(fmt.Sprintf("Failed to rollback %s: %s", state.Opts.LogActionName, string(output)), err)
+		if rollbackErr != nil {
+			return nil, extension_kit.ToError(fmt.Sprintf("Failed to rollback %s: %s", state.Opts.LogActionName, string(output)), rollbackErr)
 		}
 		log.Debug().
 			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
