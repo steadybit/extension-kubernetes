@@ -216,7 +216,7 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 		stdOutToLog(stdOut, state.Opts)
 	}
 
-	rollbackRequired := true
+	performRollback := true
 	if state.Opts.RollbackPreconditionCommand != nil {
 		log.Info().
 			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
@@ -225,14 +225,13 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 		output, rollbackPreconditionErr := cmd.CombinedOutput()
 		log.Debug().Msgf("Rollback precondition output: %s", string(output))
 		if rollbackPreconditionErr != nil {
-			rollbackRequired = true
-		} else {
 			log.Info().Msgf("Rollback precondition failed. Skip rollback for %s.", state.Opts.LogActionName)
+			performRollback = false
 		}
 	}
 
 	// rollback action
-	if rollbackRequired && state.Opts.RollbackCommand != nil {
+	if performRollback && state.Opts.RollbackCommand != nil {
 		log.Info().
 			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
 			Msgf("Rollback %s with command '%s'", state.Opts.LogActionName, strings.Join(*state.Opts.RollbackCommand, " "))
