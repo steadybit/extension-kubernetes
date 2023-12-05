@@ -70,19 +70,26 @@ func drainNode() extcommon.KubectlOptsProvider {
 			"--ignore-daemonsets",
 			"--force"}
 
+		rollbackPreconditionCommand := []string{
+			"kubectl",
+			"get",
+			"node",
+			nodeName,
+		}
+
 		rollbackCommand := []string{
 			"kubectl",
 			"uncordon",
 			nodeName,
-			"--ignore-not-found",
 		}
 
 		return &extcommon.KubectlOpts{
-			Command:         command,
-			RollbackCommand: &rollbackCommand,
-			LogTargetType:   "node",
-			LogTargetName:   nodeName,
-			LogActionName:   "drain node",
+			Command:                     command,
+			RollbackPreconditionCommand: &rollbackPreconditionCommand,
+			RollbackCommand:             &rollbackCommand,
+			LogTargetType:               "node",
+			LogTargetName:               nodeName,
+			LogActionName:               "drain node",
 		}, nil
 	}
 }

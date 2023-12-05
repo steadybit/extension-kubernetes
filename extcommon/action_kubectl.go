@@ -21,11 +21,12 @@ import (
 // - if the action does not define a duration, the action is stopped after the command has completed
 
 type KubectlOpts struct {
-	Command         []string  `json:"command"`
-	RollbackCommand *[]string `json:"rollbackCommand,omitempty"`
-	LogTargetType   string    `json:"targetType"`
-	LogTargetName   string    `json:"targetName"`
-	LogActionName   string    `json:"actionName"`
+	Command                     []string  `json:"command"`
+	RollbackPreconditionCommand *[]string `json:"rollbackPreconditionCommand,omitempty"`
+	RollbackCommand             *[]string `json:"rollbackCommand,omitempty"`
+	LogTargetType               string    `json:"targetType"`
+	LogTargetName               string    `json:"targetName"`
+	LogActionName               string    `json:"actionName"`
 }
 
 type KubectlActionState struct {
@@ -215,8 +216,23 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 		stdOutToLog(stdOut, state.Opts)
 	}
 
+	rollbackRequired := true
+	if state.Opts.RollbackPreconditionCommand != nil {
+		log.Info().
+			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
+			Msgf("Check if Rollback for %s is required with command '%s'", state.Opts.LogActionName, strings.Join(*state.Opts.RollbackPreconditionCommand, " "))
+		cmd := exec.Command((*state.Opts.RollbackPreconditionCommand)[0], (*state.Opts.RollbackPreconditionCommand)[1:]...)
+		output, rollbackPreconditionErr := cmd.CombinedOutput()
+		log.Debug().Msgf("Rollback precondition output: %s", string(output))
+		if rollbackPreconditionErr != nil {
+			rollbackRequired = true
+		} else {
+			log.Info().Msgf("Rollback precondition failed. Skip rollback for %s.", state.Opts.LogActionName)
+		}
+	}
+
 	// rollback action
-	if state.Opts.RollbackCommand != nil {
+	if rollbackRequired && state.Opts.RollbackCommand != nil {
 		log.Info().
 			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
 			Msgf("Rollback %s with command '%s'", state.Opts.LogActionName, strings.Join(*state.Opts.RollbackCommand, " "))
