@@ -1,9 +1,9 @@
-I *confirm* that the requested CPU resources are reasonable to avoid overcommitment of resources and optimize the scheduling of workload resources.
+I *confirm* that the requested memory resources are reasonable to avoid overcommitment of resources and optimize the scheduling of workload resources.
 
 ## What's the Risk?
-Requesting a reasonable amount of CPU might be difficult and is always a tradeoff.
-Setting the requested CPU too low may lead to starvation and the container not getting needed CPU cycles.
-Setting the requested CPU too high may lead to inefficiency and extra CPUs.
+Requesting a reasonable amount of memory might be difficult and is always a tradeoff.
+Setting the requested memory too low may lead to Kubernetes killing the container.
+Setting the requested memory too high may lead to inefficiency and extra memory.
 In addition, the value may depend on the criticality of your Kubernetes resources.
 
 ## How to Identify Proper Values?
