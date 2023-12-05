@@ -168,6 +168,10 @@ func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []stri
 			log.Debug().Msgf("Container %s in pod %s not found. Skipping.", containerName, podName)
 			return nil
 		}
+		if strings.Contains(string(out), "failed to load task") {
+			log.Debug().Msgf("Container %s in pod %s not found (failed to load task). Skipping.", containerName, podName)
+			return nil
+		}
 
 		return fmt.Errorf("failed to kill container %s in pod %s, %w: %s", containerName, podName, err, out)
 	}
