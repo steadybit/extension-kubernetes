@@ -15,12 +15,12 @@ spec:
       args:
         - /server
   % startHighlight %
-    	livenessProbe:
-				httpGet:
-					path: /health
-					port: 8080
-				initialDelaySeconds: 3
-				periodSeconds: 3
+    livenessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 3
+    periodSeconds: 3
   % endHighlight %
 ```
 

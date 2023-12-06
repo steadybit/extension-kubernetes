@@ -8,7 +8,7 @@ spec:
     - name:  ${target.steadybit.label}
       image: images.my-company.example/app:v4
 % startHighlight %
-			imagePullPolicy: Always
+      imagePullPolicy: Always
 % endHighlight %
 
 ```
