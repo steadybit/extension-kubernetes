@@ -15,14 +15,14 @@ spec:
 % startHighlight %
     affinity:
       podAntiAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        - labelSelector:
-        matchExpressions:
-          - key: app
-          operator: In
-          values:
-            - example
-        topologyKey: "topology.kubernetes.io/zone"
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - example
+            topologyKey: "topology.kubernetes.io/zone"
 % endHighlight %
     containers:
       - name: ${target.steadybit.label}

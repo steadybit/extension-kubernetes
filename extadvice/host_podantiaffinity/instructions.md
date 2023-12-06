@@ -17,12 +17,12 @@ spec:
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
-            matchExpressions:
-              - key: app
-                operator: In
-                values:
-                  - example
-                topologyKey: "kubernetes.io/hostname"
+              matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - example
+            topologyKey: "kubernetes.io/hostname"
 % endHighlight %
     containers:
       - name: ${target.steadybit.label}
