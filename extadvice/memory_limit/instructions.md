@@ -6,16 +6,16 @@ kind: Pod
 metadata:
 spec:
   containers:
-  - name: ${target.steadybit.label}
-    image: images.my-company.example/app:v4
-    resources:
-      requests:
-        memory: "64Mi"
-        cpu: "250m"
+    - name: ${target.steadybit.label}
+      image: images.my-company.example/app:v4
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "250m"
 % startHighlight %
-      limits:
-        memory: "128Mi"
-        cpu: "500m"
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
 % endHighlight %
 ```
 

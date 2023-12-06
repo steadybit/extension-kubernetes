@@ -4,27 +4,27 @@ Schedule Kubernetes nodes in different availability zones and configure a `podAn
 apiVersion: apps/v1
 kind: Deployment
 spec:
-	selector:
-		matchLabels:
-			app: example
-	template:
-		metadata:
-			labels:
-				app: example
-  	spec:
+  selector:
+    matchLabels:
+      app: example
+  template:
+    metadata:
+      labels:
+        app: example
+      spec:
 % startHighlight %
-			affinity:
-  			podAntiAffinity:
-					requiredDuringSchedulingIgnoredDuringExecution:
-							- labelSelector:
-								matchExpressions:
-									- key: app
-										operator: In
-										values:
-											- example
-								topologyKey: "topology.kubernetes.io/zone"
+      affinity:
+        podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+          matchExpressions:
+            - key: app
+            operator: In
+            values:
+              - example
+          topologyKey: "topology.kubernetes.io/zone"
 % endHighlight %
-      containers:
-      - name: ${target.steadybit.label}
-			image: images.my-company.example/app:v4
+          containers:
+            - name: ${target.steadybit.label}
+      image: images.my-company.example/app:v4
 ```
