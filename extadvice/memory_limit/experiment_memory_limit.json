@@ -1,5 +1,5 @@
 {
-  "name": "Memory Overload of ${target.steadybit.label}",
+	"name": "Memory Overload of ${target.steadybit.label}",
 	"hypothesis": "In case of a memory overload of ${target.steadybit.label}, all Kubernetes resources work properly, fail gracefully, are restarted, or at least one monitor alert.",
 	"lanes": [
 		{
@@ -84,5 +84,5 @@
 				}
 			]
 		}
-	],
+	]
 }
