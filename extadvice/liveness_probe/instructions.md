@@ -14,14 +14,14 @@ spec:
       image: k8s.gcr.io/liveness
       args:
         - /server
-  % startHighlight %
-    livenessProbe:
-    httpGet:
-      path: /health
-      port: 8080
-    initialDelaySeconds: 3
-    periodSeconds: 3
-  % endHighlight %
+% startHighlight %
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8080
+        initialDelaySeconds: 3
+        periodSeconds: 3
+% endHighlight %
 ```
 
 ### Read More

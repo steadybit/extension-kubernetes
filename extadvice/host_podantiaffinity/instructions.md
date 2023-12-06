@@ -11,22 +11,22 @@ spec:
     metadata:
       labels:
         app: example
-    spec:
-  % startHighlight %
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-              matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                    - example
-                  topologyKey: "kubernetes.io/hostname"
-  % endHighlight %
-      containers:
-        - name: ${target.steadybit.label}
-          image: images.my-company.example/app:v4
+  spec:
+% startHighlight %
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - example
+                topologyKey: "kubernetes.io/hostname"
+% endHighlight %
+    containers:
+      - name: ${target.steadybit.label}
+        image: images.my-company.example/app:v4
 ```
 
 ### Read More

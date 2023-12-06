@@ -15,14 +15,14 @@ spec:
       image: k8s.gcr.io/readiness
       args:
         - /server
-  % startHighlight %
-    readinessProbe:
-    httpGet:
-      path: /health
-      port: 8080
-    initialDelaySeconds: 3
-    periodSeconds: 3
-  % endHighlight %
+% startHighlight %
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 8080
+        initialDelaySeconds: 3
+        periodSeconds: 3
+% endHighlight %
 ```
 
 ### Read More

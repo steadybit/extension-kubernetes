@@ -9,7 +9,6 @@ spec:
   % startHighlight %
       image: images.my-company.example/app:v4
   % endHighlight %
-
 ```
 
 ### Read More
