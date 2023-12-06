@@ -1,2 +1,4 @@
-When Kubernetes redeploys ${target.steadybit.label}, it can't determine when a container is ready to accept incoming requests.
-Your Kubernetes pod ${target.steadybit.label} may receive requests before being able to handle them properly.
+When Kubernetes redeploys ${target.steadybit.label}, it can't determine when the following container are ready to accept incoming requests.
+They may receive requests before being able to handle them properly.
+
+**Container affected:** ${k8s.container.probes.readiness.not-set[]}
