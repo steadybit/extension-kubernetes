@@ -4,7 +4,7 @@ Make sure that the `deploymentStrategyType` is set to `RollingUpdate`.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${target.steadybit.label}
+  name: ${target.steadybit.label:normal}
 spec:
   replicas: 5
   % startHighlight %

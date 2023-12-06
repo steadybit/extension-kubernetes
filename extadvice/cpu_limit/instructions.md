@@ -6,7 +6,7 @@ kind: Pod
 metadata:
 spec:
   containers:
-    - name: ${target.steadybit.label}
+    - name: ${target.steadybit.label:normal}
       image: images.my-company.example/app:v4
       resources:
         requests:

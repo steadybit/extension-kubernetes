@@ -5,7 +5,7 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-    - name: ${target.steadybit.label}
+    - name: ${target.steadybit.label:normal}
       image: images.my-company.example/app:v4
 % startHighlight %
       imagePullPolicy: Always

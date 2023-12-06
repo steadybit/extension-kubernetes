@@ -6,7 +6,7 @@ kind: ReplicaSet
 metadata:
   name: frontend
   labels:
-    name: ${target.steadybit.label}
+    name: ${target.steadybit.label:normal}
 spec:
 % startHighlight %
   # modify replicas according to your case
@@ -14,6 +14,6 @@ spec:
 % endHighlight %
   selector:
     matchLabels:
-      tier: ${target.steadybit.label}
+      tier: ${target.steadybit.label:normal}
 ```
 **If you increase the replica we strongly advice you to check if this is supported by your application.**
