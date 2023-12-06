@@ -1,4 +1,4 @@
-Make sure that the ```deploymentStrategyType``` is set to ``RollingUpdate``.
+Make sure that the `deploymentStrategyType` is set to `RollingUpdate`.
 
 ```yaml
 apiVersion: apps/v1

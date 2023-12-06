@@ -1,4 +1,4 @@
-Specify ${target.steadybit.label}&apos;s requested memory by defining the ```requets``` property in your Kubernetes manifest.
+Specify ${target.steadybit.label}&apos;s requested memory by defining the `requets` property in your Kubernetes manifest.
 
 ```yaml
 apiVersion: v1

@@ -1,4 +1,4 @@
-Configure the ```podAntiAffinity``` properly to achieve spreading across multiple nodes, e.g.:
+Configure the `podAntiAffinity` properly to achieve spreading across multiple nodes, e.g.:
 
 ```yaml
 apiVersion: apps/v1

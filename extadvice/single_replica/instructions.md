@@ -1,4 +1,4 @@
-Change ```ReplicaSet``` to two (or more) in your Kubernetes configuration in order to increase the scheduling of additional pods. The availability of your service ${target.steadybit.label} will most likely improve.
+Change `ReplicaSet` to two (or more) in your Kubernetes configuration in order to increase the scheduling of additional pods. The availability of your service ${target.steadybit.label} will most likely improve.
 
 ```yaml
 apiVersion: apps/v1

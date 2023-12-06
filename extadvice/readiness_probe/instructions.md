@@ -1,4 +1,4 @@
-Specify the ```readinessProbe``` in your Kubernetes manifest appropriately for your type of application.
+Specify the `readinessProbe` in your Kubernetes manifest appropriately for your type of application.
 It can be as simple as an HTTP endpoint returning an HTTP status between 200 and 400 to indicate that the container running the application has started successfully.
 
 
