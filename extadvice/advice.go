@@ -435,7 +435,7 @@ func GetAdviceDescriptionMemoryRequest() advice_kit_api.AdviceDefinition {
 						Type:             "TEXT",
 						Name:             "Requested Memory resources are reasonable",
 						ShortDescription: "I confirm that the requested memory resources are reasonable to avoid overcommitment of resources and optimize scheduling of workload resources.",
-						Description:      extutil.Ptr(ReadAdviceFile(CpuRequestContent, "memory_request/validation_1_description.md")),
+						Description:      extutil.Ptr(ReadAdviceFile(MemoryRequestContent, "memory_request/validation_1_description.md")),
 					},
 				}),
 			},
