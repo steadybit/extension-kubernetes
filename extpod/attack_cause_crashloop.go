@@ -164,16 +164,29 @@ func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []stri
 	log.Info().Msgf("Killing container %s in pod %s with command '%s'", containerName, podName, strings.Join(cmd, " "))
 
 	if out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput(); err != nil {
-		if strings.Contains(string(out), "container not found") {
+		output := string(out)
+		if strings.Contains(output, "container not found") {
 			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Container not found. Skipping.")
 			return nil
 		}
-		if strings.Contains(string(out), "failed to load task") {
+		if strings.Contains(output, "container not created") {
+			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Container not created. Skipping.")
+			return nil
+		}
+		if strings.Contains(output, "failed to load task") {
 			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Failed to load taks. Skipping.")
 			return nil
 		}
-		if strings.Contains(string(out), "cannot exec in a stopped container") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Cannot exec in a stopped container. Skipping.")
+		if strings.Contains(output, "cannot exec in a stopped state") {
+			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Cannot exec in a stopped state. Skipping.")
+			return nil
+		}
+		if strings.Contains(output, "container is in CONTAINER_EXITED state") {
+			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Container is in CONTAINER_EXITED state. Skipping.")
+			return nil
+		}
+		if strings.Contains(output, "task") && strings.Contains(output, "not found") {
+			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Task not found. Skipping.")
 			return nil
 		}
 
