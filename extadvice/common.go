@@ -47,6 +47,9 @@ var SingleAwsZoneContent embed.FS
 //go:embed single_azure_zone/*
 var SingleAzureZoneContent embed.FS
 
+//go:embed single_gcp_zone/*
+var SingleGcpZoneContent embed.FS
+
 func ReadAdviceFile(fs embed.FS, fileName string) string {
 	fileContent, err := fs.ReadFile(fileName)
 	if err != nil {
