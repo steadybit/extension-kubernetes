@@ -181,6 +181,10 @@ func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []stri
 			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Cannot exec in a stopped state. Skipping.")
 			return nil
 		}
+		if strings.Contains(output, "cannot exec in a stopped container") {
+			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Cannot exec in a stopped container. Skipping.")
+			return nil
+		}
 		if strings.Contains(output, "container is in CONTAINER_EXITED state") {
 			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Container is in CONTAINER_EXITED state. Skipping.")
 			return nil
