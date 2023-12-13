@@ -22,3 +22,4 @@ jobs:
     secrets:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       PAT_TOKEN_EXTENSION_DEPLOYER: ${{ secrets.PAT_TOKEN_EXTENSION_DEPLOYER }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
