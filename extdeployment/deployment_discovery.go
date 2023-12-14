@@ -208,7 +208,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			if len(containerWithoutReadinessProbe) > 0 {
 				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
 			}
-			scoreAttributes := addKubeScoreAttributesDeployment(deployment)
+			scoreAttributes := getKubeScoreAttributesDeployment(deployment)
 			for key, value := range scoreAttributes {
 				attributes[key] = value
 			}
@@ -286,7 +286,7 @@ func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichment
 	}
 }
 
-func addKubeScoreAttributesDeployment(deployment *appsv1.Deployment) map[string][]string {
+func getKubeScoreAttributesDeployment(deployment *appsv1.Deployment) map[string][]string {
 	apiVersion := "apps/v1"
 	kind := "Deployment"
 	if deployment.APIVersion != "" {
@@ -295,5 +295,5 @@ func addKubeScoreAttributesDeployment(deployment *appsv1.Deployment) map[string]
 	if deployment.Kind != "" {
 		kind = deployment.Kind
 	}
-	return extcommon.AddKubeScoreAttributes(deployment, deployment.Namespace, deployment.Name, apiVersion, kind)
+	return extcommon.GetKubeScoreAttributes(deployment, deployment.Namespace, deployment.Name, apiVersion, kind)
 }

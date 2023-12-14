@@ -206,7 +206,7 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
 			}
 
-			scoreAttributes := addKubeScoreAttributesStatefulSet(sts)
+			scoreAttributes := getKubeScoreAttributesStatefulSet(sts)
 			for key, value := range scoreAttributes {
 				attributes[key] = value
 			}
@@ -253,7 +253,7 @@ func getStatefulSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmen
 	}
 }
 
-func addKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[string][]string {
+func getKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[string][]string {
 	apiVersion := "apps/v1"
 	kind := "Deployment"
 	if statefulSet.APIVersion != "" {
@@ -262,5 +262,5 @@ func addKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[stri
 	if statefulSet.Kind != "" {
 		kind = statefulSet.Kind
 	}
-	return extcommon.AddKubeScoreAttributes(statefulSet, statefulSet.Namespace, statefulSet.Name, apiVersion, kind)
+	return extcommon.GetKubeScoreAttributes(statefulSet, statefulSet.Namespace, statefulSet.Name, apiVersion, kind)
 }

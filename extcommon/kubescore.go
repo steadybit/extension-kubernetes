@@ -61,7 +61,7 @@ func getKubeScore(manifest string) (*scorecard.Scorecard, error) {
 	return scoreCard, nil
 }
 
-func AddKubeScoreAttributes(obj runtime.Object, namespace string, name string, apiVersion string, kind string) map[string][]string {
+func GetKubeScoreAttributes(obj runtime.Object, namespace string, name string, apiVersion string, kind string) map[string][]string {
 	attributes := make(map[string][]string)
 	manifestBuf := new(bytes.Buffer)
 	err := serializer.Encode(obj, manifestBuf)

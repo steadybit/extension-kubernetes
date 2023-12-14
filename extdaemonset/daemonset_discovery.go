@@ -198,7 +198,7 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
 			}
 
-			scoreAttributes := addKubeScoreAttributesDaemonSet(ds)
+			scoreAttributes := getKubeScoreAttributesDaemonSet(ds)
 			for key, value := range scoreAttributes {
 				attributes[key] = value
 			}
@@ -245,7 +245,7 @@ func getDaemonSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 	}
 }
 
-func addKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]string {
+func getKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]string {
 	apiVersion := "apps/v1"
 	kind := "Deployment"
 	if daemonSet.APIVersion != "" {
@@ -254,5 +254,5 @@ func addKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]s
 	if daemonSet.Kind != "" {
 		kind = daemonSet.Kind
 	}
-	return extcommon.AddKubeScoreAttributes(daemonSet, daemonSet.Namespace, daemonSet.Name, apiVersion, kind)
+	return extcommon.GetKubeScoreAttributes(daemonSet, daemonSet.Namespace, daemonSet.Name, apiVersion, kind)
 }
