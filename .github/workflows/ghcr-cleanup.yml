@@ -8,7 +8,5 @@ on:
 jobs:
   extension-ci:
     uses: steadybit/extension-kit/.github/workflows/reusable-ghcr-cleanup.yml@main
-    with:
-      dry_run: true
     secrets:
       token: ${{ secrets.GHCR_CLEANUP_PAT }}
