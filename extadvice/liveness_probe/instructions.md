@@ -5,12 +5,9 @@ It can be as simple as an HTTP endpoint returning an HTTP status between 200 and
 apiVersion: v1
 kind: Pod
 metadata:
-  labels:
-    test: liveness
-  name: liveness-http
 spec:
   containers:
-    - name: liveness
+    - name: example
       image: k8s.gcr.io/liveness
       args:
         - /server

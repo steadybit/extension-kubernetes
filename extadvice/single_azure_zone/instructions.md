@@ -25,6 +25,6 @@ spec:
             topologyKey: "topology.kubernetes.io/zone"
 % endHighlight %
     containers:
-      - name: ${target.steadybit.label:normal}
+      - name: example
         image: images.my-company.example/app:v4
 ```
