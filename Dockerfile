@@ -35,7 +35,7 @@ RUN make licenses-report
 ##
 ## Runtime
 ##
-FROM alpine:3.18
+FROM alpine:3.19
 
 LABEL "steadybit.com.discovery-disabled"="true"
 
