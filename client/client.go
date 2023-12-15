@@ -138,7 +138,7 @@ func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *ap
 }
 
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
-	services, err := c.service.lister.List(labels.Everything())
+	services, err := c.service.lister.Services(pod.Namespace).List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching services")
 		return []*corev1.Service{}
