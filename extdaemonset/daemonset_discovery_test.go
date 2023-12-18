@@ -173,7 +173,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 			}
 			if len(tt.expectedAttributesAbsence) > 0 {
 				for _, k := range tt.expectedAttributesAbsence {
-					assert.NotContains(t, target.Attributes, k)
+					assert.NotContains(t, target.Attributes, k, "attribute %s", k)
 				}
 			}
 		})

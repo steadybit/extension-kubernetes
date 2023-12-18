@@ -196,7 +196,7 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				for k, v := range tt.expectedAttributes {
 					attributeValues := target.Attributes[k]
 					sort.Strings(attributeValues)
-					assert.Equal(t, v, attributeValues)
+					assert.Equal(t, v, attributeValues, "attribute %s", k)
 				}
 			}
 			if len(tt.expectedAttributesAbsence) > 0 {

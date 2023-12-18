@@ -18,7 +18,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"reflect"
-	"strconv"
 	"time"
 )
 
@@ -119,7 +118,10 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		for key, value := range extcommon.GetPodTemplateBasedAttributes(d.k8s, &deployment.Namespace, &deployment.Spec.Template) {
 			attributes[key] = value
 		}
-		for key, value := range getKubescoreAttributes(d.k8s, deployment) {
+		kubesSoreAttributes := extcommon.GetKubeScoreForDeployment(deployment,
+			d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels),
+			d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name))
+		for key, value := range kubesSoreAttributes {
 			attributes[key] = value
 		}
 
@@ -131,21 +133,6 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		}
 	}
 	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDeployment), nil
-}
-
-func getKubescoreAttributes(client *client.Client, deployment *appsv1.Deployment) map[string][]string {
-	attributes := map[string][]string{}
-	kubeScoreResults := extcommon.GetKubeScoreForDeployment(
-		deployment,
-		client.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels),
-		client.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name),
-	)
-
-	checkId := "deployment-has-host-podantiaffinity"
-	if extcommon.HasCheckResult(kubeScoreResults, checkId) {
-		attributes["k8s.specification.has-host-podantiaffinity"] = []string{strconv.FormatBool(extcommon.IsCheckOk(kubeScoreResults, checkId))}
-	}
-	return attributes
 }
 
 func (d *deploymentDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {

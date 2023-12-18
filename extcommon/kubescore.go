@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"strconv"
 	"strings"
 )
 
@@ -35,7 +36,7 @@ type kubeScoreInput interface {
 	GetNamespace() string
 }
 
-func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service, hpa *autoscalingv1.HorizontalPodAutoscaler) *scorecard.ScoredObject {
+func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service, hpa *autoscalingv1.HorizontalPodAutoscaler) map[string][]string {
 	inputs := make([]kubeScoreInput, 0)
 	inputs = append(inputs, deployment)
 	for _, service := range services {
@@ -44,29 +45,98 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 	if hpa != nil {
 		inputs = append(inputs, hpa)
 	}
-	manifests := prepareManifests(inputs)
-	scoreCard := getKubeScoreCard(manifests)
-	return getScoredObject(scoreCard, deployment)
+
+	attributes := map[string][]string{}
+
+	scores := getScores(inputs)
+	addContainerResourceScores(scores, attributes)
+	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
+
+	return attributes
 }
-func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Service) *scorecard.ScoredObject {
+
+func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Service) map[string][]string {
 	inputs := make([]kubeScoreInput, 0)
 	inputs = append(inputs, daemonSet)
 	for _, service := range services {
 		inputs = append(inputs, service)
 	}
-	manifests := prepareManifests(inputs)
-	scoreCard := getKubeScoreCard(manifests)
-	return getScoredObject(scoreCard, daemonSet)
+
+	attributes := map[string][]string{}
+
+	scores := getScores(inputs)
+	addContainerResourceScores(scores, attributes)
+
+	return attributes
 }
-func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*corev1.Service) *scorecard.ScoredObject {
+
+func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*corev1.Service) map[string][]string {
 	inputs := make([]kubeScoreInput, 0)
 	inputs = append(inputs, statefulSet)
 	for _, service := range services {
 		inputs = append(inputs, service)
 	}
+	attributes := map[string][]string{}
+
+	scores := getScores(inputs)
+	addContainerResourceScores(scores, attributes)
+	addSimpleScore(scores, attributes, "statefulset-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
+
+	return attributes
+}
+
+func addContainerResourceScores(scores []scorecard.TestScore, attributes map[string][]string) {
+	score := getTestScore(scores, "container-resources")
+	if score != nil {
+		var containerNamesWithoutRequestCPU []string
+		var containerNamesWithoutLimitCPU []string
+		var containerNamesWithoutRequestMemory []string
+		var containerNamesWithoutLimitMemory []string
+		for _, comment := range score.Comments {
+			if comment.Summary == "CPU request is not set" {
+				containerNamesWithoutRequestCPU = append(containerNamesWithoutRequestCPU, comment.Path)
+			} else if comment.Summary == "CPU limit is not set" {
+				containerNamesWithoutLimitCPU = append(containerNamesWithoutLimitCPU, comment.Path)
+			} else if comment.Summary == "Memory request is not set" {
+				containerNamesWithoutRequestMemory = append(containerNamesWithoutRequestMemory, comment.Path)
+			} else if comment.Summary == "Memory limit is not set" {
+				containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, comment.Path)
+			}
+		}
+		if len(containerNamesWithoutLimitCPU) > 0 {
+			attributes["k8s.container.spec.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
+		}
+		if len(containerNamesWithoutLimitMemory) > 0 {
+			attributes["k8s.container.spec.limit.memory.not-set"] = containerNamesWithoutLimitMemory
+		}
+		if len(containerNamesWithoutRequestCPU) > 0 {
+			attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
+		}
+		if len(containerNamesWithoutRequestMemory) > 0 {
+			attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
+		}
+	}
+}
+
+func addSimpleScore(scores []scorecard.TestScore, attributes map[string][]string, checkId string, attribute string) {
+	score := getTestScore(scores, checkId)
+	if score != nil {
+		attributes[attribute] = []string{strconv.FormatBool(isCheckOk(score))}
+	}
+}
+
+func getScores(inputs []kubeScoreInput) []scorecard.TestScore {
 	manifests := prepareManifests(inputs)
 	scoreCard := getKubeScoreCard(manifests)
-	return getScoredObject(scoreCard, statefulSet)
+	if scoreCard == nil {
+		return []scorecard.TestScore{}
+	}
+	for _, scoredObject := range *scoreCard {
+		if (scoredObject.ObjectMeta.Name == inputs[0].GetName()) && (scoredObject.ObjectMeta.Namespace == inputs[0].GetNamespace() && scoredObject.TypeMeta.Kind == inputs[0].GetObjectKind().GroupVersionKind().Kind) {
+			return scoredObject.Checks
+		}
+	}
+	return []scorecard.TestScore{}
 }
 
 func prepareManifests(objects []kubeScoreInput) []ks.NamedReader {
@@ -90,8 +160,8 @@ func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
 	cnf := config.Configuration{
 		AllFiles:                              manifests,
 		VerboseOutput:                         0,
-		IgnoreContainerCpuLimitRequirement:    true,
-		IgnoreContainerMemoryLimitRequirement: true,
+		IgnoreContainerCpuLimitRequirement:    false,
+		IgnoreContainerMemoryLimitRequirement: false,
 		IgnoredTests:                          nil,
 		EnabledOptionalTests:                  nil,
 		UseIgnoreChecksAnnotation:             false,
@@ -116,44 +186,17 @@ func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
 	return scoreCard
 }
 
-func getScoredObject(scorecard *scorecard.Scorecard, object kubeScoreInput) *scorecard.ScoredObject {
-	if scorecard == nil {
-		return nil
-	}
-	for _, scoredObject := range *scorecard {
-		if (scoredObject.ObjectMeta.Name == object.GetName()) && (scoredObject.ObjectMeta.Namespace == object.GetNamespace() && scoredObject.TypeMeta.Kind == object.GetObjectKind().GroupVersionKind().Kind) {
-			return scoredObject
+func getTestScore(scores []scorecard.TestScore, checkId string) *scorecard.TestScore {
+	for _, check := range scores {
+		if check.Check.ID == checkId && !check.Skipped {
+			return &check
 		}
 	}
 	return nil
 }
 
-func HasCheckResult(scoreCard *scorecard.ScoredObject, checkId string) bool {
-	if scoreCard == nil {
-		return false
-	}
-	for _, check := range scoreCard.Checks {
-		if check.Check.ID == checkId && !check.Skipped {
-			return true
-		}
-	}
-	return false
-}
-
-func IsCheckOk(scoreCard *scorecard.ScoredObject, checkId string) bool {
-	if scoreCard == nil {
-		return false
-	}
-	for _, check := range scoreCard.Checks {
-		if check.Check.ID == checkId && !check.Skipped && gradePassedCheck(check) {
-			return gradePassedCheck(check)
-		}
-	}
-	return false
-}
-
-func gradePassedCheck(check scorecard.TestScore) bool {
-	switch check.Grade {
+func isCheckOk(score *scorecard.TestScore) bool {
+	switch score.Grade {
 	case scorecard.GradeCritical, scorecard.GradeWarning:
 		return false
 	case scorecard.GradeAlmostOK, scorecard.GradeAllOK:

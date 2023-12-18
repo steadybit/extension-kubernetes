@@ -52,27 +52,11 @@ func GetPodBasedAttributes(client *client.Client, objectMeta *metav1.ObjectMeta,
 }
 
 func GetPodTemplateBasedAttributes(client *client.Client, namespace *string, template *v1.PodTemplateSpec) map[string][]string {
-	var containerNamesWithoutLimitCPU []string
-	var containerNamesWithoutLimitMemory []string
-	var containerNamesWithoutRequestCPU []string
-	var containerNamesWithoutRequestMemory []string
 	var containerWithLatestTag []string
 	var containerWithoutImagePullPolicyAlways []string
 	var containerWithoutLivenessProbe []string
 	var containerWithoutReadinessProbe []string
 	for _, containerSpec := range template.Spec.Containers {
-		if containerSpec.Resources.Limits.Cpu().MilliValue() == 0 {
-			containerNamesWithoutLimitCPU = append(containerNamesWithoutLimitCPU, containerSpec.Name)
-		}
-		if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
-			containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
-		}
-		if containerSpec.Resources.Requests.Cpu().MilliValue() == 0 {
-			containerNamesWithoutRequestCPU = append(containerNamesWithoutRequestCPU, containerSpec.Name)
-		}
-		if containerSpec.Resources.Requests.Memory().MilliValue() == 0 {
-			containerNamesWithoutRequestMemory = append(containerNamesWithoutRequestMemory, containerSpec.Name)
-		}
 		if strings.HasSuffix(containerSpec.Image, "latest") {
 			containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
 		}
@@ -87,18 +71,6 @@ func GetPodTemplateBasedAttributes(client *client.Client, namespace *string, tem
 		}
 	}
 	attributes := map[string][]string{}
-	if len(containerNamesWithoutLimitCPU) > 0 {
-		attributes["k8s.container.spec.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
-	}
-	if len(containerNamesWithoutLimitMemory) > 0 {
-		attributes["k8s.container.spec.limit.memory.not-set"] = containerNamesWithoutLimitMemory
-	}
-	if len(containerNamesWithoutRequestCPU) > 0 {
-		attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
-	}
-	if len(containerNamesWithoutRequestMemory) > 0 {
-		attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
-	}
 	if len(containerWithLatestTag) > 0 {
 		attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
 	}
