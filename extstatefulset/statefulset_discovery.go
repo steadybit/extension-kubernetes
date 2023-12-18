@@ -18,6 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -117,8 +118,9 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 		for key, value := range extcommon.GetPodTemplateBasedAttributes(d.k8s, &sts.Namespace, &sts.Spec.Template) {
 			attributes[key] = value
 		}
-
-		//scoreAttributes := extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels))
+		for key, value := range getKubescoreAttributes(d.k8s, sts) {
+			attributes[key] = value
+		}
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
@@ -128,6 +130,20 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 		}
 	}
 	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesStatefulSet), nil
+}
+
+func getKubescoreAttributes(client *client.Client, statefulSet *appsv1.StatefulSet) map[string][]string {
+	attributes := map[string][]string{}
+	kubeScoreResults := extcommon.GetKubeScoreForStatefulSet(
+		statefulSet,
+		client.ServicesMatchingToPodLabels(statefulSet.Namespace, statefulSet.Spec.Template.Labels),
+	)
+
+	checkId := "statefulset-has-host-podantiaffinity"
+	if extcommon.HasCheckResult(kubeScoreResults, checkId) {
+		attributes["k8s.specification.has-host-podantiaffinity"] = []string{strconv.FormatBool(extcommon.IsCheckOk(kubeScoreResults, checkId))}
+	}
+	return attributes
 }
 
 func (d *statefulSetDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {

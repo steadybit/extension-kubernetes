@@ -39,16 +39,17 @@ func Test_statefulSetDiscovery(t *testing.T) {
 			})},
 			statefulSet: testStatefulSet(nil),
 			expectedAttributesExactly: map[string][]string{
-				"host.hostname":               {"worker-1", "worker-2"},
-				"k8s.namespace":               {"default"},
-				"k8s.statefulset":             {"shop"},
-				"k8s.label.best-city":         {"Kevelaer"},
-				"k8s.deployment.hpa.existent": {"false"},
-				"k8s.cluster-name":            {"development"},
-				"k8s.pod.name":                {"shop-pod-aaaaa", "shop-pod-bbbbb"},
-				"k8s.container.id":            {"crio://abcdef-aaaaa", "crio://abcdef-bbbbb"},
-				"k8s.container.id.stripped":   {"abcdef-aaaaa", "abcdef-bbbbb"},
-				"k8s.distribution":            {"kubernetes"},
+				"host.hostname":                              {"worker-1", "worker-2"},
+				"k8s.namespace":                              {"default"},
+				"k8s.statefulset":                            {"shop"},
+				"k8s.label.best-city":                        {"Kevelaer"},
+				"k8s.deployment.hpa.existent":                {"false"},
+				"k8s.cluster-name":                           {"development"},
+				"k8s.pod.name":                               {"shop-pod-aaaaa", "shop-pod-bbbbb"},
+				"k8s.container.id":                           {"crio://abcdef-aaaaa", "crio://abcdef-bbbbb"},
+				"k8s.container.id.stripped":                  {"abcdef-aaaaa", "abcdef-bbbbb"},
+				"k8s.distribution":                           {"kubernetes"},
+				"k8s.specification.has-host-podantiaffinity": {"false"},
 			},
 		},
 		{
@@ -66,6 +67,32 @@ func Test_statefulSetDiscovery(t *testing.T) {
 			service:     testService(nil),
 			expectedAttributes: map[string][]string{
 				"k8s.service.name": {"shop-kevelaer"},
+			},
+		},
+		{
+			name: "should detect host-podantiaffinity",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			statefulSet: testStatefulSet(func(statefulSet *appsv1.StatefulSet) {
+				statefulSet.Spec.Template.ObjectMeta.Labels = map[string]string{
+					"app": "foo",
+				}
+				statefulSet.Spec.Template.Spec.Affinity = &v1.Affinity{
+					PodAntiAffinity: &v1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+							{
+								TopologyKey: "kubernetes.io/hostname",
+								LabelSelector: &metav1.LabelSelector{
+									MatchLabels: map[string]string{
+										"app": "foo",
+									},
+								},
+							},
+						},
+					},
+				}
+			}),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-host-podantiaffinity": {"true"},
 			},
 		},
 		{
