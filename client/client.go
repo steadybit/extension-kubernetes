@@ -158,6 +158,27 @@ func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 	return result
 }
 
+func (c *Client) ServicesMatchingToPodLabels(namespace string, labelSelector map[string]string) []*corev1.Service {
+	services, err := c.service.lister.Services(namespace).List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching services")
+		return []*corev1.Service{}
+	}
+	var result []*corev1.Service
+	for _, service := range services {
+		match := service.Spec.Selector != nil
+		for key, value := range service.Spec.Selector {
+			if value != labelSelector[key] {
+				match = false
+			}
+		}
+		if match {
+			result = append(result, service)
+		}
+	}
+	return result
+}
+
 func (c *Client) DaemonSets() []*appsv1.DaemonSet {
 	daemonSets, err := c.daemonSet.lister.List(labels.Everything())
 	if err != nil {
@@ -295,7 +316,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	client.daemonSet.informer = daemonSets.Informer()
 	client.daemonSet.lister = daemonSets.Lister()
 	informerSyncList = append(informerSyncList, client.daemonSet.informer.HasSynced)
-	if err := client.daemonSet.informer.SetTransform(transformDaemonset); err != nil {
+	if err := client.daemonSet.informer.SetTransform(transformDaemonSet); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add daemonSet transformer")
 	}
 	if _, err := client.daemonSet.informer.AddEventHandler(client.resourceEventHandler); err != nil {

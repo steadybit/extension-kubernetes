@@ -2,15 +2,19 @@ package extcommon
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/zegl/kube-score/config"
 	ks "github.com/zegl/kube-score/domain"
 	"github.com/zegl/kube-score/parser"
 	"github.com/zegl/kube-score/score"
 	"github.com/zegl/kube-score/scorecard"
+	"io"
+	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"strconv"
 	"strings"
 )
 
@@ -23,17 +27,68 @@ var (
 			Strict: true,
 		},
 	)
-	checks = map[string]string{"deployment-has-host-podantiaffinity": "k8s.specification.has-host-podantiaffinity"}
 )
 
-func getKubeScore(manifest string) (*scorecard.Scorecard, error) {
+type kubeScoreInput interface {
+	runtime.Object
+	GetName() string
+	GetNamespace() string
+}
 
-	reader := &inputReader{
-		Reader: strings.NewReader(manifest),
+func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service, hpa *autoscalingv1.HorizontalPodAutoscaler) *scorecard.ScoredObject {
+	inputs := make([]kubeScoreInput, 0)
+	inputs = append(inputs, deployment)
+	for _, service := range services {
+		inputs = append(inputs, service)
 	}
+	if hpa != nil {
+		inputs = append(inputs, hpa)
+	}
+	manifests := prepareManifests(inputs)
+	scoreCard := getKubeScoreCard(manifests)
+	return getScoredObject(scoreCard, deployment)
+}
+func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Service) *scorecard.ScoredObject {
+	inputs := make([]kubeScoreInput, 0)
+	inputs = append(inputs, daemonSet)
+	for _, service := range services {
+		inputs = append(inputs, service)
+	}
+	manifests := prepareManifests(inputs)
+	scoreCard := getKubeScoreCard(manifests)
+	return getScoredObject(scoreCard, daemonSet)
+}
+func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*corev1.Service) *scorecard.ScoredObject {
+	inputs := make([]kubeScoreInput, 0)
+	inputs = append(inputs, statefulSet)
+	for _, service := range services {
+		inputs = append(inputs, service)
+	}
+	manifests := prepareManifests(inputs)
+	scoreCard := getKubeScoreCard(manifests)
+	return getScoredObject(scoreCard, statefulSet)
+}
 
+func prepareManifests(objects []kubeScoreInput) []ks.NamedReader {
+	manifests := make([]ks.NamedReader, 0, len(objects))
+	for _, obj := range objects {
+		manifestBuf := new(bytes.Buffer)
+		err := serializer.Encode(obj, manifestBuf)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to marshal obj %s/%s", obj.GetName(), obj.GetNamespace())
+		} else {
+			manifests = append(manifests, inputReader{
+				Reader: strings.NewReader(manifestBuf.String()),
+				name:   fmt.Sprintf("%s/%s/%s", obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName(), obj.GetNamespace()),
+			})
+		}
+	}
+	return manifests
+}
+
+func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
 	cnf := config.Configuration{
-		AllFiles:                              []ks.NamedReader{reader},
+		AllFiles:                              manifests,
 		VerboseOutput:                         0,
 		IgnoreContainerCpuLimitRequirement:    true,
 		IgnoreContainerMemoryLimitRequirement: true,
@@ -45,45 +100,56 @@ func getKubeScore(manifest string) (*scorecard.Scorecard, error) {
 
 	p, err := parser.New()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create parser")
-		return nil, err
+		log.Error().Err(err).Msg("failed to create kubescore parser")
+		return nil
 	}
 	parsedFiles, err := p.ParseFiles(cnf)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to parse files")
-		return nil, err
+		return nil
 	}
-
 	scoreCard, err := score.Score(parsedFiles, cnf)
 	if err != nil {
-		return nil, err
+		log.Error().Err(err).Msg("failed to run kubescore")
+		return nil
 	}
-	return scoreCard, nil
+	return scoreCard
 }
 
-func GetKubeScoreAttributes(obj runtime.Object, namespace string, name string, apiVersion string, kind string) map[string][]string {
-	attributes := make(map[string][]string)
-	manifestBuf := new(bytes.Buffer)
-	err := serializer.Encode(obj, manifestBuf)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to marshal obj %s/%s", namespace, name)
-	} else {
-
-		manifest := "apiVersion: " + apiVersion + "\nkind: " + kind + "\n" + manifestBuf.String()
-		scoreCard, err := getKubeScore(manifest)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to get kube-score for obj %s/%s", namespace, name)
-		} else {
-			for _, scoredObject := range *scoreCard {
-				for _, check := range scoredObject.Checks {
-					if checks[check.Check.ID] != "" {
-						attributes[checks[check.Check.ID]] = []string{strconv.FormatBool(gradePassedCheck(check))}
-					}
-				}
-			}
+func getScoredObject(scorecard *scorecard.Scorecard, object kubeScoreInput) *scorecard.ScoredObject {
+	if scorecard == nil {
+		return nil
+	}
+	for _, scoredObject := range *scorecard {
+		if (scoredObject.ObjectMeta.Name == object.GetName()) && (scoredObject.ObjectMeta.Namespace == object.GetNamespace() && scoredObject.TypeMeta.Kind == object.GetObjectKind().GroupVersionKind().Kind) {
+			return scoredObject
 		}
 	}
-	return attributes
+	return nil
+}
+
+func HasCheckResult(scoreCard *scorecard.ScoredObject, checkId string) bool {
+	if scoreCard == nil {
+		return false
+	}
+	for _, check := range scoreCard.Checks {
+		if check.Check.ID == checkId && !check.Skipped {
+			return true
+		}
+	}
+	return false
+}
+
+func IsCheckOk(scoreCard *scorecard.ScoredObject, checkId string) bool {
+	if scoreCard == nil {
+		return false
+	}
+	for _, check := range scoreCard.Checks {
+		if check.Check.ID == checkId && !check.Skipped && gradePassedCheck(check) {
+			return gradePassedCheck(check)
+		}
+	}
+	return false
 }
 
 func gradePassedCheck(check scorecard.TestScore) bool {
@@ -98,9 +164,10 @@ func gradePassedCheck(check scorecard.TestScore) bool {
 }
 
 type inputReader struct {
-	*strings.Reader
+	io.Reader
+	name string
 }
 
-func (inputReader) Name() string {
-	return "input"
+func (p inputReader) Name() string {
+	return p.name
 }

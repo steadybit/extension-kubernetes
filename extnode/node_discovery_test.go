@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func Test_getDiscoveredPods(t *testing.T) {
+func Test_nodeDiscovery(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -122,7 +122,7 @@ func Test_getDiscoveredPods(t *testing.T) {
 		Create(context.Background(), &appsv1.Deployment{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Deployment",
-				APIVersion: "v1",
+				APIVersion: "apps/v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "shop",

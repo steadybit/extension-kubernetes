@@ -6,7 +6,6 @@ package extdeployment
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -19,7 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"reflect"
-	"strings"
+	"strconv"
 	"time"
 )
 
@@ -105,113 +104,23 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			hpa := d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name)
 			attributes["k8s.deployment.hpa.existent"] = []string{fmt.Sprintf("%v", hpa != nil)}
 		}
-
 		if deployment.Spec.Replicas != nil {
 			attributes["k8s.deployment.replicas"] = []string{fmt.Sprintf("%d", *deployment.Spec.Replicas)}
 		}
-
 		for key, value := range deployment.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {
 				attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-
-		pods := d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace)
-		if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
-			log.Warn().Msgf("Deployment %s/%s has more than %d pods. Skip listing pods, containers and hosts.", deployment.Namespace, deployment.Name, extconfig.Config.DiscoveryMaxPodCount)
-			attributes["k8s.pod.name"] = []string{"too-many-pods"}
-			attributes["k8s.container.id"] = []string{"too-many-pods"}
-			attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}
-			attributes["host.hostname"] = []string{"too-many-pods"}
-		} else if len(pods) > 0 {
-			podNames := make([]string, len(pods))
-			var containerIds []string
-			var containerIdsWithoutPrefix []string
-			var containerNamesWithoutLimitCPU []string
-			var containerNamesWithoutLimitMemory []string
-			var containerNamesWithoutRequestCPU []string
-			var containerNamesWithoutRequestMemory []string
-			var containerWithLatestTag []string
-			var containerWithoutImagePullPolicyAlways []string
-			var containerWithoutLivenessProbe []string
-			var containerWithoutReadinessProbe []string
-			var hostnames []string
-			for podIndex, pod := range pods {
-				podNames[podIndex] = pod.Name
-				for _, container := range pod.Status.ContainerStatuses {
-					if container.ContainerID == "" {
-						continue
-					}
-					containerIds = append(containerIds, container.ContainerID)
-					containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
-				}
-				hostnames = append(hostnames, pod.Spec.NodeName)
-				for _, containerSpec := range pod.Spec.Containers {
-					if containerSpec.Resources.Limits.Cpu().MilliValue() == 0 {
-						containerNamesWithoutLimitCPU = append(containerNamesWithoutLimitCPU, containerSpec.Name)
-					}
-					if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
-						containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
-					}
-					if containerSpec.Resources.Requests.Cpu().MilliValue() == 0 {
-						containerNamesWithoutRequestCPU = append(containerNamesWithoutRequestCPU, containerSpec.Name)
-					}
-					if containerSpec.Resources.Requests.Memory().MilliValue() == 0 {
-						containerNamesWithoutRequestMemory = append(containerNamesWithoutRequestMemory, containerSpec.Name)
-					}
-					if strings.HasSuffix(containerSpec.Image, "latest") {
-						containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
-					}
-					if containerSpec.ImagePullPolicy != "Always" {
-						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
-					}
-					if containerSpec.LivenessProbe == nil {
-						containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
-					}
-					if containerSpec.ReadinessProbe == nil {
-						containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
-					}
-				}
-			}
-			attributes["k8s.pod.name"] = podNames
-			if len(containerIds) > 0 {
-				attributes["k8s.container.id"] = containerIds
-			}
-			if len(containerIdsWithoutPrefix) > 0 {
-				attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
-			}
-			if len(hostnames) > 0 {
-				attributes["host.hostname"] = hostnames
-			}
-			if len(containerNamesWithoutLimitCPU) > 0 {
-				attributes["k8s.container.spec.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
-			}
-			if len(containerNamesWithoutLimitMemory) > 0 {
-				attributes["k8s.container.spec.limit.memory.not-set"] = containerNamesWithoutLimitMemory
-			}
-			if len(containerNamesWithoutRequestCPU) > 0 {
-				attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
-			}
-			if len(containerNamesWithoutRequestMemory) > 0 {
-				attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
-			}
-			if len(containerWithLatestTag) > 0 {
-				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
-			}
-			if len(containerWithoutImagePullPolicyAlways) > 0 {
-				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
-			}
-			if len(containerWithoutLivenessProbe) > 0 {
-				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
-			}
-			if len(containerWithoutReadinessProbe) > 0 {
-				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
-			}
-			scoreAttributes := getKubeScoreAttributesDeployment(deployment)
-			for key, value := range scoreAttributes {
-				attributes[key] = value
-			}
+		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &deployment.ObjectMeta, deployment.Spec.Selector) {
+			attributes[key] = value
+		}
+		for key, value := range extcommon.GetPodTemplateBasedAttributes(d.k8s, &deployment.Namespace, &deployment.Spec.Template) {
+			attributes[key] = value
+		}
+		for key, value := range getKubescoreAttributes(d.k8s, deployment) {
+			attributes[key] = value
 		}
 
 		targets[i] = discovery_kit_api.Target{
@@ -224,10 +133,24 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDeployment), nil
 }
 
+func getKubescoreAttributes(client *client.Client, deployment *appsv1.Deployment) map[string][]string {
+	attributes := map[string][]string{}
+	kubeScoreResults := extcommon.GetKubeScoreForDeployment(
+		deployment,
+		client.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels),
+		client.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name),
+	)
+
+	checkId := "deployment-has-host-podantiaffinity"
+	if extcommon.HasCheckResult(kubeScoreResults, checkId) {
+		attributes["k8s.specification.has-host-podantiaffinity"] = []string{strconv.FormatBool(extcommon.IsCheckOk(kubeScoreResults, checkId))}
+	}
+	return attributes
+}
+
 func (d *deploymentDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {
 	return []discovery_kit_api.TargetEnrichmentRule{
 		getDeploymentToContainerEnrichmentRule(),
-		getContainerToDeploymentEnrichmentRule(),
 	}
 }
 
@@ -258,42 +181,4 @@ func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichment
 			},
 		},
 	}
-}
-
-// Can be removed in the future (enrichment rules are currently not deleted automatically, therefore we need to "disable" the rule by making it non-matching)
-func getContainerToDeploymentEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
-	return discovery_kit_api.TargetEnrichmentRule{
-		Id:      "com.steadybit.extension_kubernetes.container-to-kubernetes-deployment",
-		Version: extbuild.GetSemverVersionStringOrUnknown(),
-		Src: discovery_kit_api.SourceOrDestination{
-			Type: "com.steadybit.ignore-me",
-			Selector: map[string]string{
-				"ignore": "${dest.ignore}",
-			},
-		},
-		Dest: discovery_kit_api.SourceOrDestination{
-			Type: "com.steadybit.ignore-me",
-			Selector: map[string]string{
-				"ignore": "${src.ignore}",
-			},
-		},
-		Attributes: []discovery_kit_api.Attribute{
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "ignore.me",
-			},
-		},
-	}
-}
-
-func getKubeScoreAttributesDeployment(deployment *appsv1.Deployment) map[string][]string {
-	apiVersion := "apps/v1"
-	kind := "Deployment"
-	if deployment.APIVersion != "" {
-		apiVersion = deployment.APIVersion
-	}
-	if deployment.Kind != "" {
-		kind = deployment.Kind
-	}
-	return extcommon.GetKubeScoreAttributes(deployment, deployment.Namespace, deployment.Name, apiVersion, kind)
 }

@@ -6,7 +6,6 @@ package extstatefulset
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -19,7 +18,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -99,11 +97,11 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 			"k8s.distribution": {d.k8s.Distribution},
 		}
 
+		//TODO remove when kube score based advice is added
 		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
 			hpa := d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(sts.Namespace, sts.Name)
 			attributes["k8s.deployment.hpa.existent"] = []string{fmt.Sprintf("%v", hpa != nil)}
 		}
-
 		if sts.Spec.Replicas != nil {
 			attributes["k8s.deployment.replicas"] = []string{fmt.Sprintf("%d", *sts.Spec.Replicas)}
 		}
@@ -113,104 +111,14 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-
-		pods := d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace)
-		if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
-			log.Warn().Msgf("StatefulSet %s/%s has more than %d pods. Skip listing pods, containers and hosts.", sts.Namespace, sts.Name, extconfig.Config.DiscoveryMaxPodCount)
-			attributes["k8s.pod.name"] = []string{"too-many-pods"}
-			attributes["k8s.container.id"] = []string{"too-many-pods"}
-			attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}
-			attributes["host.hostname"] = []string{"too-many-pods"}
-		} else if len(pods) > 0 {
-			podNames := make([]string, len(pods))
-			var containerIds []string
-			var containerIdsWithoutPrefix []string
-			var hostnames []string
-			var containerNamesWithoutLimitCPU []string
-			var containerNamesWithoutLimitMemory []string
-			var containerNamesWithoutRequestCPU []string
-			var containerNamesWithoutRequestMemory []string
-			var containerWithoutLivenessProbe []string
-			var containerWithoutReadinessProbe []string
-			var containerWithLatestTag []string
-			var containerWithoutImagePullPolicyAlways []string
-			for podIndex, pod := range pods {
-				podNames[podIndex] = pod.Name
-				for _, container := range pod.Status.ContainerStatuses {
-					if container.ContainerID == "" {
-						continue
-					}
-					containerIds = append(containerIds, container.ContainerID)
-					containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
-				}
-				hostnames = append(hostnames, pod.Spec.NodeName)
-				for _, containerSpec := range pod.Spec.Containers {
-					if containerSpec.Resources.Limits.Cpu().MilliValue() == 0 {
-						containerNamesWithoutLimitCPU = append(containerNamesWithoutLimitCPU, containerSpec.Name)
-					}
-					if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
-						containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
-					}
-					if containerSpec.Resources.Requests.Cpu().MilliValue() == 0 {
-						containerNamesWithoutRequestCPU = append(containerNamesWithoutRequestCPU, containerSpec.Name)
-					}
-					if containerSpec.Resources.Requests.Memory().MilliValue() == 0 {
-						containerNamesWithoutRequestMemory = append(containerNamesWithoutRequestMemory, containerSpec.Name)
-					}
-					if containerSpec.LivenessProbe == nil {
-						containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
-					}
-					if containerSpec.ReadinessProbe == nil {
-						containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
-					}
-					if strings.HasSuffix(containerSpec.Image, "latest") {
-						containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
-					}
-					if containerSpec.ImagePullPolicy != "Always" {
-						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
-					}
-				}
-			}
-			attributes["k8s.pod.name"] = podNames
-			if len(containerIds) > 0 {
-				attributes["k8s.container.id"] = containerIds
-			}
-			if len(containerIdsWithoutPrefix) > 0 {
-				attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
-			}
-			if len(hostnames) > 0 {
-				attributes["host.hostname"] = hostnames
-			}
-			if len(containerNamesWithoutLimitCPU) > 0 {
-				attributes["k8s.container.spec.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
-			}
-			if len(containerNamesWithoutLimitMemory) > 0 {
-				attributes["k8s.container.spec.limit.memory.not-set"] = containerNamesWithoutLimitMemory
-			}
-			if len(containerNamesWithoutRequestCPU) > 0 {
-				attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
-			}
-			if len(containerNamesWithoutRequestMemory) > 0 {
-				attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
-			}
-			if len(containerWithLatestTag) > 0 {
-				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
-			}
-			if len(containerWithoutImagePullPolicyAlways) > 0 {
-				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
-			}
-			if len(containerWithoutLivenessProbe) > 0 {
-				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
-			}
-			if len(containerWithoutReadinessProbe) > 0 {
-				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
-			}
-
-			scoreAttributes := getKubeScoreAttributesStatefulSet(sts)
-			for key, value := range scoreAttributes {
-				attributes[key] = value
-			}
+		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &sts.ObjectMeta, sts.Spec.Selector) {
+			attributes[key] = value
 		}
+		for key, value := range extcommon.GetPodTemplateBasedAttributes(d.k8s, &sts.Namespace, &sts.Spec.Template) {
+			attributes[key] = value
+		}
+
+		//scoreAttributes := extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels))
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
@@ -251,16 +159,4 @@ func getStatefulSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmen
 			},
 		},
 	}
-}
-
-func getKubeScoreAttributesStatefulSet(statefulSet *appsv1.StatefulSet) map[string][]string {
-	apiVersion := "apps/v1"
-	kind := "Deployment"
-	if statefulSet.APIVersion != "" {
-		apiVersion = statefulSet.APIVersion
-	}
-	if statefulSet.Kind != "" {
-		kind = statefulSet.Kind
-	}
-	return extcommon.GetKubeScoreAttributes(statefulSet, statefulSet.Namespace, statefulSet.Name, apiVersion, kind)
 }

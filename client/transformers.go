@@ -6,14 +6,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func transformDaemonset(i interface{}) (interface{}, error) {
+func transformDaemonSet(i interface{}) (interface{}, error) {
 	d, ok := i.(*appsv1.DaemonSet)
 	if ok {
 		d.ObjectMeta.Annotations = nil
 		d.ObjectMeta.ManagedFields = nil
-		newDaemonSetSpec := appsv1.DaemonSetSpec{}
-		newDaemonSetSpec.Selector = d.Spec.Selector
-		d.Spec = newDaemonSetSpec
 		d.Status = appsv1.DaemonSetStatus{}
 		return d, nil
 	}
@@ -91,10 +88,6 @@ func transformStatefulSet(i interface{}) (interface{}, error) {
 	if ok {
 		s.ObjectMeta.Annotations = nil
 		s.ObjectMeta.ManagedFields = nil
-		newStatefulSetSpec := appsv1.StatefulSetSpec{}
-		newStatefulSetSpec.Replicas = s.Spec.Replicas
-		newStatefulSetSpec.Selector = s.Spec.Selector
-		s.Spec = newStatefulSetSpec
 		s.Status = appsv1.StatefulSetStatus{}
 		return s, nil
 	}
