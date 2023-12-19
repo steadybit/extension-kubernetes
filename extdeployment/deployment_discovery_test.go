@@ -70,10 +70,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			name:       "should detect horizontal pod autoscaler with fix replica count",
 			pods:       []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
-			hpa: testHPA(func(autoscaler *autoscalingv2.HorizontalPodAutoscaler) {
-				//currently not working vor autoscaling/v2 - See PR: https://github.com/zegl/kube-score/pull/574
-				autoscaler.TypeMeta.APIVersion = "autoscaling/v2beta2"
-			}),
+			hpa:        testHPA(nil),
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-hpa-and-replicas-not-set": {"false"},
 			},
@@ -84,10 +81,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Replicas = nil
 			}),
-			hpa: testHPA(func(autoscaler *autoscalingv2.HorizontalPodAutoscaler) {
-				//currently not working vor autoscaling/v2 - See PR: https://github.com/zegl/kube-score/pull/574
-				autoscaler.TypeMeta.APIVersion = "autoscaling/v2beta2"
-			}),
+			hpa: testHPA(nil),
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-hpa-and-replicas-not-set": {"true"},
 			},
@@ -181,7 +175,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.container.spec.limit.ephemeral-storage.not-set":   {"nginx"},
 				"k8s.container.spec.request.cpu.not-set":               {"nginx", "shop"},
 				"k8s.container.spec.request.memory.not-set":            {"nginx", "shop"},
-				"k8s.container.spec.request.ephemeral-storage.not-set": {"shop"}, //should also report nginx, see PR https://github.com/zegl/kube-score/pull/573
+				"k8s.container.spec.request.ephemeral-storage.not-set": {"nginx", "shop"},
 			},
 		},
 		{

@@ -142,7 +142,7 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				"k8s.container.spec.limit.ephemeral-storage.not-set":   {"nginx"},
 				"k8s.container.spec.request.cpu.not-set":               {"nginx", "shop"},
 				"k8s.container.spec.request.memory.not-set":            {"nginx", "shop"},
-				"k8s.container.spec.request.ephemeral-storage.not-set": {"shop"}, //should also report nginx, see PR https://github.com/zegl/kube-score/pull/573
+				"k8s.container.spec.request.ephemeral-storage.not-set": {"nginx", "shop"},
 			},
 		},
 		{
