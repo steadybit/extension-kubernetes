@@ -158,6 +158,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/k8s-memory-limit",
 			})
 		}
+		if adviceId == "*" || adviceId == extadvice.EphemeralStorageLimitID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/advice/k8s-ephemeral-storage-limit",
+			})
+		}
 		if adviceId == "*" || adviceId == extadvice.CpuRequestID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
@@ -168,6 +174,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-memory-request",
+			})
+		}
+		if adviceId == "*" || adviceId == extadvice.EphemeralStorageRequestID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/advice/k8s-ephemeral-storage-request",
 			})
 		}
 		if adviceId == "*" || adviceId == extadvice.HorizontalPodAutoscalerID {
