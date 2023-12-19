@@ -15,6 +15,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"reflect"
@@ -99,12 +100,8 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			"k8s.deployment.strategy":          {string(deployment.Spec.Strategy.Type)},
 			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", deployment.Spec.MinReadySeconds)},
 		}
-		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
-			hpa := d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name)
-			attributes["k8s.deployment.hpa.existent"] = []string{fmt.Sprintf("%v", hpa != nil)}
-		}
 		if deployment.Spec.Replicas != nil {
-			attributes["k8s.deployment.replicas"] = []string{fmt.Sprintf("%d", *deployment.Spec.Replicas)}
+			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *deployment.Spec.Replicas)}
 		}
 		for key, value := range deployment.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {
@@ -118,10 +115,12 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		for key, value := range extcommon.GetPodTemplateBasedAttributes(d.k8s, &deployment.Namespace, &deployment.Spec.Template) {
 			attributes[key] = value
 		}
-		kubesSoreAttributes := extcommon.GetKubeScoreForDeployment(deployment,
-			d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels),
-			d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name))
-		for key, value := range kubesSoreAttributes {
+
+		var hpa *autoscalingv2.HorizontalPodAutoscaler
+		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
+			hpa = d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name)
+		}
+		for key, value := range extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa) {
 			attributes[key] = value
 		}
 

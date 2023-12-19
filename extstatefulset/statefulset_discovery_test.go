@@ -44,7 +44,7 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				"k8s.namespace":                              {"default"},
 				"k8s.statefulset":                            {"shop"},
 				"k8s.label.best-city":                        {"Kevelaer"},
-				"k8s.deployment.hpa.existent":                {"false"},
+				"k8s.specification.replicas":                 {"3"},
 				"k8s.cluster-name":                           {"development"},
 				"k8s.pod.name":                               {"shop-pod-aaaaa", "shop-pod-bbbbb"},
 				"k8s.container.id":                           {"crio://abcdef-aaaaa", "crio://abcdef-bbbbb"},
@@ -298,6 +298,7 @@ func testStatefulSet(modifier func(set *appsv1.StatefulSet)) *appsv1.StatefulSet
 					"best-city": "kevelaer",
 				},
 			}),
+			Replicas: extutil.Ptr(int32(3)),
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{

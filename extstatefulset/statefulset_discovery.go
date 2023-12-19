@@ -97,13 +97,8 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 			"k8s.distribution": {d.k8s.Distribution},
 		}
 
-		//TODO remove when kube score based advice is added
-		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
-			hpa := d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(sts.Namespace, sts.Name)
-			attributes["k8s.deployment.hpa.existent"] = []string{fmt.Sprintf("%v", hpa != nil)}
-		}
 		if sts.Spec.Replicas != nil {
-			attributes["k8s.deployment.replicas"] = []string{fmt.Sprintf("%d", *sts.Spec.Replicas)}
+			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *sts.Spec.Replicas)}
 		}
 
 		for key, value := range sts.ObjectMeta.Labels {

@@ -4,3 +4,6 @@ Remove either one from the workload resource configuration of ${target.steadybit
 
 ### Read More
 [Kubernetes Documentation - Horizontal Pod Autoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
+
+---
+This advice is powered by [kube-score](https://kube-score.com/).

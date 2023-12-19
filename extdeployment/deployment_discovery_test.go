@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +29,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		configModifier            func(*extconfig.Specification)
 		pods                      []*v1.Pod
 		deployment                *appsv1.Deployment
-		hpa                       *autoscalingv1.HorizontalPodAutoscaler
+		hpa                       *autoscalingv2.HorizontalPodAutoscaler
 		service                   *v1.Service
 		expectedAttributesExactly map[string][]string
 		expectedAttributes        map[string][]string
@@ -47,10 +47,9 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.deployment":                             {"shop"},
 				"k8s.deployment.label.best-city":             {"Kevelaer"},
 				"k8s.label.best-city":                        {"Kevelaer"},
-				"k8s.deployment.hpa.existent":                {"false"},
 				"k8s.deployment.min-ready-seconds":           {"10"},
-				"k8s.deployment.replicas":                    {"3"},
 				"k8s.deployment.strategy":                    {"RollingUpdate"},
+				"k8s.specification.replicas":                 {"3"},
 				"k8s.cluster-name":                           {"development"},
 				"k8s.pod.name":                               {"shop-pod-aaaaa", "shop-pod-bbbbb"},
 				"k8s.container.id":                           {"crio://abcdef-aaaaa", "crio://abcdef-bbbbb"},
@@ -68,12 +67,37 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 		},
 		{
-			name:       "should detect horizontal pod autoscaler",
+			name:       "should detect horizontal pod autoscaler with fix replica count",
 			pods:       []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
-			hpa:        testHPA(),
+			hpa: testHPA(func(autoscaler *autoscalingv2.HorizontalPodAutoscaler) {
+				//currently not working vor autoscaling/v2 - See PR: https://github.com/zegl/kube-score/pull/574
+				autoscaler.TypeMeta.APIVersion = "autoscaling/v2beta2"
+			}),
 			expectedAttributes: map[string][]string{
-				"k8s.deployment.hpa.existent": {"true"},
+				"k8s.specification.has-hpa-and-replicas-not-set": {"false"},
+			},
+		},
+		{
+			name: "should detect horizontal pod autoscaler with undefined replica count",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Replicas = nil
+			}),
+			hpa: testHPA(func(autoscaler *autoscalingv2.HorizontalPodAutoscaler) {
+				//currently not working vor autoscaling/v2 - See PR: https://github.com/zegl/kube-score/pull/574
+				autoscaler.TypeMeta.APIVersion = "autoscaling/v2beta2"
+			}),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-hpa-and-replicas-not-set": {"true"},
+			},
+		},
+		{
+			name:       "should ignore hpa and replica count if no hpa is present",
+			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			expectedAttributesAbsence: []string{
+				"k8s.specification.has-hpa-and-replicas-not-set",
 			},
 		},
 		{
@@ -220,7 +244,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 
 			if tt.hpa != nil {
 				_, err = clientset.
-					AutoscalingV1().
+					AutoscalingV2().
 					HorizontalPodAutoscalers("default").
 					Create(context.Background(), tt.hpa, metav1.CreateOptions{})
 				require.NoError(t, err)
@@ -269,8 +293,8 @@ func Test_deploymentDiscovery(t *testing.T) {
 	}
 }
 
-func testHPA() *autoscalingv1.HorizontalPodAutoscaler {
-	return &autoscalingv1.HorizontalPodAutoscaler{
+func testHPA(modifier func(autoscaler *autoscalingv2.HorizontalPodAutoscaler)) *autoscalingv2.HorizontalPodAutoscaler {
+	autoscaler := &autoscalingv2.HorizontalPodAutoscaler{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "HorizontalPodAutoscaler",
 			APIVersion: "autoscaling/v2",
@@ -279,13 +303,18 @@ func testHPA() *autoscalingv1.HorizontalPodAutoscaler {
 			Name:      "shop",
 			Namespace: "default",
 		},
-		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Kind: "Deployment",
 				Name: "shop",
 			},
 		},
 	}
+	if modifier != nil {
+		modifier(autoscaler)
+	}
+
+	return autoscaler
 }
 
 func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {

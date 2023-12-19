@@ -12,7 +12,7 @@ import (
 	"github.com/zegl/kube-score/scorecard"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -37,7 +37,7 @@ type kubeScoreInput interface {
 	GetNamespace() string
 }
 
-func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service, hpa *autoscalingv1.HorizontalPodAutoscaler) map[string][]string {
+func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service, hpa *autoscalingv2.HorizontalPodAutoscaler) map[string][]string {
 	inputs := make([]kubeScoreInput, 0)
 	inputs = append(inputs, deployment)
 	for _, service := range services {
@@ -55,6 +55,7 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
+	addSimpleScore(scores, attributes, "deployment-targeted-by-hpa-does-not-have-replicas-configured", "k8s.specification.has-hpa-and-replicas-not-set")
 
 	return attributes
 }
