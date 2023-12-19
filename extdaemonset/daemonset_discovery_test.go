@@ -113,6 +113,20 @@ func Test_daemonSetDiscovery(t *testing.T) {
 				"k8s.container.spec.request.memory.not-set": {"nginx", "shop"},
 			},
 		},
+		{
+			name: "should report image pull policy and image tag",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			daemonSet: testDaemonSet(func(daemonset *appsv1.DaemonSet) {
+				daemonset.Spec.Template.Spec.Containers[0].Image = "nginx"
+				daemonset.Spec.Template.Spec.Containers[0].ImagePullPolicy = "Never"
+				daemonset.Spec.Template.Spec.Containers[1].Image = "shop-container"
+				daemonset.Spec.Template.Spec.Containers[1].ImagePullPolicy = "Never"
+			}),
+			expectedAttributes: map[string][]string{
+				"k8s.container.image.with-latest-tag":                  {"nginx", "shop"},
+				"k8s.container.image.without-image-pull-policy-always": {"nginx", "shop"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -242,7 +256,7 @@ func testDaemonSet(modifier func(*appsv1.DaemonSet)) *appsv1.DaemonSet {
 					Containers: []v1.Container{
 						{
 							Name:            "nginx",
-							Image:           "nginx",
+							Image:           "nginx:v1.2.3",
 							ImagePullPolicy: "Always",
 							Resources: v1.ResourceRequirements{
 								Limits: v1.ResourceList{
@@ -263,7 +277,7 @@ func testDaemonSet(modifier func(*appsv1.DaemonSet)) *appsv1.DaemonSet {
 						},
 						{
 							Name:            "shop",
-							Image:           "shop-container",
+							Image:           "shop-container:v5",
 							ImagePullPolicy: "Always",
 							Resources: v1.ResourceRequirements{
 								Limits: v1.ResourceList{

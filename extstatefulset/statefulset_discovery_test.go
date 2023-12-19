@@ -141,6 +141,20 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				"k8s.container.spec.request.memory.not-set": {"nginx", "shop"},
 			},
 		},
+		{
+			name: "should report image pull policy and image tag",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			statefulSet: testStatefulSet(func(statefulSet *appsv1.StatefulSet) {
+				statefulSet.Spec.Template.Spec.Containers[0].Image = "nginx"
+				statefulSet.Spec.Template.Spec.Containers[0].ImagePullPolicy = "Never"
+				statefulSet.Spec.Template.Spec.Containers[1].Image = "shop-container"
+				statefulSet.Spec.Template.Spec.Containers[1].ImagePullPolicy = "Never"
+			}),
+			expectedAttributes: map[string][]string{
+				"k8s.container.image.with-latest-tag":                  {"nginx", "shop"},
+				"k8s.container.image.without-image-pull-policy-always": {"nginx", "shop"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -270,7 +284,7 @@ func testStatefulSet(modifier func(set *appsv1.StatefulSet)) *appsv1.StatefulSet
 					Containers: []v1.Container{
 						{
 							Name:            "nginx",
-							Image:           "nginx",
+							Image:           "nginx:v1.2.3",
 							ImagePullPolicy: "Always",
 							Resources: v1.ResourceRequirements{
 								Limits: v1.ResourceList{
@@ -291,7 +305,7 @@ func testStatefulSet(modifier func(set *appsv1.StatefulSet)) *appsv1.StatefulSet
 						},
 						{
 							Name:            "shop",
-							Image:           "shop-container",
+							Image:           "shop-container:v5",
 							ImagePullPolicy: "Always",
 							Resources: v1.ResourceRequirements{
 								Limits: v1.ResourceList{

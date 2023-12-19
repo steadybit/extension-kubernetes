@@ -52,17 +52,9 @@ func GetPodBasedAttributes(client *client.Client, objectMeta *metav1.ObjectMeta,
 }
 
 func GetPodTemplateBasedAttributes(client *client.Client, namespace *string, template *v1.PodTemplateSpec) map[string][]string {
-	var containerWithLatestTag []string
-	var containerWithoutImagePullPolicyAlways []string
 	var containerWithoutLivenessProbe []string
 	var containerWithoutReadinessProbe []string
 	for _, containerSpec := range template.Spec.Containers {
-		if strings.HasSuffix(containerSpec.Image, "latest") {
-			containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
-		}
-		if containerSpec.ImagePullPolicy != "Always" {
-			containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
-		}
 		if containerSpec.LivenessProbe == nil {
 			containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
 		}
@@ -71,12 +63,6 @@ func GetPodTemplateBasedAttributes(client *client.Client, namespace *string, tem
 		}
 	}
 	attributes := map[string][]string{}
-	if len(containerWithLatestTag) > 0 {
-		attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
-	}
-	if len(containerWithoutImagePullPolicyAlways) > 0 {
-		attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
-	}
 	if len(containerWithoutLivenessProbe) > 0 {
 		attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
 	}

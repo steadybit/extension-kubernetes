@@ -50,6 +50,8 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
+	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
+	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
 
 	return attributes
@@ -66,6 +68,8 @@ func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Se
 
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
+	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
+	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 
 	return attributes
 }
@@ -80,6 +84,8 @@ func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*cor
 
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
+	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
+	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "statefulset-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
 
 	return attributes
@@ -114,6 +120,19 @@ func addContainerResourceScores(scores []scorecard.TestScore, attributes map[str
 		}
 		if len(containerNamesWithoutRequestMemory) > 0 {
 			attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
+		}
+	}
+}
+
+func addContainerBasedScore(scores []scorecard.TestScore, attributes map[string][]string, checkId string, attribute string) {
+	score := getTestScore(scores, checkId)
+	if score != nil {
+		var containerNames []string
+		for _, comment := range score.Comments {
+			containerNames = append(containerNames, comment.Path)
+		}
+		if len(containerNames) > 0 {
+			attributes[attribute] = containerNames
 		}
 	}
 }
