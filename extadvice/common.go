@@ -11,11 +11,17 @@ var CpuLimitContent embed.FS
 //go:embed memory_limit/*
 var MemoryLimitContent embed.FS
 
+//go:embed ephemeral_storage_limit/*
+var EphemeralStorageLimitContent embed.FS
+
 //go:embed cpu_request/*
 var CpuRequestContent embed.FS
 
 //go:embed memory_request/*
 var MemoryRequestContent embed.FS
+
+//go:embed ephemeral_storage_request/*
+var EphemeralStorageRequestContent embed.FS
 
 //go:embed deployment_strategy/*
 var DeploymentStrategyContent embed.FS

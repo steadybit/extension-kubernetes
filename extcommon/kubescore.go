@@ -50,6 +50,7 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
+	addContainerEphemeralStorageScores(scores, attributes)
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
@@ -68,6 +69,7 @@ func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Se
 
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
+	addContainerEphemeralStorageScores(scores, attributes)
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 
@@ -84,6 +86,7 @@ func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*cor
 
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
+	addContainerEphemeralStorageScores(scores, attributes)
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "statefulset-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
@@ -109,17 +112,38 @@ func addContainerResourceScores(scores []scorecard.TestScore, attributes map[str
 				containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, comment.Path)
 			}
 		}
+		if len(containerNamesWithoutRequestCPU) > 0 {
+			attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
+		}
 		if len(containerNamesWithoutLimitCPU) > 0 {
 			attributes["k8s.container.spec.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
+		}
+		if len(containerNamesWithoutRequestMemory) > 0 {
+			attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
 		}
 		if len(containerNamesWithoutLimitMemory) > 0 {
 			attributes["k8s.container.spec.limit.memory.not-set"] = containerNamesWithoutLimitMemory
 		}
-		if len(containerNamesWithoutRequestCPU) > 0 {
-			attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
+	}
+}
+
+func addContainerEphemeralStorageScores(scores []scorecard.TestScore, attributes map[string][]string) {
+	score := getTestScore(scores, "container-ephemeral-storage-request-and-limit")
+	if score != nil {
+		var containerNamesWithoutRequestEphemeralStorage []string
+		var containerNamesWithoutLimitEphemeralStorage []string
+		for _, comment := range score.Comments {
+			if comment.Summary == "Ephemeral Storage request is not set" {
+				containerNamesWithoutRequestEphemeralStorage = append(containerNamesWithoutRequestEphemeralStorage, comment.Path)
+			} else if comment.Summary == "Ephemeral Storage limit is not set" {
+				containerNamesWithoutLimitEphemeralStorage = append(containerNamesWithoutLimitEphemeralStorage, comment.Path)
+			}
 		}
-		if len(containerNamesWithoutRequestMemory) > 0 {
-			attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
+		if len(containerNamesWithoutRequestEphemeralStorage) > 0 {
+			attributes["k8s.container.spec.request.ephemeral-storage.not-set"] = containerNamesWithoutRequestEphemeralStorage
+		}
+		if len(containerNamesWithoutLimitEphemeralStorage) > 0 {
+			attributes["k8s.container.spec.limit.ephemeral-storage.not-set"] = containerNamesWithoutLimitEphemeralStorage
 		}
 	}
 }

@@ -143,17 +143,20 @@ func Test_deploymentDiscovery(t *testing.T) {
 				}
 				deployment.Spec.Template.Spec.Containers[1].Resources = v1.ResourceRequirements{
 					Limits: v1.ResourceList{
-						v1.ResourceCPU:    *resource.NewQuantity(1, resource.BinarySI),
-						v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
+						v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+						v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+						v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 					},
 					Requests: nil,
 				}
 			}),
 			expectedAttributes: map[string][]string{
-				"k8s.container.spec.limit.cpu.not-set":      {"nginx"},
-				"k8s.container.spec.limit.memory.not-set":   {"nginx"},
-				"k8s.container.spec.request.cpu.not-set":    {"nginx", "shop"},
-				"k8s.container.spec.request.memory.not-set": {"nginx", "shop"},
+				"k8s.container.spec.limit.cpu.not-set":                 {"nginx"},
+				"k8s.container.spec.limit.memory.not-set":              {"nginx"},
+				"k8s.container.spec.limit.ephemeral-storage.not-set":   {"nginx"},
+				"k8s.container.spec.request.cpu.not-set":               {"nginx", "shop"},
+				"k8s.container.spec.request.memory.not-set":            {"nginx", "shop"},
+				"k8s.container.spec.request.ephemeral-storage.not-set": {"shop"}, //should also report nginx, see PR https://github.com/zegl/kube-score/pull/573
 			},
 		},
 		{
@@ -303,12 +306,14 @@ func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {
 							ImagePullPolicy: "Always",
 							Resources: v1.ResourceRequirements{
 								Limits: v1.ResourceList{
-									v1.ResourceCPU:    *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
+									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+									v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 								},
 								Requests: v1.ResourceList{
-									v1.ResourceCPU:    *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory: *resource.NewQuantity(250, resource.DecimalSI),
+									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									v1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
+									v1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
 								},
 							},
 							LivenessProbe: &v1.Probe{
@@ -324,12 +329,14 @@ func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {
 							ImagePullPolicy: "Always",
 							Resources: v1.ResourceRequirements{
 								Limits: v1.ResourceList{
-									v1.ResourceCPU:    *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory: *resource.NewQuantity(500, resource.DecimalSI),
+									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+									v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 								},
 								Requests: v1.ResourceList{
-									v1.ResourceCPU:    *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory: *resource.NewQuantity(250, resource.DecimalSI),
+									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									v1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
+									v1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
 								},
 							},
 							LivenessProbe: &v1.Probe{
