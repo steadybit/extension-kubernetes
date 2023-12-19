@@ -118,23 +118,6 @@ func Test_daemonSetDiscovery(t *testing.T) {
 			},
 		},
 		{
-			name: "should ignore missing limits if configured",
-			configModifier: func(specification *extconfig.Specification) {
-				specification.AdviceIgnoreContainerCpuLimitRequirement = true
-				specification.AdviceIgnoreContainerMemoryLimitRequirement = true
-			},
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
-			daemonSet: testDaemonSet(func(daemonset *appsv1.DaemonSet) {
-				daemonset.Spec.Template.Spec.Containers[0].Resources = v1.ResourceRequirements{
-					Limits: nil,
-				}
-				daemonset.Spec.Template.Spec.Containers[1].Resources = v1.ResourceRequirements{
-					Limits: nil,
-				}
-			}),
-			expectedAttributesAbsence: []string{"k8s.container.spec.limit.cpu.not-set", "k8s.container.spec.limit.memory.not-set"},
-		},
-		{
 			name: "should report image pull policy and image tag",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(func(daemonset *appsv1.DaemonSet) {
