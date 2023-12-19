@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/zegl/kube-score/config"
 	ks "github.com/zegl/kube-score/domain"
 	"github.com/zegl/kube-score/parser"
@@ -203,8 +204,8 @@ func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
 	cnf := config.Configuration{
 		AllFiles:                              manifests,
 		VerboseOutput:                         0,
-		IgnoreContainerCpuLimitRequirement:    false,
-		IgnoreContainerMemoryLimitRequirement: false,
+		IgnoreContainerCpuLimitRequirement:    extconfig.Config.AdviceIgnoreContainerCpuLimitRequirement,
+		IgnoreContainerMemoryLimitRequirement: extconfig.Config.AdviceIgnoreContainerMemoryLimitRequirement,
 		IgnoredTests:                          nil,
 		EnabledOptionalTests:                  nil,
 		UseIgnoreChecksAnnotation:             false,

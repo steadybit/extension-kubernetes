@@ -26,6 +26,7 @@ import (
 func Test_deploymentDiscovery(t *testing.T) {
 	tests := []struct {
 		name                      string
+		configModifier            func(*extconfig.Specification)
 		pods                      []*v1.Pod
 		deployment                *appsv1.Deployment
 		hpa                       *autoscalingv1.HorizontalPodAutoscaler
@@ -160,6 +161,23 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 		},
 		{
+			name: "should ignore missing limits if configured",
+			configModifier: func(specification *extconfig.Specification) {
+				specification.AdviceIgnoreContainerCpuLimitRequirement = true
+				specification.AdviceIgnoreContainerMemoryLimitRequirement = true
+			},
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Template.Spec.Containers[0].Resources = v1.ResourceRequirements{
+					Limits: nil,
+				}
+				deployment.Spec.Template.Spec.Containers[1].Resources = v1.ResourceRequirements{
+					Limits: nil,
+				}
+			}),
+			expectedAttributesAbsence: []string{"k8s.container.spec.limit.cpu.not-set", "k8s.container.spec.limit.memory.not-set"},
+		},
+		{
 			name: "should report image pull policy and image tag",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
@@ -183,6 +201,9 @@ func Test_deploymentDiscovery(t *testing.T) {
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
 			extconfig.Config.DiscoveryMaxPodCount = 50
+			if tt.configModifier != nil {
+				tt.configModifier(&extconfig.Config)
+			}
 
 			for _, pod := range tt.pods {
 				_, err := clientset.CoreV1().
