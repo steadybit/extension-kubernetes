@@ -182,12 +182,6 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/k8s-ephemeral-storage-request",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.HorizontalPodAutoscalerID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-horizontal-pod-autoscaler",
-			})
-		}
 		if adviceId == "*" || adviceId == extadvice.ImageVersioningID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",

@@ -34,7 +34,6 @@ func RegisterAdviceHandlers() {
 	exthttp.RegisterHttpHandler("/advice/k8s-cpu-request", exthttp.GetterAsHandler(GetAdviceDescriptionCPURequest))
 	exthttp.RegisterHttpHandler("/advice/k8s-memory-request", exthttp.GetterAsHandler(GetAdviceDescriptionMemoryRequest))
 	exthttp.RegisterHttpHandler("/advice/k8s-ephemeral-storage-request", exthttp.GetterAsHandler(GetAdviceDescriptionEphemeralStorageRequest))
-	exthttp.RegisterHttpHandler("/advice/k8s-horizontal-pod-autoscaler", exthttp.GetterAsHandler(GetAdviceDescriptionHorizontalPodAutoscaler))
 	exthttp.RegisterHttpHandler("/advice/k8s-image-latest-tag", exthttp.GetterAsHandler(GetAdviceDescriptionImageVersioning))
 	exthttp.RegisterHttpHandler("/advice/k8s-image-pull-policy", exthttp.GetterAsHandler(GetAdviceDescriptionImagePullPolicy))
 	exthttp.RegisterHttpHandler("/advice/k8s-probes", exthttp.GetterAsHandler(GetAdviceDescriptionProbes))
