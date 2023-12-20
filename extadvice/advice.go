@@ -441,6 +441,20 @@ func GetAdviceDescriptionEphemeralStorageLimit() advice_kit_api.AdviceDefinition
 					Summary: ReadAdviceFile(EphemeralStorageLimitContent, "ephemeral_storage_limit/implemented.md"),
 				},
 			},
+			ValidationNeeded: advice_kit_api.AdviceDefinitionStatusValidationNeeded{
+				Description: advice_kit_api.AdviceDefinitionStatusValidationNeededDescription{
+					Summary: ReadAdviceFile(MemoryLimitContent, "ephemeral_storage_limit/validation_needed.md"),
+				},
+				Validation: extutil.Ptr([]advice_kit_api.Validation{
+					{
+						Id:               "com.steadybit.extension_kubernetes.k8s-ephemeral-storage-limit.experiment-1",
+						Type:             "EXPERIMENT",
+						Name:             "Ephemeral Storage Overload",
+						ShortDescription: "Check how ${target.steadybit.label} behaves when exceeding the ephemeral storage limit and whether your remaining Kubernetes resources at the host function properly.",
+						Experiment:       extutil.Ptr(advice_kit_api.Experiment(ReadAdviceFile(MemoryLimitContent, "ephemeral_storage_limit/experiment_ephemeral_storage_limit.json"))),
+					},
+				}),
+			},
 		},
 	}
 }
