@@ -247,6 +247,7 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 			pod.ObjectMeta.Name = "shop-ignored"
 			pod.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
 		}), metav1.CreateOptions{})
+	require.NoError(t, err)
 
 	d := &containerDiscovery{k8s: client}
 
