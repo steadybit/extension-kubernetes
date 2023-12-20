@@ -1,1 +1,1 @@
-${target.k8s.specification.probes.summary}
+${target.k8s.specification.probes.summary:normal}
