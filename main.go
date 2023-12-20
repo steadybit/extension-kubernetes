@@ -200,16 +200,10 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/k8s-image-pull-policy",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.LivenessProbeID {
+		if adviceId == "*" || adviceId == extadvice.ProbesID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/advice/k8s-liveness-probe",
-			})
-		}
-		if adviceId == "*" || adviceId == extadvice.ReadinessProbeID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-readiness-probe",
+				Path:   "/advice/k8s-probes",
 			})
 		}
 		if adviceId == "*" || adviceId == extadvice.SingleReplicaID {

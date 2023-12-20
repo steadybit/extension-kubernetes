@@ -109,7 +109,7 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &sts.ObjectMeta, sts.Spec.Selector) {
 			attributes[key] = value
 		}
-		for key, value := range extcommon.GetPodTemplateBasedAttributes(d.k8s, &sts.Namespace, &sts.Spec.Template) {
+		for key, value := range extcommon.GetServiceNames(d.k8s, &sts.Namespace, &sts.Spec.Template) {
 			attributes[key] = value
 		}
 		for key, value := range extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {

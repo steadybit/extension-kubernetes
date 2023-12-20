@@ -16,6 +16,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"sort"
@@ -139,7 +140,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 		},
 		{
-			name: "should report missing probes",
+			name: "should not add probe summary if no service is defined",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
@@ -147,9 +148,60 @@ func Test_deploymentDiscovery(t *testing.T) {
 				deployment.Spec.Template.Spec.Containers[1].LivenessProbe = nil
 				deployment.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
 			}),
+			expectedAttributesAbsence: []string{
+				"k8s.specification.probes.summary",
+			},
+		},
+		{
+			name: "should report equal probes",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "/",
+							Port: intstr.FromInt32(80),
+						},
+					},
+				}
+				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "/",
+							Port: intstr.FromInt32(80),
+						},
+					},
+				}
+				deployment.Spec.Template.Spec.Containers[1].LivenessProbe = nil
+				deployment.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
+			}),
+			service: testService(nil),
 			expectedAttributes: map[string][]string{
-				"k8s.container.probes.liveness.not-set":  {"nginx", "shop"},
-				"k8s.container.probes.readiness.not-set": {"nginx", "shop"},
+				"k8s.specification.probes.summary": {"*Same readiness and liveness probe*\n\nMake sure to not use the same probes for readiness and liveness."},
+			},
+		},
+		{
+			name: "should report missing readiness probe",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+				deployment.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
+			}),
+			service: testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.probes.summary": {"*Missing readinessProbe*\n\nWhen Kubernetes redeploys, it can't determine when the pod is ready to accept incoming requests. They may receive requests before being able to handle them properly."},
+			},
+		},
+		{
+			name: "should report missing liveness probe",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
+				deployment.Spec.Template.Spec.Containers[1].LivenessProbe = nil
+			}),
+			service: testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.probes.summary": {"*Missing livenessProbe*\n\nKubernetes cannot detect unresponsive pods/container and thus will never restart them automatically."},
 			},
 		},
 		{

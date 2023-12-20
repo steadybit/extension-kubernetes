@@ -15,6 +15,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"sort"
@@ -78,28 +79,79 @@ func Test_daemonSetDiscovery(t *testing.T) {
 			},
 		},
 		{
-			name: "should report missing probes",
+			name: "should not add probe summary if no service is defined",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
-			daemonSet: testDaemonSet(func(daemonset *appsv1.DaemonSet) {
-				daemonset.Spec.Template.Spec.Containers[0].LivenessProbe = nil
-				daemonset.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
-				daemonset.Spec.Template.Spec.Containers[1].LivenessProbe = nil
-				daemonset.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
+			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
+				daemonSet.Spec.Template.Spec.Containers[0].LivenessProbe = nil
+				daemonSet.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+				daemonSet.Spec.Template.Spec.Containers[1].LivenessProbe = nil
+				daemonSet.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
 			}),
+			expectedAttributesAbsence: []string{
+				"k8s.specification.probes.summary",
+			},
+		},
+		{
+			name: "should report equal probes",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
+				daemonSet.Spec.Template.Spec.Containers[0].LivenessProbe = &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "/",
+							Port: intstr.FromInt32(80),
+						},
+					},
+				}
+				daemonSet.Spec.Template.Spec.Containers[0].ReadinessProbe = &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "/",
+							Port: intstr.FromInt32(80),
+						},
+					},
+				}
+				daemonSet.Spec.Template.Spec.Containers[1].LivenessProbe = nil
+				daemonSet.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
+			}),
+			service: testService(nil),
 			expectedAttributes: map[string][]string{
-				"k8s.container.probes.liveness.not-set":  {"nginx", "shop"},
-				"k8s.container.probes.readiness.not-set": {"nginx", "shop"},
+				"k8s.specification.probes.summary": {"*Same readiness and liveness probe*\n\nMake sure to not use the same probes for readiness and liveness."},
+			},
+		},
+		{
+			name: "should report missing readiness probe",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
+				daemonSet.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
+				daemonSet.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
+			}),
+			service: testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.probes.summary": {"*Missing readinessProbe*\n\nWhen Kubernetes redeploys, it can't determine when the pod is ready to accept incoming requests. They may receive requests before being able to handle them properly."},
+			},
+		},
+		{
+			name: "should report missing liveness probe",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
+				daemonSet.Spec.Template.Spec.Containers[0].LivenessProbe = nil
+				daemonSet.Spec.Template.Spec.Containers[1].LivenessProbe = nil
+			}),
+			service: testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.probes.summary": {"*Missing livenessProbe*\n\nKubernetes cannot detect unresponsive pods/container and thus will never restart them automatically."},
 			},
 		},
 		{
 			name: "should report missing limits and requests",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
-			daemonSet: testDaemonSet(func(daemonset *appsv1.DaemonSet) {
-				daemonset.Spec.Template.Spec.Containers[0].Resources = v1.ResourceRequirements{
+			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
+				daemonSet.Spec.Template.Spec.Containers[0].Resources = v1.ResourceRequirements{
 					Limits:   nil,
 					Requests: nil,
 				}
-				daemonset.Spec.Template.Spec.Containers[1].Resources = v1.ResourceRequirements{
+				daemonSet.Spec.Template.Spec.Containers[1].Resources = v1.ResourceRequirements{
 					Limits: v1.ResourceList{
 						v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
 						v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
@@ -120,11 +172,11 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		{
 			name: "should report image pull policy and image tag",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
-			daemonSet: testDaemonSet(func(daemonset *appsv1.DaemonSet) {
-				daemonset.Spec.Template.Spec.Containers[0].Image = "nginx"
-				daemonset.Spec.Template.Spec.Containers[0].ImagePullPolicy = "Never"
-				daemonset.Spec.Template.Spec.Containers[1].Image = "shop-container"
-				daemonset.Spec.Template.Spec.Containers[1].ImagePullPolicy = "Never"
+			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
+				daemonSet.Spec.Template.Spec.Containers[0].Image = "nginx"
+				daemonSet.Spec.Template.Spec.Containers[0].ImagePullPolicy = "Never"
+				daemonSet.Spec.Template.Spec.Containers[1].Image = "shop-container"
+				daemonSet.Spec.Template.Spec.Containers[1].ImagePullPolicy = "Never"
 			}),
 			expectedAttributes: map[string][]string{
 				"k8s.container.image.with-latest-tag":                  {"nginx", "shop"},

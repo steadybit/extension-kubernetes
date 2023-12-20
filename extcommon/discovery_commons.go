@@ -51,25 +51,8 @@ func GetPodBasedAttributes(client *client.Client, objectMeta *metav1.ObjectMeta,
 	return attributes
 }
 
-func GetPodTemplateBasedAttributes(client *client.Client, namespace *string, template *v1.PodTemplateSpec) map[string][]string {
-	var containerWithoutLivenessProbe []string
-	var containerWithoutReadinessProbe []string
-	for _, containerSpec := range template.Spec.Containers {
-		if containerSpec.LivenessProbe == nil {
-			containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
-		}
-		if containerSpec.ReadinessProbe == nil {
-			containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
-		}
-	}
+func GetServiceNames(client *client.Client, namespace *string, template *v1.PodTemplateSpec) map[string][]string {
 	attributes := map[string][]string{}
-	if len(containerWithoutLivenessProbe) > 0 {
-		attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
-	}
-	if len(containerWithoutReadinessProbe) > 0 {
-		attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
-	}
-
 	services := client.ServicesMatchingToPodLabels(*namespace, template.ObjectMeta.Labels)
 	if len(services) > 0 {
 		var serviceNames = make([]string, 0, len(services))
@@ -78,6 +61,5 @@ func GetPodTemplateBasedAttributes(client *client.Client, namespace *string, tem
 		}
 		attributes["k8s.service.name"] = serviceNames
 	}
-
 	return attributes
 }

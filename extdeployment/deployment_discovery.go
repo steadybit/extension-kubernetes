@@ -112,7 +112,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &deployment.ObjectMeta, deployment.Spec.Selector) {
 			attributes[key] = value
 		}
-		for key, value := range extcommon.GetPodTemplateBasedAttributes(d.k8s, &deployment.Namespace, &deployment.Spec.Template) {
+		for key, value := range extcommon.GetServiceNames(d.k8s, &deployment.Namespace, &deployment.Spec.Template) {
 			attributes[key] = value
 		}
 

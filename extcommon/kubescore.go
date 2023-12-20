@@ -51,6 +51,7 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
 	addContainerEphemeralStorageScores(scores, attributes)
+	addProbesScores(scores, attributes)
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
@@ -71,6 +72,7 @@ func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Se
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
 	addContainerEphemeralStorageScores(scores, attributes)
+	addProbesScores(scores, attributes)
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 
@@ -88,6 +90,7 @@ func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*cor
 	scores := getScores(inputs)
 	addContainerResourceScores(scores, attributes)
 	addContainerEphemeralStorageScores(scores, attributes)
+	addProbesScores(scores, attributes)
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "statefulset-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
@@ -96,13 +99,13 @@ func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*cor
 }
 
 func addContainerResourceScores(scores []scorecard.TestScore, attributes map[string][]string) {
-	score := getTestScore(scores, "container-resources")
-	if score != nil {
+	check := getTestScore(scores, "container-resources")
+	if check != nil {
 		var containerNamesWithoutRequestCPU []string
 		var containerNamesWithoutLimitCPU []string
 		var containerNamesWithoutRequestMemory []string
 		var containerNamesWithoutLimitMemory []string
-		for _, comment := range score.Comments {
+		for _, comment := range check.Comments {
 			if comment.Summary == "CPU request is not set" {
 				containerNamesWithoutRequestCPU = append(containerNamesWithoutRequestCPU, comment.Path)
 			} else if comment.Summary == "CPU limit is not set" {
@@ -129,11 +132,11 @@ func addContainerResourceScores(scores []scorecard.TestScore, attributes map[str
 }
 
 func addContainerEphemeralStorageScores(scores []scorecard.TestScore, attributes map[string][]string) {
-	score := getTestScore(scores, "container-ephemeral-storage-request-and-limit")
-	if score != nil {
+	check := getTestScore(scores, "container-ephemeral-storage-request-and-limit")
+	if check != nil {
 		var containerNamesWithoutRequestEphemeralStorage []string
 		var containerNamesWithoutLimitEphemeralStorage []string
-		for _, comment := range score.Comments {
+		for _, comment := range check.Comments {
 			if comment.Summary == "Ephemeral Storage request is not set" {
 				containerNamesWithoutRequestEphemeralStorage = append(containerNamesWithoutRequestEphemeralStorage, comment.Path)
 			} else if comment.Summary == "Ephemeral Storage limit is not set" {
@@ -149,11 +152,33 @@ func addContainerEphemeralStorageScores(scores []scorecard.TestScore, attributes
 	}
 }
 
+func addProbesScores(scores []scorecard.TestScore, attributes map[string][]string) {
+	check := getTestScore(scores, "pod-probes")
+	if check != nil {
+		for _, comment := range check.Comments {
+			if comment.Summary == "Container has the same readiness and liveness probe" {
+				attributes["k8s.specification.probes.summary"] = []string{"*Same readiness and liveness probe*\n\nMake sure to not use the same probes for readiness and liveness."}
+				return
+			} else if comment.Summary == "Container is missing a readinessProbe" {
+				attributes["k8s.specification.probes.summary"] = []string{"*Missing readinessProbe*\n\nWhen Kubernetes redeploys, it can't determine when the pod is ready to accept incoming requests. They may receive requests before being able to handle them properly."}
+				return
+			} else if comment.Summary == "Container is missing a livenessProbe" {
+				attributes["k8s.specification.probes.summary"] = []string{"*Missing livenessProbe*\n\nKubernetes cannot detect unresponsive pods/container and thus will never restart them automatically."}
+				return
+			} else if check.Grade == scorecard.GradeAllOK && comment.Summary != "The pod is not targeted by a service, skipping probe checks." {
+				//don't add anything if there is no service
+				attributes["k8s.specification.probes.summary"] = []string{"OK"}
+				return
+			}
+		}
+	}
+}
+
 func addContainerBasedScore(scores []scorecard.TestScore, attributes map[string][]string, checkId string, attribute string) {
-	score := getTestScore(scores, checkId)
-	if score != nil {
+	check := getTestScore(scores, checkId)
+	if check != nil {
 		var containerNames []string
-		for _, comment := range score.Comments {
+		for _, comment := range check.Comments {
 			containerNames = append(containerNames, comment.Path)
 		}
 		if len(containerNames) > 0 {
@@ -163,9 +188,9 @@ func addContainerBasedScore(scores []scorecard.TestScore, attributes map[string]
 }
 
 func addSimpleScore(scores []scorecard.TestScore, attributes map[string][]string, checkId string, attribute string) {
-	score := getTestScore(scores, checkId)
-	if score != nil {
-		attributes[attribute] = []string{strconv.FormatBool(isCheckOk(score))}
+	check := getTestScore(scores, checkId)
+	if check != nil {
+		attributes[attribute] = []string{strconv.FormatBool(isCheckOk(check))}
 	}
 }
 

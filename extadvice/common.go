@@ -35,11 +35,8 @@ var ImagePullPolicyContent embed.FS
 //go:embed horizontal_pod_autoscaler/*
 var HorizontalPodAutoscalerContent embed.FS
 
-//go:embed liveness_probe/*
-var LivenessProbeContent embed.FS
-
-//go:embed readiness_probe/*
-var ReadinessProbeContent embed.FS
+//go:embed probes/*
+var ProbesContent embed.FS
 
 //go:embed single_replica/*
 var SingleReplicaContent embed.FS
