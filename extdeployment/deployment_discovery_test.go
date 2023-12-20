@@ -68,34 +68,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 		},
 		{
-			name:       "should detect horizontal pod autoscaler with fix replica count",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
-			deployment: testDeployment(nil),
-			hpa:        testHPA(nil),
-			expectedAttributes: map[string][]string{
-				"k8s.specification.has-hpa-and-replicas-not-set": {"false"},
-			},
-		},
-		{
-			name: "should detect horizontal pod autoscaler with undefined replica count",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
-			deployment: testDeployment(func(deployment *appsv1.Deployment) {
-				deployment.Spec.Replicas = nil
-			}),
-			hpa: testHPA(nil),
-			expectedAttributes: map[string][]string{
-				"k8s.specification.has-hpa-and-replicas-not-set": {"true"},
-			},
-		},
-		{
-			name:       "should ignore hpa and replica count if no hpa is present",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
-			deployment: testDeployment(nil),
-			expectedAttributesAbsence: []string{
-				"k8s.specification.has-hpa-and-replicas-not-set",
-			},
-		},
-		{
 			name:       "should add service name",
 			pods:       []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
@@ -320,30 +292,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 			}
 		})
 	}
-}
-
-func testHPA(modifier func(autoscaler *autoscalingv2.HorizontalPodAutoscaler)) *autoscalingv2.HorizontalPodAutoscaler {
-	autoscaler := &autoscalingv2.HorizontalPodAutoscaler{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "HorizontalPodAutoscaler",
-			APIVersion: "autoscaling/v2",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "shop",
-			Namespace: "default",
-		},
-		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
-				Kind: "Deployment",
-				Name: "shop",
-			},
-		},
-	}
-	if modifier != nil {
-		modifier(autoscaler)
-	}
-
-	return autoscaler
 }
 
 func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {

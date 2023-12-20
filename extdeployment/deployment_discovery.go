@@ -15,7 +15,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"reflect"
@@ -116,11 +115,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			attributes[key] = value
 		}
 
-		var hpa *autoscalingv2.HorizontalPodAutoscaler
-		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
-			hpa = d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name)
-		}
-		for key, value := range extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa) {
+		for key, value := range extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels)) {
 			attributes[key] = value
 		}
 

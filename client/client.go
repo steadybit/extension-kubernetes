@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	listerAppsv1 "k8s.io/client-go/listers/apps/v1"
-	listerAutoscalingv2 "k8s.io/client-go/listers/autoscaling/v2"
 	listerCorev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -74,11 +72,6 @@ type Client struct {
 
 	node struct {
 		lister   listerCorev1.NodeLister
-		informer cache.SharedIndexInformer
-	}
-
-	hpa struct {
-		lister   listerAutoscalingv2.HorizontalPodAutoscalerLister
 		informer cache.SharedIndexInformer
 	}
 
@@ -248,20 +241,6 @@ func (c *Client) Events(since time.Time) *[]corev1.Event {
 	return &result
 }
 
-func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace string, reference string) *autoscalingv2.HorizontalPodAutoscaler {
-	hpas, err := c.hpa.lister.HorizontalPodAutoscalers(namespace).List(labels.Everything())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching horizontal pod autoscalers")
-		return nil
-	}
-	for _, hpa := range hpas {
-		if hpa.Spec.ScaleTargetRef.Kind == "Deployment" && hpa.Spec.ScaleTargetRef.Name == reference {
-			return hpa
-		}
-	}
-	return nil
-}
-
 func logGetError(resource string, err error) {
 	if err != nil {
 		var t *k8sErrors.StatusError
@@ -387,19 +366,6 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 	if _, err := client.node.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 		log.Fatal().Msg("failed to add node event handler")
-	}
-
-	if permissions.CanReadHorizontalPodAutoscalers() {
-		hpa := factory.Autoscaling().V2().HorizontalPodAutoscalers()
-		client.hpa.informer = hpa.Informer()
-		client.hpa.lister = hpa.Lister()
-		informerSyncList = append(informerSyncList, client.hpa.informer.HasSynced)
-		if err := client.hpa.informer.SetTransform(transformHPA); err != nil {
-			log.Fatal().Err(err).Msg("Failed to add hpa transformer")
-		}
-		if _, err := client.hpa.informer.AddEventHandler(client.resourceEventHandler); err != nil {
-			log.Fatal().Msg("failed to add hpa event handler")
-		}
 	}
 
 	events := factory.Core().V1().Events()

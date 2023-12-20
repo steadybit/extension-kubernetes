@@ -32,9 +32,6 @@ var ImageVersioningContent embed.FS
 //go:embed image_pull_policy/*
 var ImagePullPolicyContent embed.FS
 
-//go:embed horizontal_pod_autoscaler/*
-var HorizontalPodAutoscalerContent embed.FS
-
 //go:embed probes/*
 var ProbesContent embed.FS
 
