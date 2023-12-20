@@ -14,3 +14,6 @@ spec:
 ### Read More
 - [Kubernetes Documentation - Container Images](https://kubernetes.io/docs/concepts/configuration/overview/#container-images)
 - [Blog Post - What&apos;s Wrong With The Docker :latest Tag?](https://vsupalov.com/docker-latest-tag/)
+
+---
+This advice is powered by [kube-score](https://kube-score.com/).

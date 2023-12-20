@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	listerAppsv1 "k8s.io/client-go/listers/apps/v1"
-	listerAutoscalingv1 "k8s.io/client-go/listers/autoscaling/v1"
 	listerCorev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -74,11 +72,6 @@ type Client struct {
 
 	node struct {
 		lister   listerCorev1.NodeLister
-		informer cache.SharedIndexInformer
-	}
-
-	hpa struct {
-		lister   listerAutoscalingv1.HorizontalPodAutoscalerLister
 		informer cache.SharedIndexInformer
 	}
 
@@ -138,7 +131,7 @@ func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *ap
 }
 
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
-	services, err := c.service.lister.List(labels.Everything())
+	services, err := c.service.lister.Services(pod.Namespace).List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching services")
 		return []*corev1.Service{}
@@ -148,6 +141,27 @@ func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 		match := service.Spec.Selector != nil
 		for key, value := range service.Spec.Selector {
 			if value != pod.ObjectMeta.Labels[key] {
+				match = false
+			}
+		}
+		if match {
+			result = append(result, service)
+		}
+	}
+	return result
+}
+
+func (c *Client) ServicesMatchingToPodLabels(namespace string, labelSelector map[string]string) []*corev1.Service {
+	services, err := c.service.lister.Services(namespace).List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching services")
+		return []*corev1.Service{}
+	}
+	var result []*corev1.Service
+	for _, service := range services {
+		match := service.Spec.Selector != nil
+		for key, value := range service.Spec.Selector {
+			if value != labelSelector[key] {
 				match = false
 			}
 		}
@@ -227,20 +241,6 @@ func (c *Client) Events(since time.Time) *[]corev1.Event {
 	return &result
 }
 
-func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace string, reference string) *autoscalingv1.HorizontalPodAutoscaler {
-	hpas, err := c.hpa.lister.HorizontalPodAutoscalers(namespace).List(labels.Everything())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching horizontal pod autoscalers")
-		return nil
-	}
-	for _, hpa := range hpas {
-		if hpa.Spec.ScaleTargetRef.Kind == "Deployment" && hpa.Spec.ScaleTargetRef.Name == reference {
-			return hpa
-		}
-	}
-	return nil
-}
-
 func logGetError(resource string, err error) {
 	if err != nil {
 		var t *k8sErrors.StatusError
@@ -295,7 +295,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	client.daemonSet.informer = daemonSets.Informer()
 	client.daemonSet.lister = daemonSets.Lister()
 	informerSyncList = append(informerSyncList, client.daemonSet.informer.HasSynced)
-	if err := client.daemonSet.informer.SetTransform(transformDaemonset); err != nil {
+	if err := client.daemonSet.informer.SetTransform(transformDaemonSet); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add daemonSet transformer")
 	}
 	if _, err := client.daemonSet.informer.AddEventHandler(client.resourceEventHandler); err != nil {
@@ -366,19 +366,6 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 	if _, err := client.node.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 		log.Fatal().Msg("failed to add node event handler")
-	}
-
-	if permissions.CanReadHorizontalPodAutoscalers() {
-		hpa := factory.Autoscaling().V1().HorizontalPodAutoscalers()
-		client.hpa.informer = hpa.Informer()
-		client.hpa.lister = hpa.Lister()
-		informerSyncList = append(informerSyncList, client.hpa.informer.HasSynced)
-		if err := client.hpa.informer.SetTransform(transformHPA); err != nil {
-			log.Fatal().Err(err).Msg("Failed to add hpa transformer")
-		}
-		if _, err := client.hpa.informer.AddEventHandler(client.resourceEventHandler); err != nil {
-			log.Fatal().Msg("failed to add hpa event handler")
-		}
 	}
 
 	events := factory.Core().V1().Events()

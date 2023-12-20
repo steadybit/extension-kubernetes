@@ -1,2 +1,0 @@
-When ${target.steadybit.label} stops working, Kubernetes can detect this with the configured liveness probe and restarts the pod in case of an error.
-Your service ${target.steadybit.label} will become available again.

@@ -22,3 +22,6 @@ spec:
 ### Read More
 
 [Kubernetes Documentation - Managing Container Resources](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
+
+---
+This advice is powered by [kube-score](https://kube-score.com/).

@@ -124,6 +124,15 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 			attributes[fmt.Sprintf("k8s.%v", ownerRef.Kind)] = []string{ownerRef.Name}
 		}
 
+		services := p.k8s.ServicesMatchingToPodLabels(pod.Namespace, pod.ObjectMeta.Labels)
+		if len(services) > 0 {
+			var serviceNames = make([]string, 0, len(services))
+			for _, service := range services {
+				serviceNames = append(serviceNames, service.Name)
+			}
+			attributes["k8s.service.name"] = serviceNames
+		}
+
 		targets[i] = discovery_kit_api.Target{
 			Id:         pod.Name,
 			TargetType: PodTargetType,

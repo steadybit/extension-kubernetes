@@ -15,3 +15,6 @@ spec:
 ### Read more
 
 [Kubernetes Documentation - Images Pull Policy](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
+
+---
+This advice is powered by [kube-score](https://kube-score.com/).

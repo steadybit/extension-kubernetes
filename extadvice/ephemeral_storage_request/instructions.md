@@ -1,4 +1,4 @@
-Specify ${target.steadybit.label}&apos;s memory limit by defining the `limits` property in your Kubernetes manifest.
+Specify ${target.steadybit.label}&apos;s requested ephemeral storage by defining the `requets` property in your Kubernetes manifest.
 
 ```yaml
 apiVersion: v1
@@ -9,14 +9,16 @@ spec:
     - name: example
       image: images.my-company.example/app:v4
       resources:
+  % startHighlight %
         requests:
           memory: "64Mi"
           cpu: "250m"
-% startHighlight %
+          ephemeral-storage: "2Gi"
+  % endHighlight %
         limits:
           memory: "128Mi"
           cpu: "500m"
-% endHighlight %
+					ephemeral-storage: "4Gi"
 ```
 
 ### Read More

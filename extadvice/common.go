@@ -11,11 +11,17 @@ var CpuLimitContent embed.FS
 //go:embed memory_limit/*
 var MemoryLimitContent embed.FS
 
+//go:embed ephemeral_storage_limit/*
+var EphemeralStorageLimitContent embed.FS
+
 //go:embed cpu_request/*
 var CpuRequestContent embed.FS
 
 //go:embed memory_request/*
 var MemoryRequestContent embed.FS
+
+//go:embed ephemeral_storage_request/*
+var EphemeralStorageRequestContent embed.FS
 
 //go:embed deployment_strategy/*
 var DeploymentStrategyContent embed.FS
@@ -26,14 +32,8 @@ var ImageVersioningContent embed.FS
 //go:embed image_pull_policy/*
 var ImagePullPolicyContent embed.FS
 
-//go:embed horizontal_pod_autoscaler/*
-var HorizontalPodAutoscalerContent embed.FS
-
-//go:embed liveness_probe/*
-var LivenessProbeContent embed.FS
-
-//go:embed readiness_probe/*
-var ReadinessProbeContent embed.FS
+//go:embed probes/*
+var ProbesContent embed.FS
 
 //go:embed single_replica/*
 var SingleReplicaContent embed.FS

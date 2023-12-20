@@ -21,15 +21,6 @@ rules:
       - list
       - watch
   {{/* Required for Discoveries */}}
-  - apiGroups:
-      - autoscaling
-    resources:
-      - horizontalpodautoscalers
-    verbs:
-      - get
-      - list
-      - watch
-  {{/* Required for Discoveries */}}
   - apiGroups: [""]
     resources:
       - services

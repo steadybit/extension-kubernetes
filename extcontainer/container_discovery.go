@@ -146,7 +146,7 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 	for _, pod := range filteredPods {
 		podMetadata := pod.ObjectMeta
 		ownerReferences := client.OwnerReferences(c.k8s, &podMetadata)
-		services := c.k8s.ServicesByPod(pod)
+		services := c.k8s.ServicesMatchingToPodLabels(pod.Namespace, pod.ObjectMeta.Labels)
 
 		for _, container := range pod.Status.ContainerStatuses {
 			if container.ContainerID == "" {
@@ -167,6 +167,7 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 			}
 
 			for _, containerSpec := range pod.Spec.Containers {
+				//TODO Remove these attributes when old weak spot feature is removed
 				if containerSpec.Name == container.Name {
 					attributes["k8s.container.limit.cpu"] = []string{fmt.Sprintf("%d", containerSpec.Resources.Limits.Cpu().MilliValue())}
 					attributes["k8s.container.limit.memory"] = []string{fmt.Sprintf("%d", containerSpec.Resources.Limits.Memory().MilliValue())}
@@ -188,7 +189,6 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 				for _, service := range services {
 					serviceNames = append(serviceNames, service.Name)
 				}
-				slices.Sort(serviceNames)
 				attributes["k8s.service.name"] = serviceNames
 			}
 

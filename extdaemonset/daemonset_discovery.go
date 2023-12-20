@@ -6,7 +6,6 @@ package extdaemonset
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -19,7 +18,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -99,109 +97,19 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
 			"k8s.distribution": {d.k8s.Distribution},
 		}
-
 		for key, value := range ds.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-
-		pods := d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace)
-		if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
-			log.Warn().Msgf("Daemonset %s/%s has more than %d pods. Skip listing pods, containers and hosts.", ds.Namespace, ds.Name, extconfig.Config.DiscoveryMaxPodCount)
-			attributes["k8s.pod.name"] = []string{"too-many-pods"}
-			attributes["k8s.container.id"] = []string{"too-many-pods"}
-			attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}
-			attributes["host.hostname"] = []string{"too-many-pods"}
-		} else if len(pods) > 0 {
-			podNames := make([]string, len(pods))
-			var containerIds []string
-			var containerIdsWithoutPrefix []string
-			var hostnames []string
-			var containerNamesWithoutLimitCPU []string
-			var containerNamesWithoutLimitMemory []string
-			var containerNamesWithoutRequestCPU []string
-			var containerNamesWithoutRequestMemory []string
-			var containerWithoutLivenessProbe []string
-			var containerWithoutReadinessProbe []string
-			var containerWithLatestTag []string
-			var containerWithoutImagePullPolicyAlways []string
-			for podIndex, pod := range pods {
-				podNames[podIndex] = pod.Name
-				for _, container := range pod.Status.ContainerStatuses {
-					if container.ContainerID == "" {
-						continue
-					}
-					containerIds = append(containerIds, container.ContainerID)
-					containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
-				}
-				hostnames = append(hostnames, pod.Spec.NodeName)
-				for _, containerSpec := range pod.Spec.Containers {
-					if containerSpec.Resources.Limits.Cpu().MilliValue() == 0 {
-						containerNamesWithoutLimitCPU = append(containerNamesWithoutLimitCPU, containerSpec.Name)
-					}
-					if containerSpec.Resources.Limits.Memory().MilliValue() == 0 {
-						containerNamesWithoutLimitMemory = append(containerNamesWithoutLimitMemory, containerSpec.Name)
-					}
-					if containerSpec.Resources.Requests.Cpu().MilliValue() == 0 {
-						containerNamesWithoutRequestCPU = append(containerNamesWithoutRequestCPU, containerSpec.Name)
-					}
-					if containerSpec.Resources.Requests.Memory().MilliValue() == 0 {
-						containerNamesWithoutRequestMemory = append(containerNamesWithoutRequestMemory, containerSpec.Name)
-					}
-					if containerSpec.LivenessProbe == nil {
-						containerWithoutLivenessProbe = append(containerWithoutLivenessProbe, containerSpec.Name)
-					}
-					if containerSpec.ReadinessProbe == nil {
-						containerWithoutReadinessProbe = append(containerWithoutReadinessProbe, containerSpec.Name)
-					}
-					if strings.HasSuffix(containerSpec.Image, "latest") {
-						containerWithLatestTag = append(containerWithLatestTag, containerSpec.Image)
-					}
-					if containerSpec.ImagePullPolicy != "Always" {
-						containerWithoutImagePullPolicyAlways = append(containerWithoutImagePullPolicyAlways, containerSpec.Image)
-					}
-				}
-			}
-			attributes["k8s.pod.name"] = podNames
-			if len(containerIds) > 0 {
-				attributes["k8s.container.id"] = containerIds
-			}
-			if len(containerIdsWithoutPrefix) > 0 {
-				attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
-			}
-			if len(hostnames) > 0 {
-				attributes["host.hostname"] = hostnames
-			}
-			if len(containerNamesWithoutLimitCPU) > 0 {
-				attributes["k8s.container.spec.limit.cpu.not-set"] = containerNamesWithoutLimitCPU
-			}
-			if len(containerNamesWithoutLimitMemory) > 0 {
-				attributes["k8s.container.spec.limit.memory.not-set"] = containerNamesWithoutLimitMemory
-			}
-			if len(containerNamesWithoutRequestCPU) > 0 {
-				attributes["k8s.container.spec.request.cpu.not-set"] = containerNamesWithoutRequestCPU
-			}
-			if len(containerNamesWithoutRequestMemory) > 0 {
-				attributes["k8s.container.spec.request.memory.not-set"] = containerNamesWithoutRequestMemory
-			}
-			if len(containerWithoutLivenessProbe) > 0 {
-				attributes["k8s.container.probes.liveness.not-set"] = containerWithoutLivenessProbe
-			}
-			if len(containerWithoutReadinessProbe) > 0 {
-				attributes["k8s.container.probes.readiness.not-set"] = containerWithoutReadinessProbe
-			}
-			if len(containerWithLatestTag) > 0 {
-				attributes["k8s.container.image.with-latest-tag"] = containerWithLatestTag
-			}
-			if len(containerWithoutImagePullPolicyAlways) > 0 {
-				attributes["k8s.container.image.without-image-pull-policy-always"] = containerWithoutImagePullPolicyAlways
-			}
-
-			scoreAttributes := getKubeScoreAttributesDaemonSet(ds)
-			for key, value := range scoreAttributes {
-				attributes[key] = value
-			}
+		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &ds.ObjectMeta, ds.Spec.Selector) {
+			attributes[key] = value
+		}
+		for key, value := range extcommon.GetServiceNames(d.k8s, &ds.Namespace, &ds.Spec.Template) {
+			attributes[key] = value
+		}
+		for key, value := range extcommon.GetKubeScoreForDaemonSet(ds, d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {
+			attributes[key] = value
 		}
 
 		targets[i] = discovery_kit_api.Target{
@@ -243,16 +151,4 @@ func getDaemonSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			},
 		},
 	}
-}
-
-func getKubeScoreAttributesDaemonSet(daemonSet *appsv1.DaemonSet) map[string][]string {
-	apiVersion := "apps/v1"
-	kind := "Deployment"
-	if daemonSet.APIVersion != "" {
-		apiVersion = daemonSet.APIVersion
-	}
-	if daemonSet.Kind != "" {
-		kind = daemonSet.Kind
-	}
-	return extcommon.GetKubeScoreAttributes(daemonSet, daemonSet.Namespace, daemonSet.Name, apiVersion, kind)
 }

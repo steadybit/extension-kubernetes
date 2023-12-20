@@ -18,14 +18,6 @@ manifest should match snapshot:
           - list
           - watch
       - apiGroups:
-          - autoscaling
-        resources:
-          - horizontalpodautoscalers
-        verbs:
-          - get
-          - list
-          - watch
-      - apiGroups:
           - ""
         resources:
           - services

@@ -158,6 +158,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/k8s-memory-limit",
 			})
 		}
+		if adviceId == "*" || adviceId == extadvice.EphemeralStorageLimitID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/advice/k8s-ephemeral-storage-limit",
+			})
+		}
 		if adviceId == "*" || adviceId == extadvice.CpuRequestID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
@@ -170,10 +176,10 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/k8s-memory-request",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.HorizontalPodAutoscalerID {
+		if adviceId == "*" || adviceId == extadvice.EphemeralStorageRequestID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/advice/k8s-horizontal-pod-autoscaler",
+				Path:   "/advice/k8s-ephemeral-storage-request",
 			})
 		}
 		if adviceId == "*" || adviceId == extadvice.ImageVersioningID {
@@ -188,16 +194,10 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/k8s-image-pull-policy",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.LivenessProbeID {
+		if adviceId == "*" || adviceId == extadvice.ProbesID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
-				Path:   "/advice/k8s-liveness-probe",
-			})
-		}
-		if adviceId == "*" || adviceId == extadvice.ReadinessProbeID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-readiness-probe",
+				Path:   "/advice/k8s-probes",
 			})
 		}
 		if adviceId == "*" || adviceId == extadvice.SingleReplicaID {

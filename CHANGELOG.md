@@ -4,6 +4,8 @@
 
 - Crash Loop Attack: validate specified container name with spec
 - Crash Loop Attack: ignore when to be killed container is already gone
+- Renamed attribute `k8s.deployment.replicas` to `k8s.specification.replicas`
+- Update dependencies
 
 ## v2.5.3
 
