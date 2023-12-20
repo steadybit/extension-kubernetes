@@ -15,8 +15,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"runtime/debug"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -194,7 +196,17 @@ func addSimpleScore(scores []scorecard.TestScore, attributes map[string][]string
 	}
 }
 
+var lastPanicLog = time.Now().Add(-100 * time.Minute)
+
 func getScores(inputs []kubeScoreInput) []scorecard.TestScore {
+	defer func() {
+		if err := recover(); err != nil {
+			if (lastPanicLog.Add(5 * time.Minute)).Before(time.Now()) {
+				lastPanicLog = time.Now()
+				log.Error().Msgf("Error calling kube-score: %v. This message will be skipped for the next 5 minutes.\n %s", err, string(debug.Stack()))
+			}
+		}
+	}()
 	manifests := prepareManifests(inputs)
 	scoreCard := getKubeScoreCard(manifests)
 	if scoreCard == nil {
