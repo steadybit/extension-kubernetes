@@ -38,9 +38,13 @@ type kubeScoreInput interface {
 }
 
 func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service) map[string][]string {
+	deployment.APIVersion = "apps/v1"
+	deployment.Kind = "Deployment"
 	inputs := make([]kubeScoreInput, 0)
 	inputs = append(inputs, deployment)
 	for _, service := range services {
+		service.APIVersion = "v1"
+		service.Kind = "Service"
 		inputs = append(inputs, service)
 	}
 
@@ -58,9 +62,13 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 }
 
 func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Service) map[string][]string {
+	daemonSet.APIVersion = "apps/v1"
+	daemonSet.Kind = "DaemonSet"
 	inputs := make([]kubeScoreInput, 0)
 	inputs = append(inputs, daemonSet)
 	for _, service := range services {
+		service.APIVersion = "v1"
+		service.Kind = "Service"
 		inputs = append(inputs, service)
 	}
 
@@ -77,9 +85,13 @@ func GetKubeScoreForDaemonSet(daemonSet *appsv1.DaemonSet, services []*corev1.Se
 }
 
 func GetKubeScoreForStatefulSet(statefulSet *appsv1.StatefulSet, services []*corev1.Service) map[string][]string {
+	statefulSet.APIVersion = "apps/v1"
+	statefulSet.Kind = "StatefulSet"
 	inputs := make([]kubeScoreInput, 0)
 	inputs = append(inputs, statefulSet)
 	for _, service := range services {
+		service.APIVersion = "v1"
+		service.Kind = "Service"
 		inputs = append(inputs, service)
 	}
 	attributes := map[string][]string{}
