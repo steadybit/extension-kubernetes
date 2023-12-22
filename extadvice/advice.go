@@ -215,7 +215,7 @@ func GetAdviceDescriptionSingleReplica() advice_kit_api.AdviceDefinition {
 		AssessmentQueryApplicable: "target.type=\"" + extdeployment.DeploymentTargetType + "\" OR target.type=\"" + extstatefulset.StatefulSetTargetType + "\"",
 		Status: advice_kit_api.AdviceDefinitionStatus{
 			ActionNeeded: advice_kit_api.AdviceDefinitionStatusActionNeeded{
-				AssessmentQuery: "k8s.deployment.replicas IS NOT PRESENT OR k8s.deployment.replicas = \"1\"",
+				AssessmentQuery: "k8s.specification.replicas IS NOT PRESENT OR k8s.specification.replicas = \"1\"",
 				Description: advice_kit_api.AdviceDefinitionStatusActionNeededDescription{
 					Instruction: ReadAdviceFile(SingleReplicaContent, "single_replica/instructions.md"),
 					Motivation:  ReadAdviceFile(SingleReplicaContent, "single_replica/motivation.md"),
