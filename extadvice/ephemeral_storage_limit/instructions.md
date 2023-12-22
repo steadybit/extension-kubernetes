@@ -15,10 +15,11 @@ spec:
           ephemeral-storage: "2Gi"
 % startHighlight %
         limits:
-          memory: "128Mi"
-          cpu: "500m"
           ephemeral-storage: "4Gi"
 % endHighlight %
+          memory: "128Mi"
+          cpu: "500m"
+
 ```
 
 ### Read More

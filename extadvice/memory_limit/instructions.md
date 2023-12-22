@@ -12,11 +12,13 @@ spec:
         requests:
           memory: "64Mi"
           cpu: "250m"
-% startHighlight %
+          ephemeral-storage: "2Gi"
+  % startHighlight %
         limits:
           memory: "128Mi"
-          cpu: "500m"
 % endHighlight %
+          cpu: "500m"
+          ephemeral-storage: "4Gi"
 ```
 
 ### Read More

@@ -11,12 +11,14 @@ spec:
       resources:
   % startHighlight %
         requests:
-          memory: "64Mi"
           cpu: "250m"
   % endHighlight %
+          memory: "64Mi"
+          ephemeral-storage: "2Gi"
         limits:
           memory: "128Mi"
           cpu: "500m"
+          ephemeral-storage: "4Gi"
 ```
 
 ### Read More
