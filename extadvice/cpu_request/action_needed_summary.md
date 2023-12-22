@@ -1,3 +1,3 @@
-When your containers of ${target.steadybit.label} requests unnecessary high CPU, you're wasting resources by over-allocating and making it unlikely to schedule your pod on available node resources.
+When your containers of ${target.steadybit.label} don't specify requested cpu, scheduling and autoscaling of Kubernetes works suboptimal.
 
 **Container affected:** ${target.k8s.container.spec.request.cpu.not-set[]}
