@@ -18,7 +18,7 @@ spec:
         limits:
           memory: "128Mi"
           cpu: "500m"
-					ephemeral-storage: "4Gi"
+          ephemeral-storage: "4Gi"
 ```
 
 ### Read More
