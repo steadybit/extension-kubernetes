@@ -125,6 +125,34 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 		},
 		{
+			name: "should report probes ok",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "/live",
+							Port: intstr.FromInt32(80),
+						},
+					},
+				}
+				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &v1.Probe{
+					ProbeHandler: v1.ProbeHandler{
+						HTTPGet: &v1.HTTPGetAction{
+							Path: "/ready",
+							Port: intstr.FromInt32(80),
+						},
+					},
+				}
+				deployment.Spec.Template.Spec.Containers[1].LivenessProbe = nil
+				deployment.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
+			}),
+			service: testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.probes.summary": {"OK"},
+			},
+		},
+		{
 			name: "should report equal probes",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
