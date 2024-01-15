@@ -453,6 +453,20 @@ func GetAdviceDescriptionEphemeralStorageRequest() advice_kit_api.AdviceDefiniti
 					Summary: ReadAdviceFile(EphemeralStorageRequestContent, "ephemeral_storage_request/implemented.md"),
 				},
 			},
+			ValidationNeeded: advice_kit_api.AdviceDefinitionStatusValidationNeeded{
+				Description: advice_kit_api.AdviceDefinitionStatusValidationNeededDescription{
+					Summary: ReadAdviceFile(EphemeralStorageRequestContent, "ephemeral_storage_request/validation_needed.md"),
+				},
+				Validation: extutil.Ptr([]advice_kit_api.Validation{
+					{
+						Id:               EphemeralStorageRequestID + ".validation.1",
+						Type:             "TEXT",
+						Name:             "Requested ephemeral storage resources are reasonable",
+						ShortDescription: "I confirm that the requested ephemeral storage resources are reasonable to avoid overcommitment of resources and optimize scheduling of workload resources.",
+						Description:      extutil.Ptr(ReadAdviceFile(EphemeralStorageRequestContent, "ephemeral_storage_request/validation_1_description.md")),
+					},
+				}),
+			},
 		},
 	}
 }
