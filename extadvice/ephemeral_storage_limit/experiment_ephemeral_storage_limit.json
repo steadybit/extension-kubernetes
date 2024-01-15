@@ -1,7 +1,5 @@
 {
 	"name": "Pod recovers after exceeding ephemeral storage of ${target.steadybit.label}",
-	"team": "ADM",
-	"environment": "Global",
 	"lanes": [
 		{
 			"steps": [
@@ -18,44 +16,32 @@
 		{
 			"steps": [
 				{
-					"type": "action",
+					"type": "wait",
 					"ignoreFailure": false,
 					"parameters": {
-						"duration": "10s",
-						"podCountCheckMode": "podCountEqualsDesiredCount"
+						"duration": "40s"
 					},
-					"customLabel": "GIVEN: All pods are ready",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.deployment",
-									"operator": "EQUALS",
-									"values": [
-										"${target.steadybit.label}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
+					"customLabel": "Wait for fill disk"
+				},
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "30s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} is e.g., still working, failing gracefully, scaling up, or monitoring alerts"
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "40s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} works properly"
 				},
 				{
 					"type": "action",
@@ -101,16 +87,57 @@
 						"query": null,
 						"maximum": 1
 					}
+				},
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "60s"
+					},
+					"customLabel": "TODO: Validate that ${target.steadybit.label} is recovering from high CPU and everything runs smoothly again"
 				}
 			]
 		},
 		{
 			"steps": [
 				{
-					"type": "wait",
+					"type": "action",
 					"ignoreFailure": false,
 					"parameters": {
-						"duration": "10s"
+						"duration": "10s",
+						"podCountCheckMode": "podCountEqualsDesiredCount"
+					},
+					"customLabel": "GIVEN: All pods are ready",
+					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.steadybit.label}"
+									]
+								}
+							]
+						},
+						"query": null
 					}
 				},
 				{
