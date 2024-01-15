@@ -221,6 +221,64 @@
 					}
 				}
 			]
+		},
+		{
+			"steps": [
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "140s"
+					},
+					"customLabel": "Show Kubernetes events from the cluster",
+					"actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								}
+							]
+						},
+						"query": null
+					}
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "140s"
+					},
+					"customLabel": "Show Pod Count Metrics for the cluster",
+					"actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								}
+							]
+						},
+						"query": null
+					}
+				}
+			]
 		}
 	]
 }
