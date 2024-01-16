@@ -46,6 +46,7 @@ var requiredPermissions = []requiredPermission{
 	{group: "apps", resource: "replicasets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "apps", resource: "daemonsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "apps", resource: "statefulsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
+	{group: "autoscaling", resource: "horizontalpodautoscalers", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 	{group: "", resource: "services", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "", resource: "pods", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "", resource: "nodes", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
@@ -131,6 +132,13 @@ func (p *PermissionCheckResult) hasPermissions(requiredPermissions []string) boo
 		}
 	}
 	return true
+}
+
+func (p *PermissionCheckResult) CanReadHorizontalPodAutoscalers() bool {
+	return p.hasPermissions([]string{
+		"autoscaling/horizontalpodautoscalers/get",
+		"autoscaling/horizontalpodautoscalers/list",
+		"autoscaling/horizontalpodautoscalers/watch"})
 }
 
 func (p *PermissionCheckResult) IsRolloutRestartPermitted() bool {

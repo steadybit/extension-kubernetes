@@ -31,6 +31,15 @@ rules:
       - get
       - list
       - watch
+  {{/* Required for Single-Replica-Advice */}}
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - get
+      - list
+      - watch
   {{/* Required for Rollout Restart Attack */}}
   - apiGroups:
       - apps

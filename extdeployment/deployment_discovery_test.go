@@ -271,6 +271,40 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.specification.has-rolling-update-strategy": {"true"},
 			},
 		},
+		{
+			name: "should report single replica",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Replicas = extutil.Ptr(int32(1))
+			}),
+			service: testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-multiple-replica": {"false"},
+			},
+		},
+		{
+			name:       "should report multiple replicas",
+			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			service:    testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-multiple-replica": {"true"},
+			},
+		},
+		{
+			name:                      "should not report multiple replicas if no service is defined",
+			pods:                      []*v1.Pod{testPod("aaaaa", nil)},
+			deployment:                testDeployment(nil),
+			expectedAttributesAbsence: []string{"k8s.specification.has-multiple-replica"},
+		},
+		{
+			name:                      "should not report multiple replicas if targeted by hpa",
+			pods:                      []*v1.Pod{testPod("aaaaa", nil)},
+			deployment:                testDeployment(nil),
+			service:                   testService(nil),
+			hpa:                       testHPA(nil),
+			expectedAttributesAbsence: []string{"k8s.specification.has-multiple-replica"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -347,6 +381,31 @@ func Test_deploymentDiscovery(t *testing.T) {
 			}
 		})
 	}
+}
+
+func testHPA(modifier func(autoscaler *autoscalingv2.HorizontalPodAutoscaler)) *autoscalingv2.HorizontalPodAutoscaler {
+	autoscaler := &autoscalingv2.HorizontalPodAutoscaler{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "HorizontalPodAutoscaler",
+			APIVersion: "autoscaling/v2",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop",
+			Namespace: "default",
+		},
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				Kind:       "Deployment",
+				Name:       "shop",
+				APIVersion: "apps/v1",
+			},
+		},
+	}
+	if modifier != nil {
+		modifier(autoscaler)
+	}
+
+	return autoscaler
 }
 
 func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {

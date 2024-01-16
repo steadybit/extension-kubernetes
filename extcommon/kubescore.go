@@ -11,6 +11,7 @@ import (
 	"github.com/zegl/kube-score/scorecard"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -37,7 +38,7 @@ type kubeScoreInput interface {
 	GetNamespace() string
 }
 
-func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service) map[string][]string {
+func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1.Service, hpa *autoscalingv2.HorizontalPodAutoscaler) map[string][]string {
 	deployment.APIVersion = "apps/v1"
 	deployment.Kind = "Deployment"
 	inputs := make([]kubeScoreInput, 0)
@@ -46,6 +47,11 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 		service.APIVersion = "v1"
 		service.Kind = "Service"
 		inputs = append(inputs, service)
+	}
+	if hpa != nil {
+		hpa.APIVersion = "autoscaling/v2"
+		hpa.Kind = "HorizontalPodAutoscaler"
+		inputs = append(inputs, hpa)
 	}
 
 	attributes := map[string][]string{}
@@ -58,6 +64,7 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
 	addSimpleScore(scores, attributes, "deployment-strategy", "k8s.specification.has-rolling-update-strategy")
+	addSimpleScore(scores, attributes, "deployment-replicas", "k8s.specification.has-multiple-replica")
 
 	return attributes
 }

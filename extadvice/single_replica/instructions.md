@@ -17,3 +17,6 @@ spec:
       tier: ${target.steadybit.label:normal}
 ```
 **If you increase the replica we strongly advice you to check if this is supported by your application.**
+
+---
+This advice is powered by [kube-score](https://kube-score.com/).
