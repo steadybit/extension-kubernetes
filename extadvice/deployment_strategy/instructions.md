@@ -19,3 +19,6 @@ spec:
 ### Read More
 
 [Kubernetes Documentation - Deployment Strategy](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy)
+
+---
+This advice is powered by [kube-score](https://kube-score.com/).

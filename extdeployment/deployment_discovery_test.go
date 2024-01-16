@@ -49,7 +49,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.deployment.label.best-city":             {"Kevelaer"},
 				"k8s.label.best-city":                        {"Kevelaer"},
 				"k8s.deployment.min-ready-seconds":           {"10"},
-				"k8s.deployment.strategy":                    {"RollingUpdate"},
 				"k8s.specification.replicas":                 {"3"},
 				"k8s.cluster-name":                           {"development"},
 				"k8s.pod.name":                               {"shop-pod-aaaaa", "shop-pod-bbbbb"},
@@ -242,6 +241,34 @@ func Test_deploymentDiscovery(t *testing.T) {
 			expectedAttributes: map[string][]string{
 				"k8s.container.image.with-latest-tag":                  {"nginx", "shop"},
 				"k8s.container.image.without-image-pull-policy-always": {"nginx", "shop"},
+			},
+		},
+		{
+			name: "should report wrong rollout strategy",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Strategy.Type = appsv1.RecreateDeploymentStrategyType
+			}),
+			service: testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-rolling-update-strategy": {"false"},
+			},
+		},
+		{
+			name: "should not report wrong rollout strategy if no service is defined",
+			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(func(deployment *appsv1.Deployment) {
+				deployment.Spec.Strategy.Type = appsv1.RecreateDeploymentStrategyType
+			}),
+			expectedAttributesAbsence: []string{"k8s.specification.has-rolling-update-strategy"},
+		},
+		{
+			name:       "should report good rollout strategy",
+			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			service:    testService(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-rolling-update-strategy": {"true"},
 			},
 		},
 	}

@@ -96,7 +96,6 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			"k8s.deployment":                   {deployment.Name},
 			"k8s.cluster-name":                 {extconfig.Config.ClusterName},
 			"k8s.distribution":                 {d.k8s.Distribution},
-			"k8s.deployment.strategy":          {string(deployment.Spec.Strategy.Type)},
 			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", deployment.Spec.MinReadySeconds)},
 		}
 		if deployment.Spec.Replicas != nil {

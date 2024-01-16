@@ -57,6 +57,7 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 	addContainerBasedScore(scores, attributes, "container-image-tag", "k8s.container.image.with-latest-tag")
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
+	addSimpleScore(scores, attributes, "deployment-strategy", "k8s.specification.has-rolling-update-strategy")
 
 	return attributes
 }
@@ -180,9 +181,9 @@ func addProbesScores(scores []scorecard.TestScore, attributes map[string][]strin
 				return
 			}
 		}
-	}
-	if (check.Comments == nil || len(check.Comments) == 0) && check.Grade == scorecard.GradeAllOK {
-		attributes["k8s.specification.probes.summary"] = []string{"OK"}
+		if (check.Comments == nil || len(check.Comments) == 0) && check.Grade == scorecard.GradeAllOK {
+			attributes["k8s.specification.probes.summary"] = []string{"OK"}
+		}
 	}
 }
 
