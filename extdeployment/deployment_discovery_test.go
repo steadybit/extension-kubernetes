@@ -46,6 +46,8 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"host.hostname":                              {"worker-1", "worker-2"},
 				"k8s.namespace":                              {"default"},
 				"k8s.deployment":                             {"shop"},
+				"k8s.workload-type":                          {"deployment"},
+				"k8s.workload-owner":                         {"shop"},
 				"k8s.deployment.label.best-city":             {"Kevelaer"},
 				"k8s.label.best-city":                        {"Kevelaer"},
 				"k8s.deployment.min-ready-seconds":           {"10"},

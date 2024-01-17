@@ -44,6 +44,8 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				"host.hostname":                              {"worker-1", "worker-2"},
 				"k8s.namespace":                              {"default"},
 				"k8s.statefulset":                            {"shop"},
+				"k8s.workload-type":                          {"statefulset"},
+				"k8s.workload-owner":                         {"shop"},
 				"k8s.label.best-city":                        {"Kevelaer"},
 				"k8s.specification.replicas":                 {"3"},
 				"k8s.cluster-name":                           {"development"},
