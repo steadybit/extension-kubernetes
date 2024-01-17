@@ -48,7 +48,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
@@ -92,7 +92,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
@@ -135,7 +135,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
@@ -176,7 +176,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
