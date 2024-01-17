@@ -91,10 +91,12 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 	for i, sts := range filteredStatefulSets {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, sts.Namespace, sts.Name)
 		attributes := map[string][]string{
-			"k8s.namespace":    {sts.Namespace},
-			"k8s.statefulset":  {sts.Name},
-			"k8s.cluster-name": {extconfig.Config.ClusterName},
-			"k8s.distribution": {d.k8s.Distribution},
+			"k8s.namespace":      {sts.Namespace},
+			"k8s.statefulset":    {sts.Name},
+			"k8s.workload-type":  {"statefulset"},
+			"k8s.workload-owner": {sts.Name},
+			"k8s.cluster-name":   {extconfig.Config.ClusterName},
+			"k8s.distribution":   {d.k8s.Distribution},
 		}
 
 		if sts.Spec.Replicas != nil {

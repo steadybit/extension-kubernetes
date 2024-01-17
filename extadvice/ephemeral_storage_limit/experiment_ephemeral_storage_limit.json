@@ -44,10 +44,10 @@
 									]
 								},
 								{
-									"key": "k8s.deployment",
+									"key": "k8s.${target.k8s.workload-type}",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.deployment}"
+										"${target.k8s.workload-owner}"
 									]
 								}
 							]
@@ -120,10 +120,10 @@
 									]
 								},
 								{
-									"key": "k8s.deployment",
+									"key": "k8s.${target.k8s.workload-type}",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.deployment}"
+										"${target.k8s.workload-owner}"
 									]
 								}
 							]
@@ -181,10 +181,10 @@
 									]
 								},
 								{
-									"key": "k8s.deployment",
+									"key": "k8s.${target.k8s.workload-type}",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.deployment}"
+										"${target.k8s.workload-owner}"
 									]
 								}
 							]
@@ -221,10 +221,10 @@
 									]
 								},
 								{
-									"key": "k8s.deployment",
+									"key": "k8s.${target.k8s.workload-type}",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.deployment}"
+										"${target.k8s.workload-owner}"
 									]
 								}
 							]

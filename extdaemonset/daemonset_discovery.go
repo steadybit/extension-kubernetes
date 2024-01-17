@@ -92,10 +92,12 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 	for i, ds := range filteredDaemonSets {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ds.Namespace, ds.Name)
 		attributes := map[string][]string{
-			"k8s.namespace":    {ds.Namespace},
-			"k8s.daemonset":    {ds.Name},
-			"k8s.cluster-name": {extconfig.Config.ClusterName},
-			"k8s.distribution": {d.k8s.Distribution},
+			"k8s.namespace":      {ds.Namespace},
+			"k8s.daemonset":      {ds.Name},
+			"k8s.workload-type":  {"daemonset"},
+			"k8s.workload-owner": {ds.Name},
+			"k8s.cluster-name":   {extconfig.Config.ClusterName},
+			"k8s.distribution":   {d.k8s.Distribution},
 		}
 		for key, value := range ds.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {

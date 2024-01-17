@@ -121,6 +121,14 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			},
 			{
 				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.workload-type",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.workload-owner",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
 				Name:    "k8s.statefulset",
 			},
 		},
