@@ -48,7 +48,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
@@ -92,7 +92,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
@@ -130,13 +130,51 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
 						},
 						"query": null,
 						"percentage": 50
+					}
+				},
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {},
+					"customLabel": "Single Pod Failure of ${target.steadybit.label}",
+					"actionType": "com.steadybit.extension_kubernetes.delete_pod",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-pod",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.deployment",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.deployment}"
+									]
+								}
+							]
+						},
+						"query": null,
+						"maximum": 1
 					}
 				},
 				{
@@ -171,7 +209,7 @@
 									"key": "k8s.deployment",
 									"operator": "EQUALS",
 									"values": [
-										"${target.steadybit.label}"
+										"${target.k8s.deployment}"
 									]
 								}
 							]
