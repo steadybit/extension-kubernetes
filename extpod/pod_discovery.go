@@ -122,6 +122,8 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 		ownerReferences := client.OwnerReferences(p.k8s, &pod.ObjectMeta)
 		for _, ownerRef := range ownerReferences.OwnerRefs {
 			attributes[fmt.Sprintf("k8s.%v", ownerRef.Kind)] = []string{ownerRef.Name}
+			attributes["k8s.workload-type"] = []string{ownerRef.Kind}
+			attributes["k8s.workload-owner"] = []string{ownerRef.Name}
 		}
 
 		services := p.k8s.ServicesMatchingToPodLabels(pod.Namespace, pod.ObjectMeta.Labels)
