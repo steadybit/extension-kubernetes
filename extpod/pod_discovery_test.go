@@ -95,6 +95,8 @@ func Test_getDiscoveredPods(t *testing.T) {
 		"k8s.container.id":          {"crio://abcdef"},
 		"k8s.container.id.stripped": {"abcdef"},
 		"k8s.deployment":            {"shop"},
+		"k8s.workload-type":         {"deployment"},
+		"k8s.workload-owner":        {"shop"},
 		"k8s.label.best-city":       {"kevelaer"},
 		"k8s.namespace":             {"default"},
 		"k8s.node.name":             {"worker-1"},
