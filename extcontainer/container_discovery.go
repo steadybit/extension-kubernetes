@@ -202,6 +202,8 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 
 			for _, ownerRef := range ownerReferences.OwnerRefs {
 				attributes[fmt.Sprintf("k8s.%v", ownerRef.Kind)] = []string{ownerRef.Name}
+				attributes["k8s.workload-type"] = []string{ownerRef.Kind}
+				attributes["k8s.workload-owner"] = []string{ownerRef.Name}
 			}
 
 			enrichmentDataList = append(enrichmentDataList, discovery_kit_api.EnrichmentData{
