@@ -8,11 +8,11 @@ kubernetes:
 image:
   # image.name -- The container image to use for the steadybit Kubernetes extension.
   name: ghcr.io/steadybit/extension-kubernetes
-  # image.tag -- tag name of the extension-kubernetes container image to use.
+  # image.tag -- tag name of the extension-kubernetes container image to use. Defaults to appVersion of this chart.
   # See https://hub.docker.com/r/steadybit/extension-kubernetes for all tags.
-  tag: latest
+  tag: null
   # image.pullPolicy -- Specifies when to pull the image container.
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 tls:
   server:
