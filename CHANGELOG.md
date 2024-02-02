@@ -1,11 +1,12 @@
 # Changelog
 
-## next
+## v2.5.4
 
 - Crash Loop Attack: validate specified container name with spec
 - Crash Loop Attack: ignore when to be killed container is already gone
 - Renamed attribute `k8s.deployment.replicas` to `k8s.specification.replicas`
 - Update dependencies
+- Add attributes `k8s.label.topology.kubernetes.io/zone`, `k8s.label.topology.kubernetes.io/region`, `k8s.label.node.kubernetes.io/instance-type`, `k8s.label.kubernetes.io/os` and `k8s.label.kubernetes.io/arch` to container, host, k8s-container, k8s-deplyoment, k8s-statefulset and k8s-daemonset
 
 ## v2.5.3
 
