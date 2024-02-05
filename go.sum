@@ -311,8 +311,8 @@ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/zegl/kube-score v1.17.1-0.20240105120143-9c453bc76d1e h1:ynwtKYwifKDaiIl9BgXYPBlwn7MuIZqUoAJF181i5AI=
-github.com/zegl/kube-score v1.17.1-0.20240105120143-9c453bc76d1e/go.mod h1:WdtBud0STZcmhHUT65+tg9DkLuYM6HVBjiLBxJmki1k=
+github.com/zegl/kube-score v1.18.0 h1:Ou3carmXADDdfbGbPUjjqWMTpc3q6L6J6L4Wh8gfaXE=
+github.com/zegl/kube-score v1.18.0/go.mod h1:MD/1hICHNebNVeQZkvBQ3XCfIuPelZR57S/ak1fQ2Ic=
 github.com/zmwangx/debounce v1.0.0 h1:Dyf+WfLESjc2bqFKHgI1dZTW9oh6CJm8SBDkhXrwLB4=
 github.com/zmwangx/debounce v1.0.0/go.mod h1:U+/QHt+bSMdUh8XKOb6U+MQV5Ew4eS8M3ua5WJ7Ns6I=
 golang.org/x/arch v0.0.0-20210923205945-b76863e36670/go.mod h1:5om86z9Hs0C8fWVUuoMHwpExlXzs5Tkyp9hOrfG7pp8=
