@@ -41,8 +41,7 @@ func NewContainerDiscovery(ctx context.Context, k8s *client.Client) discovery_ki
 
 func (c *containerDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         KubernetesContainerEnrichmentDataType,
-		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
+		Id: KubernetesContainerEnrichmentDataType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("30s"),
 		},

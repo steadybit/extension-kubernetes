@@ -25,8 +25,7 @@ func NewClusterDiscovery() discovery_kit_sdk.TargetDiscovery {
 
 func (c *clusterDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         ClusterTargetType,
-		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
+		Id: ClusterTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("60m"),
 		},

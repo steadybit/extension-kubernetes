@@ -41,8 +41,7 @@ func NewStatefulSetDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscove
 
 func (d *statefulSetDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         StatefulSetTargetType,
-		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
+		Id: StatefulSetTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("30s"),
 		},

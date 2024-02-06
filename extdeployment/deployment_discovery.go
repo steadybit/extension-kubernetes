@@ -42,8 +42,7 @@ func NewDeploymentDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscover
 
 func (d *deploymentDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id:         DeploymentTargetType,
-		RestrictTo: extutil.Ptr(discovery_kit_api.LEADER),
+		Id: DeploymentTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("30s"),
 		},
