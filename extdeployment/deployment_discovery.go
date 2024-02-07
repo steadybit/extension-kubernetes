@@ -162,8 +162,8 @@ func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichment
 				Name:    "k8s.deployment.label.",
 			},
 			{
-				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.label.",
+				Matcher: discovery_kit_api.Regex,
+				Name:    "^k8s\\.label\\.(?!topology).*",
 			},
 		},
 	}
