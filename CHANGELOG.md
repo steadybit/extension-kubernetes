@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.5
+
+- use TargetEnrichmentRule Matcher Regex for copying k8s.label.* to container (exclude k8s.label.topology.*)
+
 ## v2.5.4
 
 - Crash Loop Attack: validate specified container name with spec
