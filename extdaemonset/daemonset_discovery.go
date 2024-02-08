@@ -147,8 +147,8 @@ func getDaemonSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 		},
 		Attributes: []discovery_kit_api.Attribute{
 			{
-				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.label.",
+				Matcher: discovery_kit_api.Regex,
+				Name:    "^k8s\\.label\\.(?!topology).*",
 			},
 		},
 	}

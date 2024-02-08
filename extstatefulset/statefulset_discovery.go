@@ -151,8 +151,8 @@ func getStatefulSetToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmen
 		},
 		Attributes: []discovery_kit_api.Attribute{
 			{
-				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.label.",
+				Matcher: discovery_kit_api.Regex,
+				Name:    "^k8s\\.label\\.(?!topology).*",
 			},
 		},
 	}
