@@ -2,7 +2,7 @@
 
 ## v2.5.5
 
-- use TargetEnrichmentRule Matcher Regex for copying k8s.label.* to container (exclude k8s.label.topology.*)
+- use TargetEnrichmentRule Matcher Regex for copying k8s.label.* to container (exclude k8s.label.topology.*) (needs platform version >= 2.0.0 and agent version >= 2.0.2)
 
 ## v2.5.4
 
