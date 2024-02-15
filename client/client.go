@@ -492,6 +492,10 @@ func IsExcludedFromDiscovery(objectMeta metav1.ObjectMeta) bool {
 	if keyExists && strings.ToLower(discoveryEnabled) == "true" {
 		return true
 	}
+	discoveryEnabled, keyExists = objectMeta.Labels["steadybit.com.discovery-disabled"]
+	if keyExists && strings.ToLower(discoveryEnabled) == "true" {
+		return true
+	}
 	steadybitAgent, steadybitAgentKeyExists := objectMeta.Labels["com.steadybit.agent"]
 	if steadybitAgentKeyExists && strings.ToLower(steadybitAgent) == "true" {
 		return true
