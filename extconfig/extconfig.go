@@ -45,5 +45,7 @@ func ParseConfiguration() {
 }
 
 func ValidateConfiguration() {
-	// You may optionally validate the configuration here.
+	if Config.DisableDiscoveryExcludes {
+		log.Info().Msg("Discovery excludes are disabled. Will also discover workloads labeled with steadybit.com/discovery-exclude=true.")
+	}
 }
