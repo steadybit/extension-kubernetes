@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.6
+
+- Update dependencies
+
 ## v2.5.5
 
 - use TargetEnrichmentRule Matcher Regex for copying k8s.label.* to container (exclude k8s.label.topology.*) (needs platform version >= 2.0.0 and agent version >= 2.0.2)
