@@ -16,6 +16,9 @@ spec:
     matchLabels:
       tier: ${target.steadybit.label:normal}
 ```
+
+If your Deployment is targeted by a HorizontalPodAutoscaler, you should adjust the `minReplicas` property of the HorizontalPodAutoscaler and omit the `replica` property in the Deployment specification.
+
 **If you increase the replica we strongly advice you to check if this is supported by your application.**
 
 ---
