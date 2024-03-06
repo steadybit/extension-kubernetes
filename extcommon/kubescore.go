@@ -65,6 +65,10 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
 	addSimpleScore(scores, attributes, "deployment-strategy", "k8s.specification.has-rolling-update-strategy")
 	addSimpleScore(scores, attributes, "deployment-replicas", "k8s.specification.has-multiple-replica")
+	_, ok := attributes["k8s.specification.has-multiple-replica"]
+	if !ok {
+		addSimpleScore(scores, attributes, "horizontalpodautoscaler-replicas", "k8s.specification.has-multiple-replica")
+	}
 
 	return attributes
 }
@@ -230,12 +234,11 @@ func getScores(inputs []kubeScoreInput) []scorecard.TestScore {
 	if scoreCard == nil {
 		return []scorecard.TestScore{}
 	}
+	var scores []scorecard.TestScore
 	for _, scoredObject := range *scoreCard {
-		if (scoredObject.ObjectMeta.Name == inputs[0].GetName()) && (scoredObject.ObjectMeta.Namespace == inputs[0].GetNamespace() && scoredObject.TypeMeta.Kind == inputs[0].GetObjectKind().GroupVersionKind().Kind) {
-			return scoredObject.Checks
-		}
+		scores = append(scores, scoredObject.Checks...)
 	}
-	return []scorecard.TestScore{}
+	return scores
 }
 
 func prepareManifests(objects []kubeScoreInput) []ks.NamedReader {

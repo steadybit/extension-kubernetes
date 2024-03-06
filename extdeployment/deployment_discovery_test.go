@@ -294,17 +294,31 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 		},
 		{
+			name:       "should report single replica if targeted by hpa with min replicas = 1",
+			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			service:    testService(nil),
+			hpa: testHPA(func(hpa *autoscalingv2.HorizontalPodAutoscaler) {
+				hpa.Spec.MinReplicas = extutil.Ptr(int32(1))
+			}),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-multiple-replica": {"false"},
+			},
+		},
+		{
+			name:       "should report multiple replicas if targeted by hpa with min replicas > 1",
+			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			service:    testService(nil),
+			hpa:        testHPA(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-multiple-replica": {"true"},
+			},
+		},
+		{
 			name:                      "should not report multiple replicas if no service is defined",
 			pods:                      []*v1.Pod{testPod("aaaaa", nil)},
 			deployment:                testDeployment(nil),
-			expectedAttributesAbsence: []string{"k8s.specification.has-multiple-replica"},
-		},
-		{
-			name:                      "should not report multiple replicas if targeted by hpa",
-			pods:                      []*v1.Pod{testPod("aaaaa", nil)},
-			deployment:                testDeployment(nil),
-			service:                   testService(nil),
-			hpa:                       testHPA(nil),
 			expectedAttributesAbsence: []string{"k8s.specification.has-multiple-replica"},
 		},
 	}
@@ -396,6 +410,7 @@ func testHPA(modifier func(autoscaler *autoscalingv2.HorizontalPodAutoscaler)) *
 			Namespace: "default",
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			MinReplicas: extutil.Ptr(int32(2)),
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Kind:       "Deployment",
 				Name:       "shop",
