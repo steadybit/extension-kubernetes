@@ -159,3 +159,4 @@ service:
     list:
       - ACTION
       - DISCOVERY
+      - ADVICE
