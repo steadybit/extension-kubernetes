@@ -33,7 +33,12 @@ var (
 
 func NewDeploymentDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 	discovery := &deploymentDiscovery{k8s: k8s}
-	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}), reflect.TypeOf(appsv1.Deployment{}))
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s,
+		reflect.TypeOf(corev1.Pod{}),
+		reflect.TypeOf(appsv1.Deployment{}),
+		reflect.TypeOf(autoscalingv2.HorizontalPodAutoscaler{}),
+		reflect.TypeOf(corev1.Service{}),
+	)
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
 		discovery_kit_sdk.WithRefreshTargetsNow(),
 		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, 5*time.Second),
