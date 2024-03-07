@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.5.7
+
+- Update dependencies
+- fix: update deployments if services/hpas have changes
+- fix: integrate kubescore check `horizontalpodautoscaler-replicas`
+
 ## v2.5.6
 
 - Update dependencies
