@@ -94,6 +94,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 
 	targets := make([]discovery_kit_api.Target, len(filteredDeployments))
 
+	nodes := d.k8s.Nodes()
 	for i, deployment := range filteredDeployments {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, deployment.Namespace, deployment.Name)
 		attributes := map[string][]string{
@@ -114,10 +115,11 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &deployment.ObjectMeta, deployment.Spec.Selector) {
+
+		for key, value := range extcommon.GetPodBasedAttributes(deployment.ObjectMeta, d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace), nodes) {
 			attributes[key] = value
 		}
-		for key, value := range extcommon.GetServiceNames(d.k8s, &deployment.Namespace, &deployment.Spec.Template) {
+		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels)) {
 			attributes[key] = value
 		}
 

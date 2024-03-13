@@ -86,6 +86,7 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 		}
 	}
 
+	nodes := d.k8s.Nodes()
 	targets := make([]discovery_kit_api.Target, len(filteredStatefulSets))
 	for i, sts := range filteredStatefulSets {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, sts.Namespace, sts.Name)
@@ -107,10 +108,11 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &sts.ObjectMeta, sts.Spec.Selector) {
+		for key, value := range extcommon.GetPodBasedAttributes(sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes) {
+
 			attributes[key] = value
 		}
-		for key, value := range extcommon.GetServiceNames(d.k8s, &sts.Namespace, &sts.Spec.Template) {
+		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {
 			attributes[key] = value
 		}
 		for key, value := range extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {

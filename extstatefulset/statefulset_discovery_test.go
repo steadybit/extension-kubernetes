@@ -28,6 +28,7 @@ func Test_statefulSetDiscovery(t *testing.T) {
 		name                      string
 		configModifier            func(*extconfig.Specification)
 		pods                      []*v1.Pod
+		nodes                     []*v1.Node
 		statefulSet               *appsv1.StatefulSet
 		service                   *v1.Service
 		expectedAttributesExactly map[string][]string
@@ -39,9 +40,11 @@ func Test_statefulSetDiscovery(t *testing.T) {
 			pods: []*v1.Pod{testPod("aaaaa", nil), testPod("bbbbb", func(pod *v1.Pod) {
 				pod.Spec.NodeName = "worker-2"
 			})},
+			nodes:       []*v1.Node{testNode("worker-1"), testNode("worker-2")},
 			statefulSet: testStatefulSet(nil),
 			expectedAttributesExactly: map[string][]string{
 				"host.hostname":                              {"worker-1", "worker-2"},
+				"host.domainname":                            {"worker-1.internal", "worker-2.internal"},
 				"k8s.namespace":                              {"default"},
 				"k8s.statefulset":                            {"shop"},
 				"k8s.workload-type":                          {"statefulset"},
@@ -59,6 +62,7 @@ func Test_statefulSetDiscovery(t *testing.T) {
 		{
 			name:        "hostnames should be unique and not duplicated",
 			pods:        []*v1.Pod{testPod("aaaaa", nil), testPod("bbbbb", nil)},
+			nodes:       []*v1.Node{testNode("worker-1")},
 			statefulSet: testStatefulSet(nil),
 			expectedAttributes: map[string][]string{
 				"host.hostname": {"worker-1"},
@@ -233,6 +237,12 @@ func Test_statefulSetDiscovery(t *testing.T) {
 					Create(context.Background(), pod, metav1.CreateOptions{})
 				require.NoError(t, err)
 			}
+			for _, node := range tt.nodes {
+				_, err := clientset.CoreV1().
+					Nodes().
+					Create(context.Background(), node, metav1.CreateOptions{})
+				require.NoError(t, err)
+			}
 
 			_, err := clientset.
 				AppsV1().
@@ -280,6 +290,26 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func testNode(name string) *v1.Node {
+	return &v1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: v1.NodeStatus{
+			Addresses: []v1.NodeAddress{
+				{
+					Type:    v1.NodeInternalDNS,
+					Address: fmt.Sprintf("%s.internal", name),
+				},
+			},
+		},
 	}
 }
 

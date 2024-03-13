@@ -220,7 +220,8 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 		attributes := map[string][]string{
 			"k8s.node.name":    {node.Name},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
-			"host.hostname":    {node.Name},
+			"host.hostname":    {extcommon.GetHostname(node)},
+			"host.domainname":  extcommon.GetDomainnames(node),
 			"k8s.distribution": {d.k8s.Distribution},
 		}
 

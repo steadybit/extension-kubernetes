@@ -2,29 +2,30 @@ package extcommon
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 )
 
-func GetPodBasedAttributes(client *client.Client, objectMeta *metav1.ObjectMeta, labelSelector *metav1.LabelSelector) map[string][]string {
+func GetPodBasedAttributes(owner metav1.ObjectMeta, pods []*v1.Pod, nodes []*v1.Node) map[string][]string {
 	attributes := map[string][]string{}
-	pods := client.PodsByLabelSelector(labelSelector, objectMeta.Namespace)
 	if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
-		log.Warn().Msgf("%s/%s has more than %d pods. Skip listing pods, containers and hosts.", objectMeta.Namespace, objectMeta.Name, extconfig.Config.DiscoveryMaxPodCount)
+		log.Warn().Msgf("%s/%s has more than %d pods. Skip listing pods, containers and hosts.", owner.Namespace, owner.Name, extconfig.Config.DiscoveryMaxPodCount)
 		attributes["k8s.pod.name"] = []string{"too-many-pods"}
 		attributes["k8s.container.id"] = []string{"too-many-pods"}
 		attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}
 		attributes["host.hostname"] = []string{"too-many-pods"}
+		attributes["host.domainname"] = []string{"too-many-pods"}
 	} else if len(pods) > 0 {
-		podNames := make([]string, len(pods))
+		podNames := make([]string, 0, len(pods))
 		var containerIds []string
 		var containerIdsWithoutPrefix []string
 		hostnames := make(map[string]bool)
-		for podIndex, pod := range pods {
-			podNames[podIndex] = pod.Name
+		hostFQDNs := make(map[string]bool)
+		for _, pod := range pods {
+			podNames = append(podNames, pod.Name)
 			for _, container := range pod.Status.ContainerStatuses {
 				if container.ContainerID == "" {
 					continue
@@ -32,7 +33,11 @@ func GetPodBasedAttributes(client *client.Client, objectMeta *metav1.ObjectMeta,
 				containerIds = append(containerIds, container.ContainerID)
 				containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 			}
-			hostnames[pod.Spec.NodeName] = true
+			hostname, fqdns := GetNodeHostnameAndFQDNs(nodes, pod.Spec.NodeName)
+			hostnames[hostname] = true
+			for _, fqdn := range fqdns {
+				hostFQDNs[fqdn] = true
+			}
 		}
 		attributes["k8s.pod.name"] = podNames
 		if len(containerIds) > 0 {
@@ -42,18 +47,17 @@ func GetPodBasedAttributes(client *client.Client, objectMeta *metav1.ObjectMeta,
 			attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
 		}
 		if len(hostnames) > 0 {
-			attributes["host.hostname"] = make([]string, 0, len(hostnames))
-			for k := range hostnames {
-				attributes["host.hostname"] = append(attributes["host.hostname"], k)
-			}
+			attributes["host.hostname"] = maps.Keys(hostnames)
+		}
+		if len(hostnames) > 0 {
+			attributes["host.domainname"] = maps.Keys(hostFQDNs)
 		}
 	}
 	return attributes
 }
 
-func GetServiceNames(client *client.Client, namespace *string, template *v1.PodTemplateSpec) map[string][]string {
+func GetServiceNames(services []*v1.Service) map[string][]string {
 	attributes := map[string][]string{}
-	services := client.ServicesMatchingToPodLabels(*namespace, template.ObjectMeta.Labels)
 	if len(services) > 0 {
 		var serviceNames = make([]string, 0, len(services))
 		for _, service := range services {
@@ -62,4 +66,34 @@ func GetServiceNames(client *client.Client, namespace *string, template *v1.PodT
 		attributes["k8s.service.name"] = serviceNames
 	}
 	return attributes
+}
+
+func GetNodeHostnameAndFQDNs(nodes []*v1.Node, name string) (hostname string, fqdn []string) {
+	for _, node := range nodes {
+		if node.Name == name {
+			return GetHostname(node), GetDomainnames(node)
+		}
+	}
+	return "unknown", []string{"unknown"}
+}
+
+func GetDomainnames(node *v1.Node) []string {
+	var names []string
+	for _, address := range node.Status.Addresses {
+		if address.Type == v1.NodeInternalDNS {
+			names = append(names, address.Address)
+		}
+	}
+	if len(names) > 0 {
+		return names
+	} else {
+		return []string{GetHostname(node)}
+	}
+}
+
+func GetHostname(node *v1.Node) string {
+	if hostname, ok := node.Labels["kubernetes.io/hostname"]; ok {
+		return hostname
+	}
+	return node.Name
 }

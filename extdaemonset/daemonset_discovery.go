@@ -87,6 +87,7 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 		}
 	}
 
+	nodes := d.k8s.Nodes()
 	targets := make([]discovery_kit_api.Target, len(filteredDaemonSets))
 	for i, ds := range filteredDaemonSets {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ds.Namespace, ds.Name)
@@ -103,10 +104,10 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-		for key, value := range extcommon.GetPodBasedAttributes(d.k8s, &ds.ObjectMeta, ds.Spec.Selector) {
+		for key, value := range extcommon.GetPodBasedAttributes(ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes) {
 			attributes[key] = value
 		}
-		for key, value := range extcommon.GetServiceNames(d.k8s, &ds.Namespace, &ds.Spec.Template) {
+		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {
 			attributes[key] = value
 		}
 		for key, value := range extcommon.GetKubeScoreForDaemonSet(ds, d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {

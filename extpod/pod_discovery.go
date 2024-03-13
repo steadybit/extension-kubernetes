@@ -86,14 +86,17 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 		}
 	}
 
+	nodes := p.k8s.Nodes()
 	targets := make([]discovery_kit_api.Target, len(filteredPods))
 	for i, pod := range filteredPods {
+		hostname, fqdn := extcommon.GetNodeHostnameAndFQDNs(nodes, pod.Spec.NodeName)
 		attributes := map[string][]string{
 			"k8s.pod.name":     {pod.Name},
 			"k8s.namespace":    {pod.Namespace},
 			"k8s.cluster-name": {extconfig.Config.ClusterName},
 			"k8s.node.name":    {pod.Spec.NodeName},
-			"host.hostname":    {pod.Spec.NodeName},
+			"host.hostname":    {hostname},
+			"host.domainname":  fqdn,
 		}
 
 		for key, value := range pod.ObjectMeta.Labels {

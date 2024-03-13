@@ -147,6 +147,7 @@ func Test_nodeDiscovery(t *testing.T) {
 	assert.Equal(t, NodeTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
 		"host.hostname":             {"node-123"},
+		"host.domainname":           {"node-123"},
 		"k8s.cluster-name":          {"development"},
 		"k8s.container.id":          {"crio://abcdef"},
 		"k8s.container.id.stripped": {"abcdef"},
