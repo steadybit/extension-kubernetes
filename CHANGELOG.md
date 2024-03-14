@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.5.8
+
+ - Update dependencies
+ - feat: add `host.domainname` attribute containing the host FQDN
+
 ## v2.5.7
 
 - Update dependencies
