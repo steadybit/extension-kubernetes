@@ -173,17 +173,6 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 				"k8s.distribution":          {c.k8s.Distribution},
 			}
 
-			for _, containerSpec := range pod.Spec.Containers {
-				//TODO Remove these attributes when old weak spot feature is removed
-				if containerSpec.Name == container.Name {
-					attributes["k8s.container.limit.cpu"] = []string{fmt.Sprintf("%d", containerSpec.Resources.Limits.Cpu().MilliValue())}
-					attributes["k8s.container.limit.memory"] = []string{fmt.Sprintf("%d", containerSpec.Resources.Limits.Memory().MilliValue())}
-					attributes["k8s.container.image.pull-policy"] = []string{string(containerSpec.ImagePullPolicy)}
-					attributes["k8s.container.probes.liveness.existent"] = []string{fmt.Sprintf("%t", containerSpec.LivenessProbe != nil)}
-					attributes["k8s.container.probes.readiness.existent"] = []string{fmt.Sprintf("%t", containerSpec.ReadinessProbe != nil)}
-					break
-				}
-			}
 			for key, value := range podMetadata.Labels {
 				if !slices.Contains(extconfig.Config.LabelFilter, key) {
 					attributes[fmt.Sprintf("k8s.pod.label.%v", key)] = []string{value}
