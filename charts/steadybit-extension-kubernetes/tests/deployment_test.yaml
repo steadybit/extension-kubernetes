@@ -13,6 +13,8 @@ tests:
     set:
       kubernetes:
         clusterName: test
+      deploymentAnnotations:
+        some-deploy-annotation: "some-deploy-annotation-value"
       podAnnotations:
         some-annotation: "some-annotation-value"
       podLabels:
