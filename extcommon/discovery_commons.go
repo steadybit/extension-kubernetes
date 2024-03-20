@@ -9,10 +9,10 @@ import (
 	"strings"
 )
 
-func GetPodBasedAttributes(owner metav1.ObjectMeta, pods []*v1.Pod, nodes []*v1.Node) map[string][]string {
+func GetPodBasedAttributes(ownerType string, owner metav1.ObjectMeta, pods []*v1.Pod, nodes []*v1.Node) map[string][]string {
 	attributes := map[string][]string{}
 	if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
-		log.Warn().Msgf("%s/%s has more than %d pods. Skip listing pods, containers and hosts.", owner.Namespace, owner.Name, extconfig.Config.DiscoveryMaxPodCount)
+		log.Warn().Msgf("%s %s/%s has more than %d pods. Not listing pods, containers and hosts for this %s", ownerType, owner.Namespace, owner.Name, extconfig.Config.DiscoveryMaxPodCount, ownerType)
 		attributes["k8s.pod.name"] = []string{"too-many-pods"}
 		attributes["k8s.container.id"] = []string{"too-many-pods"}
 		attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}

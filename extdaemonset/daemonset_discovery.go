@@ -104,7 +104,7 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-		for key, value := range extcommon.GetPodBasedAttributes(ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes) {
+		for key, value := range extcommon.GetPodBasedAttributes("daemonset", ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes) {
 			attributes[key] = value
 		}
 		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {

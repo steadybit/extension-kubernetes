@@ -108,7 +108,7 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
-		for key, value := range extcommon.GetPodBasedAttributes(sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes) {
+		for key, value := range extcommon.GetPodBasedAttributes("statefulset", sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes) {
 
 			attributes[key] = value
 		}

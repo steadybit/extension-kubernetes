@@ -1,5 +1,8 @@
 # Changelog
 
+## next
+ - Clarify the log message, if the extension stops listing pods, containers and hosts for deployments, statefulsets, etc. because of the `discovery.maxPodCount` configuration
+
 ## v2.5.8
 
  - Update dependencies
