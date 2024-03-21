@@ -84,7 +84,6 @@ manifest should match snapshot with TLS:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -173,7 +172,6 @@ manifest should match snapshot with attribute excluded:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -263,7 +261,6 @@ manifest should match snapshot with clusterName from parent chart:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -341,7 +338,6 @@ manifest should match snapshot with disabled excludes:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -421,7 +417,6 @@ manifest should match snapshot with extra env vars:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -506,7 +501,6 @@ manifest should match snapshot with extra labels:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -586,7 +580,6 @@ manifest should match snapshot with mutual TLS:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -684,7 +677,6 @@ manifest should match snapshot with mutual TLS using containerPaths:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -768,7 +760,6 @@ manifest should match snapshot with podSecurityContext:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -848,7 +839,6 @@ manifest should match snapshot with priority class:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
@@ -927,7 +917,6 @@ manifest should match snapshot without TLS:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
-      annotations: null
       labels:
         steadybit.com/discovery-disabled: "true"
         steadybit.com/extension: "true"
