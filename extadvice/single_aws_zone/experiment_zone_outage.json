@@ -42,7 +42,7 @@
 									"key": "aws.zone",
 									"operator": "EQUALS",
 									"values": [
-										"${target.aws.zone}"
+										"${target.aws.zone[0]}"
 									]
 								},
 								{
@@ -82,7 +82,7 @@
 						"duration": "20s",
 						"podCountCheckMode": "podCountEqualsDesiredCount"
 					},
-					"customLabel": "All pods in ${target.aws.zone} are ready",
+					"customLabel": "All pods in ${target.aws.zone[0]} are ready",
 					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
 					"radius": {
 						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
@@ -93,7 +93,7 @@
 									"key": "aws.zone",
 									"operator": "EQUALS",
 									"values": [
-										"${target.aws.zone}"
+										"${target.aws.zone[0]}"
 									]
 								},
 								{
@@ -143,7 +143,7 @@
 									"key": "aws.zone",
 									"operator": "EQUALS",
 									"values": [
-										"${target.aws.zone}"
+										"${target.aws.zone[0]}"
 									]
 								},
 								{
@@ -191,7 +191,7 @@
 									"key": "aws.zone",
 									"operator": "EQUALS",
 									"values": [
-										"${target.aws.zone}"
+										"${target.aws.zone[0]}"
 									]
 								},
 								{
