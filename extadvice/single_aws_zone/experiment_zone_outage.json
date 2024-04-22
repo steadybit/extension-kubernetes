@@ -10,66 +10,7 @@
 					"parameters": {
 						"duration": "140s"
 					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label}'s features are still working within expected failure rates"
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "20s"
-					},
-					"customLabel": "Wait for AWS Zone outage"
-				},
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "30s",
-						"podCountCheckMode": "podCountLessThanDesiredCount"
-					},
-					"customLabel": "Pods are detected as down",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "aws.zone",
-									"operator": "EQUALS",
-									"values": [
-										"${target.aws.zone[0]}"
-									]
-								},
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
+					"customLabel": "TODO VALIDATION: INVARIANT: ${target.steadybit.label}'s features work within expected success rates"
 				}
 			]
 		},
@@ -82,7 +23,7 @@
 						"duration": "20s",
 						"podCountCheckMode": "podCountEqualsDesiredCount"
 					},
-					"customLabel": "All pods in ${target.aws.zone[0]} are ready",
+					"customLabel": "GIVEN: All pods in ${target.aws.zone[0]} are ready",
 					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
 					"radius": {
 						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
@@ -132,7 +73,7 @@
 						"hostname": [],
 						"failOnHostNetwork": true
 					},
-					"customLabel": "Zone outage of ${target.aws.zone[0]} for ${target.steadybit.label}",
+					"customLabel": "WHEN: Zone outage of ${target.aws.zone[0]} for ${target.steadybit.label}",
 					"actionType": "com.steadybit.extension_container.network_blackhole",
 					"radius": {
 						"targetType": "com.steadybit.extension_container.container",
@@ -180,7 +121,66 @@
 						"duration": "60s",
 						"podCountCheckMode": "podCountEqualsDesiredCount"
 					},
-					"customLabel": "When Zone is up again, the pod restarts within given timeframe so that all pods are eventually ready again",
+					"customLabel": "THEN: After Zone outage, all pods become ready again within 60s",
+					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+					"radius": {
+						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+						"predicate": {
+							"operator": "AND",
+							"predicates": [
+								{
+									"key": "aws.zone",
+									"operator": "EQUALS",
+									"values": [
+										"${target.aws.zone[0]}"
+									]
+								},
+								{
+									"key": "k8s.cluster-name",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.cluster-name}"
+									]
+								},
+								{
+									"key": "k8s.namespace",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.namespace}"
+									]
+								},
+								{
+									"key": "k8s.${target.k8s.workload-type}",
+									"operator": "EQUALS",
+									"values": [
+										"${target.k8s.workload-owner}"
+									]
+								}
+							]
+						},
+						"query": null
+					}
+				}
+			]
+		},
+		{
+			"steps": [
+				{
+					"type": "wait",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "20s"
+					},
+					"customLabel": "Wait for AWS Zone outage"
+				},
+				{
+					"type": "action",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "30s",
+						"podCountCheckMode": "podCountLessThanDesiredCount"
+					},
+					"customLabel": "THEN: Pods are detected as down",
 					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
 					"radius": {
 						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",

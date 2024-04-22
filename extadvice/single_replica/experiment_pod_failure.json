@@ -1,242 +1,242 @@
 {
-	"name": "Single Pod Failure of ${target.steadybit.label}",
-	"hypothesis": "When a pod of ${target.steadybit.label} fails, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. Eventually, the pod is ready again within 60s.",
-	"lanes": [
-		{
-			"steps": [
+		"name": "Single Pod Failure of ${target.steadybit.label}",
+		"hypothesis": "When a pod of ${target.steadybit.label} fails, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. Eventually, the pod is ready again within 60s.",
+		"lanes": [
 				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label}'s features are still working within expected failure rates"
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "50s",
-						"podCountCheckMode": "podCountLessThanDesiredCount"
-					},
-					"customLabel": "One pod is detected failing",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
+						"steps": [
 								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
+										"type": "wait",
+										"ignoreFailure": false,
+										"parameters": {
+												"duration": "140s"
+										},
+										"customLabel": "TODO VALIDATION: INVARIANT: ${target.steadybit.label}'s features work within expected success rates"
 								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "20s",
-						"podCountCheckMode": "podCountEqualsDesiredCount"
-					},
-					"customLabel": "All pods are ready",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
+						]
 				},
 				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {},
-					"customLabel": "Single Pod Failure of ${target.steadybit.label}",
-					"actionType": "com.steadybit.extension_kubernetes.delete_pod",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-pod",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
+						"steps": [
 								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
+										"type": "action",
+										"ignoreFailure": false,
+										"parameters": {
+												"duration": "20s",
+												"podCountCheckMode": "podCountEqualsDesiredCount"
+										},
+										"customLabel": "GIVEN: All pods are ready",
+										"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+										"radius": {
+												"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+												"predicate": {
+														"operator": "AND",
+														"predicates": [
+																{
+																		"key": "k8s.cluster-name",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.cluster-name}"
+																		]
+																},
+																{
+																		"key": "k8s.namespace",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.namespace}"
+																		]
+																},
+																{
+																		"key": "k8s.${target.k8s.workload-type}",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.workload-owner}"
+																		]
+																}
+														]
+												},
+												"query": null
+										}
 								},
 								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
+										"type": "action",
+										"ignoreFailure": false,
+										"parameters": {},
+										"customLabel": "WHEN: Single Pod Failure of ${target.steadybit.label}",
+										"actionType": "com.steadybit.extension_kubernetes.delete_pod",
+										"radius": {
+												"targetType": "com.steadybit.extension_kubernetes.kubernetes-pod",
+												"predicate": {
+														"operator": "AND",
+														"predicates": [
+																{
+																		"key": "k8s.cluster-name",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.cluster-name}"
+																		]
+																},
+																{
+																		"key": "k8s.namespace",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.namespace}"
+																		]
+																},
+																{
+																		"key": "k8s.${target.k8s.workload-type}",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.workload-owner}"
+																		]
+																}
+														]
+												},
+												"query": null,
+												"maximum": 1
+										}
 								},
 								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
+										"type": "action",
+										"ignoreFailure": false,
+										"parameters": {
+												"duration": "60s",
+												"podCountCheckMode": "podCountEqualsDesiredCount"
+										},
+										"customLabel": "THEN: All pods become ready again within 60s",
+										"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+										"radius": {
+												"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+												"predicate": {
+														"operator": "AND",
+														"predicates": [
+																{
+																		"key": "k8s.cluster-name",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.cluster-name}"
+																		]
+																},
+																{
+																		"key": "k8s.namespace",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.namespace}"
+																		]
+																},
+																{
+																		"key": "k8s.${target.k8s.workload-type}",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.workload-owner}"
+																		]
+																}
+														]
+												},
+												"query": null
+										}
 								}
-							]
-						},
-						"query": null,
-						"maximum": 1
-					}
+						]
 				},
 				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "60s",
-						"podCountCheckMode": "podCountEqualsDesiredCount"
-					},
-					"customLabel": "Pod restarts within given timeframe so that all pods are eventually ready again",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
+						"steps": [
 								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
+										"type": "action",
+										"ignoreFailure": false,
+										"parameters": {
+												"duration": "50s",
+												"podCountCheckMode": "podCountLessThanDesiredCount"
+										},
+										"customLabel": "THEN: One pod is detected failing",
+										"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+										"radius": {
+												"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+												"predicate": {
+														"operator": "AND",
+														"predicates": [
+																{
+																		"key": "k8s.cluster-name",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.cluster-name}"
+																		]
+																},
+																{
+																		"key": "k8s.namespace",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.namespace}"
+																		]
+																},
+																{
+																		"key": "k8s.${target.k8s.workload-type}",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.workload-owner}"
+																		]
+																}
+														]
+												},
+												"query": null
+										}
 								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
+						]
+				},
 				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "Show Kubernetes events from the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
+						"steps": [
 								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
+										"type": "action",
+										"ignoreFailure": false,
+										"parameters": {
+												"duration": "140s"
+										},
+										"customLabel": "Show Kubernetes events from the cluster",
+										"actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
+										"radius": {
+												"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+												"predicate": {
+														"operator": "AND",
+														"predicates": [
+																{
+																		"key": "k8s.cluster-name",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.cluster-name}"
+																		]
+																}
+														]
+												},
+												"query": null
+										}
 								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
+						]
+				},
 				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "Show Pod Count Metrics for the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
+						"steps": [
 								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
+										"type": "action",
+										"ignoreFailure": false,
+										"parameters": {
+												"duration": "140s"
+										},
+										"customLabel": "Show Pod Count Metrics for the cluster",
+										"actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
+										"radius": {
+												"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+												"predicate": {
+														"operator": "AND",
+														"predicates": [
+																{
+																		"key": "k8s.cluster-name",
+																		"operator": "EQUALS",
+																		"values": [
+																				"${target.k8s.cluster-name}"
+																		]
+																}
+														]
+												},
+												"query": null
+										}
 								}
-							]
-						},
-						"query": null
-					}
+						]
 				}
-			]
-		}
-	]
+		]
 }
