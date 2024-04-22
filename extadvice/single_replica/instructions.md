@@ -16,7 +16,7 @@ metadata:
     name: ${target.steadybit.label:normal}
 spec:
 % startHighlight %
-  # modify replicas according to your case
+  # modify min-replicas to match your use case, but should be >1
   replicas: 2
 % endHighlight %
   selector:
@@ -39,8 +39,8 @@ spec:
     kind: Deployment
     name: ${target.steadybit.label:normal}
 % startHighlight %
-  # modify min-replicas according to your case
-  minReplicas: 1
+  # modify min-replicas to match your use case, but should be >1
+  minReplicas: 2
 % endHighlight %
   maxReplicas: 10
 ```
