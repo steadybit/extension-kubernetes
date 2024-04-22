@@ -1,259 +1,259 @@
 {
-	"name": "Unhealthiness of ${target.steadybit.label} is detected",
-	"hypothesis": "When a container of ${target.steadybit.label} isn't healthy, Kubernetes will restart the container and routes traffic as soon as it is healthy again.",
-	"lanes": [
-		{
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "TODO VALIDATION: INVARIANT: ${target.steadybit.label}'s features work within expected success rates"
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "20s",
-						"podCountCheckMode": "podCountEqualsDesiredCount"
-					},
-					"customLabel": "GIVEN: All pods are healthy",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "20s"
-					}
-				},
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"ip": [],
-						"port": [],
-						"duration": "60s",
-						"hostname": [],
-						"failOnHostNetwork": true
-					},
-					"customLabel": "WHEN: One container's pod is unhealthy",
-					"actionType": "com.steadybit.extension_container.network_blackhole",
-					"radius": {
-						"targetType": "com.steadybit.extension_container.container",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null,
-						"percentage": 50
-					}
-				},
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "60s",
-						"podCountCheckMode": "podCountEqualsDesiredCount"
-					},
-					"customLabel": "THEN: All pods are healthy again within 60s",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "80s",
-						"podCountCheckMode": "podCountLessThanDesiredCount"
-					},
-					"customLabel": "THEN: One pod is detected unhealthy and restarted",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "Show Kubernetes events from the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "Show Pod Count Metrics for the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		}
-	]
+  "name": "Unhealthiness of ${target.steadybit.label} is detected",
+  "hypothesis": "When a container of ${target.steadybit.label} isn't healthy, Kubernetes will restart the container and routes traffic as soon as it is healthy again.",
+  "lanes": [
+    {
+      "steps": [
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "140s"
+          },
+          "customLabel": "TODO VALIDATION: INVARIANT: ${target.steadybit.label}'s features work within expected success rates"
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "20s",
+            "podCountCheckMode": "podCountEqualsDesiredCount"
+          },
+          "customLabel": "GIVEN: All pods are healthy",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "20s"
+          }
+        },
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "ip": [],
+            "port": [],
+            "duration": "60s",
+            "hostname": [],
+            "failOnHostNetwork": true
+          },
+          "customLabel": "WHEN: One container's pod is unhealthy",
+          "actionType": "com.steadybit.extension_container.network_blackhole",
+          "radius": {
+            "targetType": "com.steadybit.extension_container.container",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null,
+            "percentage": 50
+          }
+        },
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "60s",
+            "podCountCheckMode": "podCountEqualsDesiredCount"
+          },
+          "customLabel": "THEN: All pods are healthy again within 60s",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "80s",
+            "podCountCheckMode": "podCountLessThanDesiredCount"
+          },
+          "customLabel": "THEN: One pod is detected unhealthy and restarted",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "140s"
+          },
+          "customLabel": "Show Kubernetes events from the cluster",
+          "actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "140s"
+          },
+          "customLabel": "Show Pod Count Metrics for the cluster",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    }
+  ]
 }
