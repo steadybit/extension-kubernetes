@@ -25,7 +25,7 @@ spec:
 [Kubernetes Documentation - Deployment Replicas](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#replicas)
 
 ## Deployments with HorizontalPodAutoScaler
-When a HorizontalPodAutoscaler targets your deployment, you should adjust the `minReplicas` property of the HorizontalPodAutoscaler and omit the `replica` property in the Deployment specification.
+When a HorizontalPodAutoscaler targets your deployment, you should adjust the `minReplicas` property of the HorizontalPodAutoscaler and omit the `replica` property in the deployment specification.
 ```yaml
 apiVersion: apps/v1
 kind: HorizontalPodAutoscaler
@@ -42,5 +42,6 @@ spec:
 % endHighlight %
   maxReplicas: 10
 ```
+[Kubernetes Documentation - Horizontal Pod Autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
 ---
 This advice is powered by [kube-score](https://kube-score.com/).
