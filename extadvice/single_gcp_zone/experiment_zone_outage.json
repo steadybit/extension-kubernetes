@@ -1,284 +1,284 @@
 {
-	"name": "GCP Zone Outage of ${target.gcp.zone[0]} for ${target.steadybit.label}",
-	"hypothesis": "When GCP Availability Zone ${target.gcp.zone[0]} is down for ${target.steadybit.label}, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. As soon as the zone is available again, the pod is ready within 60s.",
-	"lanes": [
-		{
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label}'s features are still working within expected failure rates"
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "20s"
-					},
-					"customLabel": "Wait for GCP Zone outage"
-				},
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "30s",
-						"podCountCheckMode": "podCountLessThanDesiredCount"
-					},
-					"customLabel": "Pods are detected as down",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "gcp.zone",
-									"operator": "EQUALS",
-									"values": [
-										"${target.gcp.zone}"
-									]
-								},
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "20s",
-						"podCountCheckMode": "podCountEqualsDesiredCount"
-					},
-					"customLabel": "All pods in ${target.gcp.zone} are ready",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "gcp.zone",
-									"operator": "EQUALS",
-									"values": [
-										"${target.gcp.zone}"
-									]
-								},
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				},
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"ip": [],
-						"port": [],
-						"duration": "60s",
-						"hostname": [],
-						"failOnHostNetwork": true
-					},
-					"customLabel": "Zone outage of ${target.gcp.zone[0]} for ${target.steadybit.label}",
-					"actionType": "com.steadybit.extension_container.network_blackhole",
-					"radius": {
-						"targetType": "com.steadybit.extension_container.container",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "gcp.zone",
-									"operator": "EQUALS",
-									"values": [
-										"${target.gcp.zone}"
-									]
-								},
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null,
-						"percentage": 50
-					}
-				},
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "60s",
-						"podCountCheckMode": "podCountEqualsDesiredCount"
-					},
-					"customLabel": "When Zone is up again, the pod restarts within given timeframe so that all pods are eventually ready again",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_check",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "gcp.zone",
-									"operator": "EQUALS",
-									"values": [
-										"${target.gcp.zone}"
-									]
-								},
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "Show Kubernetes events from the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "140s"
-					},
-					"customLabel": "Show Pod Count Metrics for the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		}
-	]
+  "name": "GCP Zone Outage of ${target.gcp.zone[0]} for ${target.steadybit.label}",
+  "hypothesis": "When GCP Availability Zone ${target.gcp.zone[0]} is down for ${target.steadybit.label}, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. As soon as the zone is available again, the pod is ready within 60s.",
+  "lanes": [
+    {
+      "steps": [
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "140s"
+          },
+          "customLabel": "TODO VALIDATION: INVARIANT: ${target.steadybit.label}'s features work within expected success rates"
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "20s",
+            "podCountCheckMode": "podCountEqualsDesiredCount"
+          },
+          "customLabel": "GIVEN: All pods in ${target.gcp.zone[0]} are ready",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "gcp.zone",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.gcp.zone[0]}"
+                  ]
+                },
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        },
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "ip": [],
+            "port": [],
+            "duration": "60s",
+            "hostname": [],
+            "failOnHostNetwork": true
+          },
+          "customLabel": "WHEN: Zone outage of ${target.gcp.zone[0]} for ${target.steadybit.label}",
+          "actionType": "com.steadybit.extension_container.network_blackhole",
+          "radius": {
+            "targetType": "com.steadybit.extension_container.container",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "gcp.zone",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.gcp.zone[0]}"
+                  ]
+                },
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null,
+            "percentage": 50
+          }
+        },
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "60s",
+            "podCountCheckMode": "podCountEqualsDesiredCount"
+          },
+          "customLabel": "THEN: After Zone outage, all pods become ready again within 60s",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "gcp.zone",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.gcp.zone[0]}"
+                  ]
+                },
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "20s"
+          },
+          "customLabel": "Wait for GCP Zone outage"
+        },
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "30s",
+            "podCountCheckMode": "podCountLessThanDesiredCount"
+          },
+          "customLabel": "THEN: Pods are detected as down",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "gcp.zone",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.gcp.zone[0]}"
+                  ]
+                },
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "140s"
+          },
+          "customLabel": "Show Kubernetes events from the cluster",
+          "actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "140s"
+          },
+          "customLabel": "Show Pod Count Metrics for the cluster",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    }
+  ]
 }

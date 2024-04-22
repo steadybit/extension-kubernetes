@@ -1,146 +1,146 @@
 {
-	"name": "Memory Overload of ${target.steadybit.label}",
-	"hypothesis": "In case of a memory overload of ${target.steadybit.label}, all Kubernetes resources work properly, fail gracefully, are restarted, or at least one monitor alert.",
-	"lanes": [
-		{
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "40s"
-					},
-					"customLabel": "Wait for Memory stress"
-				},
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "60s"
-					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label} is e.g., still working, failing gracefully, scaling up, or monitoring alerts"
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "40s"
-					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label} works properly"
-				},
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "60s",
-						"percentage": 200,
-						"failOnOomKill": false
-					},
-					"customLabel": "Stress Memory of ${target.steadybit.label}",
-					"actionType": "com.steadybit.extension_container.stress_mem",
-					"radius": {
-						"targetType": "com.steadybit.extension_container.container",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								},
-								{
-									"key": "k8s.namespace",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.namespace}"
-									]
-								},
-								{
-									"key": "k8s.${target.k8s.workload-type}",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.workload-owner}"
-									]
-								}
-							]
-						},
-						"query": null,
-						"percentage": 50
-					}
-				},
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "60s"
-					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label} is recovering from high CPU and everything runs smoothly again"
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "160s"
-					},
-					"customLabel": "Show Kubernetes events from the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		},
-		{
-			"steps": [
-				{
-					"type": "action",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "160s"
-					},
-					"customLabel": "Show Pod Count Metrics for the cluster",
-					"actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
-					"radius": {
-						"targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
-						"predicate": {
-							"operator": "AND",
-							"predicates": [
-								{
-									"key": "k8s.cluster-name",
-									"operator": "EQUALS",
-									"values": [
-										"${target.k8s.cluster-name}"
-									]
-								}
-							]
-						},
-						"query": null
-					}
-				}
-			]
-		}
-	]
+  "name": "Memory Overload of ${target.steadybit.label}",
+  "hypothesis": "In case of a memory overload of ${target.steadybit.label}, all Kubernetes resources work properly, fail gracefully, are restarted, or at least one monitor alert.",
+  "lanes": [
+    {
+      "steps": [
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "40s"
+          },
+          "customLabel": "Wait for Memory stress"
+        },
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "60s"
+          },
+          "customLabel": "TODO VALIDATION: THEN: ${target.steadybit.label} e.g., still works, fails gracefully, scales up, or monitors alerts"
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "40s"
+          },
+          "customLabel": "TODO VALIDATION: Validate that ${target.steadybit.label} works properly"
+        },
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "60s",
+            "percentage": 200,
+            "failOnOomKill": false
+          },
+          "customLabel": "WHEN: Stressing Memory of ${target.steadybit.label}",
+          "actionType": "com.steadybit.extension_container.stress_mem",
+          "radius": {
+            "targetType": "com.steadybit.extension_container.container",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                },
+                {
+                  "key": "k8s.namespace",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.namespace}"
+                  ]
+                },
+                {
+                  "key": "k8s.${target.k8s.workload-type}",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.workload-owner}"
+                  ]
+                }
+              ]
+            },
+            "query": null,
+            "percentage": 50
+          }
+        },
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "60s"
+          },
+          "customLabel": "TODO VALIDATION: THEN: ${target.steadybit.label} recovers from high CPU and runs smoothly again"
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "160s"
+          },
+          "customLabel": "Show Kubernetes events from the cluster",
+          "actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "160s"
+          },
+          "customLabel": "Show Pod Count Metrics for the cluster",
+          "actionType": "com.steadybit.extension_kubernetes.pod_count_metric",
+          "radius": {
+            "targetType": "com.steadybit.extension_kubernetes.kubernetes-cluster",
+            "predicate": {
+              "operator": "AND",
+              "predicates": [
+                {
+                  "key": "k8s.cluster-name",
+                  "operator": "EQUALS",
+                  "values": [
+                    "${target.k8s.cluster-name}"
+                  ]
+                }
+              ]
+            },
+            "query": null
+          }
+        }
+      ]
+    }
+  ]
 }

@@ -18,7 +18,7 @@
 					"parameters": {
 						"duration": "60s"
 					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label} is e.g., still working, failing gracefully, scaling up, or monitoring alerts"
+					"customLabel": "TODO VALIDATION: THEN: ${target.steadybit.label} e.g., still works, fails gracefully, scales up, or monitors alerts"
 				}
 			]
 		},
@@ -30,7 +30,7 @@
 					"parameters": {
 						"duration": "40s"
 					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label} works properly"
+					"customLabel": "TODO VALIDATION: GIVEN: ${target.steadybit.label} works properly"
 				},
 				{
 					"type": "action",
@@ -40,7 +40,7 @@
 						"workers": 0,
 						"duration": "60s"
 					},
-					"customLabel": "Stress CPU of ${target.steadybit.label}",
+					"customLabel": "WHEN: Stressing CPU of ${target.steadybit.label}",
 					"actionType": "com.steadybit.extension_container.stress_cpu",
 					"radius": {
 						"targetType": "com.steadybit.extension_container.container",
@@ -80,7 +80,7 @@
 					"parameters": {
 						"duration": "60s"
 					},
-					"customLabel": "TODO: Validate that ${target.steadybit.label} is recovering from high CPU and everything runs smoothly again"
+					"customLabel": "TODO VALIDATION: THEN: ${target.steadybit.label} recovers from high CPU and runs smoothly again"
 				}
 			]
 		},
