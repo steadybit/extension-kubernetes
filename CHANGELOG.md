@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.5.10
+
+- Fixed advice's experiment for multi-availability zones to consistently use the same zone in every step (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`
+- Improved instruction text for advice `k8s-single-replica` to better explain how to increase replicas for deployments and HorizontalPodAutoscaler
+
 ## v2.5.9
 
  - Update dependencies
