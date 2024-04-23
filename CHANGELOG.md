@@ -3,7 +3,7 @@
 ## v2.5.9
 
  - Update dependencies
- - Remove some attributes which have been used by the old "weakspot" feature
+ - Remove some attributes which have been used by the old 'weakspot' feature
  - Clarify the log message, if the extension stops listing pods, containers and hosts for deployments, statefulsets, etc. because of the `discovery.maxPodCount` configuration
 
 ## v2.5.8
@@ -52,12 +52,12 @@
   - daemonsets
   - statefulsets
   - nodes
-- Attack "Delete Pod" added - :exclamation: Requires new permission `delete` for `pods` resources
-- Attack "Drain node" added - :exclamation: Requires new permission `create` for `pods/eviction` resources and `patch` for `nodes` resources
-- Attack "Taint node" added - :exclamation: Requires new permission `patch` for `nodes` resources
-- Attack "Scale Deployment" added - :exclamation: Requires new permission  `get`, `update` and `patch` for `deployments/scale` resources
-- Attack "Scale StatefulSet" added - :exclamation: Requires new permission `get`, `update` and `patch` for `statefulsets/scale` resources
-- Attack "Cause Crash Loop" added - :exclamation: Requires new permission `create` for `pod/exec` resources
+- Attack 'Delete Pod' added - :exclamation: Requires new permission `delete` for `pods` resources
+- Attack 'Drain node' added - :exclamation: Requires new permission `create` for `pods/eviction` resources and `patch` for `nodes` resources
+- Attack 'Taint node' added - :exclamation: Requires new permission `patch` for `nodes` resources
+- Attack 'Scale Deployment' added - :exclamation: Requires new permission  `get`, `update` and `patch` for `deployments/scale` resources
+- Attack 'Scale StatefulSet' added - :exclamation: Requires new permission `get`, `update` and `patch` for `statefulsets/scale` resources
+- Attack 'Cause Crash Loop' added - :exclamation: Requires new permission `create` for `pod/exec` resources
 - Added options to check if a pod count increased or decreased to the existing pod count check action
 - Performance - Add hostnames to `kubernetes-deployment` during discovery instead of adding it via enrichment rule
 - Performance - Enrich hosts via `kubernetes-node` instead of frequent enrichments via `kubernetes-container`
