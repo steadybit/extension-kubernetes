@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.11 (next)
+
+- Update dependencies (go 1.22)
+
 ## v2.5.10
 
 - Fixed advice's experiment for multi-availability zones to consistently use the same zone in every step (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`

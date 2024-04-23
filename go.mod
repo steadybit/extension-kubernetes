@@ -3,9 +3,9 @@
 
 module github.com/steadybit/extension-kubernetes
 
-go 1.21.0
+go 1.22.0
 
-toolchain go1.21.7
+toolchain go1.22.2
 
 require (
 	github.com/KimMachineGun/automemlimit v0.6.0
@@ -25,9 +25,9 @@ require (
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
 	golang.org/x/text v0.14.0
-	k8s.io/api v0.29.3
-	k8s.io/apimachinery v0.29.3
-	k8s.io/client-go v0.29.3
+	k8s.io/api v0.30.0
+	k8s.io/apimachinery v0.30.0
+	k8s.io/client-go v0.30.0
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20240310230437-4693a0247e57
 )
