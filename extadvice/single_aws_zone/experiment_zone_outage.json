@@ -62,6 +62,18 @@
             },
             "query": null
           }
+        }
+      ]
+    },
+    {
+      "steps": [
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "20s"
+          },
+          "customLabel": "Wait for AWS Zone outage"
         },
         {
           "type": "action",
