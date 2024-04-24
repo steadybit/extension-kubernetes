@@ -1,7 +1,9 @@
 # Changelog
 
-## v2.5.11
+## v2.5.11 (next)
 
+- Update dependencies (go 1.22)
+- Added "Pod Count Check" for StatefulSets and DaemonSets
 - Improved advice's experiment for multi availability zones (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`) to establish a 20s base-line in the beginning of the experiment
 
 ## v2.5.10

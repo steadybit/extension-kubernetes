@@ -10,7 +10,10 @@ func transformDaemonSet(i interface{}) (interface{}, error) {
 	if d, ok := i.(*appsv1.DaemonSet); ok {
 		d.ObjectMeta.Annotations = nil
 		d.ObjectMeta.ManagedFields = nil
-		d.Status = appsv1.DaemonSetStatus{}
+		d.Status = appsv1.DaemonSetStatus{
+			NumberReady:            d.Status.NumberReady,
+			DesiredNumberScheduled: d.Status.DesiredNumberScheduled,
+		}
 		return d, nil
 	}
 	return i, nil
@@ -86,7 +89,9 @@ func transformStatefulSet(i interface{}) (interface{}, error) {
 	if s, ok := i.(*appsv1.StatefulSet); ok {
 		s.ObjectMeta.Annotations = nil
 		s.ObjectMeta.ManagedFields = nil
-		s.Status = appsv1.StatefulSetStatus{}
+		s.Status = appsv1.StatefulSetStatus{
+			ReadyReplicas: s.Status.ReadyReplicas,
+		}
 		return s, nil
 	}
 	return i, nil
