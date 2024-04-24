@@ -1,8 +1,12 @@
 # Changelog
 
+## v2.5.11
+
+- Improved advice's experiment for multi availability zones (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`) to establish a 20s base-line in the beginning of the experiment
+
 ## v2.5.10
 
-- Fixed advice's experiment for multi-availability zones to consistently use the same zone in every step (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`
+- Fixed advice's experiment for multi availability zones (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`) to consistently use the same zone in every step
 - Improved instruction text for advice `k8s-single-replica` to better explain how to increase replicas for deployments and HorizontalPodAutoscaler
 
 ## v2.5.9
