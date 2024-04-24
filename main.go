@@ -53,7 +53,7 @@ func main() {
 	if !extconfig.Config.DiscoveryDisabledDeployment {
 		discovery_kit_sdk.Register(extdeployment.NewDeploymentDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extdeployment.NewCheckDeploymentRolloutStatusAction())
-		action_kit_sdk.RegisterAction(extdeployment.NewPodCountCheckAction())
+		action_kit_sdk.RegisterAction(extdeployment.NewDeploymentPodCountCheckAction(client.K8S))
 		if client.K8S.Permissions().IsRolloutRestartPermitted() {
 			action_kit_sdk.RegisterAction(extdeployment.NewDeploymentRolloutRestartAction())
 		}
@@ -74,6 +74,7 @@ func main() {
 
 	if !extconfig.Config.DiscoveryDisabledStatefulSet {
 		discovery_kit_sdk.Register(extstatefulset.NewStatefulSetDiscovery(client.K8S))
+		action_kit_sdk.RegisterAction(extstatefulset.NewStatefulSetPodCountCheckAction(client.K8S))
 		if client.K8S.Permissions().IsScaleStatefulSetPermitted() {
 			action_kit_sdk.RegisterAction(extstatefulset.NewScaleStatefulSetAction())
 		}
