@@ -82,6 +82,7 @@ func main() {
 
 	if !extconfig.Config.DiscoveryDisabledDaemonSet {
 		discovery_kit_sdk.Register(extdaemonset.NewDaemonSetDiscovery(client.K8S))
+		action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetPodCountCheckAction(client.K8S))
 	}
 
 	if !extconfig.Config.DiscoveryDisabledNode {
