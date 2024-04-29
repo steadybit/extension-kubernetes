@@ -67,7 +67,7 @@ func (c *namespaceDiscovery) DescribeEnrichmentRules() []discovery_kit_api.Targe
 
 func getNamespaceToXEnrichmentRule(destTargetType string) discovery_kit_api.TargetEnrichmentRule {
 	return discovery_kit_api.TargetEnrichmentRule{
-		Id:      "com.steadybit.extension_kubernetes.kubernetes-namespace-to-"+destTargetType,
+		Id:      "com.steadybit.extension_kubernetes.kubernetes-namespace-to-" + destTargetType,
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
 		Src: discovery_kit_api.SourceOrDestination{
 			Type: KubernetesNamespaceEnrichmentDataType,

@@ -27,6 +27,7 @@ rules:
       - pods
       - nodes
       - events
+      - namespaces
     verbs:
       - get
       - list
