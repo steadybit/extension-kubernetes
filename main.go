@@ -18,7 +18,21 @@ import (
 	"github.com/steadybit/extension-kit/extlogging"
 	"github.com/steadybit/extension-kit/extruntime"
 	"github.com/steadybit/extension-kubernetes/client"
-	"github.com/steadybit/extension-kubernetes/extadvice"
+	"github.com/steadybit/extension-kubernetes/extadvice/cpu_limit"
+	"github.com/steadybit/extension-kubernetes/extadvice/cpu_request"
+	"github.com/steadybit/extension-kubernetes/extadvice/deployment_strategy"
+	"github.com/steadybit/extension-kubernetes/extadvice/ephemeral_storage_limit"
+	"github.com/steadybit/extension-kubernetes/extadvice/ephemeral_storage_request"
+	"github.com/steadybit/extension-kubernetes/extadvice/host_podantiaffinity"
+	"github.com/steadybit/extension-kubernetes/extadvice/image_latest_tag"
+	"github.com/steadybit/extension-kubernetes/extadvice/image_pull_policy"
+	"github.com/steadybit/extension-kubernetes/extadvice/memory_limit"
+	"github.com/steadybit/extension-kubernetes/extadvice/memory_request"
+	"github.com/steadybit/extension-kubernetes/extadvice/probes"
+	"github.com/steadybit/extension-kubernetes/extadvice/single_aws_zone"
+	"github.com/steadybit/extension-kubernetes/extadvice/single_azure_zone"
+	"github.com/steadybit/extension-kubernetes/extadvice/single_gcp_zone"
+	"github.com/steadybit/extension-kubernetes/extadvice/single_replica"
 	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
@@ -116,7 +130,21 @@ func main() {
 
 	exthttp.RegisterHttpHandler("/", exthttp.GetterAsHandler(getExtensionList))
 
-	extadvice.RegisterAdviceHandlers()
+	exthttp.RegisterHttpHandler("/advice/k8s-deployment-strategy", exthttp.GetterAsHandler(deployment_strategy.GetAdviceDescriptionDeploymentStrategy))
+	exthttp.RegisterHttpHandler("/advice/k8s-cpu-limit", exthttp.GetterAsHandler(cpu_limit.GetAdviceDescriptionCPULimit))
+	exthttp.RegisterHttpHandler("/advice/k8s-memory-limit", exthttp.GetterAsHandler(memory_limit.GetAdviceDescriptionMemoryLimit))
+	exthttp.RegisterHttpHandler("/advice/k8s-ephemeral-storage-limit", exthttp.GetterAsHandler(ephemeral_storage_limit.GetAdviceDescriptionEphemeralStorageLimit))
+	exthttp.RegisterHttpHandler("/advice/k8s-cpu-request", exthttp.GetterAsHandler(cpu_request.GetAdviceDescriptionCPURequest))
+	exthttp.RegisterHttpHandler("/advice/k8s-memory-request", exthttp.GetterAsHandler(memory_request.GetAdviceDescriptionMemoryRequest))
+	exthttp.RegisterHttpHandler("/advice/k8s-ephemeral-storage-request", exthttp.GetterAsHandler(ephemeral_storage_request.GetAdviceDescriptionEphemeralStorageRequest))
+	exthttp.RegisterHttpHandler("/advice/k8s-image-latest-tag", exthttp.GetterAsHandler(image_latest_tag.GetAdviceDescriptionImageVersioning))
+	exthttp.RegisterHttpHandler("/advice/k8s-image-pull-policy", exthttp.GetterAsHandler(image_pull_policy.GetAdviceDescriptionImagePullPolicy))
+	exthttp.RegisterHttpHandler("/advice/k8s-probes", exthttp.GetterAsHandler(probes.GetAdviceDescriptionProbes))
+	exthttp.RegisterHttpHandler("/advice/k8s-single-replica", exthttp.GetterAsHandler(single_replica.GetAdviceDescriptionSingleReplica))
+	exthttp.RegisterHttpHandler("/advice/k8s-host-podantiaffinity", exthttp.GetterAsHandler(host_podantiaffinity.GetAdviceDescriptionHostPodantiaffinity))
+	exthttp.RegisterHttpHandler("/advice/single-aws-zone", exthttp.GetterAsHandler(single_aws_zone.GetAdviceDescriptionSingleAwsZone))
+	exthttp.RegisterHttpHandler("/advice/single-azure-zone", exthttp.GetterAsHandler(single_azure_zone.GetAdviceDescriptionSingleAzureZone))
+	exthttp.RegisterHttpHandler("/advice/single-gcp-zone", exthttp.GetterAsHandler(single_gcp_zone.GetAdviceDescriptionSingleGcpZone))
 
 	action_kit_sdk.InstallSignalHandler()
 	action_kit_sdk.RegisterCoverageEndpoints()
@@ -149,91 +177,91 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 	refs = make([]advice_kit_api.DescribingEndpointReference, 0)
 	for _, adviceId := range extconfig.Config.ActiveAdviceList {
 		// Deployments
-		if adviceId == "*" || adviceId == extadvice.DeploymentStrategyID {
+		if adviceId == "*" || adviceId == deployment_strategy.DeploymentStrategyID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-deployment-strategy",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.CpuLimitID {
+		if adviceId == "*" || adviceId == cpu_limit.CpuLimitID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-cpu-limit",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.MemoryLimitID {
+		if adviceId == "*" || adviceId == memory_limit.MemoryLimitID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-memory-limit",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.EphemeralStorageLimitID {
+		if adviceId == "*" || adviceId == ephemeral_storage_limit.EphemeralStorageLimitID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-ephemeral-storage-limit",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.CpuRequestID {
+		if adviceId == "*" || adviceId == cpu_request.CpuRequestID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-cpu-request",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.MemoryRequestID {
+		if adviceId == "*" || adviceId == memory_request.MemoryRequestID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-memory-request",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.EphemeralStorageRequestID {
+		if adviceId == "*" || adviceId == ephemeral_storage_request.EphemeralStorageRequestID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-ephemeral-storage-request",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.ImageVersioningID {
+		if adviceId == "*" || adviceId == image_latest_tag.ImageVersioningID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-image-latest-tag",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.ImagePullPolicyID {
+		if adviceId == "*" || adviceId == image_pull_policy.ImagePullPolicyID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-image-pull-policy",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.ProbesID {
+		if adviceId == "*" || adviceId == probes.ProbesID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-probes",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.SingleReplicaID {
+		if adviceId == "*" || adviceId == single_replica.SingleReplicaID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-single-replica",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.HostPodantiaffinityID {
+		if adviceId == "*" || adviceId == host_podantiaffinity.HostPodantiaffinityID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-host-podantiaffinity",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.SingleAWSZoneID {
+		if adviceId == "*" || adviceId == single_aws_zone.SingleAWSZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/single-aws-zone",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.SingleAzureZoneID {
+		if adviceId == "*" || adviceId == single_azure_zone.SingleAzureZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/single-azure-zone",
 			})
 		}
-		if adviceId == "*" || adviceId == extadvice.SingleGCPZoneID {
+		if adviceId == "*" || adviceId == single_gcp_zone.SingleGCPZoneID {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/single-gcp-zone",
