@@ -26,6 +26,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extdaemonset"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extevents"
+	"github.com/steadybit/extension-kubernetes/extnamespace"
 	"github.com/steadybit/extension-kubernetes/extnode"
 	"github.com/steadybit/extension-kubernetes/extpod"
 	"github.com/steadybit/extension-kubernetes/extstatefulset"
@@ -49,6 +50,10 @@ func main() {
 	exthealth.StartProbes(8089)
 
 	client.PrepareClient(stopCh)
+
+	if !extconfig.Config.DiscoveryDisabledNamespace {
+		discovery_kit_sdk.Register(extnamespace.NewNamespaceDiscovery(context.Background(), client.K8S))
+	}
 
 	if !extconfig.Config.DiscoveryDisabledDeployment {
 		discovery_kit_sdk.Register(extdeployment.NewDeploymentDiscovery(client.K8S))

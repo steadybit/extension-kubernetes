@@ -24,7 +24,9 @@ type Specification struct {
 	DiscoveryDisabledPod                   bool     `json:"discoveryDisabledPod" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledNode                  bool     `json:"discoveryDisabledNode" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledCluster               bool     `json:"discoveryDisabledCluster" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledNamespace             bool     `json:"discoveryDisabledNamespace" required:"false" split_words:"true" default:"false"`
 	DiscoveryAttributesExcludesContainer   []string `json:"discoveryAttributesExcludesContainer" split_words:"true" required:"false"`
+	DiscoveryAttributesExcludesNamespace   []string `json:"discoveryAttributesExcludesNamespace" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDeployment  []string `json:"discoveryAttributesExcludesDeployment" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesStatefulSet []string `json:"discoveryAttributesExcludesStatefulSet" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDaemonSet   []string `json:"discoveryAttributesExcludesDaemonSet" split_words:"true" required:"false"`

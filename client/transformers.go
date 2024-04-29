@@ -60,6 +60,20 @@ func transformPod(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
+func transformNamespace(i interface{}) (interface{}, error) {
+	if namespace, ok := i.(*corev1.Namespace); ok {
+		namespace.ObjectMeta.Annotations = nil
+		namespace.ObjectMeta.ManagedFields = nil
+
+		newNamespaceSpec := corev1.NamespaceSpec{
+			Finalizers: nil,
+		}
+		namespace.Spec = newNamespaceSpec
+		return namespace, nil
+	}
+	return i, nil
+}
+
 func transformReplicaSet(i interface{}) (interface{}, error) {
 	if rs, ok := i.(*appsv1.ReplicaSet); ok {
 		rs.ObjectMeta.Annotations = nil

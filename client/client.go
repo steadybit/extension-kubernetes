@@ -53,6 +53,11 @@ type Client struct {
 		informer cache.SharedIndexInformer
 	}
 
+	namespace struct {
+		lister   listerCorev1.NamespaceLister
+		informer cache.SharedIndexInformer
+	}
+
 	replicaSet struct {
 		lister   listerAppsv1.ReplicaSetLister
 		informer cache.SharedIndexInformer
@@ -100,6 +105,15 @@ func (c *Client) Pods() []*corev1.Pod {
 		return []*corev1.Pod{}
 	}
 	return pods
+}
+
+func (c *Client) Namespaces() []*corev1.Namespace {
+	namespaces, err := c.namespace.lister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching namespaces")
+		return []*corev1.Namespace{}
+	}
+	return namespaces
 }
 
 func (c *Client) PodByNamespaceAndName(namespace string, name string) *corev1.Pod {
@@ -343,6 +357,17 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 	if _, err := client.pod.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 		log.Fatal().Msg("failed to add pod event handler")
+	}
+
+	namespaces := factory.Core().V1().Namespaces()
+	client.namespace.informer = namespaces.Informer()
+	client.namespace.lister = namespaces.Lister()
+	informerSyncList = append(informerSyncList, client.namespace.informer.HasSynced)
+	if err := client.namespace.informer.SetTransform(transformNamespace); err != nil {
+		log.Fatal().Err(err).Msg("Failed to add namespace transformer")
+	}
+	if _, err := client.namespace.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add namespace event handler")
 	}
 
 	replicaSets := factory.Apps().V1().ReplicaSets()
