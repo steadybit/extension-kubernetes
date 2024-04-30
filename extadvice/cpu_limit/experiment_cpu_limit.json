@@ -1,6 +1,6 @@
 {
-	"name": "CPU Overload of ${target.steadybit.label}",
-	"hypothesis": "In case of a CPU overload of ${target.steadybit.label}, all Kubernetes resources work properly, fail gracefully, scale up, or at least one monitor alert.",
+	"name": "CPU Overload of ${target.attr('steadybit.label')}",
+	"hypothesis": "In case of a CPU overload of ${target.attr('steadybit.label')}, all Kubernetes resources work properly, fail gracefully, scale up, or at least one monitor alert.",
 	"lanes": [
 		{
 			"steps": [
@@ -18,7 +18,7 @@
 					"parameters": {
 						"duration": "60s"
 					},
-					"customLabel": "TODO VALIDATION: THEN: ${target.steadybit.label} e.g., still works, fails gracefully, scales up, or monitors alerts"
+					"customLabel": "TODO VALIDATION: THEN: ${target.attr('steadybit.label')} e.g., still works, fails gracefully, scales up, or monitors alerts"
 				}
 			]
 		},
@@ -30,7 +30,7 @@
 					"parameters": {
 						"duration": "40s"
 					},
-					"customLabel": "TODO VALIDATION: GIVEN: ${target.steadybit.label} works properly"
+					"customLabel": "TODO VALIDATION: GIVEN: ${target.attr('steadybit.label')} works properly"
 				},
 				{
 					"type": "action",
@@ -40,7 +40,7 @@
 						"workers": 0,
 						"duration": "60s"
 					},
-					"customLabel": "WHEN: Stressing CPU of ${target.steadybit.label}",
+					"customLabel": "WHEN: Stressing CPU of ${target.attr('steadybit.label')}",
 					"actionType": "com.steadybit.extension_container.stress_cpu",
 					"radius": {
 						"targetType": "com.steadybit.extension_container.container",
@@ -51,21 +51,21 @@
 									"key": "k8s.cluster-name",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.cluster-name}"
+										"${target.attr('k8s.cluster-name')}"
 									]
 								},
 								{
 									"key": "k8s.namespace",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.namespace}"
+										"${target.attr('k8s.namespace')}"
 									]
 								},
 								{
-									"key": "k8s.${target.k8s.workload-type}",
+									"key": "k8s.${target.attr('k8s.workload-type')}",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.workload-owner}"
+										"${target.attr('k8s.workload-owner')}"
 									]
 								}
 							]
@@ -80,7 +80,7 @@
 					"parameters": {
 						"duration": "60s"
 					},
-					"customLabel": "TODO VALIDATION: THEN: ${target.steadybit.label} recovers from high CPU and runs smoothly again"
+					"customLabel": "TODO VALIDATION: THEN: ${target.attr('steadybit.label')} recovers from high CPU and runs smoothly again"
 				}
 			]
 		},
@@ -103,7 +103,7 @@
 									"key": "k8s.cluster-name",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.cluster-name}"
+										"${target.attr('k8s.cluster-name')}"
 									]
 								}
 							]
@@ -132,7 +132,7 @@
 									"key": "k8s.cluster-name",
 									"operator": "EQUALS",
 									"values": [
-										"${target.k8s.cluster-name}"
+										"${target.attr('k8s.cluster-name')}"
 									]
 								}
 							]

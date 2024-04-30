@@ -1,6 +1,6 @@
 {
-  "name": "GCP Zone Outage of ${target.gcp.zone[0]} for ${target.steadybit.label}",
-  "hypothesis": "When GCP Availability Zone ${target.gcp.zone[0]} is down for ${target.steadybit.label}, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. As soon as the zone is available again, the pod is ready within 60s.",
+  "name": "GCP Zone Outage of ${target.attr('gcp.zone', 0)} for ${target.attr('steadybit.label')}",
+  "hypothesis": "When GCP Availability Zone ${target.attr('gcp.zone', 0)} is down for ${target.attr('steadybit.label')}, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. As soon as the zone is available again, the pod is ready within 60s.",
   "lanes": [
     {
       "steps": [
@@ -10,7 +10,7 @@
           "parameters": {
             "duration": "140s"
           },
-          "customLabel": "TODO VALIDATION: INVARIANT: ${target.steadybit.label}'s features work within expected success rates"
+          "customLabel": "TODO VALIDATION: INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
         }
       ]
     },
@@ -23,7 +23,7 @@
             "duration": "20s",
             "podCountCheckMode": "podCountEqualsDesiredCount"
           },
-          "customLabel": "GIVEN: All pods in ${target.gcp.zone[0]} are ready",
+          "customLabel": "GIVEN: All pods in ${target.attr('gcp.zone', 0)} are ready",
           "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
           "radius": {
             "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
@@ -34,28 +34,28 @@
                   "key": "gcp.zone",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.gcp.zone[0]}"
+                    "${target.attr('gcp.zone', 0)}"
                   ]
                 },
                 {
                   "key": "k8s.cluster-name",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.cluster-name}"
+                    "${target.attr('k8s.cluster-name')}"
                   ]
                 },
                 {
                   "key": "k8s.namespace",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.namespace}"
+                    "${target.attr('k8s.namespace')}"
                   ]
                 },
                 {
-                  "key": "k8s.${target.k8s.workload-type}",
+                  "key": "k8s.${target.attr('k8s.workload-type')}",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.workload-owner}"
+                    "${target.attr('k8s.workload-owner')}"
                   ]
                 }
               ]
@@ -85,7 +85,7 @@
             "hostname": [],
             "failOnHostNetwork": true
           },
-          "customLabel": "WHEN: Zone outage of ${target.gcp.zone[0]} for ${target.steadybit.label}",
+          "customLabel": "WHEN: Zone outage of ${target.attr('gcp.zone', 0)} for ${target.attr('steadybit.label')}",
           "actionType": "com.steadybit.extension_container.network_blackhole",
           "radius": {
             "targetType": "com.steadybit.extension_container.container",
@@ -96,28 +96,28 @@
                   "key": "gcp.zone",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.gcp.zone[0]}"
+                    "${target.attr('gcp.zone', 0)}"
                   ]
                 },
                 {
                   "key": "k8s.cluster-name",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.cluster-name}"
+                    "${target.attr('k8s.cluster-name')}"
                   ]
                 },
                 {
                   "key": "k8s.namespace",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.namespace}"
+                    "${target.attr('k8s.namespace')}"
                   ]
                 },
                 {
-                  "key": "k8s.${target.k8s.workload-type}",
+                  "key": "k8s.${target.attr('k8s.workload-type')}",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.workload-owner}"
+                    "${target.attr('k8s.workload-owner')}"
                   ]
                 }
               ]
@@ -144,28 +144,28 @@
                   "key": "gcp.zone",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.gcp.zone[0]}"
+                    "${target.attr('gcp.zone', 0)}"
                   ]
                 },
                 {
                   "key": "k8s.cluster-name",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.cluster-name}"
+                    "${target.attr('k8s.cluster-name')}"
                   ]
                 },
                 {
                   "key": "k8s.namespace",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.namespace}"
+                    "${target.attr('k8s.namespace')}"
                   ]
                 },
                 {
-                  "key": "k8s.${target.k8s.workload-type}",
+                  "key": "k8s.${target.attr('k8s.workload-type')}",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.workload-owner}"
+                    "${target.attr('k8s.workload-owner')}"
                   ]
                 }
               ]
@@ -203,28 +203,28 @@
                   "key": "gcp.zone",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.gcp.zone[0]}"
+                    "${target.attr('gcp.zone', 0)}"
                   ]
                 },
                 {
                   "key": "k8s.cluster-name",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.cluster-name}"
+                    "${target.attr('k8s.cluster-name')}"
                   ]
                 },
                 {
                   "key": "k8s.namespace",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.namespace}"
+                    "${target.attr('k8s.namespace')}"
                   ]
                 },
                 {
-                  "key": "k8s.${target.k8s.workload-type}",
+                  "key": "k8s.${target.attr('k8s.workload-type')}",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.workload-owner}"
+                    "${target.attr('k8s.workload-owner')}"
                   ]
                 }
               ]
@@ -253,7 +253,7 @@
                   "key": "k8s.cluster-name",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.cluster-name}"
+                    "${target.attr('k8s.cluster-name')}"
                   ]
                 }
               ]
@@ -282,7 +282,7 @@
                   "key": "k8s.cluster-name",
                   "operator": "EQUALS",
                   "values": [
-                    "${target.k8s.cluster-name}"
+                    "${target.attr('k8s.cluster-name')}"
                   ]
                 }
               ]

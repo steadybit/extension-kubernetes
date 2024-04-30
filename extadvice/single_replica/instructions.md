@@ -13,7 +13,7 @@ kind: Deployment
 metadata:
   name: example
   labels:
-    name: ${target.steadybit.label:normal}
+    name: ${target.attr('steadybit.label')}
 spec:
 % startHighlight %
   # modify min-replicas to match your use case, but should be >1
@@ -21,7 +21,7 @@ spec:
 % endHighlight %
   selector:
     matchLabels:
-      tier: ${target.steadybit.label:normal}
+      tier: ${target.attr('steadybit.label')}
 ```
 
 [Kubernetes Documentation - Deployment Replicas](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#replicas)
@@ -37,7 +37,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: ${target.steadybit.label:normal}
+    name: ${target.attr('steadybit.label')}
 % startHighlight %
   # modify min-replicas to match your use case, but should be >1
   minReplicas: 2

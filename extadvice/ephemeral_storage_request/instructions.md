@@ -1,4 +1,4 @@
-Specify ${target.steadybit.label}&apos;s requested ephemeral storage by defining the `requets` property in your Kubernetes manifest.
+Specify *${target.attr('steadybit.label')}*&apos;s requested ephemeral storage by defining the `requets` property in your Kubernetes manifest.
 
 ```yaml
 apiVersion: v1

@@ -1,1 +1,1 @@
-${target.k8s.specification.probes.summary:normal}
+${target.attr('k8s.specification.probes.summary')}

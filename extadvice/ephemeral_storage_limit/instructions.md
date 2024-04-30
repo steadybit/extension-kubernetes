@@ -1,4 +1,4 @@
-Specify ${target.steadybit.label}&apos;s ephemeral storage limit by defining the `limits` property in your Kubernetes manifest.
+Specify *${target.attr('steadybit.label')}*&apos;s ephemeral storage limit by defining the `limits` property in your Kubernetes manifest.
 
 ```yaml
 apiVersion: v1

@@ -47,7 +47,7 @@ func GetAdviceDescriptionCPULimit() advice_kit_api.AdviceDefinition {
 						Id:               "com.steadybit.extension_kubernetes.k8s-cpu-limit.experiment-1",
 						Type:             "EXPERIMENT",
 						Name:             "CPU Overload",
-						ShortDescription: "Check how ${target.steadybit.label} behaves when running at the CPU limit and whether your remaining Kubernetes resources at the host function properly.",
+						ShortDescription: "Check how *${target.attr('steadybit.label')}* behaves when running at the CPU limit and whether your remaining Kubernetes resources at the host function properly.",
 						Experiment:       extutil.Ptr(advice_kit_api.Experiment(advice_common.ReadAdviceFile(CpuLimitContent, "experiment_cpu_limit.json"))),
 					},
 				}),
