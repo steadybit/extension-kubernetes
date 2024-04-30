@@ -24,9 +24,9 @@
             "podCountCheckMode": "podCountEqualsDesiredCount"
           },
           "customLabel": "GIVEN: All pods in ${target.attr('azure.zone', 0)} are ready",
-          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
-            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "targetType": "${target.id.type}",
             "predicate": {
               "operator": "AND",
               "predicates": [
@@ -134,9 +134,9 @@
             "podCountCheckMode": "podCountEqualsDesiredCount"
           },
           "customLabel": "THEN: After Zone outage, all pods become ready again within 60s",
-          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
-            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "targetType": "${target.id.type}",
             "predicate": {
               "operator": "AND",
               "predicates": [
@@ -193,9 +193,9 @@
             "podCountCheckMode": "podCountLessThanDesiredCount"
           },
           "customLabel": "THEN: Pods are detected as down",
-          "actionType": "com.steadybit.extension_kubernetes.pod_count_check",
+          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
-            "targetType": "com.steadybit.extension_kubernetes.kubernetes-deployment",
+            "targetType": "${target.id.type}",
             "predicate": {
               "operator": "AND",
               "predicates": [
