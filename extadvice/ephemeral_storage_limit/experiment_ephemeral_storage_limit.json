@@ -23,7 +23,7 @@
             "podCountCheckMode": "podCountEqualsDesiredCount"
           },
           "customLabel": "GIVEN: All pods are ready",
-          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
+          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
             "targetType": "${target.id.type}",
             "predicate": {
@@ -160,7 +160,7 @@
             "podCountCheckMode": "podCountLessThanDesiredCount"
           },
           "customLabel": "THEN: Kubernetes restarts one pod due to exceeding ephemeral storage",
-          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
+          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
             "targetType": "${target.id.type}",
             "predicate": {
@@ -200,7 +200,7 @@
             "podCountCheckMode": "podCountEqualsDesiredCount"
           },
           "customLabel": "THEN: Pod recovers within 60 seconds",
-          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
+          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
             "targetType": "${target.id.type}",
             "predicate": {

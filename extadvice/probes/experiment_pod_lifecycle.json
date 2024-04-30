@@ -24,7 +24,7 @@
             "podCountCheckMode": "podCountEqualsDesiredCount"
           },
           "customLabel": "GIVEN: All pods are healthy",
-					"actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
+          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
             "targetType": "${target.id.type}",
             "predicate": {
@@ -119,7 +119,7 @@
             "podCountCheckMode": "podCountEqualsDesiredCount"
           },
           "customLabel": "THEN: All pods are healthy again within 60s",
-          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
+          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
             "targetType": "${target.id.type}",
             "predicate": {
@@ -163,7 +163,7 @@
             "podCountCheckMode": "podCountLessThanDesiredCount"
           },
           "customLabel": "THEN: One pod is detected unhealthy and restarted",
-          "actionType": "<#if target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-deployment\">com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type==\"com.steadybit.extension_kubernetes.kubernetes-statefulset\">com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
+          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
           "radius": {
             "targetType": "${target.id.type}",
             "predicate": {
