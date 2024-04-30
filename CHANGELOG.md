@@ -6,6 +6,7 @@
 - Added "Pod Count Check" for StatefulSets and DaemonSets
 - Improved advice's experiment for multi availability zones (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`) to establish a 20s base-line in the beginning of the experiment
 - Add namespace label to container, k8s-container, k8s-deployment, k8s-statefulset and k8s-daemonset
+- Use FreeMarker syntax for advice templates.
 
 ## v2.5.10
 
