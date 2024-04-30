@@ -359,15 +359,17 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Fatal().Msg("failed to add pod event handler")
 	}
 
-	namespaces := factory.Core().V1().Namespaces()
-	client.namespace.informer = namespaces.Informer()
-	client.namespace.lister = namespaces.Lister()
-	informerSyncList = append(informerSyncList, client.namespace.informer.HasSynced)
-	if err := client.namespace.informer.SetTransform(transformNamespace); err != nil {
-		log.Fatal().Err(err).Msg("Failed to add namespace transformer")
-	}
-	if _, err := client.namespace.informer.AddEventHandler(client.resourceEventHandler); err != nil {
-		log.Fatal().Msg("failed to add namespace event handler")
+	if permissions.CanReadNamespaces() {
+		namespaces := factory.Core().V1().Namespaces()
+		client.namespace.informer = namespaces.Informer()
+		client.namespace.lister = namespaces.Lister()
+		informerSyncList = append(informerSyncList, client.namespace.informer.HasSynced)
+		if err := client.namespace.informer.SetTransform(transformNamespace); err != nil {
+			log.Fatal().Err(err).Msg("Failed to add namespace transformer")
+		}
+		if _, err := client.namespace.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add namespace event handler")
+		}
 	}
 
 	replicaSets := factory.Apps().V1().ReplicaSets()

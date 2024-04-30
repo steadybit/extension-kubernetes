@@ -14,6 +14,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/extnamespace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
@@ -108,6 +109,7 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
+		extnamespace.AddNamespaceLabels(d.k8s, sts.Namespace, attributes)
 		for key, value := range extcommon.GetPodBasedAttributes("statefulset", sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes) {
 
 			attributes[key] = value

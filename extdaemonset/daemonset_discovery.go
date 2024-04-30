@@ -14,6 +14,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/extnamespace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
@@ -104,6 +105,7 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
+		extnamespace.AddNamespaceLabels(d.k8s, ds.Namespace, attributes)
 		for key, value := range extcommon.GetPodBasedAttributes("daemonset", ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes) {
 			attributes[key] = value
 		}

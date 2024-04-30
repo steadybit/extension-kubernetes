@@ -31,13 +31,10 @@ func Test_namespaceDiscovery(t *testing.T) {
 			name:      "should discover basic attributes",
 			namespace: testNamespace(nil),
 			expectedAttributesExactly: map[string][]string{
-				"k8s.cluster-name":              {"development"},
-				"k8s.namespace.id":              {"1234"},
-				"k8s.namespace":                 {"default"},
 				"k8s.label.best-city":           {"Kevelaer"},
 				"k8s.namespace.label.best-city": {"Kevelaer"},
-				"k8s.distribution":              {"openshift"},
 			},
+			expectedAttributesAbsence: []string{"k8s.label.secret-label", "k8s.namespace.label.secret-label"},
 		},
 	}
 	for _, tt := range tests {
@@ -54,35 +51,31 @@ func Test_namespaceDiscovery(t *testing.T) {
 				Create(context.Background(), tt.namespace, metav1.CreateOptions{})
 			require.NoError(t, err)
 
-			d := &namespaceDiscovery{k8s: client}
 			// When
+			var attributes map[string][]string
 			assert.EventuallyWithT(t, func(c *assert.CollectT) {
-				ed, _ := d.DiscoverEnrichmentData(context.Background())
-				assert.Len(c, ed, 1)
+				attributes = AddNamespaceLabels(client, tt.namespace.Name, map[string][]string{})
+				require.Len(t, attributes, 2)
 			}, 1*time.Second, 100*time.Millisecond)
 
 			// Then
-			targets, _ := d.DiscoverEnrichmentData(context.Background())
-			require.Len(t, targets, 1)
-			target := targets[0]
-			assert.Equal(t, "1234", target.Id)
-			assert.Equal(t, KubernetesNamespaceEnrichmentDataType, target.EnrichmentDataType)
+			require.Len(t, attributes, 2)
 			if len(tt.expectedAttributesExactly) > 0 {
-				for _, v := range target.Attributes {
+				for _, v := range attributes {
 					sort.Strings(v)
 				}
-				assert.Equal(t, tt.expectedAttributesExactly, target.Attributes)
+				assert.Equal(t, tt.expectedAttributesExactly, attributes)
 			}
 			if len(tt.expectedAttributes) > 0 {
 				for k, v := range tt.expectedAttributes {
-					attributeValues := target.Attributes[k]
+					attributeValues := attributes[k]
 					sort.Strings(attributeValues)
 					assert.Equal(t, v, attributeValues)
 				}
 			}
 			if len(tt.expectedAttributesAbsence) > 0 {
 				for _, k := range tt.expectedAttributesAbsence {
-					assert.NotContains(t, target.Attributes, k)
+					assert.NotContains(t, attributes, k)
 				}
 			}
 		})
@@ -108,65 +101,6 @@ func testNamespace(modifier func(namespace *v1.Namespace)) *v1.Namespace {
 		modifier(namespace)
 	}
 	return namespace
-}
-
-func Test_getDiscoveredNamespaceShouldIgnoreLabeledNamespaces(t *testing.T) {
-	// Given
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
-	extconfig.Config.ClusterName = "development"
-
-	_, err := clientset.CoreV1().
-		Namespaces().
-		Create(context.Background(), testNamespace(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	_, err = clientset.CoreV1().
-		Namespaces().
-		Create(context.Background(), testNamespace(func(namespace *v1.Namespace) {
-			namespace.ObjectMeta.Name = "shop-ignored"
-			namespace.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	d := &namespaceDiscovery{k8s: client}
-
-	// Then
-	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		ed, _ := d.DiscoverEnrichmentData(context.Background())
-		assert.Len(c, ed, 1)
-	}, 1*time.Second, 100*time.Millisecond)
-}
-
-func Test_getDiscoveredNamespaceShouldNotIgnoreLabeledNamespacesIfExcludesDisabled(t *testing.T) {
-	// Given
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
-	extconfig.Config.ClusterName = "development"
-	extconfig.Config.DisableDiscoveryExcludes = true
-
-	_, err := clientset.CoreV1().
-		Namespaces().
-		Create(context.Background(), testNamespace(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	_, err = clientset.CoreV1().
-		Namespaces().
-		Create(context.Background(), testNamespace(func(namespace *v1.Namespace) {
-			namespace.ObjectMeta.Name = "shop-ignored"
-			namespace.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	d := &namespaceDiscovery{k8s: client}
-
-	// Then
-	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		ed, _ := d.DiscoverEnrichmentData(context.Background())
-		assert.Len(c, ed, 2)
-	}, 1*time.Second, 100*time.Millisecond)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {

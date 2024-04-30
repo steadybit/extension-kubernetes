@@ -14,6 +14,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/extnamespace"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -115,6 +116,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
+		extnamespace.AddNamespaceLabels(d.k8s, deployment.Namespace, attributes)
 
 		for key, value := range extcommon.GetPodBasedAttributes("deployment", deployment.ObjectMeta, d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace), nodes) {
 			attributes[key] = value

@@ -14,6 +14,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/extnamespace"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	"reflect"
@@ -104,6 +105,10 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			},
 			{
 				Matcher: discovery_kit_api.StartsWith,
+				Name:    "k8s.namespace.label.",
+			},
+			{
+				Matcher: discovery_kit_api.StartsWith,
 				Name:    "k8s.label.",
 			},
 			{
@@ -179,6 +184,7 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 					attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 				}
 			}
+			extnamespace.AddNamespaceLabels(c.k8s, pod.Namespace, attributes)
 
 			if len(services) > 0 {
 				var serviceNames = make([]string, 0, len(services))

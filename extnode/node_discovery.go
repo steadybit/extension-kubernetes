@@ -16,6 +16,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/steadybit/extension-kubernetes/extdaemonset"
 	"github.com/steadybit/extension-kubernetes/extdeployment"
+	"github.com/steadybit/extension-kubernetes/extnamespace"
 	"github.com/steadybit/extension-kubernetes/extpod"
 	"github.com/steadybit/extension-kubernetes/extstatefulset"
 	"golang.org/x/exp/slices"
@@ -230,6 +231,7 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
+		extnamespace.AddNamespaceLabels(d.k8s, node.Namespace, attributes)
 
 		pods := d.k8s.Pods()
 		if len(pods) > 0 {
