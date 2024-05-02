@@ -57,6 +57,7 @@ func Test_nodeDiscovery(t *testing.T) {
 				},
 			},
 			Status: v1.PodStatus{
+				Phase: v1.PodRunning,
 				ContainerStatuses: []v1.ContainerStatus{
 					{
 						ContainerID: "crio://abcdef",
@@ -95,6 +96,7 @@ func Test_nodeDiscovery(t *testing.T) {
 				},
 			},
 			Status: v1.PodStatus{
+				Phase: v1.PodRunning,
 				ContainerStatuses: []v1.ContainerStatus{
 					{
 						ContainerID: "crio://ignored",
