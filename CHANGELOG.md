@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.5.11 (next)
+## v2.5.11
 
 - Update dependencies (go 1.22)
 - Added "Pod Count Check" for StatefulSets and DaemonSets
