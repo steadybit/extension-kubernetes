@@ -299,6 +299,7 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 			},
 		},
 		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
 			ContainerStatuses: []v1.ContainerStatus{
 				{
 					ContainerID: fmt.Sprintf("crio://abcdef-%s", nameSuffix),

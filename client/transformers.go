@@ -53,6 +53,7 @@ func transformPod(i interface{}) (interface{}, error) {
 		}
 		pod.Spec = newPodSpec
 		pod.Status = corev1.PodStatus{
+			Phase:             pod.Status.Phase,
 			ContainerStatuses: pod.Status.ContainerStatuses,
 		}
 		return pod, nil

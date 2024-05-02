@@ -157,6 +157,7 @@ func testPod(modifier func(pod *v1.Pod)) *v1.Pod {
 			},
 		},
 		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
 			ContainerStatuses: []v1.ContainerStatus{
 				{
 					ContainerID: "crio://abcdef",

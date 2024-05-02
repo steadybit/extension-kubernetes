@@ -47,6 +47,7 @@ func Test_getDiscoveredPods(t *testing.T) {
 				},
 			},
 			Status: v1.PodStatus{
+				Phase: v1.PodRunning,
 				ContainerStatuses: []v1.ContainerStatus{
 					{
 						ContainerID: "crio://abcdef",
@@ -145,6 +146,7 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 				Namespace: "default",
 			},
 			Status: v1.PodStatus{
+				Phase: v1.PodRunning,
 				ContainerStatuses: []v1.ContainerStatus{
 					{
 						Name:  "MrFancyPants",
@@ -231,6 +233,7 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 				},
 			},
 			Status: v1.PodStatus{
+				Phase: v1.PodRunning,
 				ContainerStatuses: []v1.ContainerStatus{
 					{
 						ContainerID: "crio://abcdef",
@@ -266,6 +269,7 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 				},
 			},
 			Status: v1.PodStatus{
+				Phase: v1.PodRunning,
 				ContainerStatuses: []v1.ContainerStatus{
 					{
 						ContainerID: "crio://abcdef",

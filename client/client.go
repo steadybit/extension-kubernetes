@@ -104,7 +104,7 @@ func (c *Client) Pods() []*corev1.Pod {
 		log.Error().Err(err).Msgf("Error while fetching pods")
 		return []*corev1.Pod{}
 	}
-	return pods
+	return c.onlyRunningPods(pods)
 }
 
 func (c *Client) Namespaces() []*corev1.Namespace {
@@ -133,7 +133,17 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 		log.Error().Err(err).Msgf("Error while fetching Pods for selector %s in namespace %s", selector, namespace)
 		return nil
 	}
-	return list
+	return c.onlyRunningPods(list)
+}
+
+func (c *Client) onlyRunningPods(list []*corev1.Pod) []*corev1.Pod {
+	runningPods := make([]*corev1.Pod, 0)
+	for _, pod := range list {
+		if pod.Status.Phase == corev1.PodRunning {
+			runningPods = append(runningPods, pod)
+		}
+	}
+	return runningPods
 }
 
 func (c *Client) Deployments() []*appsv1.Deployment {

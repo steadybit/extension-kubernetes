@@ -7,6 +7,7 @@
 - Improved advice's experiment for multi availability zones (`single-azure-zone`, `single-aws-zone`, and `single-gcp-zone`) to establish a 20s base-line in the beginning of the experiment
 - Add namespace label to container, k8s-container, k8s-deployment, k8s-statefulset and k8s-daemonset
 - Use FreeMarker syntax for advice templates.
+- Ignore Pods not in state "Running" in all discoveries
 
 ## v2.5.10
 
