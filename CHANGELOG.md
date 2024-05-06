@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.12 (next release)
+
+- Renamed "Pod Count Check" to "(Deployment, StatefulSet, DaemonSet) Pod Count Check"
+
 ## v2.5.11
 
 - Update dependencies (go 1.22)

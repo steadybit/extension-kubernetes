@@ -15,9 +15,10 @@ import (
 
 func NewDeploymentPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[extcommon.PodCountCheckState] {
 	return &extcommon.PodCountCheckAction{
-		Client:     k8s,
-		ActionId:   DeploymentPodCountCheckActionId,
-		TargetType: DeploymentTargetType,
+		Client:          k8s,
+		ActionId:        DeploymentPodCountCheckActionId,
+		TargetType:      DeploymentTargetType,
+		TargetTypeLabel: "Deployment",
 		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "default",

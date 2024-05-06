@@ -15,9 +15,10 @@ import (
 
 func NewStatefulSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[extcommon.PodCountCheckState] {
 	return &extcommon.PodCountCheckAction{
-		Client:     k8s,
-		ActionId:   StatefulSetPodCountCheckActionId,
-		TargetType: StatefulSetTargetType,
+		Client:          k8s,
+		ActionId:        StatefulSetPodCountCheckActionId,
+		TargetType:      StatefulSetTargetType,
+		TargetTypeLabel: "StatefulSet",
 		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "default",

@@ -15,9 +15,10 @@ import (
 
 func NewDaemonSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[extcommon.PodCountCheckState] {
 	return &extcommon.PodCountCheckAction{
-		Client:     k8s,
-		ActionId:   DaemonSetPodCountCheckActionId,
-		TargetType: DaemonSetTargetType,
+		Client:          k8s,
+		ActionId:        DaemonSetPodCountCheckActionId,
+		TargetType:      DaemonSetTargetType,
+		TargetTypeLabel: "DaemonSet",
 		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "default",
