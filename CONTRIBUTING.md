@@ -19,7 +19,7 @@ with the following text to agree our CLA: "I have read the CLA Document and I he
   helm upgrade steadybit-extension-kubernetes \
   --install \
   --create-namespace \
-  --namespace steadybit-extension \
+  --namespace steadybit-agent \
   --set kubernetes.clusterName=minikube \
   --set image.name=extension-kubernetes \
   --set image.tag=latest \
