@@ -6,7 +6,7 @@ module github.com/steadybit/extension-kubernetes
 go 1.22.0
 
 require (
-	github.com/KimMachineGun/automemlimit v0.6.0
+	github.com/KimMachineGun/automemlimit v0.6.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.32.0
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.0
