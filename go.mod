@@ -22,7 +22,7 @@ require (
 	github.com/zegl/kube-score v1.18.1-0.20240306092229-810be6515e6a
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/exp v0.0.0-20240404231335-c0f41cb1a7a0
-	golang.org/x/text v0.15.0
+	golang.org/x/text v0.16.0
 	k8s.io/api v0.30.1
 	k8s.io/apimachinery v0.30.1
 	k8s.io/client-go v0.30.1
