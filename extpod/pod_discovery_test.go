@@ -107,7 +107,7 @@ func Test_getDiscoveredPods(t *testing.T) {
 	targets, _ := d.DiscoverTargets(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
-	assert.Equal(t, "shop-pod", target.Id)
+	assert.Equal(t, "development/default/shop-pod", target.Id)
 	assert.Equal(t, "shop-pod", target.Label)
 	assert.Equal(t, PodTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{
@@ -191,7 +191,7 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 	targets, _ := d.DiscoverTargets(context.Background())
 	require.Len(t, targets, 1)
 	target := targets[0]
-	assert.Equal(t, "shop-pod", target.Id)
+	assert.Equal(t, "development/default/shop-pod", target.Id)
 	assert.Equal(t, "shop-pod", target.Label)
 	assert.Equal(t, PodTargetType, target.TargetType)
 	assert.Equal(t, map[string][]string{

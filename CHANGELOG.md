@@ -1,8 +1,10 @@
 # Changelog
 
-## v2.5.12 (next release)
+## v2.5.12
 
 - Renamed "Pod Count Check" to "(Deployment, StatefulSet, DaemonSet) Pod Count Check"
+- Pod-Targets now have a unique id. (Used by the UI to fetch details for a specific pod)
+- Update dependencies
 
 ## v2.5.11
 

@@ -138,9 +138,9 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 			}
 			attributes["k8s.service.name"] = serviceNames
 		}
-
+		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, pod.Namespace, pod.Name)
 		targets[i] = discovery_kit_api.Target{
-			Id:         pod.Name,
+			Id:         targetName,
 			TargetType: PodTargetType,
 			Label:      pod.Name,
 			Attributes: attributes,
