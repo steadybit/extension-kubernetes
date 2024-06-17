@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.5.13
+
+- Populate all k8s.node labels to host target type.
+- Update dependencies
+
 ## v2.5.12
 
 - Renamed "Pod Count Check" to "(Deployment, StatefulSet, DaemonSet) Pod Count Check"

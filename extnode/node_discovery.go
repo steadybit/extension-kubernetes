@@ -137,24 +137,8 @@ func getNodeToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 				Name:    "k8s.pod.name",
 			},
 			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.topology.kubernetes.io/region",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.topology.kubernetes.io/zone",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.kubernetes.io/arch",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.kubernetes.io/os",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.node.kubernetes.io/instance-type",
+				Matcher: discovery_kit_api.StartsWith,
+				Name:    "k8s.label.",
 			},
 		},
 	}

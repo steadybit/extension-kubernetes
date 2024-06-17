@@ -36,6 +36,10 @@ func Test_nodeDiscovery(t *testing.T) {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-123",
+				Labels: map[string]string{
+					"label1": "value1",
+					"label2": "value2",
+				},
 			},
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
@@ -158,6 +162,8 @@ func Test_nodeDiscovery(t *testing.T) {
 		"k8s.namespace":             {"default"},
 		"k8s.node.name":             {"node-123"},
 		"k8s.pod.name":              {"shop-pod-11"},
+		"k8s.label.label1":          {"value1"},
+		"k8s.label.label2":          {"value2"},
 	}, target.Attributes)
 }
 
