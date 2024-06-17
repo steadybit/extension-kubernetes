@@ -156,7 +156,7 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = nginx.Delete() }()
 
 	target, err := e2e.PollForTarget(ctx, e, extdeployment.DeploymentTargetType, func(target discovery_kit_api.Target) bool {
-		return e2e.HasAttribute(target, "k8s.deployment", "nginx")
+		return e2e.HasAttribute(target, "k8s.deployment", "nginx") && e2e.HasAttribute(target, "k8s.pod.name", nginx.Pods[0].Name) && e2e.HasAttribute(target, "k8s.pod.name", nginx.Pods[1].Name)
 	})
 
 	require.NoError(t, err)
