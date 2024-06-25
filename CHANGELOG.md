@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.14
+
+- Update dependencies
+
 ## v2.5.13
 
 - Populate all k8s.node labels to host target type.
