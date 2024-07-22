@@ -72,6 +72,59 @@ func TestWithMinikube(t *testing.T) {
 	})
 }
 
+func TestWithMinikubeViaRole(t *testing.T) {
+	extFactory := e2e.HelmExtensionFactory{
+		Name: "extension-kubernetes",
+		Port: 8088,
+		ExtraArgs: func(m *e2e.Minikube) []string {
+			return []string{
+				"--set", "kubernetes.clusterName=e2e-cluster",
+				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
+				"--set", "logging.level=debug",
+				"--set", "role.create=true",
+				"--set", "roleBinding.create=true",
+				"--set", "clusterRole.create=false",
+				"--set", "clusterRoleBinding.create=false",
+			}
+		},
+	}
+
+	e2e.WithDefaultMinikube(t, &extFactory, []e2e.WithMinikubeTestCase{
+		{
+			Name: "validate discovery",
+			Test: validateDiscovery,
+		},
+		{
+			Name: "discovery",
+			Test: testDiscovery,
+		},
+		{
+			Name: "checkRolloutReady",
+			Test: testCheckRolloutReady,
+		},
+		{
+			Name: "deletePod",
+			Test: testDeletePod,
+		},
+		{
+			Name: "drainNode",
+			Test: testDrainNode,
+		},
+		{
+			Name: "taintNode",
+			Test: testTaintNode,
+		},
+		{
+			Name: "scaleDeployment",
+			Test: testScaleDeployment,
+		},
+		{
+			Name: "causeCrashLoop",
+			Test: testCauseCrashLoop,
+		},
+	})
+}
+
 func validateDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	assert.NoError(t, validate.ValidateEndpointReferences("/", e.Client))
 }
