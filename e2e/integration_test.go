@@ -24,6 +24,41 @@ import (
 	"time"
 )
 
+var testCases = []e2e.WithMinikubeTestCase{
+	{
+		Name: "validate discovery",
+		Test: validateDiscovery,
+	},
+	{
+		Name: "discovery",
+		Test: testDiscovery,
+	},
+	{
+		Name: "checkRolloutReady",
+		Test: testCheckRolloutReady,
+	},
+	{
+		Name: "deletePod",
+		Test: testDeletePod,
+	},
+	{
+		Name: "drainNode",
+		Test: testDrainNode,
+	},
+	{
+		Name: "taintNode",
+		Test: testTaintNode,
+	},
+	{
+		Name: "scaleDeployment",
+		Test: testScaleDeployment,
+	},
+	{
+		Name: "causeCrashLoop",
+		Test: testCauseCrashLoop,
+	},
+}
+
 func TestWithMinikube(t *testing.T) {
 	extFactory := e2e.HelmExtensionFactory{
 		Name: "extension-kubernetes",
@@ -37,40 +72,7 @@ func TestWithMinikube(t *testing.T) {
 		},
 	}
 
-	e2e.WithDefaultMinikube(t, &extFactory, []e2e.WithMinikubeTestCase{
-		{
-			Name: "validate discovery",
-			Test: validateDiscovery,
-		},
-		{
-			Name: "discovery",
-			Test: testDiscovery,
-		},
-		{
-			Name: "checkRolloutReady",
-			Test: testCheckRolloutReady,
-		},
-		{
-			Name: "deletePod",
-			Test: testDeletePod,
-		},
-		{
-			Name: "drainNode",
-			Test: testDrainNode,
-		},
-		{
-			Name: "taintNode",
-			Test: testTaintNode,
-		},
-		{
-			Name: "scaleDeployment",
-			Test: testScaleDeployment,
-		},
-		{
-			Name: "causeCrashLoop",
-			Test: testCauseCrashLoop,
-		},
-	})
+	e2e.WithDefaultMinikube(t, &extFactory, testCases)
 }
 
 func TestWithMinikubeViaRole(t *testing.T) {
@@ -86,48 +88,14 @@ func TestWithMinikubeViaRole(t *testing.T) {
 				"--set", "roleBinding.create=true",
 				"--set", "clusterRole.create=false",
 				"--set", "clusterRoleBinding.create=false",
-				"--namespace","default",
+				"--namespace", "default",
 			}
 		},
 	}
 	// add env var to use role binding to configure the tests
 	t.Setenv("USE_K8S_ROLE_BINDING", "true")
 
-
-	e2e.WithDefaultMinikube(t, &extFactory, []e2e.WithMinikubeTestCase{
-		{
-			Name: "validate discovery",
-			Test: validateDiscovery,
-		},
-		{
-			Name: "discovery",
-			Test: testDiscovery,
-		},
-		{
-			Name: "checkRolloutReady",
-			Test: testCheckRolloutReady,
-		},
-		{
-			Name: "deletePod",
-			Test: testDeletePod,
-		},
-		{
-			Name: "drainNode",
-			Test: testDrainNode,
-		},
-		{
-			Name: "taintNode",
-			Test: testTaintNode,
-		},
-		{
-			Name: "scaleDeployment",
-			Test: testScaleDeployment,
-		},
-		{
-			Name: "causeCrashLoop",
-			Test: testCauseCrashLoop,
-		},
-	})
+	e2e.WithDefaultMinikube(t, &extFactory, testCases)
 }
 
 func validateDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
@@ -203,7 +171,7 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 }
 
-func isUsingRoleBinding() bool{
+func isUsingRoleBinding() bool {
 	for _, e := range os.Environ() {
 		pair := strings.Split(e, "=")
 		if pair[0] == "USE_K8S_ROLE_BINDING" {
