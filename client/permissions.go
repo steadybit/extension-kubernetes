@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"github.com/rs/zerolog/log"
+	"github.com/steadybit/extension-kubernetes/extconfig"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -71,7 +72,7 @@ func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
 			sar := authorizationv1.SelfSubjectAccessReview{
 				Spec: authorizationv1.SelfSubjectAccessReviewSpec{
 					ResourceAttributes: &authorizationv1.ResourceAttributes{
-						Namespace:   "",
+						Namespace:   extconfig.Config.Namespace,
 						Verb:        verb,
 						Resource:    p.resource,
 						Subresource: p.subresource,

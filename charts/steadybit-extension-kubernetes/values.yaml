@@ -89,6 +89,19 @@ clusterRoleBinding:
   # clusterRoleBinding.name -- The name of the ClusterRoleBinding to use.
   name: steadybit-extension-kubernetes
 
+# If cluster role creation is prohibited, you can use role instead with a role binding.
+role:
+  # role.create -- Specifies whether a role should be created.
+  create: false
+  # role.name -- The name of the role to use.
+  name: steadybit-extension-kubernetes
+
+roleBinding:
+  # roleBinding.create -- Specifies whether a roleBinding should be created.
+  create: false
+  # roleBinding.name -- The name of the roleBinding to use.
+  name: steadybit-extension-kubernetes
+
 # extra labels to apply to the Kubernetes resources
 extraLabels: {}
 

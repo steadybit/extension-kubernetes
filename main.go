@@ -99,7 +99,7 @@ func main() {
 		action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetPodCountCheckAction(client.K8S))
 	}
 
-	if !extconfig.Config.DiscoveryDisabledNode {
+	if !extconfig.Config.DiscoveryDisabledNode && !extconfig.IsUsingRoleBasedAccessControl(){
 		discovery_kit_sdk.Register(extnode.NewNodeDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extnode.NewNodeCountCheckAction())
 

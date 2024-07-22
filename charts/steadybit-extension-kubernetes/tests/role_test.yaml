@@ -1,0 +1,15 @@
+templates:
+  - role.yaml
+tests:
+  - it: manifest should match snapshot
+    set:
+      role:
+        create: true
+      roleBinding:
+        create: true
+      clusterRole:
+        create: false
+      clusterRoleBinding:
+          create: false
+    asserts:
+      - matchSnapshot: { }

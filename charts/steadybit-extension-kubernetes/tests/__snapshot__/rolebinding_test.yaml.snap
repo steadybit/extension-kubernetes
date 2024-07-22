@@ -1,0 +1,16 @@
+manifest should match snapshot:
+  1: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      labels: null
+      name: steadybit-extension-kubernetes
+      namespace: NAMESPACE
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: Role
+      name: steadybit-extension-kubernetes
+    subjects:
+      - kind: ServiceAccount
+        name: steadybit-extension-kubernetes
+        namespace: NAMESPACE

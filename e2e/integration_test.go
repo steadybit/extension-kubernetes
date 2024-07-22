@@ -18,10 +18,46 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/strings/slices"
+	"os"
 	"strings"
 	"testing"
 	"time"
 )
+
+var testCases = []e2e.WithMinikubeTestCase{
+	{
+		Name: "validate discovery",
+		Test: validateDiscovery,
+	},
+	{
+		Name: "discovery",
+		Test: testDiscovery,
+	},
+	{
+		Name: "checkRolloutReady",
+		Test: testCheckRolloutReady,
+	},
+	{
+		Name: "deletePod",
+		Test: testDeletePod,
+	},
+	{
+		Name: "drainNode",
+		Test: testDrainNode,
+	},
+	{
+		Name: "taintNode",
+		Test: testTaintNode,
+	},
+	{
+		Name: "scaleDeployment",
+		Test: testScaleDeployment,
+	},
+	{
+		Name: "causeCrashLoop",
+		Test: testCauseCrashLoop,
+	},
+}
 
 func TestWithMinikube(t *testing.T) {
 	extFactory := e2e.HelmExtensionFactory{
@@ -36,40 +72,30 @@ func TestWithMinikube(t *testing.T) {
 		},
 	}
 
-	e2e.WithDefaultMinikube(t, &extFactory, []e2e.WithMinikubeTestCase{
-		{
-			Name: "validate discovery",
-			Test: validateDiscovery,
+	e2e.WithDefaultMinikube(t, &extFactory, testCases)
+}
+
+func TestWithMinikubeViaRole(t *testing.T) {
+	extFactory := e2e.HelmExtensionFactory{
+		Name: "extension-kubernetes",
+		Port: 8088,
+		ExtraArgs: func(m *e2e.Minikube) []string {
+			return []string{
+				"--set", "kubernetes.clusterName=e2e-cluster",
+				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
+				"--set", "logging.level=debug",
+				"--set", "role.create=true",
+				"--set", "roleBinding.create=true",
+				"--set", "clusterRole.create=false",
+				"--set", "clusterRoleBinding.create=false",
+				"--namespace", "default",
+			}
 		},
-		{
-			Name: "discovery",
-			Test: testDiscovery,
-		},
-		{
-			Name: "checkRolloutReady",
-			Test: testCheckRolloutReady,
-		},
-		{
-			Name: "deletePod",
-			Test: testDeletePod,
-		},
-		{
-			Name: "drainNode",
-			Test: testDrainNode,
-		},
-		{
-			Name: "taintNode",
-			Test: testTaintNode,
-		},
-		{
-			Name: "scaleDeployment",
-			Test: testScaleDeployment,
-		},
-		{
-			Name: "causeCrashLoop",
-			Test: testCauseCrashLoop,
-		},
-	})
+	}
+	// add env var to use role binding to configure the tests
+	t.Setenv("USE_K8S_ROLE_BINDING", "true")
+
+	e2e.WithDefaultMinikube(t, &extFactory, testCases)
 }
 
 func validateDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
@@ -145,6 +171,16 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 }
 
+func isUsingRoleBinding() bool {
+	for _, e := range os.Environ() {
+		pair := strings.Split(e, "=")
+		if pair[0] == "USE_K8S_ROLE_BINDING" {
+			return pair[1] == "true"
+		}
+	}
+	return false
+}
+
 func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	log.Info().Msg("Starting testDiscovery")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -203,12 +239,14 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 	assert.Equal(t, target.TargetType, extpod.PodTargetType)
 
-	target, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		return true
-	})
-	require.NoError(t, err)
-	assert.Equal(t, target.TargetType, extnode.NodeTargetType)
-	assert.Equal(t, "e2e-docker", target.Attributes["host.hostname"][0])
+	if !isUsingRoleBinding() {
+		target, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+			return true
+		})
+		require.NoError(t, err)
+		assert.Equal(t, target.TargetType, extnode.NodeTargetType)
+		assert.Equal(t, "e2e-docker", target.Attributes["host.hostname"][0])
+	}
 }
 
 func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
@@ -249,6 +287,11 @@ func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 }
 
 func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testDrainNode because it is using role binding, and is therefore not supported")
+		return
+	}
+
 	log.Info().Msg("Starting testDrainNode")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -304,6 +347,10 @@ func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 }
 
 func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testDrainNode because it is using role binding, and is therefore not supported")
+		return
+	}
 	log.Info().Msg("Starting testTaintNode")
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
@@ -395,15 +442,15 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = nginx.Delete() }()
 	assert.Len(t, nginx.Pods, 2)
 
+	var distinctPodNames = make(map[string]string)
 	//Check if node discovery is working and listing 2 pods
-	nodeTarget, err := e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		count := 0
+	nodeTarget, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-scale-") {
-				count++
+				distinctPodNames[pod] = pod
 			}
 		}
-		return count == 2
+		return len(distinctPodNames) == 2
 	})
 	require.NoError(t, err)
 
@@ -425,27 +472,27 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	// pods are upscaled
-	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		count := 0
+	distinctPodNames = make(map[string]string)
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-scale-") {
-				count++
+				distinctPodNames[pod] = pod
 			}
 		}
-		return count == 3
+		return len(distinctPodNames) == 3
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("pods are scaled to 3")
 
 	// pod scale is reverted to 2 after attack
-	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		count := 0
+	distinctPodNames = make(map[string]string)
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-scale-") {
-				count++
+				distinctPodNames[pod] = pod
 			}
 		}
-		return count == 2
+		return len(distinctPodNames) == 2
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("pod replica count is back to 2")
