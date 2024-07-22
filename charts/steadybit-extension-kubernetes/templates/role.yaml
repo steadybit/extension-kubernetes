@@ -73,17 +73,17 @@ rules:
       - pods
     verbs:
       - delete
-  {{/* Required for Drain/Taint Node Attacks */}}
-  - apiGroups: [""]
-    resources:
-      - pods/eviction
-    verbs:
-      - create
-  - apiGroups: [""]
-    resources:
-      - nodes
-    verbs:
-      - patch
+  {{/* Required for Drain/Taint Node Attacks,but this will not working within a namespace only permession set */}}
+{{/*  - apiGroups: [""]*/}}
+{{/*    resources:*/}}
+{{/*      - pods/eviction*/}}
+{{/*    verbs:*/}}
+{{/*      - create*/}}
+{{/*  - apiGroups: [""]*/}}
+{{/*    resources:*/}}
+{{/*      - nodes*/}}
+{{/*    verbs:*/}}
+{{/*      - patch*/}}
   {{/* Required for Crash Loop Pod Attack */}}
   - apiGroups: [""]
     resources:

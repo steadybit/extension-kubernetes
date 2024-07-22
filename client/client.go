@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"github.com/steadybit/extension-kubernetes/extconfig"
 	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -99,21 +100,37 @@ func (c *Client) Permissions() *PermissionCheckResult {
 }
 
 func (c *Client) Pods() []*corev1.Pod {
-	pods, err := c.pod.lister.List(labels.Everything())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching pods")
-		return []*corev1.Pod{}
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		log.Info().Msgf("Fetching pods for namespace %s", extconfig.Config.Namespace)
+		pods, err := c.pod.lister.Pods(extconfig.Config.Namespace).List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching pods")
+			return []*corev1.Pod{}
+		}
+		return c.onlyRunningPods(pods)
+	} else {
+		pods, err := c.pod.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching pods")
+			return []*corev1.Pod{}
+		}
+		return c.onlyRunningPods(pods)
 	}
-	return c.onlyRunningPods(pods)
 }
 
 func (c *Client) Namespaces() []*corev1.Namespace {
-	namespaces, err := c.namespace.lister.List(labels.Everything())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching namespaces")
-		return []*corev1.Namespace{}
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		var namespace *corev1.Namespace
+		namespace.Name = extconfig.Config.Namespace
+		return []*corev1.Namespace{namespace}
+	} else {
+		namespaces, err := c.namespace.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching namespaces")
+			return []*corev1.Namespace{}
+		}
+		return namespaces
 	}
-	return namespaces
 }
 
 func (c *Client) PodByNamespaceAndName(namespace string, name string) *corev1.Pod {
@@ -147,12 +164,22 @@ func (c *Client) onlyRunningPods(list []*corev1.Pod) []*corev1.Pod {
 }
 
 func (c *Client) Deployments() []*appsv1.Deployment {
-	deployments, err := c.deployment.lister.List(labels.Everything())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching deployments")
-		return []*appsv1.Deployment{}
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		log.Info().Msgf("Fetching deployments for namespace %s", extconfig.Config.Namespace)
+		deployments, err := c.deployment.lister.Deployments(extconfig.Config.Namespace).List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching deployments")
+			return []*appsv1.Deployment{}
+		}
+		return deployments
+	} else {
+		deployments, err := c.deployment.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching deployments")
+			return []*appsv1.Deployment{}
+		}
+		return deployments
 	}
-	return deployments
 }
 
 func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *appsv1.Deployment {
@@ -204,12 +231,22 @@ func (c *Client) ServicesMatchingToPodLabels(namespace string, labelSelector map
 }
 
 func (c *Client) DaemonSets() []*appsv1.DaemonSet {
-	daemonSets, err := c.daemonSet.lister.List(labels.Everything())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching DaemonSets")
-		return []*appsv1.DaemonSet{}
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		log.Info().Msgf("Fetching daemonsets for namespace %s", extconfig.Config.Namespace)
+		daemonSets, err := c.daemonSet.lister.DaemonSets(extconfig.Config.Namespace).List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching DaemonSets")
+			return []*appsv1.DaemonSet{}
+		}
+		return daemonSets
+	} else {
+		daemonSets, err := c.daemonSet.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching DaemonSets")
+			return []*appsv1.DaemonSet{}
+		}
+		return daemonSets
 	}
-	return daemonSets
 }
 
 func (c *Client) DaemonSetByNamespaceAndName(namespace string, name string) *appsv1.DaemonSet {
@@ -225,12 +262,22 @@ func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *ap
 }
 
 func (c *Client) StatefulSets() []*appsv1.StatefulSet {
-	statefulSets, err := c.statefulSet.lister.List(labels.Everything())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error while fetching StatefulSets")
-		return []*appsv1.StatefulSet{}
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		log.Info().Msgf("Fetching statefulsets for namespace %s", extconfig.Config.Namespace)
+		statefulSets, err := c.statefulSet.lister.StatefulSets(extconfig.Config.Namespace).List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching StatefulSets")
+			return []*appsv1.StatefulSet{}
+		}
+		return statefulSets
+	} else {
+		statefulSets, err := c.statefulSet.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching StatefulSets")
+			return []*appsv1.StatefulSet{}
+		}
+		return statefulSets
 	}
-	return statefulSets
 }
 
 func (c *Client) StatefulSetByNamespaceAndName(namespace string, name string) *appsv1.StatefulSet {
@@ -253,6 +300,9 @@ func (c *Client) NodesReadyCount() int {
 }
 
 func (c *Client) Nodes() []*corev1.Node {
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		return []*corev1.Node{}
+	}
 	nodes, err := c.node.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching nodes")
@@ -321,7 +371,12 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		client.Distribution = "openshift"
 	}
 
-	factory := informers.NewSharedInformerFactory(clientset, 0)
+	var factory informers.SharedInformerFactory
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		factory = informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(extconfig.Config.Namespace))
+	} else {
+		factory = informers.NewSharedInformerFactory(clientset, 0)
+	}
 	client.resourceEventHandler = cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			client.doNotify(obj)
@@ -369,7 +424,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Fatal().Msg("failed to add pod event handler")
 	}
 
-	if permissions.CanReadNamespaces() {
+	if permissions.CanReadNamespaces() && !extconfig.IsUsingRoleBasedAccessControl(){
 		namespaces := factory.Core().V1().Namespaces()
 		client.namespace.informer = namespaces.Informer()
 		client.namespace.lister = namespaces.Lister()
@@ -415,15 +470,17 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Fatal().Msg("failed to add statefulSet event handler")
 	}
 
-	nodes := factory.Core().V1().Nodes()
-	client.node.informer = nodes.Informer()
-	client.node.lister = nodes.Lister()
-	informerSyncList = append(informerSyncList, client.node.informer.HasSynced)
-	if err := client.node.informer.SetTransform(transformNodes); err != nil {
-		log.Fatal().Err(err).Msg("Failed to add nodes transformer")
-	}
-	if _, err := client.node.informer.AddEventHandler(client.resourceEventHandler); err != nil {
-		log.Fatal().Msg("failed to add node event handler")
+	if !extconfig.IsUsingRoleBasedAccessControl() {
+		nodes := factory.Core().V1().Nodes()
+		client.node.informer = nodes.Informer()
+		client.node.lister = nodes.Lister()
+		informerSyncList = append(informerSyncList, client.node.informer.HasSynced)
+		if err := client.node.informer.SetTransform(transformNodes); err != nil {
+			log.Fatal().Err(err).Msg("Failed to add nodes transformer")
+		}
+		if _, err := client.node.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add node event handler")
+		}
 	}
 
 	if permissions.CanReadHorizontalPodAutoscalers() {

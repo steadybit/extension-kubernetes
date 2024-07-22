@@ -7,10 +7,10 @@ kubernetes:
 
 image:
   # image.name -- The container image to use for the steadybit Kubernetes extension.
-  name: extension-kubernetes
+  name: ghcr.io/steadybit/extension-kubernetes
   # image.tag -- tag name of the extension-kubernetes container image to use. Defaults to appVersion of this chart.
   # See https://hub.docker.com/r/steadybit/extension-kubernetes for all tags.
-  tag: latest
+  tag: null
   # image.pullPolicy -- Specifies when to pull the image container.
   pullPolicy: IfNotPresent
 
@@ -79,26 +79,26 @@ serviceAccount:
 
 clusterRole:
   # clusterRole.create -- Specifies whether a ClusterRole should be created.
-  create: false
+  create: true
   # clusterRole.name -- The name of the ClusterRole to use.
   name: steadybit-extension-kubernetes
 
 clusterRoleBinding:
   # clusterRoleBinding.create -- Specifies whether a ClusterRoleBinding should be created.
-  create: false
+  create: true
   # clusterRoleBinding.name -- The name of the ClusterRoleBinding to use.
   name: steadybit-extension-kubernetes
 
 # If cluster role creation is prohibited, you can use role instead with a role binding.
 role:
   # role.create -- Specifies whether a role should be created.
-  create: true
+  create: false
   # role.name -- The name of the role to use.
   name: steadybit-extension-kubernetes
 
 roleBinding:
   # roleBinding.create -- Specifies whether a roleBinding should be created.
-  create: true
+  create: false
   # roleBinding.name -- The name of the roleBinding to use.
   name: steadybit-extension-kubernetes
 

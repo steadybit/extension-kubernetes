@@ -31,7 +31,7 @@ type Specification struct {
 	DiscoveryAttributesExcludesPod         []string `json:"discoveryAttributesExcludesPod" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesNode        []string `json:"discoveryAttributesExcludesNode" split_words:"true" required:"false"`
 	DiscoveryMaxPodCount                   int      `json:"discoveryMaxPodCount" split_words:"true" required:"false" default:"50"`
-	Namespace                              string   `required:"false" split_words:"true" default:""`
+	Namespace                              string   `json:"namespace" split_words:"true" required:"false" default:""`
 }
 
 var (
@@ -49,4 +49,8 @@ func ValidateConfiguration() {
 	if Config.DisableDiscoveryExcludes {
 		log.Info().Msg("Discovery excludes are disabled. Will also discover workloads labeled with steadybit.com/discovery-disabled=true.")
 	}
+}
+
+func IsUsingRoleBasedAccessControl() bool { //instead of ClusterRole
+	return Config.ClusterName != ""
 }
