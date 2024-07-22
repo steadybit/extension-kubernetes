@@ -1,0 +1,74 @@
+manifest should match snapshot:
+  1: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      labels: null
+      name: steadybit-extension-kubernetes
+      namespace: NAMESPACE
+    rules:
+      - apiGroups:
+          - apps
+        resources:
+          - deployments
+          - replicasets
+          - daemonsets
+          - statefulsets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - services
+          - pods
+          - nodes
+          - events
+          - namespaces
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - autoscaling
+        resources:
+          - horizontalpodautoscalers
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - apps
+        resources:
+          - deployments
+        verbs:
+          - patch
+      - apiGroups:
+          - apps
+        resources:
+          - deployments/scale
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - apps
+        resources:
+          - statefulsets/scale
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - delete
+      - apiGroups:
+          - ""
+        resources:
+          - pods/exec
+        verbs:
+          - create
