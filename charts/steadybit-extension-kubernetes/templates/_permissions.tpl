@@ -51,7 +51,7 @@ permissions for clusterrole or role
       - get
       - update
       - patch
-{{/* Required for Scale StatefulSets Attack */}}
+  {{/* Required for Scale StatefulSets Attack */}}
   - apiGroups:
       - apps
     resources:
@@ -72,4 +72,18 @@ permissions for clusterrole or role
       - pods/exec
     verbs:
       - create
+{{- end -}}
+{{- define "testlala" -}}
+{{/* Required for Discoveries */}}
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - replicasets
+      - daemonsets
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - watch
 {{- end -}}

@@ -9,5 +9,5 @@ metadata:
     {{ $key }}: {{ $value }}
   {{- end }}
 rules:
-  {{- include "defaultPermissions" . | nindent 4 }}
+{{- template "defaultPermissions" . }}
 {{- end }}

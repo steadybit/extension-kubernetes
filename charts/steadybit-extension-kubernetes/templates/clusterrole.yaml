@@ -19,5 +19,5 @@ rules:
       - nodes
     verbs:
       - patch
-  {{- include "defaultPermissions" . | nindent 4 }}
+{{- template "defaultPermissions" . }}
 {{- end }}

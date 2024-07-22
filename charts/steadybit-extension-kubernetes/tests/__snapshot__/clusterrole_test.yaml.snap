@@ -18,68 +18,68 @@ manifest should match snapshot:
           - nodes
         verbs:
           - patch
-          - apiGroups:
-              - apps
-            resources:
-              - deployments
-              - replicasets
-              - daemonsets
-              - statefulsets
-            verbs:
-              - get
-              - list
-              - watch
-          - apiGroups:
-              - ""
-            resources:
-              - services
-              - pods
-              - nodes
-              - events
-              - namespaces
-            verbs:
-              - get
-              - list
-              - watch
-          - apiGroups:
-              - autoscaling
-            resources:
-              - horizontalpodautoscalers
-            verbs:
-              - get
-              - list
-              - watch
-          - apiGroups:
-              - apps
-            resources:
-              - deployments
-            verbs:
-              - patch
-          - apiGroups:
-              - apps
-            resources:
-              - deployments/scale
-            verbs:
-              - get
-              - update
-              - patch
-          - apiGroups:
-              - apps
-            resources:
-              - statefulsets/scale
-            verbs:
-              - get
-              - update
-              - patch
-          - apiGroups:
-              - ""
-            resources:
-              - pods
-            verbs:
-              - delete
-          - apiGroups:
-              - ""
-            resources:
-              - pods/exec
-            verbs:
-              - create
+      - apiGroups:
+          - apps
+        resources:
+          - deployments
+          - replicasets
+          - daemonsets
+          - statefulsets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - services
+          - pods
+          - nodes
+          - events
+          - namespaces
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - autoscaling
+        resources:
+          - horizontalpodautoscalers
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - apps
+        resources:
+          - deployments
+        verbs:
+          - patch
+      - apiGroups:
+          - apps
+        resources:
+          - deployments/scale
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - apps
+        resources:
+          - statefulsets/scale
+        verbs:
+          - get
+          - update
+          - patch
+      - apiGroups:
+          - ""
+        resources:
+          - pods
+        verbs:
+          - delete
+      - apiGroups:
+          - ""
+        resources:
+          - pods/exec
+        verbs:
+          - create
