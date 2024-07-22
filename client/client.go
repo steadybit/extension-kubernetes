@@ -120,7 +120,7 @@ func (c *Client) Pods() []*corev1.Pod {
 
 func (c *Client) Namespaces() []*corev1.Namespace {
 	if extconfig.IsUsingRoleBasedAccessControl() {
-		var namespace *corev1.Namespace
+		var namespace = &corev1.Namespace{}
 		namespace.Name = extconfig.Config.Namespace
 		return []*corev1.Namespace{namespace}
 	} else {
