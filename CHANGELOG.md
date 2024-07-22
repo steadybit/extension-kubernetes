@@ -1,5 +1,25 @@
 # Changelog
 
+## v2.5.15
+
+- Be able to install the extension with a role instead of a service account to be able to work only in one namespace
+  Example installation:
+	```bash
+	helm upgrade steadybit-agent --install --namespace <replace-me-with-namespace> \
+  --create-namespace \
+  --set agent.key="<replace-me>" \
+  --set global.clusterName="<replace-me>" \
+  --set extension-container.container.runtime="<replace-me>" \
+  --set agent.registerUrl="<replace-me>"\
+  --set rbac.roleKind="role" \
+  --set agent.extensions.autodiscovery.namespace="<replace-me-with-namespace>" \
+  --set extension-kubernetes.role.create=true \
+  --set extension-kubernetes.roleBinding.create=true \
+  --set extension-kubernetes.clusterRole.create=false \
+  --set extension-kubernetes.clusterRoleBinding.create=false \
+  steadybit/steadybit-agent
+  ```
+
 ## v2.5.14
 
 - Update dependencies
