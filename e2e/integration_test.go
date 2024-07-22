@@ -482,7 +482,7 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				distinctPodNames[pod] = pod
 			}
 		}
-		return distinctPodNames != nil && len(distinctPodNames) == 2
+		return len(distinctPodNames) == 2
 	})
 	require.NoError(t, err)
 
@@ -511,7 +511,7 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				distinctPodNames[pod] = pod
 			}
 		}
-		return distinctPodNames != nil && len(distinctPodNames) == 3
+		return len(distinctPodNames) == 3
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("pods are scaled to 3")
@@ -524,7 +524,7 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				distinctPodNames[pod] = pod
 			}
 		}
-		return distinctPodNames != nil && len(distinctPodNames) == 2
+		return len(distinctPodNames) == 2
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("pod replica count is back to 2")
