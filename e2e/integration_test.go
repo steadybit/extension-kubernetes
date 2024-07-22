@@ -319,6 +319,11 @@ func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 }
 
 func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testDrainNode because it is using role binding, and is therefore not supported")
+		return
+	}
+
 	log.Info().Msg("Starting testDrainNode")
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -374,6 +379,10 @@ func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 }
 
 func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testDrainNode because it is using role binding, and is therefore not supported")
+		return
+	}
 	log.Info().Msg("Starting testTaintNode")
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
@@ -465,15 +474,15 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = nginx.Delete() }()
 	assert.Len(t, nginx.Pods, 2)
 
+	var distinctPodNames = make(map[string]string)
 	//Check if node discovery is working and listing 2 pods
-	nodeTarget, err := e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		count := 0
+	nodeTarget, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-scale-") {
-				count++
+				distinctPodNames[pod] = pod
 			}
 		}
-		return count == 2
+		return distinctPodNames != nil && len(distinctPodNames) == 2
 	})
 	require.NoError(t, err)
 
@@ -495,27 +504,27 @@ func testScaleDeployment(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	// pods are upscaled
-	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		count := 0
+	distinctPodNames = make(map[string]string)
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-scale-") {
-				count++
+				distinctPodNames[pod] = pod
 			}
 		}
-		return count == 3
+		return distinctPodNames != nil && len(distinctPodNames) == 3
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("pods are scaled to 3")
 
 	// pod scale is reverted to 2 after attack
-	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		count := 0
+	distinctPodNames = make(map[string]string)
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-scale-") {
-				count++
+				distinctPodNames[pod] = pod
 			}
 		}
-		return count == 2
+		return distinctPodNames != nil && len(distinctPodNames) == 2
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("pod replica count is back to 2")
