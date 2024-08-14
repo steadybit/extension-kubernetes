@@ -192,7 +192,7 @@ func addProbesScores(scores []scorecard.TestScore, attributes map[string][]strin
 				return
 			}
 		}
-		if (check.Comments == nil || len(check.Comments) == 0) && check.Grade == scorecard.GradeAllOK {
+		if (len(check.Comments) == 0) && check.Grade == scorecard.GradeAllOK {
 			attributes["k8s.specification.probes.summary"] = []string{"OK"}
 		}
 	}
