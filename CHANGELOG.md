@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.16
+
+- Increased timeout in the experiment for the single zone advice to detect a pod as being down within 45 seconds instead of just 30 seconds
+
 ## v2.5.15
 
 - Be able to install the extension with a role instead of a service account to be able to work only in one namespace

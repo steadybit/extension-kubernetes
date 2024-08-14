@@ -189,7 +189,7 @@
           "type": "action",
           "ignoreFailure": false,
           "parameters": {
-            "duration": "30s",
+            "duration": "45s",
             "podCountCheckMode": "podCountLessThanDesiredCount"
           },
           "customLabel": "THEN: Pods are detected as down",
