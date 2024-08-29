@@ -59,5 +59,12 @@ func (a *attributeDescriber) DescribeAttributes() []discovery_kit_api.AttributeD
 				Other: "DaemonSet names",
 			},
 		},
+		{
+			Attribute: "k8s.pod.name",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Pod name",
+				Other: "Pod names",
+			},
+		},
 	}
 }
