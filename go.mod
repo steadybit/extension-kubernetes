@@ -10,7 +10,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.33.0
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.2
-	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.9
+	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.10
 	github.com/steadybit/action-kit/go/action_kit_test v1.2.15
 	github.com/steadybit/advice-kit/go/advice_kit_api v1.0.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.6.0
@@ -37,8 +37,8 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/elastic/go-sysinfo v1.14.0 // indirect
-	github.com/elastic/go-windows v1.0.1 // indirect
+	github.com/elastic/go-sysinfo v1.14.1 // indirect
+	github.com/elastic/go-windows v1.0.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/getkin/kin-openapi v0.127.0 // indirect
