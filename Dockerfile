@@ -19,7 +19,7 @@ COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
-RUN wget -P /usr/bin "https://storage.googleapis.com/kubernetes-release/release/$(wget -O - https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl" && chmod a+x /usr/bin/kubectl
+RUN wget -P /usr/bin "https://dl.k8s.io/release/$(wget -O - https://dl.k8s.io/release/stable.txt)/bin/linux/${TARGETARCH}/kubectl" && chmod a+x /usr/bin/kubectl
 
 COPY . .
 
