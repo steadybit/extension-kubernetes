@@ -20,7 +20,7 @@ require (
 	github.com/steadybit/extension-kit v1.8.15
 	github.com/stretchr/testify v1.9.0
 	github.com/zegl/kube-score v1.18.1-0.20240306092229-810be6515e6a
-	go.uber.org/automaxprocs v1.5.3
+	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/text v0.18.0
 	k8s.io/api v0.31.0
