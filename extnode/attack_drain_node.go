@@ -65,7 +65,7 @@ func drainNode() extcommon.KubectlOptsProvider {
 			"kubectl",
 			"drain",
 			nodeName,
-			"--pod-selector=steadybit.com/extension!=true,steadybit.com/outpost!=true,steadybit.com/agent!=true",
+			"--pod-selector=steadybit.com/extension!=true,steadybit.com/agent!=true",
 			"--delete-emptydir-data",
 			"--ignore-daemonsets",
 			"--force"}
