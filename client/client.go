@@ -373,9 +373,9 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 
 	var factory informers.SharedInformerFactory
 	if extconfig.IsUsingRoleBasedAccessControl() {
-		factory = informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(extconfig.Config.Namespace))
+		factory = informers.NewSharedInformerFactoryWithOptions(clientset, time.Minute*15, informers.WithNamespace(extconfig.Config.Namespace))
 	} else {
-		factory = informers.NewSharedInformerFactory(clientset, 0)
+		factory = informers.NewSharedInformerFactory(clientset, time.Minute*15)
 	}
 	client.resourceEventHandler = cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -424,7 +424,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Fatal().Msg("failed to add pod event handler")
 	}
 
-	if permissions.CanReadNamespaces() && !extconfig.IsUsingRoleBasedAccessControl(){
+	if permissions.CanReadNamespaces() && !extconfig.IsUsingRoleBasedAccessControl() {
 		namespaces := factory.Core().V1().Namespaces()
 		client.namespace.informer = namespaces.Informer()
 		client.namespace.lister = namespaces.Lister()
