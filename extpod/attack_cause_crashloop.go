@@ -83,7 +83,7 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 		Prepare: action_kit_api.MutatingEndpointReference{},
 		Start:   action_kit_api.MutatingEndpointReference{},
 		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("2s"), //Containers are killed in the status endpoint
+			CallInterval: extutil.Ptr("4s"), //Containers are killed in the status endpoint
 		}),
 	}
 }
