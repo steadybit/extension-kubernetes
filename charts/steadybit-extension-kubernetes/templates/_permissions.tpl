@@ -73,17 +73,3 @@ permissions for clusterrole or role
     verbs:
       - create
 {{- end -}}
-{{- define "testlala" -}}
-{{/* Required for Discoveries */}}
-  - apiGroups:
-      - apps
-    resources:
-      - deployments
-      - replicasets
-      - daemonsets
-      - statefulsets
-    verbs:
-      - get
-      - list
-      - watch
-{{- end -}}
