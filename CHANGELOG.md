@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.17
+
+- Update dependencies
+
 ## v2.5.16
 
 - Increased timeout in the experiment for the single zone advice to detect a pod as being down within 45 seconds instead of just 30 seconds
