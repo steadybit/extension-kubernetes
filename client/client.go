@@ -424,7 +424,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Fatal().Msg("failed to add pod event handler")
 	}
 
-	if permissions.CanReadNamespaces() && !extconfig.IsUsingRoleBasedAccessControl(){
+	if permissions.CanReadNamespaces() && !extconfig.IsUsingRoleBasedAccessControl() {
 		namespaces := factory.Core().V1().Namespaces()
 		client.namespace.informer = namespaces.Informer()
 		client.namespace.lister = namespaces.Lister()

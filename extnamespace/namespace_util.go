@@ -7,7 +7,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-func AddNamespaceLabels(k8s *client.Client, namespace string, attributes map[string][]string) map[string][]string{
+func AddNamespaceLabels(k8s *client.Client, namespace string, attributes map[string][]string) map[string][]string {
 	if k8s.Permissions().CanReadNamespaces() {
 		namespaces := k8s.Namespaces()
 		for _, ns := range namespaces {
