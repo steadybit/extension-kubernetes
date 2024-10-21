@@ -1,8 +1,8 @@
 apiVersion: v2
 name: steadybit-extension-kubernetes
 description: Steadybit Kubernetes extension Helm chart for Kubernetes.
-version: 1.5.21
-appVersion: v2.5.17
+version: 1.5.22
+appVersion: v2.5.18
 home: https://www.steadybit.com/
 icon: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
 maintainers:
