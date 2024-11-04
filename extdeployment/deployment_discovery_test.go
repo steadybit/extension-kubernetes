@@ -279,27 +279,39 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 		},
 		{
-			name: "should report single replica",
+			name: "should report deployment redundancy false",
 			pods: []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Replicas = extutil.Ptr(int32(1))
 			}),
 			service: testService(nil),
 			expectedAttributes: map[string][]string{
-				"k8s.specification.has-multiple-replica": {"false"},
+				"k8s.specification.is-redundant": {"false"},
 			},
 		},
 		{
-			name:       "should report multiple replicas",
+			name:       "should report deployment redundancy true",
 			pods:       []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			expectedAttributes: map[string][]string{
-				"k8s.specification.has-multiple-replica": {"true"},
+				"k8s.specification.is-redundant": {"true"},
 			},
 		},
 		{
-			name:       "should report single replica if targeted by hpa with min replicas = 1",
+			name:       "should report deployment redundancy true and consider config",
+			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			service:    testService(nil),
+			configModifier: func(specification *extconfig.Specification) {
+				specification.AdviceSingleReplicaMinReplicas = 4
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.is-redundant": {"false"},
+			},
+		},
+		{
+			name:       "should report hpa redundancy false",
 			pods:       []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
@@ -307,24 +319,37 @@ func Test_deploymentDiscovery(t *testing.T) {
 				hpa.Spec.MinReplicas = extutil.Ptr(int32(1))
 			}),
 			expectedAttributes: map[string][]string{
-				"k8s.specification.has-multiple-replica": {"false"},
+				"k8s.specification.is-redundant": {"false"},
 			},
 		},
 		{
-			name:       "should report multiple replicas if targeted by hpa with min replicas > 1",
+			name:       "should report hpa redundancy true",
 			pods:       []*v1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			hpa:        testHPA(nil),
 			expectedAttributes: map[string][]string{
-				"k8s.specification.has-multiple-replica": {"true"},
+				"k8s.specification.is-redundant": {"true"},
+			},
+		},
+		{
+			name:       "should report hpa redundancy true and consider config",
+			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			service:    testService(nil),
+			hpa:        testHPA(nil),
+			configModifier: func(specification *extconfig.Specification) {
+				specification.AdviceSingleReplicaMinReplicas = 4
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.is-redundant": {"false"},
 			},
 		},
 		{
 			name:                      "should not report multiple replicas if no service is defined",
 			pods:                      []*v1.Pod{testPod("aaaaa", nil)},
 			deployment:                testDeployment(nil),
-			expectedAttributesAbsence: []string{"k8s.specification.has-multiple-replica"},
+			expectedAttributesAbsence: []string{"k8s.specification.is-redundant"},
 		},
 	}
 	for _, tt := range tests {
@@ -336,6 +361,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
 			extconfig.Config.DiscoveryMaxPodCount = 50
+			extconfig.Config.AdviceSingleReplicaMinReplicas = 2
 			if tt.configModifier != nil {
 				tt.configModifier(&extconfig.Config)
 			}

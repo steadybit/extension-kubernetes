@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/rs/zerolog/log"
+	"github.com/steadybit/extension-kubernetes/extconfig"
 	"github.com/zegl/kube-score/config"
 	ks "github.com/zegl/kube-score/domain"
 	"github.com/zegl/kube-score/parser"
@@ -15,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/utils/ptr"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -64,10 +66,22 @@ func GetKubeScoreForDeployment(deployment *appsv1.Deployment, services []*corev1
 	addContainerBasedScore(scores, attributes, "container-image-pull-policy", "k8s.container.image.without-image-pull-policy-always")
 	addSimpleScore(scores, attributes, "deployment-has-host-podantiaffinity", "k8s.specification.has-host-podantiaffinity")
 	addSimpleScore(scores, attributes, "deployment-strategy", "k8s.specification.has-rolling-update-strategy")
-	addSimpleScore(scores, attributes, "deployment-replicas", "k8s.specification.has-multiple-replica")
-	_, ok := attributes["k8s.specification.has-multiple-replica"]
-	if !ok {
-		addSimpleScore(scores, attributes, "horizontalpodautoscaler-replicas", "k8s.specification.has-multiple-replica")
+	addSimpleScore(scores, attributes, "deployment-replicas", "k8s.specification.is-redundant")
+	isDeploymentRedundant, hasDeplyomentScore := attributes["k8s.specification.is-redundant"]
+	if hasDeplyomentScore {
+		// if kube-score considers the deployment redundant, we temporarily check with our configurable threshold
+		if isDeploymentRedundant[0] == "true" {
+			if !(ptr.Deref(deployment.Spec.Replicas, 1) >= int32(extconfig.Config.AdviceSingleReplicaMinReplicas)) {
+				attributes["k8s.specification.is-redundant"] = []string{"false"}
+			}
+		}
+	} else {
+		addSimpleScore(scores, attributes, "horizontalpodautoscaler-replicas", "k8s.specification.is-redundant")
+		isHpaRedundant, hasHpaScore := attributes["k8s.specification.is-redundant"]
+		// if kube-score considers the hpa redundant, we temporarily check with our configurable threshold
+		if hasHpaScore && isHpaRedundant[0] == "true" && hpa != nil && !(ptr.Deref(hpa.Spec.MinReplicas, 1) >= int32(extconfig.Config.AdviceSingleReplicaMinReplicas)) {
+			attributes["k8s.specification.is-redundant"] = []string{"false"}
+		}
 	}
 
 	return attributes

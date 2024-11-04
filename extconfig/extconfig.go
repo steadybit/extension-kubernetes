@@ -15,6 +15,7 @@ type Specification struct {
 	ClusterName                            string   `required:"true" split_words:"true"`
 	LabelFilter                            []string `required:"false" split_words:"true" default:"controller-revision-hash,pod-template-generation,pod-template-hash"`
 	ActiveAdviceList                       []string `required:"false" split_words:"true" default:"*"`
+	AdviceSingleReplicaMinReplicas         int      `json:"adviceSingleReplicaMinReplicas" split_words:"true" required:"false" default:"2"`
 	DisableDiscoveryExcludes               bool     `required:"false" split_words:"true" default:"false"`
 	LogKubernetesHttpRequests              bool     `required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledContainer             bool     `json:"discoveryDisabledContainer" required:"false" split_words:"true" default:"false"`
