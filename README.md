@@ -25,6 +25,7 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 
+## Permissions
 The process requires access rights to interact with the Kubernetes API.
 
 Please have a look at [/charts/steadybit-extension-kubernetes/templates/clusterrole.yaml](/charts/steadybit-extension-kubernetes/templates/clusterrole.yaml) for a recent list of required permission
