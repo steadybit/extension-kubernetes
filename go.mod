@@ -19,7 +19,7 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.2.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.1
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2
-	github.com/steadybit/extension-kit v1.8.19
+	github.com/steadybit/extension-kit v1.8.21
 	github.com/stretchr/testify v1.9.0
 	github.com/zegl/kube-score v1.18.1-0.20240306092229-810be6515e6a
 	go.uber.org/automaxprocs v1.6.0
@@ -39,7 +39,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/elastic/go-sysinfo v1.14.2 // indirect
+	github.com/elastic/go-sysinfo v1.15.0 // indirect
 	github.com/elastic/go-windows v1.0.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect

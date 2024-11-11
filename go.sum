@@ -18,8 +18,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
-github.com/elastic/go-sysinfo v1.14.2 h1:DeIy+pVfdRsd08Nx2Xjh+dUS+jrEEI7LGc29U/BKVWo=
-github.com/elastic/go-sysinfo v1.14.2/go.mod h1:jPSuTgXG+dhhh0GKIyI2Cso+w5lPJ5PvVqKlL8LV/Hk=
+github.com/elastic/go-sysinfo v1.15.0 h1:54pRFlAYUlVNQ2HbXzLVZlV+fxS7Eax49stzg95M4Xw=
+github.com/elastic/go-sysinfo v1.15.0/go.mod h1:jPSuTgXG+dhhh0GKIyI2Cso+w5lPJ5PvVqKlL8LV/Hk=
 github.com/elastic/go-windows v1.0.2 h1:yoLLsAsV5cfg9FLhZ9EXZ2n2sQFKeDYrHenkcivY4vI=
 github.com/elastic/go-windows v1.0.2/go.mod h1:bGcDpBzXgYSqM0Gx3DM4+UxFj300SZLixie9u9ixLM8=
 github.com/emicklei/go-restful/v3 v3.12.1 h1:PJMDIM/ak7btuL8Ex0iYET9hxM3CI2sjZtzpL63nKAU=
@@ -175,8 +175,8 @@ github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.1 h1:M2OX0sMGE+CnSB
 github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.1/go.mod h1:dEJgg7BcW0E8pGMjpqtDU7m0lN6d38ievgFEUG39cxE=
 github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2 h1:IrTUwb69FDwOt/8OvY1Lvhv+qGNmy+Eu53HEjmsj0TA=
 github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2/go.mod h1:tr4oRjpqr2WOKwO4auJR+/m+YKA2EAUuvvpbz1faUxw=
-github.com/steadybit/extension-kit v1.8.19 h1:D+H8sV8zsHYl1NtxCxBl+hiUT8ndWmIZ35Td9RnlmS8=
-github.com/steadybit/extension-kit v1.8.19/go.mod h1:fPu9AA1yA92VTZCOT+JE5EEAiTFgnb8Sfut5sKloeo0=
+github.com/steadybit/extension-kit v1.8.21 h1:/VLrfI8lYKr6rM76PE15jhou51td8FAzkyP5zKnyjjg=
+github.com/steadybit/extension-kit v1.8.21/go.mod h1:Ym+tCgtMCcTw7iv/aPwB64E4/2WT8gsfYUIyb3kx+9g=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
