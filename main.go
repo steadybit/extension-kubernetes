@@ -141,7 +141,7 @@ func main() {
 	exthttp.RegisterHttpHandler("/advice/single-azure-zone", exthttp.GetterAsHandler(single_azure_zone.GetAdviceDescriptionSingleAzureZone))
 	exthttp.RegisterHttpHandler("/advice/single-gcp-zone", exthttp.GetterAsHandler(single_gcp_zone.GetAdviceDescriptionSingleGcpZone))
 
-	action_kit_sdk.InstallSignalHandler()
+	extsignals.ActivateSignalHandlers()
 	action_kit_sdk.RegisterCoverageEndpoints()
 
 	exthealth.SetReady(true)
