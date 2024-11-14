@@ -38,6 +38,7 @@ func GetPodBasedAttributes(ownerType string, owner metav1.ObjectMeta, pods []*v1
 			for _, fqdn := range fqdns {
 				hostFQDNs[fqdn] = true
 			}
+			AddNodeLabels(nodes, pod.Spec.NodeName, attributes)
 		}
 		attributes["k8s.pod.name"] = podNames
 		if len(containerIds) > 0 {

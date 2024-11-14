@@ -106,6 +106,7 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 			}
 		}
 		extnamespace.AddNamespaceLabels(p.k8s, pod.Namespace, attributes)
+		extcommon.AddNodeLabels(p.k8s.Nodes(), pod.Spec.NodeName, attributes)
 
 		var containerIds []string
 		var containerIdsWithoutPrefix []string

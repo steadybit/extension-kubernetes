@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.5.19 (next release)
+
+- Avoid unnecessary enrichment rules for node labels, improving performance
+
 ## v2.5.18
 
 - Update dependencies (go 1.23)

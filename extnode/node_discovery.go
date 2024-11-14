@@ -14,11 +14,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
-	"github.com/steadybit/extension-kubernetes/extdaemonset"
-	"github.com/steadybit/extension-kubernetes/extdeployment"
 	"github.com/steadybit/extension-kubernetes/extnamespace"
-	"github.com/steadybit/extension-kubernetes/extpod"
-	"github.com/steadybit/extension-kubernetes/extstatefulset"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	"reflect"
@@ -78,11 +74,6 @@ func (*nodeDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 func (d *nodeDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {
 	return []discovery_kit_api.TargetEnrichmentRule{
 		getNodeToHostEnrichmentRule(),
-		getNodeToXEnrichmentRule("com.steadybit.extension_container.container"),
-		getNodeToXEnrichmentRule(extdeployment.DeploymentTargetType),
-		getNodeToXEnrichmentRule(extstatefulset.StatefulSetTargetType),
-		getNodeToXEnrichmentRule(extdaemonset.DaemonSetTargetType),
-		getNodeToXEnrichmentRule(extpod.PodTargetType),
 	}
 }
 
@@ -139,47 +130,6 @@ func getNodeToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 			{
 				Matcher: discovery_kit_api.StartsWith,
 				Name:    "k8s.label.",
-			},
-		},
-	}
-}
-func getNodeToXEnrichmentRule(destTargetType string) discovery_kit_api.TargetEnrichmentRule {
-	return discovery_kit_api.TargetEnrichmentRule{
-		Id:      "com.steadybit.extension_kubernetes.kubernetes-node-to-" + destTargetType,
-		Version: extbuild.GetSemverVersionStringOrUnknown(),
-
-		Src: discovery_kit_api.SourceOrDestination{
-			Type: NodeTargetType,
-			Selector: map[string]string{
-				"k8s.node.name": "${dest.host.hostname}",
-			},
-		},
-		Dest: discovery_kit_api.SourceOrDestination{
-			Type: destTargetType,
-			Selector: map[string]string{
-				"host.hostname": "${src.k8s.node.name}",
-			},
-		},
-		Attributes: []discovery_kit_api.Attribute{
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.topology.kubernetes.io/region",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.topology.kubernetes.io/zone",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.kubernetes.io/arch",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.kubernetes.io/os",
-			},
-			{
-				Matcher: discovery_kit_api.Equals,
-				Name:    "k8s.label.node.kubernetes.io/instance-type",
 			},
 		},
 	}

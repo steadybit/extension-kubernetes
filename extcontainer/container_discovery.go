@@ -185,6 +185,7 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 				}
 			}
 			extnamespace.AddNamespaceLabels(c.k8s, pod.Namespace, attributes)
+			extcommon.AddNodeLabels(c.k8s.Nodes(), pod.Spec.NodeName, attributes)
 
 			if len(services) > 0 {
 				var serviceNames = make([]string, 0, len(services))
