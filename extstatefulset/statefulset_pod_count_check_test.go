@@ -21,7 +21,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
 			"duration":          1000 * 10,
-			"podCountCheckMode": "podCountEqualsDesiredCount",
+			"podCountCheckMode": extcommon.PodCountEqualsDesiredCount,
 		},
 		Target: extutil.Ptr(action_kit_api.Target{
 			Attributes: map[string][]string{
@@ -71,7 +71,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, result)
 	require.True(t, state.Timeout.After(time.Now()))
-	require.Equal(t, "podCountEqualsDesiredCount", state.PodCountCheckMode)
+	require.Equal(t, extcommon.PodCountEqualsDesiredCount, state.PodCountCheckMode)
 	require.Equal(t, "shop", state.Namespace)
 	require.Equal(t, "xyz", state.Target)
 	require.Equal(t, 3, state.InitialCount)
@@ -81,7 +81,7 @@ func TestStatusCheckStatefulSetNotFound(t *testing.T) {
 	// Given
 	state := extcommon.PodCountCheckState{
 		Timeout:           time.Now().Add(time.Minute * 1),
-		PodCountCheckMode: "podCountMin1",
+		PodCountCheckMode: extcommon.PodCountMin1,
 		Namespace:         "shop",
 		Target:            "xyz",
 	}

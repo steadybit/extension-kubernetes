@@ -15,7 +15,7 @@ import (
 
 func Test_statusPodCountCheckInternal(t *testing.T) {
 	type preparedState struct {
-		podCountCheckMode checkMode
+		podCountCheckMode CheckMode
 		initialCount      int
 	}
 	tests := []struct {
@@ -28,7 +28,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountMin1Success",
 			preparedState: preparedState{
-				podCountCheckMode: podCountMin1,
+				podCountCheckMode: PodCountMin1,
 			},
 			readyCount:         1,
 			wantedErrorMessage: nil,
@@ -36,7 +36,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountMin1Failure",
 			preparedState: preparedState{
-				podCountCheckMode: podCountMin1,
+				podCountCheckMode: PodCountMin1,
 			},
 			readyCount:         0,
 			wantedErrorMessage: extutil.Ptr("checkout has no ready pods."),
@@ -44,7 +44,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountEqualsDesiredCountSuccess",
 			preparedState: preparedState{
-				podCountCheckMode: podCountEqualsDesiredCount,
+				podCountCheckMode: PodCountEqualsDesiredCount,
 			},
 			readyCount:         2,
 			desiredCount:       2,
@@ -53,7 +53,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountEqualsDesiredCountFailure",
 			preparedState: preparedState{
-				podCountCheckMode: podCountEqualsDesiredCount,
+				podCountCheckMode: PodCountEqualsDesiredCount,
 			},
 			readyCount:         1,
 			desiredCount:       2,
@@ -62,7 +62,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountGreaterEqualsDesiredCountSuccess",
 			preparedState: preparedState{
-				podCountCheckMode: podCountGreaterEqualsDesiredCount,
+				podCountCheckMode: PodCountGreaterEqualsDesiredCount,
 			},
 			readyCount:         3,
 			desiredCount:       2,
@@ -71,7 +71,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountGreaterEqualsDesiredCountFailure",
 			preparedState: preparedState{
-				podCountCheckMode: podCountGreaterEqualsDesiredCount,
+				podCountCheckMode: PodCountGreaterEqualsDesiredCount,
 			},
 			readyCount:         1,
 			desiredCount:       2,
@@ -80,7 +80,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountLessThanDesiredCountSuccess",
 			preparedState: preparedState{
-				podCountCheckMode: podCountLessThanDesiredCount,
+				podCountCheckMode: PodCountLessThanDesiredCount,
 			},
 			readyCount:         1,
 			desiredCount:       2,
@@ -89,7 +89,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountLessThanDesiredCountFailure",
 			preparedState: preparedState{
-				podCountCheckMode: podCountLessThanDesiredCount,
+				podCountCheckMode: PodCountLessThanDesiredCount,
 			},
 			readyCount:         2,
 			desiredCount:       2,
@@ -98,7 +98,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountIncreasedSuccess",
 			preparedState: preparedState{
-				podCountCheckMode: podCountIncreased,
+				podCountCheckMode: PodCountIncreased,
 				initialCount:      1,
 			},
 			readyCount:         2,
@@ -107,7 +107,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountIncreasedFailure",
 			preparedState: preparedState{
-				podCountCheckMode: podCountIncreased,
+				podCountCheckMode: PodCountIncreased,
 				initialCount:      2,
 			},
 			readyCount:         2,
@@ -116,7 +116,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountDecreasedSuccess",
 			preparedState: preparedState{
-				podCountCheckMode: podCountDecreased,
+				podCountCheckMode: PodCountDecreased,
 				initialCount:      2,
 			},
 			readyCount:         1,
@@ -125,7 +125,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 		{
 			name: "podCountDecreasedFailure",
 			preparedState: preparedState{
-				podCountCheckMode: podCountDecreased,
+				podCountCheckMode: PodCountDecreased,
 				initialCount:      2,
 			},
 			readyCount:         2,
