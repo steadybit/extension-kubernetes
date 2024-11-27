@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2024 Steadybit GmbH
+
 package extcommon
 
 import (
@@ -12,7 +15,7 @@ import (
 
 func Test_statusPodCountCheckInternal(t *testing.T) {
 	type preparedState struct {
-		podCountCheckMode string
+		podCountCheckMode checkMode
 		initialCount      int
 	}
 	tests := []struct {
@@ -54,7 +57,25 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			},
 			readyCount:         1,
 			desiredCount:       2,
-			wantedErrorMessage: extutil.Ptr("checkout has only 1 of desired 2 pods ready."),
+			wantedErrorMessage: extutil.Ptr("checkout has 1 of desired 2 pods ready."),
+		},
+		{
+			name: "podCountGreaterEqualsDesiredCountSuccess",
+			preparedState: preparedState{
+				podCountCheckMode: podCountGreaterEqualsDesiredCount,
+			},
+			readyCount:         3,
+			desiredCount:       2,
+			wantedErrorMessage: nil,
+		},
+		{
+			name: "podCountGreaterEqualsDesiredCountFailure",
+			preparedState: preparedState{
+				podCountCheckMode: podCountGreaterEqualsDesiredCount,
+			},
+			readyCount:         1,
+			desiredCount:       2,
+			wantedErrorMessage: extutil.Ptr("checkout has 1 of desired 2 pods ready."),
 		},
 		{
 			name: "podCountLessThanDesiredCountSuccess",

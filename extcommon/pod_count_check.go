@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2022 Steadybit GmbH
+// SPDX-FileCopyrightText: 2024 Steadybit GmbH
 
 package extcommon
 
@@ -17,11 +17,12 @@ import (
 )
 
 const (
-	podCountMin1                 = "podCountMin1"
-	podCountEqualsDesiredCount   = "podCountEqualsDesiredCount"
-	podCountLessThanDesiredCount = "podCountLessThanDesiredCount"
-	podCountDecreased            = "podCountDecreased"
-	podCountIncreased            = "podCountIncreased"
+	podCountMin1                      checkMode = "podCountMin1"
+	podCountEqualsDesiredCount        checkMode = "podCountEqualsDesiredCount"
+	podCountGreaterEqualsDesiredCount checkMode = "podCountGreaterEqualsDesiredCount"
+	podCountLessThanDesiredCount      checkMode = "podCountLessThanDesiredCount"
+	podCountDecreased                 checkMode = "podCountDecreased"
+	podCountIncreased                 checkMode = "podCountIncreased"
 )
 
 type PodCountCheckAction struct {
@@ -34,16 +35,18 @@ type PodCountCheckAction struct {
 	GetDesiredAndCurrentPodCount func(k8s *client.Client, namespace string, target string) (*int32, int32, error)
 }
 
+type checkMode string
+
 type PodCountCheckState struct {
 	Timeout           time.Time
-	PodCountCheckMode string
+	PodCountCheckMode checkMode
 	Namespace         string
 	Target            string
 	InitialCount      int
 }
 type PodCountCheckConfig struct {
 	Duration          int
-	PodCountCheckMode string
+	PodCountCheckMode checkMode
 }
 
 var _ action_kit_sdk.Action[PodCountCheckState] = (*PodCountCheckAction)(nil)
@@ -90,23 +93,27 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "ready count > 0",
-						Value: podCountMin1,
+						Value: string(podCountMin1),
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "ready count = desired count",
-						Value: podCountEqualsDesiredCount,
+						Value: string(podCountEqualsDesiredCount),
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "ready count >= desired count",
+						Value: string(podCountGreaterEqualsDesiredCount),
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "ready count < desired count",
-						Value: podCountLessThanDesiredCount,
+						Value: string(podCountLessThanDesiredCount),
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "actual count increases",
-						Value: podCountIncreased,
+						Value: string(podCountIncreased),
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "actual count decreases",
-						Value: podCountDecreased,
+						Value: string(podCountDecreased),
 					},
 				}),
 			},
@@ -131,7 +138,7 @@ func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckStat
 	if err != nil {
 		return nil, err
 	}
-	if desired == nil && (config.PodCountCheckMode == podCountEqualsDesiredCount || config.PodCountCheckMode == podCountLessThanDesiredCount) {
+	if desired == nil && (config.PodCountCheckMode == podCountEqualsDesiredCount || config.PodCountCheckMode == podCountGreaterEqualsDesiredCount || config.PodCountCheckMode == podCountLessThanDesiredCount) {
 		return nil, extension_kit.ToError(fmt.Sprintf("%s/%s has no desired count", namespace, target), nil)
 	}
 
@@ -159,30 +166,53 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	desiredCount := int(*desired)
 
 	var checkError *action_kit_api.ActionKitError
-	if state.PodCountCheckMode == podCountMin1 && readyCount < 1 {
+	switch state.PodCountCheckMode {
+	case podCountMin1:
+		if !(readyCount >= 1) {
+			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s has no ready pods.", state.Target),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			})
+		}
+	case podCountEqualsDesiredCount:
+		if !(readyCount == desiredCount) {
+			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s has %d of desired %d pods ready.", state.Target, readyCount, desiredCount),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			})
+		}
+	case podCountGreaterEqualsDesiredCount:
+		if !(readyCount >= desiredCount) {
+			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s has %d of desired %d pods ready.", state.Target, readyCount, desiredCount),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			})
+		}
+	case podCountLessThanDesiredCount:
+		if !(readyCount < desiredCount) {
+			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s has all %d desired pods ready.", state.Target, desiredCount),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			})
+		}
+	case podCountDecreased:
+		if !(readyCount < state.InitialCount) {
+			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s's pod count didn't decrease. Initial count: %d, current count: %d.", state.Target, state.InitialCount, readyCount),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			})
+		}
+	case podCountIncreased:
+		if !(readyCount > state.InitialCount) {
+			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s's pod count didn't increase. Initial count: %d, current count: %d.", state.Target, state.InitialCount, readyCount),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			})
+		}
+	default:
 		checkError = extutil.Ptr(action_kit_api.ActionKitError{
-			Title:  fmt.Sprintf("%s has no ready pods.", state.Target),
-			Status: extutil.Ptr(action_kit_api.Failed),
-		})
-	} else if state.PodCountCheckMode == podCountEqualsDesiredCount && readyCount != desiredCount {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
-			Title:  fmt.Sprintf("%s has only %d of desired %d pods ready.", state.Target, readyCount, desiredCount),
-			Status: extutil.Ptr(action_kit_api.Failed),
-		})
-	} else if state.PodCountCheckMode == podCountLessThanDesiredCount && readyCount == desiredCount {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
-			Title:  fmt.Sprintf("%s has all %d desired pods ready.", state.Target, desiredCount),
-			Status: extutil.Ptr(action_kit_api.Failed),
-		})
-	} else if state.PodCountCheckMode == podCountIncreased && readyCount <= state.InitialCount {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
-			Title:  fmt.Sprintf("%s's pod count didn't increase. Initial count: %d, current count: %d.", state.Target, state.InitialCount, readyCount),
-			Status: extutil.Ptr(action_kit_api.Failed),
-		})
-	} else if state.PodCountCheckMode == podCountDecreased && readyCount >= state.InitialCount {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
-			Title:  fmt.Sprintf("%s's pod count didn't decrease. Initial count: %d, current count: %d.", state.Target, state.InitialCount, readyCount),
-			Status: extutil.Ptr(action_kit_api.Failed),
+			Title:  fmt.Sprintf("Unknown check mode: %s", state.PodCountCheckMode),
+			Status: extutil.Ptr(action_kit_api.Errored),
 		})
 	}
 
