@@ -67,7 +67,7 @@ resources:
   limits:
     # resources.limits.memory -- The limit of memory to be used
     #  You might want to increase this value depending on your cluster size. Customers with 2500 Container / 500 Deployments are reporting memory usage around 400Mi.
-    memory: "512Mi"
+    memory: "256Mi"
     # resources.limits.cpu -- The limit of cpu share to be used during its interval
     cpu: "500m"
 
