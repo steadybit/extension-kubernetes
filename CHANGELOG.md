@@ -1,8 +1,10 @@
 # Changelog
 
-## v2.5.19 (next release)
+## v2.5.19
 
 - Avoid unnecessary enrichment rules for node labels, improving performance
+- update dependencies
+- Use uid instead of name for user statement in Dockerfile
 
 ## v2.5.18
 
