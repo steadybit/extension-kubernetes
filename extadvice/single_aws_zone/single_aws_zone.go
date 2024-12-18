@@ -44,11 +44,11 @@ func GetAdviceDescriptionSingleAwsZone() advice_kit_api.AdviceDefinition {
 				},
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
-						Id:               "com.steadybit.extension_kubernetes.single-aws-zone.experiment-1",
-						Type:             "EXPERIMENT",
-						Name:             "Availability Zone Outage",
-						ShortDescription: "When a single AWS availability zone fails, there are still pods of ${target.attr('steadybit.label')} ready to continue providing offered features.",
-						Experiment:       extutil.Ptr(advice_kit_api.Experiment(advice_common.ReadAdviceFile(SingleAwsZoneContent, "experiment_zone_outage.json"))),
+						Id:                 "com.steadybit.extension_kubernetes.single-aws-zone.experiment-1",
+						Type:               "EXPERIMENT",
+						Name:               "Availability Zone Outage",
+						ShortDescription:   "When a single AWS availability zone fails, there are still pods of ${target.attr('steadybit.label')} ready to continue providing offered features.",
+						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(SingleAwsZoneContent, "experiment_zone_outage.json_template"))),
 					},
 				}),
 			},

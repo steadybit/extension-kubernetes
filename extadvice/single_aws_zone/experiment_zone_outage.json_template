@@ -1,9 +1,94 @@
 {
-  "name": "AWS Zone Outage of ${target.attr('aws.zone', 0)} for ${target.attr('steadybit.label')}",
+  "templateTitle": "AWS Zone outage",
+  "templateDescription": "Check what happens when an AWS Availability Zone is down and validate that Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. As soon as the zone is available again, the pod should be ready again within 60s.",
+  "placeholders": [
+    <#if target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
+    {
+      "key": "httpLoadBalancedEndpoint",
+      "name": "HTTP Load Balanced Endpoint",
+      "description": "### What is the URL of a **load-balanced HTTP endpoint** served by the Kubernetes deployment?\n\nWe will use the HTTP endpoint to validate that the provided service's features are working fine for the entire experiment duration."
+    }
+    <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='k6'>
+    {
+      "key": "k6LoadTestFile",
+      "name": "k6 Load Test File",
+      "description": "### Specify a k6 load test file to validate the service's functionality.\n\nWe will use the load test to validate that the provided service's features are working fine for the entire experiment duration."
+    }
+    <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='jmeter'>
+    {
+      "key": "jmeterLoadTestFile",
+      "name": "JMeter Load Test File",
+      "description": "### Specify a JMeter load test file to validate the service's functionality.\n\nWe will use the load test to validate that the provided service's features are working fine for the entire experiment duration."
+    }
+    <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='gatling'>
+    {
+      "key": "gatlingLoadTestFile",
+      "name": "Gatling Load Test File",
+      "description": "### Specify a Gatling load test file to validate the service's functionality.\n\nWe will use the load test to validate that the provided service's features are working fine for the entire experiment duration."
+    }
+    </#if>
+  ],
+  "tags": ["Redundancy", "AWS", "Availability Zone", "Advice"],
+  "experimentName": "AWS Zone Outage of ${target.attr('aws.zone', 0)} for ${target.attr('steadybit.label')}",
   "hypothesis": "When AWS Availability Zone ${target.attr('aws.zone', 0)} is down for ${target.attr('steadybit.label')}, Kubernetes manages this accordingly by routing the traffic within expected failure rates so that the offered features still work. As soon as the zone is available again, the pod is ready within 60s.",
   "lanes": [
     {
       "steps": [
+        <#if target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "140s",
+            "headers": [],
+            "method": "GET",
+            "successRate": 100,
+            "maxConcurrent": 5,
+            "followRedirects": false,
+            "readTimeout": "5s",
+            "connectTimeout": "5s",
+            "requestsPerSecond": 10,
+            "url": "[[httpLoadBalancedEndpoint]]",
+            "statusCode": "200-299"
+          },
+          "customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates",
+          "actionType": "com.steadybit.extension_http.check.periodically",
+          "radius": {}
+        }
+        <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='k6'>
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "environment": [],
+            "file": "[[k6LoadTestFile]]"
+          },
+          "actionType": "com.steadybit.extension_k6.run",
+          "radius": {}
+        }
+        <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='jmeter'>
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "file": "[[jmeterLoadTestFile]]",
+            "parameter": []
+          },
+          "actionType": "com.steadybit.extension_jmeter.run",
+          "radius": {}
+        }
+        <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='gatling'>
+        {
+          "type": "action",
+          "ignoreFailure": false,
+          "parameters": {
+            "file": "[[gatlingLoadTestFile]]",
+            "parameter": []
+          },
+          "actionType": "com.steadybit.extension_gatling.run",
+          "radius": {}
+        }
+        <#else>
         {
           "type": "wait",
           "ignoreFailure": false,
@@ -12,6 +97,7 @@
           },
           "customLabel": "TODO VALIDATION: INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
         }
+        </#if>
       ]
     },
     {
