@@ -6,7 +6,7 @@
       {
         "key": "httpLoadBalancedEndpoint",
         "name": "HTTP Load Balanced Endpoint",
-        "description": "### What is the URL of a **load-balanced HTTP endpoint** served by the Kubernetes deployment?\n\nWe will use the HTTP endpoint to validate that the provided service's features are working fine for the entire experiment duration."
+        "description": "### What is the URL of a **load-balanced HTTP endpoint** served by the Kubernetes workload?\n\nWe will use the HTTP endpoint to validate that the provided service's features are working fine for the entire experiment duration."
       }
       <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='k6'>
       {
