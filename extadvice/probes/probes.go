@@ -44,11 +44,11 @@ func GetAdviceDescriptionProbes() advice_kit_api.AdviceDefinition {
 				},
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
-						Id:               "com.steadybit.extension_kubernetes.k8s-probes.experiment-1",
-						Type:             "EXPERIMENT",
-						Name:             "Container's Unhealthiness Is Detected Within Expected Failure Rates",
-						ShortDescription: "Verify that Kubernetes can detect an unhealthy container of gateway, restarts the container, and routes traffic afterward within the expected failure rates.",
-						Experiment:       extutil.Ptr(advice_kit_api.Experiment(advice_common.ReadAdviceFile(ProbesContent, "experiment_pod_lifecycle.json"))),
+						Id:                 "com.steadybit.extension_kubernetes.k8s-probes.experiment-1",
+						Type:               "EXPERIMENT",
+						Name:               "Container's Unhealthiness Is Detected Within Expected Failure Rates",
+						ShortDescription:   "Verify that Kubernetes can detect an unhealthy container of gateway, restarts the container, and routes traffic afterward within the expected failure rates.",
+						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(ProbesContent, "experiment_pod_lifecycle.json_template"))),
 					},
 				}),
 			},

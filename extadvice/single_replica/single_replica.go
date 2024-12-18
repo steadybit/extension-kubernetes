@@ -42,11 +42,11 @@ func GetAdviceDescriptionSingleReplica() advice_kit_api.AdviceDefinition {
 				},
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
-						Id:               "com.steadybit.extension_kubernetes.k8s-single-replica.experiment-1",
-						Type:             "EXPERIMENT",
-						Name:             "Single Pod Failure",
-						ShortDescription: "In case one pod of ${target.attr('steadybit.label')} fails, Kubernetes manages this accordingly by routing the traffic to the other pods within expected failure rates.",
-						Experiment:       extutil.Ptr(advice_kit_api.Experiment(advice_common.ReadAdviceFile(SingleReplicaContent, "experiment_pod_failure.json"))),
+						Id:                 "com.steadybit.extension_kubernetes.k8s-single-replica.experiment-1",
+						Type:               "EXPERIMENT",
+						Name:               "Single Pod Failure",
+						ShortDescription:   "In case one pod of ${target.attr('steadybit.label')} fails, Kubernetes manages this accordingly by routing the traffic to the other pods within expected failure rates.",
+						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(SingleReplicaContent, "experiment_pod_failure.json_template"))),
 					},
 				}),
 			},
