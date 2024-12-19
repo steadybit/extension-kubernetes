@@ -48,7 +48,7 @@ func GetAdviceDescriptionSingleAwsZone() advice_kit_api.AdviceDefinition {
 						Type:               "EXPERIMENT",
 						Name:               "Availability Zone Outage",
 						ShortDescription:   "When a single AWS availability zone fails, there are still pods of ${target.attr('steadybit.label')} ready to continue providing offered features.",
-						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(SingleAwsZoneContent, "experiment_zone_outage.json_template"))),
+						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(SingleAwsZoneContent, "experiment_zone_outage.json.ftl"))),
 					},
 				}),
 			},

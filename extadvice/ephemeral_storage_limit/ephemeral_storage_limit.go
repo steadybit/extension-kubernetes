@@ -48,7 +48,7 @@ func GetAdviceDescriptionEphemeralStorageLimit() advice_kit_api.AdviceDefinition
 						Type:             "EXPERIMENT",
 						Name:             "Ephemeral Storage Overload",
 						ShortDescription: "Check how ${target.attr('steadybit.label')} behaves when exceeding the ephemeral storage limit and whether your remaining Kubernetes resources at the host function properly.",
-						Experiment:       extutil.Ptr(advice_kit_api.Experiment(advice_common.ReadAdviceFile(EphemeralStorageLimitContent, "experiment_ephemeral_storage_limit.json"))),
+						Experiment:       extutil.Ptr(advice_kit_api.Experiment(advice_common.ReadAdviceFile(EphemeralStorageLimitContent, "experiment_ephemeral_storage_limit.json.ftl"))),
 					},
 				}),
 			},
