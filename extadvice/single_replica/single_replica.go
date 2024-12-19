@@ -46,7 +46,7 @@ func GetAdviceDescriptionSingleReplica() advice_kit_api.AdviceDefinition {
 						Type:               "EXPERIMENT",
 						Name:               "Single Pod Failure",
 						ShortDescription:   "In case one pod of ${target.attr('steadybit.label')} fails, Kubernetes manages this accordingly by routing the traffic to the other pods within expected failure rates.",
-						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(SingleReplicaContent, "experiment_pod_failure.json_template"))),
+						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(SingleReplicaContent, "experiment_pod_failure.json.ftl"))),
 					},
 				}),
 			},

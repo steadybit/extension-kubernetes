@@ -48,7 +48,7 @@ func GetAdviceDescriptionProbes() advice_kit_api.AdviceDefinition {
 						Type:               "EXPERIMENT",
 						Name:               "Container's Unhealthiness Is Detected Within Expected Failure Rates",
 						ShortDescription:   "Verify that Kubernetes can detect an unhealthy container of gateway, restarts the container, and routes traffic afterward within the expected failure rates.",
-						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(ProbesContent, "experiment_pod_lifecycle.json_template"))),
+						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(ProbesContent, "experiment_pod_lifecycle.json.ftl"))),
 					},
 				}),
 			},
