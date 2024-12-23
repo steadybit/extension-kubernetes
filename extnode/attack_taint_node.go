@@ -39,7 +39,7 @@ func getTaintNodeDescription() action_kit_api.ActionDescription {
 			TargetType: NodeTargetType,
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
-					Label:       "default",
+					Label:       "host name",
 					Description: extutil.Ptr("Find node by its name"),
 					Query:       "host.hostname=\"\"",
 				},

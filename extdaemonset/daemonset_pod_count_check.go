@@ -21,7 +21,7 @@ func NewDaemonSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[e
 		TargetTypeLabel: "DaemonSet",
 		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
-				Label:       "default",
+				Label:       "daemonset",
 				Description: extutil.Ptr("Find daemonSet by cluster, namespace and daemonSet"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.daemonset=\"\"",
 			},

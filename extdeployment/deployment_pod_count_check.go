@@ -21,7 +21,7 @@ func NewDeploymentPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[
 		TargetTypeLabel: "Deployment",
 		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
-				Label:       "default",
+				Label:       "deployment",
 				Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 			},

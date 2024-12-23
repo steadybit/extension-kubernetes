@@ -21,7 +21,7 @@ func NewStatefulSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action
 		TargetTypeLabel: "StatefulSet",
 		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
-				Label:       "default",
+				Label:       "statefulSet",
 				Description: extutil.Ptr("Find statefulSet by cluster, namespace and statefulSet"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.statefulset=\"\"",
 			},

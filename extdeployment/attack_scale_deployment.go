@@ -39,7 +39,7 @@ func getScaleDeploymentDescription() action_kit_api.ActionDescription {
 			TargetType: DeploymentTargetType,
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
-					Label:       "default",
+					Label:       "deployment",
 					Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
 					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 				},

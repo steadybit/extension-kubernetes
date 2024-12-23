@@ -39,7 +39,7 @@ func getScaleStatefulSetDescription() action_kit_api.ActionDescription {
 			TargetType: StatefulSetTargetType,
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
-					Label:       "default",
+					Label:       "statefulSet",
 					Description: extutil.Ptr("Find statefulSet by cluster, namespace and statefulSet"),
 					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.statefulset=\"\"",
 				},

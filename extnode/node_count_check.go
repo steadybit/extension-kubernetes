@@ -67,7 +67,7 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 			QuantityRestriction: extutil.Ptr(action_kit_api.ExactlyOne),
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
-					Label:       "default",
+					Label:       "cluster name",
 					Description: extutil.Ptr("Find cluster by name"),
 					Query:       "k8s.cluster-name=\"\"",
 				},
