@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.5.20 (next release)
+## v2.5.20
 
 - Integrated support for experiment templates in Advice to ease service's validation
 - Fixed a bug for Azure and GCP, where DaemonSets aren't considered in an Advice
