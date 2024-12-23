@@ -9,6 +9,7 @@ import (
 	ks "github.com/zegl/kube-score/domain"
 	"github.com/zegl/kube-score/parser"
 	"github.com/zegl/kube-score/score"
+	"github.com/zegl/kube-score/score/checks"
 	"github.com/zegl/kube-score/scorecard"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
@@ -273,28 +274,33 @@ func prepareManifests(objects []kubeScoreInput) []ks.NamedReader {
 }
 
 func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
-	cnf := config.Configuration{
-		AllFiles:                              manifests,
-		VerboseOutput:                         0,
-		IgnoreContainerCpuLimitRequirement:    false,
-		IgnoreContainerMemoryLimitRequirement: false,
-		IgnoredTests:                          nil,
-		EnabledOptionalTests:                  nil,
-		UseIgnoreChecksAnnotation:             false,
-		UseOptionalChecksAnnotation:           false,
+	cnf := &parser.Config{
+		VerboseOutput: 0,
 	}
 
-	p, err := parser.New()
+	p, err := parser.New(cnf)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create kubescore parser")
 		return nil
 	}
-	parsedFiles, err := p.ParseFiles(cnf)
+	parsedFiles, err := p.ParseFiles(manifests)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to parse files")
 		return nil
 	}
-	scoreCard, err := score.Score(parsedFiles, cnf)
+
+	runCnf := &config.RunConfiguration{
+		IgnoreContainerCpuLimitRequirement:    false,
+		IgnoreContainerMemoryLimitRequirement: false,
+		EnabledOptionalTests:                  nil,
+		UseIgnoreChecksAnnotation:             false,
+		UseOptionalChecksAnnotation:           false,
+	}
+	checksConfig := &checks.Config{}
+
+	allChecks := score.RegisterAllChecks(parsedFiles, checksConfig, runCnf)
+
+	scoreCard, err := score.Score(parsedFiles, allChecks, runCnf)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to run kubescore")
 		return nil
