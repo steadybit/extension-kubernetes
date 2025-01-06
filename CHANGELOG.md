@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.5.21
+
+- Update dependencies
+- Changed labels for selection templates
+
 ## v2.5.20
 
 - Integrated support for experiment templates in Advice to ease service's validation
