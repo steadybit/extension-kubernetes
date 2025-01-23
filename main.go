@@ -265,6 +265,12 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 				Path:   "/advice/single-gcp-zone",
 			})
 		}
+		if adviceId == "*" || adviceId == single_zone.SingleZoneID {
+			refs = append(refs, advice_kit_api.DescribingEndpointReference{
+				Method: "GET",
+				Path:   "/advice/single-zone",
+			})
+		}
 	}
 	return refs
 }
