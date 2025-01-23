@@ -1,5 +1,28 @@
 # Changelog
 
+## v2.6.0 (Next Release)
+- Removed the advice `single_aws_zone`,`single_azure_zone` and `single_gcp_zone` and combined them using the generic attribute `k8s.label.topology.kubernetes.io/zone`. With the new advice, you are no longer required to install the cloud provider specific extension.
+  - If you like to migrate your existing advice state, like created experiments and you are running ON-Premise, you can use the following migration script after installing the new version of the extension:
+    ```sql
+    update sb_onprem.advice
+    set advice_definition_id='com.steadybit.extension_kubernetes.advice.single-zone',
+        validation_states   = replace(validation_states::text, 'com.steadybit.extension_kubernetes.single-aws-zone',
+                                      'com.steadybit.extension_kubernetes.single-zone')::jsonb
+    where advice_definition_id = 'com.steadybit.extension_kubernetes.advice.single-aws-zone';
+
+    update sb_onprem.advice
+    set advice_definition_id='com.steadybit.extension_kubernetes.advice.single-zone',
+        validation_states   = replace(validation_states::text, 'com.steadybit.extension_kubernetes.single-azure-zone',
+                                      'com.steadybit.extension_kubernetes.single-zone')::jsonb
+    where advice_definition_id = 'com.steadybit.extension_kubernetes.advice.single-azure-zone';
+
+    update sb_onprem.advice
+    set advice_definition_id='com.steadybit.extension_kubernetes.advice.single-zone',
+        validation_states   = replace(validation_states::text, 'com.steadybit.extension_kubernetes.single-gcp-zone',
+                                      'com.steadybit.extension_kubernetes.single-zone')::jsonb
+    where advice_definition_id = 'com.steadybit.extension_kubernetes.advice.single-gcp-zone';
+    ```
+
 ## v2.5.21
 
 - Update dependencies

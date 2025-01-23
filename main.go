@@ -34,6 +34,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/extadvice/single_azure_zone"
 	"github.com/steadybit/extension-kubernetes/extadvice/single_gcp_zone"
 	"github.com/steadybit/extension-kubernetes/extadvice/single_replica"
+	"github.com/steadybit/extension-kubernetes/extadvice/single_zone"
 	"github.com/steadybit/extension-kubernetes/extcluster"
 	"github.com/steadybit/extension-kubernetes/extcommon"
 	"github.com/steadybit/extension-kubernetes/extconfig"
@@ -141,6 +142,7 @@ func main() {
 	exthttp.RegisterHttpHandler("/advice/single-aws-zone", exthttp.GetterAsHandler(single_aws_zone.GetAdviceDescriptionSingleAwsZone))
 	exthttp.RegisterHttpHandler("/advice/single-azure-zone", exthttp.GetterAsHandler(single_azure_zone.GetAdviceDescriptionSingleAzureZone))
 	exthttp.RegisterHttpHandler("/advice/single-gcp-zone", exthttp.GetterAsHandler(single_gcp_zone.GetAdviceDescriptionSingleGcpZone))
+	exthttp.RegisterHttpHandler("/advice/single-zone", exthttp.GetterAsHandler(single_zone.GetAdviceDescriptionSingleZone))
 
 	extsignals.ActivateSignalHandlers()
 	action_kit_sdk.RegisterCoverageEndpoints()

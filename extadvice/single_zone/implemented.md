@@ -1,0 +1,1 @@
+Right now, when availability zone *${target.attr('k8s.label.topology.kubernetes.io/zone',0)}* fails, your service *${target.attr('steadybit.label')}* will still be available because you use *${target.attrs('k8s.label.topology.kubernetes.io/zone')?size}* zones to handle requests.
