@@ -30,9 +30,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/extadvice/memory_limit"
 	"github.com/steadybit/extension-kubernetes/extadvice/memory_request"
 	"github.com/steadybit/extension-kubernetes/extadvice/probes"
-	"github.com/steadybit/extension-kubernetes/extadvice/single_aws_zone"
-	"github.com/steadybit/extension-kubernetes/extadvice/single_azure_zone"
-	"github.com/steadybit/extension-kubernetes/extadvice/single_gcp_zone"
 	"github.com/steadybit/extension-kubernetes/extadvice/single_replica"
 	"github.com/steadybit/extension-kubernetes/extadvice/single_zone"
 	"github.com/steadybit/extension-kubernetes/extcluster"
@@ -139,9 +136,6 @@ func main() {
 	exthttp.RegisterHttpHandler("/advice/k8s-probes", exthttp.GetterAsHandler(probes.GetAdviceDescriptionProbes))
 	exthttp.RegisterHttpHandler("/advice/k8s-single-replica", exthttp.GetterAsHandler(single_replica.GetAdviceDescriptionSingleReplica))
 	exthttp.RegisterHttpHandler("/advice/k8s-host-podantiaffinity", exthttp.GetterAsHandler(host_podantiaffinity.GetAdviceDescriptionHostPodantiaffinity))
-	exthttp.RegisterHttpHandler("/advice/single-aws-zone", exthttp.GetterAsHandler(single_aws_zone.GetAdviceDescriptionSingleAwsZone))
-	exthttp.RegisterHttpHandler("/advice/single-azure-zone", exthttp.GetterAsHandler(single_azure_zone.GetAdviceDescriptionSingleAzureZone))
-	exthttp.RegisterHttpHandler("/advice/single-gcp-zone", exthttp.GetterAsHandler(single_gcp_zone.GetAdviceDescriptionSingleGcpZone))
 	exthttp.RegisterHttpHandler("/advice/single-zone", exthttp.GetterAsHandler(single_zone.GetAdviceDescriptionSingleZone))
 
 	extsignals.ActivateSignalHandlers()
@@ -245,24 +239,6 @@ func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 			refs = append(refs, advice_kit_api.DescribingEndpointReference{
 				Method: "GET",
 				Path:   "/advice/k8s-host-podantiaffinity",
-			})
-		}
-		if adviceId == "*" || adviceId == single_aws_zone.SingleAWSZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/single-aws-zone",
-			})
-		}
-		if adviceId == "*" || adviceId == single_azure_zone.SingleAzureZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/single-azure-zone",
-			})
-		}
-		if adviceId == "*" || adviceId == single_gcp_zone.SingleGCPZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/single-gcp-zone",
 			})
 		}
 		if adviceId == "*" || adviceId == single_zone.SingleZoneID {

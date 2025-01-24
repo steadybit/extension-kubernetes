@@ -1,1 +1,0 @@
-Right now, when availability zone *${target.attr('aws.zone',0)}* fails, your service *${target.attr('steadybit.label')}* will still be available because you use *${target.attrs('aws.zone')?size}* zones to handle requests.
