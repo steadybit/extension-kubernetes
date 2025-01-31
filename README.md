@@ -26,39 +26,17 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 
 ## Permissions
-The process requires access rights to interact with the Kubernetes API.
+The process requires access rights to interact with the Kubernetes API ([permissions in helm chart](/charts/steadybit-extension-kubernetes/templates/_permissions.tpl)).
 
-Please have a look at [/charts/steadybit-extension-kubernetes/templates/clusterrole.yaml](/charts/steadybit-extension-kubernetes/templates/clusterrole.yaml) for a recent list of required permission
+The cluster role for the extension requires "read" permissions for different kind of workloads in the cluster.
+If the permission is not granted to a specific resource type, those will not be discovered and cannot be attacked.
 
-```yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: extension-kubernetes
-rules:
-  - apiGroups:
-    - ...
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: extension-kubernetes
-  namespace: steadybit-extension
-automountServiceAccountToken: true
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: extension-kubernetes
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: extension-kubernetes
-subjects:
-  - kind: ServiceAccount
-    name: extension-kubernetes
-    namespace: steadybit-extension
-```
+To run the different attacks "write" permissions are required:
+- Scale Deployment/StatefulSet/DaemonSet: `update`, `patch` on the workload type
+- Rollout Restart Deployment: `patch` on `deployment`
+- Delete Pod Attack: `delete` on `pod`
+- Crash Loop Pod: `create` on `pod/exec` also needs to have an `sh` and `kill` binary in the target container
+
 ## Installation
 
 ### Kubernetes
@@ -106,18 +84,6 @@ helm upgrade steadybit-extension-kubernetes \
 Make sure that the extension is registered with the agent. In most cases this is done automatically. Please refer to
 the [documentation](https://docs.steadybit.com/install-and-configure/install-agent/extension-registration) for more
 information about extension registration and how to verify.
-
-## Security
-
-The cluster role for the extension requires "read" permissions for different kind of workloads in the cluster.
-If the permission is not granted to a specific resource type, those will not be discovered and cannot be attacked.
-
-To run the different attacks "write" permissions are required:
-  - Scale Deployment/StatefulSet/DaemonSet: `update`, `patch` on the workload type
-  - Rollout Restart Deployment: `patch` on `deployment`
-  - Delete Pod Attack: `delete` on `pod`
-  - Crash Loop Pod: `create` on `pod/exec` also needs to have an `sh` and `kill` binary in the target container
-
 
 ## mark resources as "do not discover"
 
