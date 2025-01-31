@@ -107,6 +107,18 @@ Make sure that the extension is registered with the agent. In most cases this is
 the [documentation](https://docs.steadybit.com/install-and-configure/install-agent/extension-registration) for more
 information about extension registration and how to verify.
 
+## Security
+
+The cluster role for the extension requires "read" permissions for different kind of workloads in the cluster.
+If the permission is not granted to a specific resource type, those will not be discovered and cannot be attacked.
+
+To run the different attacks "write" permissions are required:
+  - Scale Deployment/StatefulSet/DaemonSet: `update`, `patch` on the workload type
+  - Rollout Restart Deployment: `patch` on `deployment`
+  - Delete Pod Attack: `delete` on `pod`
+  - Crash Loop Pod: `create` on `pod/exec` also needs to have an `sh` and `kill` binary in the target container
+
+
 ## mark resources as "do not discover"
 
 to exclude a deployment / namespace / pod from discovery you can add the label `"steadybit.com/discovery-disabled": "true"` to the resource labels
