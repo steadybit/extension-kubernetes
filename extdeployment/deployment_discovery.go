@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extdeployment
 
@@ -82,15 +82,11 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 	deployments := d.k8s.Deployments()
 
 	filteredDeployments := make([]*appsv1.Deployment, 0, len(deployments))
-	if extconfig.Config.DisableDiscoveryExcludes {
-		filteredDeployments = deployments
-	} else {
-		for _, deployment := range deployments {
-			if client.IsExcludedFromDiscovery(deployment.ObjectMeta) {
-				continue
-			}
-			filteredDeployments = append(filteredDeployments, deployment)
+	for _, deployment := range deployments {
+		if client.IsExcludedFromDiscovery(deployment.ObjectMeta) {
+			continue
 		}
+		filteredDeployments = append(filteredDeployments, deployment)
 	}
 
 	targets := make([]discovery_kit_api.Target, len(filteredDeployments))

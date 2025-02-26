@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extpod
 
@@ -76,15 +76,11 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 	pods := p.k8s.Pods()
 
 	filteredPods := make([]*corev1.Pod, 0, len(pods))
-	if extconfig.Config.DisableDiscoveryExcludes {
-		filteredPods = pods
-	} else {
-		for _, pod := range pods {
-			if client.IsExcludedFromDiscovery(pod.ObjectMeta) {
-				continue
-			}
-			filteredPods = append(filteredPods, pod)
+	for _, pod := range pods {
+		if client.IsExcludedFromDiscovery(pod.ObjectMeta) {
+			continue
 		}
+		filteredPods = append(filteredPods, pod)
 	}
 
 	nodes := p.k8s.Nodes()

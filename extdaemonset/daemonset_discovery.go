@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extdaemonset
 
@@ -77,15 +77,11 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 	daemonsets := d.k8s.DaemonSets()
 
 	filteredDaemonSets := make([]*appsv1.DaemonSet, 0, len(daemonsets))
-	if extconfig.Config.DisableDiscoveryExcludes {
-		filteredDaemonSets = daemonsets
-	} else {
-		for _, ds := range daemonsets {
-			if client.IsExcludedFromDiscovery(ds.ObjectMeta) {
-				continue
-			}
-			filteredDaemonSets = append(filteredDaemonSets, ds)
+	for _, ds := range daemonsets {
+		if client.IsExcludedFromDiscovery(ds.ObjectMeta) {
+			continue
 		}
+		filteredDaemonSets = append(filteredDaemonSets, ds)
 	}
 
 	nodes := d.k8s.Nodes()

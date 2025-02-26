@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package client
 
@@ -582,16 +582,19 @@ func createClientset() (*kubernetes.Clientset, string) {
 }
 
 func IsExcludedFromDiscovery(objectMeta metav1.ObjectMeta) bool {
-	discoveryEnabled, keyExists := objectMeta.Labels["steadybit.com/discovery-disabled"]
-	if keyExists && strings.ToLower(discoveryEnabled) == "true" {
+	if extconfig.Config.DisableDiscoveryExcludes {
+		return false
+	}
+
+	if label, ok := objectMeta.Labels["steadybit.com/discovery-disabled"]; ok && strings.ToLower(label) == "true" {
 		return true
 	}
-	discoveryEnabled, keyExists = objectMeta.Labels["steadybit.com.discovery-disabled"]
-	if keyExists && strings.ToLower(discoveryEnabled) == "true" {
+
+	if label, ok := objectMeta.Labels["steadybit.com.discovery-disabled"]; ok && strings.ToLower(label) == "true" {
 		return true
 	}
-	steadybitAgent, steadybitAgentKeyExists := objectMeta.Labels["com.steadybit.agent"]
-	if steadybitAgentKeyExists && strings.ToLower(steadybitAgent) == "true" {
+
+	if label, ok := objectMeta.Labels["com.steadybit.agent"]; ok && strings.ToLower(label) == "true" {
 		return true
 	}
 	return false

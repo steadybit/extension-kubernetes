@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extnode
 
@@ -139,15 +139,11 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 	nodes := d.k8s.Nodes()
 
 	filteredNodes := make([]*corev1.Node, 0, len(nodes))
-	if extconfig.Config.DisableDiscoveryExcludes {
-		filteredNodes = nodes
-	} else {
-		for _, node := range nodes {
-			if client.IsExcludedFromDiscovery(node.ObjectMeta) {
-				continue
-			}
-			filteredNodes = append(filteredNodes, node)
+	for _, node := range nodes {
+		if client.IsExcludedFromDiscovery(node.ObjectMeta) {
+			continue
 		}
+		filteredNodes = append(filteredNodes, node)
 	}
 
 	targets := make([]discovery_kit_api.Target, len(filteredNodes))

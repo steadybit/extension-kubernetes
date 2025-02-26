@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extcontainer
 
@@ -143,15 +143,11 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 	pods := c.k8s.Pods()
 
 	filteredPods := make([]*corev1.Pod, 0, len(pods))
-	if extconfig.Config.DisableDiscoveryExcludes {
-		filteredPods = pods
-	} else {
-		for _, p := range pods {
-			if client.IsExcludedFromDiscovery(p.ObjectMeta) {
-				continue
-			}
-			filteredPods = append(filteredPods, p)
+	for _, p := range pods {
+		if client.IsExcludedFromDiscovery(p.ObjectMeta) {
+			continue
 		}
+		filteredPods = append(filteredPods, p)
 	}
 
 	enrichmentDataList := make([]discovery_kit_api.EnrichmentData, 0, len(filteredPods))

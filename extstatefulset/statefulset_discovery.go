@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extstatefulset
 
@@ -76,15 +76,11 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 	statefulsets := d.k8s.StatefulSets()
 
 	filteredStatefulSets := make([]*appsv1.StatefulSet, 0, len(statefulsets))
-	if extconfig.Config.DisableDiscoveryExcludes {
-		filteredStatefulSets = statefulsets
-	} else {
-		for _, sts := range statefulsets {
-			if client.IsExcludedFromDiscovery(sts.ObjectMeta) {
-				continue
-			}
-			filteredStatefulSets = append(filteredStatefulSets, sts)
+	for _, sts := range statefulsets {
+		if client.IsExcludedFromDiscovery(sts.ObjectMeta) {
+			continue
 		}
+		filteredStatefulSets = append(filteredStatefulSets, sts)
 	}
 
 	nodes := d.k8s.Nodes()
