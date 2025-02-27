@@ -7,7 +7,6 @@ package extevents
 import (
 	"context"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/client"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -34,8 +33,8 @@ func TestPrepareExtractsState(t *testing.T) {
 	// Then
 	require.Nil(t, result)
 	require.Nil(t, err)
-	require.True(t, *state.TimeoutEnd > time.Now().Unix())
-	require.True(t, *state.LastEventTime <= time.Now().Unix())
+	require.True(t, state.EndOffset > time.Since(referenceTime))
+	require.True(t, state.LastEventOffset <= time.Since(referenceTime))
 }
 
 func TestStatusEventsFound(t *testing.T) {
@@ -78,11 +77,11 @@ func TestStopEventsFound(t *testing.T) {
 
 func prepareTest(t *testing.T, stopCh chan struct{}) (*K8sEventsState, *client.Client) {
 	state := K8sEventsState{
-		TimeoutEnd:    extutil.Ptr(time.Now().Add(time.Minute * 1).Unix()),
-		LastEventTime: extutil.Ptr(time.Now().Add(-time.Minute * 1).Unix()),
+		EndOffset:       time.Since(referenceTime) + 1*time.Minute,
+		LastEventOffset: time.Since(referenceTime) - time.Minute*1,
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Events("shop").
@@ -93,6 +92,5 @@ func prepareTest(t *testing.T, stopCh chan struct{}) (*K8sEventsState, *client.C
 		}, metav1.CreateOptions{})
 
 	require.NoError(t, err)
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
-	return &state, client
+	return &state, client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 }

@@ -25,9 +25,11 @@ const LogType = "KUBERNETES_EVENTS"
 type K8sEventsAction struct {
 }
 
+var referenceTime = time.Now()
+
 type K8sEventsState struct {
-	LastEventTime *int64 `json:"lastEventTime"`
-	TimeoutEnd    *int64 `json:"timeoutEnd"`
+	LastEventOffset time.Duration `json:"LastEventOffset"`
+	EndOffset       time.Duration `json:"endOffset"`
 }
 
 type K8sEventsConfig struct {
@@ -99,17 +101,17 @@ func (f K8sEventsAction) Prepare(_ context.Context, state *K8sEventsState, reque
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
 
-	var timeoutEnd *int64
+	state.LastEventOffset = time.Since(referenceTime)
+
 	if config.Duration != 0 {
-		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * config.Duration)).Unix())
+		duration := time.Duration(int(time.Millisecond) * config.Duration)
+		state.EndOffset = state.LastEventOffset + duration
 	}
-	state.LastEventTime = extutil.Ptr(time.Now().Unix())
-	state.TimeoutEnd = timeoutEnd
 	return nil, nil
 }
 
 func (f K8sEventsAction) Start(_ context.Context, state *K8sEventsState) (*action_kit_api.StartResult, error) {
-	state.LastEventTime = extutil.Ptr(time.Now().Unix())
+	state.LastEventOffset = time.Since(referenceTime)
 	return nil, nil
 }
 
@@ -118,7 +120,7 @@ func (f K8sEventsAction) Status(_ context.Context, state *K8sEventsState) (*acti
 }
 
 func statusInternal(k8s *client.Client, state *K8sEventsState) *action_kit_api.StatusResult {
-	if state.TimeoutEnd != nil && time.Now().After(time.Unix(*state.TimeoutEnd, 0)) {
+	if state.EndOffset != 0 && (time.Since(referenceTime) > state.EndOffset) {
 		return extutil.Ptr(action_kit_api.StatusResult{
 			Completed: true,
 		})
@@ -132,9 +134,9 @@ func statusInternal(k8s *client.Client, state *K8sEventsState) *action_kit_api.S
 }
 
 func getMessages(k8s *client.Client, state *K8sEventsState) *action_kit_api.Messages {
-	newLastEventTime := time.Now().Unix()
-	events := k8s.Events(time.Unix(*state.LastEventTime, 0))
-	state.LastEventTime = extutil.Ptr(newLastEventTime)
+	newLastEventOffset := time.Since(referenceTime)
+	events := k8s.Events(referenceTime.Add(state.LastEventOffset))
+	state.LastEventOffset = newLastEventOffset
 
 	// log events
 	for _, event := range *events {
