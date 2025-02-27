@@ -20,11 +20,13 @@ import (
 type CheckDeploymentRolloutStatusAction struct {
 }
 
+var referenceTime = time.Now()
+
 type CheckDeploymentRolloutStatusState struct {
-	Cluster    string `json:"cluster"`
-	Namespace  string `json:"namespace"`
-	Deployment string `json:"deployment"`
-	TimeoutEnd *int64 `json:"timeoutEnd"`
+	Cluster    string        `json:"cluster"`
+	Namespace  string        `json:"namespace"`
+	Deployment string        `json:"deployment"`
+	EndOffset  time.Duration `json:"endOffset"`
 }
 
 type CheckDeploymentRolloutConfig struct {
@@ -85,14 +87,14 @@ func (f CheckDeploymentRolloutStatusAction) Prepare(_ context.Context, state *Ch
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
 
-	var timeoutEnd *int64
 	if config.Duration != 0 {
-		timeoutEnd = extutil.Ptr(time.Now().Add(time.Duration(int(time.Millisecond) * config.Duration)).Unix())
+		duration := time.Duration(int(time.Millisecond) * config.Duration)
+		state.EndOffset = time.Since(referenceTime) + duration
 	}
+
 	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
-	state.TimeoutEnd = timeoutEnd
 	return nil, nil
 }
 
@@ -101,7 +103,7 @@ func (f CheckDeploymentRolloutStatusAction) Start(_ context.Context, _ *CheckDep
 }
 
 func (f CheckDeploymentRolloutStatusAction) Status(_ context.Context, state *CheckDeploymentRolloutStatusState) (*action_kit_api.StatusResult, error) {
-	if state.TimeoutEnd != nil && time.Now().After(time.Unix(*state.TimeoutEnd, 0)) {
+	if state.EndOffset != 0 && time.Since(referenceTime) > state.EndOffset {
 		return extutil.Ptr(action_kit_api.StatusResult{
 			Completed: true,
 			Error: extutil.Ptr(action_kit_api.ActionKitError{
