@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.1 (next release)
+
+- Update dependencies
+- Support wall-clock changes
+
 ## v2.6.0
 - Removed the advice `single_aws_zone`,`single_azure_zone` and `single_gcp_zone` and combined them using the generic attribute `k8s.label.topology.kubernetes.io/zone`. With the new advice, you are no longer required to install the cloud provider specific extension.
   - If you like to migrate your existing advice state, like created experiments and you are running ON-Premise, you can use the following migration script after installing the new version of the extension:
