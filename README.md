@@ -88,3 +88,10 @@ information about extension registration and how to verify.
 ## mark resources as "do not discover"
 
 to exclude a deployment / namespace / pod from discovery you can add the label `"steadybit.com/discovery-disabled": "true"` to the resource labels
+
+## Version and Revision
+
+The version and revision of the extension:
+- are printed during the startup of the extension
+- are added as a Docker label to the image
+- are available via the `version.txt`/`revision.txt` files in the root of the image
