@@ -2,8 +2,8 @@ package extnamespace
 
 import (
 	"fmt"
-	"github.com/steadybit/extension-kubernetes/client"
-	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"golang.org/x/exp/slices"
 )
 

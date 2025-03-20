@@ -6,7 +6,7 @@ package extcommon
 import (
 	"context"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"

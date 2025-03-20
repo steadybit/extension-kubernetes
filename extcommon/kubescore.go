@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/zegl/kube-score/config"
 	ks "github.com/zegl/kube-score/domain"
 	"github.com/zegl/kube-score/parser"

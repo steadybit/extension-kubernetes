@@ -5,7 +5,7 @@ package extcluster
 
 import (
 	"context"
-	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"

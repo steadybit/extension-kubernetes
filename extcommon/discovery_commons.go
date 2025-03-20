@@ -2,7 +2,7 @@ package extcommon
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

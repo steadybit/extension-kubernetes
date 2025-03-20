@@ -9,7 +9,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/extcommon"
+	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 )
 
 func NewDrainNodeAction() action_kit_sdk.Action[extcommon.KubectlActionState] {

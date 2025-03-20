@@ -12,9 +12,9 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/client"
-	"github.com/steadybit/extension-kubernetes/extcluster"
-	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extcluster"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"time"
 )

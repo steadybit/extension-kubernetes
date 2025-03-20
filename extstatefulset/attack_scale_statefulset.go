@@ -12,8 +12,8 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/client"
-	"github.com/steadybit/extension-kubernetes/extcommon"
+	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 )
 
 func NewScaleStatefulSetAction() action_kit_sdk.Action[extcommon.KubectlActionState] {

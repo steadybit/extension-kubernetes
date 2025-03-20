@@ -7,7 +7,7 @@ package extevents
 import (
 	"context"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -2,7 +2,7 @@ package extcommon
 
 import (
 	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/v2/client"
 	"reflect"
 	"slices"
 )

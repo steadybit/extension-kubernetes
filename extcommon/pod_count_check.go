@@ -12,7 +12,7 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/client"
+	"github.com/steadybit/extension-kubernetes/v2/client"
 	"time"
 )
 

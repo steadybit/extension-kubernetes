@@ -5,10 +5,10 @@ import (
 	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-kubernetes/extadvice/advice_common"
-	"github.com/steadybit/extension-kubernetes/extdaemonset"
-	"github.com/steadybit/extension-kubernetes/extdeployment"
-	"github.com/steadybit/extension-kubernetes/extstatefulset"
+	"github.com/steadybit/extension-kubernetes/v2/extadvice/advice_common"
+	"github.com/steadybit/extension-kubernetes/v2/extdaemonset"
+	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
+	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
 )
 
 const SingleZoneID = "com.steadybit.extension_kubernetes.advice.single-zone"

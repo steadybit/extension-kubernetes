@@ -8,7 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-kubernetes/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"

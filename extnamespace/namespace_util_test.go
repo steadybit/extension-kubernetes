@@ -5,8 +5,8 @@ package extnamespace
 
 import (
 	"context"
-	kclient "github.com/steadybit/extension-kubernetes/client"
-	"github.com/steadybit/extension-kubernetes/extconfig"
+	kclient "github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
