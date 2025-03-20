@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.6.2 (next)
+## v2.6.2
 
 - Updated dependencies
 
