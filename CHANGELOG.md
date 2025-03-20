@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.6.1 (next release)
+## v2.6.1
 
 - Update dependencies
 - Support wall-clock changes
