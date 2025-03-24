@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
+	validateAdvice "github.com/steadybit/advice-kit/go/advice_kit_test/validate"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_test/validate"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
@@ -28,6 +29,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 	{
 		Name: "validate discovery",
 		Test: validateDiscovery,
+	},
+	{
+		Name: "validate advice",
+		Test: validateAdviceDiscovery,
 	},
 	{
 		Name: "discovery",
@@ -100,6 +105,10 @@ func TestWithMinikubeViaRole(t *testing.T) {
 
 func validateDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	assert.NoError(t, validate.ValidateEndpointReferences("/", e.Client))
+}
+
+func validateAdviceDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
+	assert.NoError(t, validateAdvice.ValidateEndpointReferences("/", e.Client))
 }
 
 func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
