@@ -39,12 +39,12 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Test: testDiscovery,
 	},
 	{
-		Name: "checkRolloutReady",
-		Test: testCheckRolloutReady,
-	},
-	{
 		Name: "checkRolloutTwice",
 		Test: testCheckRolloutTwice,
+	},
+	{
+		Name: "checkRolloutReady",
+		Test: testCheckRolloutReady,
 	},
 	{
 		Name: "deletePod",
