@@ -26,46 +26,46 @@ import (
 )
 
 var testCases = []e2e.WithMinikubeTestCase{
-	//{
-	//	Name: "validate discovery",
-	//	Test: validateDiscovery,
-	//},
-	//{
-	//	Name: "validate advice",
-	//	Test: validateAdviceDiscovery,
-	//},
-	//{
-	//	Name: "discovery",
-	//	Test: testDiscovery,
-	//},
-	//{
-	//	Name: "checkRolloutReady",
-	//	Test: testCheckRolloutReady,
-	//},
+	{
+		Name: "validate discovery",
+		Test: validateDiscovery,
+	},
+	{
+		Name: "validate advice",
+		Test: validateAdviceDiscovery,
+	},
+	{
+		Name: "discovery",
+		Test: testDiscovery,
+	},
+	{
+		Name: "checkRolloutReady",
+		Test: testCheckRolloutReady,
+	},
 	{
 		Name: "checkRolloutTwice",
 		Test: testCheckRolloutTwice,
 	},
-	//{
-	//	Name: "deletePod",
-	//	Test: testDeletePod,
-	//},
-	//{
-	//	Name: "drainNode",
-	//	Test: testDrainNode,
-	//},
-	//{
-	//	Name: "taintNode",
-	//	Test: testTaintNode,
-	//},
-	//{
-	//	Name: "scaleDeployment",
-	//	Test: testScaleDeployment,
-	//},
-	//{
-	//	Name: "causeCrashLoop",
-	//	Test: testCauseCrashLoop,
-	//},
+	{
+		Name: "deletePod",
+		Test: testDeletePod,
+	},
+	{
+		Name: "drainNode",
+		Test: testDrainNode,
+	},
+	{
+		Name: "taintNode",
+		Test: testTaintNode,
+	},
+	{
+		Name: "scaleDeployment",
+		Test: testScaleDeployment,
+	},
+	{
+		Name: "causeCrashLoop",
+		Test: testCauseCrashLoop,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
