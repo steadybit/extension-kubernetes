@@ -86,6 +86,22 @@ func (f DeploymentRolloutRestartAction) Prepare(_ context.Context, state *Deploy
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.Deployment = request.Target.Attributes["k8s.deployment"][0]
 	state.Wait = config.Wait
+
+	// First check if there is already an ongoing rollout
+	statusCmd := exec.Command("kubectl",
+		"rollout",
+		"status",
+		"--watch=false",
+		"--namespace",
+		state.Namespace,
+		fmt.Sprintf("deployment/%s", state.Deployment))
+	statusOut, _ := statusCmd.CombinedOutput()
+	statusOutStr := string(statusOut)
+
+	log.Info().Msgf("Rollout status output: %s", statusOutStr)
+	if strings.Contains(strings.ToLower(statusOutStr), "waiting") {
+		return nil, extension_kit.ToError("Cannot start rollout restart: there is already an ongoing rollout for this deployment", nil)
+	}
 	return nil, nil
 }
 
