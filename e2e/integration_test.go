@@ -192,7 +192,7 @@ func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err, "failed to create deployment")
 	defer func() { _ = nginx.Delete() }()
 	// Update the deployment to add a readiness probe
-	cmdOut, cmdErr := m.PodExec(e.Pod, "extension","kubectl", "patch", "deployment", "nginx-check-rollout-twice", "-n", "default", "--type", "json", "-p",
+	cmdOut, cmdErr := m.PodExec(e.Pod, "extension", "kubectl", "patch", "deployment", "nginx-check-rollout-twice", "-n", "default", "--type", "json", "-p",
 		`[{
         "op": "add",
         "path": "/spec/template/spec/containers/0/readinessProbe",
@@ -219,12 +219,17 @@ func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 	log.Info().Msg("Deployment patched and rollout completed")
 
-
 	tests := []struct {
-		name string
+		name      string
+		firstWait bool
 	}{
 		{
-			name: "should rollout twice",
+			name:      "should rollout twice, second time should succeed",
+			firstWait: true,
+		},
+		{
+			name:      "should rollout twice, second time should fail",
+			firstWait: false,
 		},
 	}
 
@@ -233,11 +238,11 @@ func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	for _, tt := range tests {
 
 		config := struct {
-			Duration int `json:"duration"`
+			Duration int  `json:"duration"`
 			Wait     bool `json:"wait"`
 		}{
 			Duration: 5000,
-			Wait:     false,
+			Wait:     tt.firstWait,
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
@@ -257,9 +262,14 @@ func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			secoundTimeAction, secondErr := e.RunAction(extdeployment.RolloutRestartActionId, &target, config, nil)
 			defer func() { _ = secoundTimeAction.Cancel() }()
-			require.Error(t, secondErr)
-			assert.Contains(t, secondErr.Error(),  "failed to prepare action")
-			assert.Contains(t, secondErr.Error(), "Cannot start rollout restart: there is already an ongoing rollout for this deployment")
+			if tt.firstWait {
+				require.NoError(t, secondErr)
+				require.NoError(t, secoundTimeAction.Wait())
+			} else {
+				require.Error(t, secondErr)
+				assert.Contains(t, secondErr.Error(), "failed to prepare action")
+				assert.Contains(t, secondErr.Error(), "Cannot start rollout restart: there is already an ongoing rollout for this deployment")
+			}
 		})
 	}
 
