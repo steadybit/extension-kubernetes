@@ -88,14 +88,10 @@ func (f DeploymentRolloutRestartAction) Prepare(_ context.Context, state *Deploy
 	state.Wait = config.Wait
 
 	// First check if there is already an ongoing rollout
-	statusCmd := exec.Command("kubectl",
-		"rollout",
-		"status",
-		"--watch=false",
-		"--namespace",
-		state.Namespace,
-		fmt.Sprintf("deployment/%s", state.Deployment))
-	statusOut, _ := statusCmd.CombinedOutput()
+	statusOut, statusErr := checkRolloutStatus(state)
+	if statusErr != nil {
+		return nil, extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart status check: %s", statusOut), statusErr)
+	}
 	statusOutStr := string(statusOut)
 
 	log.Info().Msgf("Rollout status output: %s", statusOutStr)
@@ -129,14 +125,7 @@ func (f DeploymentRolloutRestartAction) Status(_ context.Context, state *Deploym
 		}), nil
 	}
 
-	cmd := exec.Command("kubectl",
-		"rollout",
-		"status",
-		"--watch=false",
-		"--namespace",
-		state.Namespace,
-		fmt.Sprintf("deployment/%s", state.Deployment))
-	cmdOut, cmdErr := cmd.CombinedOutput()
+	cmdOut, cmdErr := checkRolloutStatus(state)
 	if cmdErr != nil {
 		return nil, extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart status check: %s", cmdOut), cmdErr)
 	}
@@ -146,4 +135,15 @@ func (f DeploymentRolloutRestartAction) Status(_ context.Context, state *Deploym
 	return extutil.Ptr(action_kit_api.StatusResult{
 		Completed: completed,
 	}), nil
+}
+
+func checkRolloutStatus(state *DeploymentRolloutRestartState) ([]byte, error) {
+	cmd := exec.Command("kubectl",
+		"rollout",
+		"status",
+		"--watch=false",
+		"--namespace",
+		state.Namespace,
+		fmt.Sprintf("deployment/%s", state.Deployment))
+	return cmd.CombinedOutput()
 }
