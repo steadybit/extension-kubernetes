@@ -269,7 +269,6 @@ func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				require.NoError(t, secoundTimeAction.Wait())
 			} else {
 				require.Error(t, secondErr)
-				assert.Contains(t, secondErr.Error(), "failed to prepare action")
 				assert.Contains(t, secondErr.Error(), "Cannot start rollout restart: there is already an ongoing rollout for this deployment")
 			}
 		})

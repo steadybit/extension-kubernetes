@@ -105,7 +105,12 @@ func (f DeploymentRolloutRestartAction) Prepare(_ context.Context, state *Deploy
 
 		log.Info().Msgf("Rollout status output: %s", statusOutStr)
 		if strings.Contains(strings.ToLower(statusOutStr), "waiting") {
-			return nil, extension_kit.ToError("Cannot start rollout restart: there is already an ongoing rollout for this deployment", nil)
+			return &action_kit_api.PrepareResult{
+				Error: &action_kit_api.ActionKitError{
+					Title:  "Cannot start rollout restart: there is already an ongoing rollout for this deployment.",
+					Status: extutil.Ptr(action_kit_api.Failed),
+				},
+			}, nil
 		}
 	}
 	return nil, nil
