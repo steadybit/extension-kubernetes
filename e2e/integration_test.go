@@ -240,9 +240,11 @@ func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		config := struct {
 			Duration int  `json:"duration"`
 			Wait     bool `json:"wait"`
+			CheckBefore bool `json:"checkBefore"`
 		}{
 			Duration: 5000,
 			Wait:     tt.firstWait,
+			CheckBefore: true,
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
