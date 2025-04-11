@@ -16,17 +16,17 @@ var (
 		TargetType: PodTargetType,
 		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 			{
-				Label:       "deployment",
+				Label:       "kubernetes deployment",
 				Description: extutil.Ptr("Find pods by cluster, namespace and deployment"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 			},
 			{
-				Label:       "statefulset",
+				Label:       "kubernetes statefulset",
 				Description: extutil.Ptr("Find pods by cluster, namespace and statefulset."),
 				Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.statefulset=\"\"",
 			},
 			{
-				Label:       "daemonset",
+				Label:       "kubernetes daemonset",
 				Description: extutil.Ptr("Find pods by cluster, namespace and daemonset."),
 				Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.daemonset=\"\"",
 			},

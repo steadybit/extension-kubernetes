@@ -25,17 +25,17 @@ var (
 				Query:       "host.hostname=\"\"",
 			},
 			{
-				Label:       "deployment",
+				Label:       "kubernetes deployment",
 				Description: extutil.Ptr("Find node by cluster, namespace and deployment."),
 				Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.deployment=\"\"",
 			},
 			{
-				Label:       "statefulset",
+				Label:       "kubernetes statefulset",
 				Description: extutil.Ptr("Find node by cluster, namespace and statefulset."),
 				Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.statefulset=\"\"",
 			},
 			{
-				Label:       "daemonset",
+				Label:       "kubernetes daemonset",
 				Description: extutil.Ptr("Find node by cluster, namespace and daemonset."),
 				Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.daemonset=\"\"",
 			},
