@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.3 (next)
+
+- add more prefill-queries
+- rollout restart attack check for already running rollout restart
+
 ## v2.6.2
 
 - Updated dependencies
