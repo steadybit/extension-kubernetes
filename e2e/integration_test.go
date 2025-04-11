@@ -39,6 +39,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Test: testDiscovery,
 	},
 	{
+		Name: "checkRolloutTwice",
+		Test: testCheckRolloutTwice,
+	},
+	{
 		Name: "checkRolloutReady",
 		Test: testCheckRolloutReady,
 	},
@@ -174,6 +178,99 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				require.NoError(t, err)
 			} else {
 				require.Error(t, err)
+			}
+		})
+	}
+
+}
+
+func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testCheckRolloutTwice")
+
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-check-rollout-twice")
+	require.NoError(t, err, "failed to create deployment")
+	defer func() { _ = nginx.Delete() }()
+	// Update the deployment to add a readiness probe
+	cmdOut, cmdErr := m.PodExec(e.Pod, "extension", "kubectl", "patch", "deployment", "nginx-check-rollout-twice", "-n", "default", "--type", "json", "-p",
+		`[{
+        "op": "add",
+        "path": "/spec/template/spec/containers/0/readinessProbe",
+        "value": {
+            "initialDelaySeconds": 5,
+            "periodSeconds": 3,
+            "failureThreshold": 3,
+            "timeoutSeconds": 1,
+            "successThreshold": 1,
+            "tcpSocket": {
+                "port": 80
+            }
+        }
+    }]`)
+	if cmdErr != nil {
+		log.Error().Msgf("Failed to patch deployment: %s, %v", cmdOut, cmdErr)
+		require.NoError(t, cmdErr, "failed to patch deployment")
+	}
+	// Wait for rollout to complete after patching
+	waitCmd, waitErr := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "status", "deployment/nginx-check-rollout-twice", "-n", "default", "--timeout=30s")
+	if waitErr != nil {
+		log.Error().Msgf("Failed to wait for rollout completion: %s, %v", waitCmd, waitErr)
+		require.NoError(t, waitErr, "failed to wait for rollout completion")
+	}
+	log.Info().Msg("Deployment patched and rollout completed")
+
+	tests := []struct {
+		name      string
+		firstWait bool
+	}{
+		{
+			name:      "should rollout twice, second time should succeed",
+			firstWait: true,
+		},
+		{
+			name:      "should rollout twice, second time should fail",
+			firstWait: false,
+		},
+	}
+
+	require.NoError(t, err)
+
+	for _, tt := range tests {
+
+		config := struct {
+			Duration int  `json:"duration"`
+			Wait     bool `json:"wait"`
+			CheckBefore bool `json:"checkBefore"`
+		}{
+			Duration: 5000,
+			Wait:     tt.firstWait,
+			CheckBefore: true,
+		}
+
+		t.Run(tt.name, func(t *testing.T) {
+			target := action_kit_api.Target{
+				Name: "test",
+				Attributes: map[string][]string{
+					"k8s.cluster-name": {"e2e-cluster"},
+					"k8s.namespace":    {"default"},
+					"k8s.deployment":   {"nginx-check-rollout-twice"},
+				},
+			}
+			action, err := e.RunAction(extdeployment.RolloutRestartActionId, &target, config, nil)
+			defer func() { _ = action.Cancel() }()
+			require.NoError(t, err)
+
+			err = action.Wait()
+			require.NoError(t, err)
+			secoundTimeAction, secondErr := e.RunAction(extdeployment.RolloutRestartActionId, &target, config, nil)
+			defer func() { _ = secoundTimeAction.Cancel() }()
+			if tt.firstWait {
+				require.NoError(t, secondErr)
+				require.NoError(t, secoundTimeAction.Wait())
+			} else {
+				require.Error(t, secondErr)
+				assert.Contains(t, secondErr.Error(), "failed to prepare action")
+				assert.Contains(t, secondErr.Error(), "Cannot start rollout restart: there is already an ongoing rollout for this deployment")
 			}
 		})
 	}
