@@ -28,8 +28,8 @@ type DeploymentRolloutRestartState struct {
 }
 
 type DeploymentRolloutRestartConfig struct {
-	Wait bool
-	CheckBefore bool
+	Wait               bool
+	DisableCheckBefore bool
 }
 
 func NewDeploymentRolloutRestartAction() action_kit_sdk.Action[DeploymentRolloutRestartState] {
@@ -72,11 +72,11 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 				DefaultValue: extutil.Ptr("false"),
 			},
 			{
-				Label:        "check for already running rollout",
-				Name:         "checkBefore",
+				Label:        "disable check for already running rollout",
+				Name:         "disableCheckBefore",
 				Type:         action_kit_api.Boolean,
 				Advanced:     extutil.Ptr(true),
-				DefaultValue: extutil.Ptr("true"),
+				DefaultValue: extutil.Ptr("false"),
 			},
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
@@ -96,7 +96,7 @@ func (f DeploymentRolloutRestartAction) Prepare(_ context.Context, state *Deploy
 	state.Wait = config.Wait
 
 	// First check if there is already an ongoing rollout
-	if config.CheckBefore {
+	if !config.DisableCheckBefore {
 		statusOut, statusErr := checkRolloutStatus(state)
 		if statusErr != nil {
 			return nil, extension_kit.ToError(fmt.Sprintf("Failed to execute rollout restart status check: %s", statusOut), statusErr)
