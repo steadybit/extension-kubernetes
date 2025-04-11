@@ -35,6 +35,16 @@ func getDeletePodDescription() action_kit_api.ActionDescription {
 					Description: extutil.Ptr("Find pods by cluster, namespace and deployment"),
 					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 				},
+				{
+					Label:       "statefulset",
+					Description: extutil.Ptr("Find pods by cluster, namespace and statefulset."),
+					Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.statefulset=\"\"",
+				},
+				{
+					Label:       "daemonset",
+					Description: extutil.Ptr("Find pods by cluster, namespace and daemonset."),
+					Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.daemonset=\"\"",
+				},
 			}),
 		}),
 		TimeControl: action_kit_api.TimeControlInternal,
