@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	kclient "github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -231,6 +232,7 @@ func testPod(modifier func(pod *corev1.Pod)) *corev1.Pod {
 	return pod
 }
 
-func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *kclient.Client {
-	return kclient.CreateClient(testclient.NewClientset(objects...), stopCh, "/oapi", kclient.MockAllPermitted())
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
+	dynamicClient := testutil.NewFakeDynamicClient()
+	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "/oapi", client.MockAllPermitted(), dynamicClient)
 }
