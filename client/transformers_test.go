@@ -27,11 +27,11 @@ func TestTransformIngressClass(t *testing.T) {
 					Name: "nginx-steadybit",
 					Annotations: map[string]string{
 						"ingressclass.kubernetes.io/is-default-class": "true",
-						"operator-sdk/primary-resource":              "nginx-system/nginx-controller",
-						"meta.helm.sh/release-namespace":             "nginx-system",
-						"meta.helm.sh/release-name":                  "nginx-ingress",
-						"other.annotation/should-be-removed":         "some-value",
-						"yet.another/annotation":                     "another-value",
+						"operator-sdk/primary-resource":               "nginx-system/nginx-controller",
+						"meta.helm.sh/release-namespace":              "nginx-system",
+						"meta.helm.sh/release-name":                   "nginx-ingress",
+						"other.annotation/should-be-removed":          "some-value",
+						"yet.another/annotation":                      "another-value",
 					},
 					ManagedFields: []metav1.ManagedFieldsEntry{
 						{
@@ -48,9 +48,9 @@ func TestTransformIngressClass(t *testing.T) {
 					Name: "nginx-steadybit",
 					Annotations: map[string]string{
 						"ingressclass.kubernetes.io/is-default-class": "true",
-						"operator-sdk/primary-resource":              "nginx-system/nginx-controller",
-						"meta.helm.sh/release-namespace":             "nginx-system",
-						"meta.helm.sh/release-name":                  "nginx-ingress",
+						"operator-sdk/primary-resource":               "nginx-system/nginx-controller",
+						"meta.helm.sh/release-namespace":              "nginx-system",
+						"meta.helm.sh/release-name":                   "nginx-ingress",
 					},
 					ManagedFields: nil, // Should be cleared
 				},
@@ -67,8 +67,8 @@ func TestTransformIngressClass(t *testing.T) {
 					Name: "nginx-basic",
 					Annotations: map[string]string{
 						"ingressclass.kubernetes.io/is-default-class": "false",
-						"meta.helm.sh/release-namespace":             "nginx-system",
-						"irrelevant.annotation/should-be-removed":    "some-value",
+						"meta.helm.sh/release-namespace":              "nginx-system",
+						"irrelevant.annotation/should-be-removed":     "some-value",
 					},
 					ManagedFields: []metav1.ManagedFieldsEntry{
 						{
@@ -85,7 +85,7 @@ func TestTransformIngressClass(t *testing.T) {
 					Name: "nginx-basic",
 					Annotations: map[string]string{
 						"ingressclass.kubernetes.io/is-default-class": "false",
-						"meta.helm.sh/release-namespace":             "nginx-system",
+						"meta.helm.sh/release-namespace":              "nginx-system",
 					},
 					ManagedFields: nil,
 				},
@@ -101,11 +101,11 @@ func TestTransformIngressClass(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "nginx-empty-annotations",
 					Annotations: map[string]string{
-						"ingressclass.kubernetes.io/is-default-class": "",         // Empty - should not be kept
-						"operator-sdk/primary-resource":              "namespace/controller", // Non-empty - should be kept
-						"meta.helm.sh/release-namespace":             "",         // Empty - should not be kept
-						"meta.helm.sh/release-name":                  "",         // Empty - should not be kept
-						"other.annotation/irrelevant":                "value",    // Irrelevant - should not be kept
+						"ingressclass.kubernetes.io/is-default-class": "",                     // Empty - should not be kept
+						"operator-sdk/primary-resource":               "namespace/controller", // Non-empty - should be kept
+						"meta.helm.sh/release-namespace":              "",                     // Empty - should not be kept
+						"meta.helm.sh/release-name":                   "",                     // Empty - should not be kept
+						"other.annotation/irrelevant":                 "value",                // Irrelevant - should not be kept
 					},
 					ManagedFields: []metav1.ManagedFieldsEntry{
 						{
@@ -137,8 +137,8 @@ func TestTransformIngressClass(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "nginx-no-relevant-annotations",
 					Annotations: map[string]string{
-						"some.other.annotation/value":     "test",
-						"another.irrelevant/annotation":   "value",
+						"some.other.annotation/value":   "test",
+						"another.irrelevant/annotation": "value",
 					},
 					ManagedFields: []metav1.ManagedFieldsEntry{
 						{
@@ -211,7 +211,7 @@ func TestTransformIngressClass(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "passes through string objects unchanged",
+			name:     "passes through string objects unchanged",
 			input:    "not-an-ingress-class",
 			expected: "not-an-ingress-class",
 			wantErr:  false,
@@ -262,7 +262,7 @@ func TestTransformIngressClass_SpecificBehaviors(t *testing.T) {
 
 		ic, ok := result.(*networkingv1.IngressClass)
 		require.True(t, ok)
-		
+
 		// Spec should be preserved exactly
 		assert.Equal(t, input.Spec, ic.Spec)
 	})
@@ -283,7 +283,7 @@ func TestTransformIngressClass_SpecificBehaviors(t *testing.T) {
 
 		ic, ok := result.(*networkingv1.IngressClass)
 		require.True(t, ok)
-		
+
 		assert.Nil(t, ic.ObjectMeta.ManagedFields)
 	})
 
@@ -293,9 +293,9 @@ func TestTransformIngressClass_SpecificBehaviors(t *testing.T) {
 				Name: "test",
 				Annotations: map[string]string{
 					"ingressclass.kubernetes.io/is-default-class": "true",
-					"operator-sdk/primary-resource":              "ns/deploy",
-					"meta.helm.sh/release-namespace":             "helm-ns",
-					"meta.helm.sh/release-name":                  "helm-release",
+					"operator-sdk/primary-resource":               "ns/deploy",
+					"meta.helm.sh/release-namespace":              "helm-ns",
+					"meta.helm.sh/release-name":                   "helm-release",
 				},
 			},
 		}
@@ -305,14 +305,14 @@ func TestTransformIngressClass_SpecificBehaviors(t *testing.T) {
 
 		ic, ok := result.(*networkingv1.IngressClass)
 		require.True(t, ok)
-		
+
 		expectedAnnotations := map[string]string{
 			"ingressclass.kubernetes.io/is-default-class": "true",
-			"operator-sdk/primary-resource":              "ns/deploy",
-			"meta.helm.sh/release-namespace":             "helm-ns",
-			"meta.helm.sh/release-name":                  "helm-release",
+			"operator-sdk/primary-resource":               "ns/deploy",
+			"meta.helm.sh/release-namespace":              "helm-ns",
+			"meta.helm.sh/release-name":                   "helm-release",
 		}
-		
+
 		assert.Equal(t, expectedAnnotations, ic.Annotations)
 	})
 }

@@ -143,6 +143,10 @@ spec:
             {{- end }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
               value: "{{ .Values.discovery.maxPodCount }}"
+            {{- if .Values.discovery.disableArgoRollouts }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLE_ARGO_ROLLOUTS
+              value: "true"
+            {{- end }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
               value: "{{ .Values.discovery.refreshThrottle }}"
           {{- with .Values.extraEnvFrom }}

@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 )
 
 func Test_deploymentDiscovery(t *testing.T) {
@@ -693,6 +695,7 @@ func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDis
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), &rest.Config{}, dynamicClient)
 	return client, clientset
 }
