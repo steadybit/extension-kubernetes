@@ -11,6 +11,7 @@ import (
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +42,7 @@ func TestPrepareExtractsState(t *testing.T) {
 func TestStatusEventsFound(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
-	defer close(stopCh)
+	t.Cleanup(func() { close(stopCh) })
 
 	state, k8sClient := prepareTest(stopCh)
 
@@ -91,5 +92,6 @@ func prepareTest(stopCh chan struct{}) (*K8sEventsState, *client.Client) {
 		},
 	})
 
-	return &state, client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	return &state, client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), dynamicClient)
 }

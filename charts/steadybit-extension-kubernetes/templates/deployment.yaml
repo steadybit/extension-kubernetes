@@ -110,6 +110,8 @@ spec:
               value: {{ .Values.discovery.disabled.node | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
               value: {{ .Values.discovery.disabled.pod | quote }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUTS
+              value: {{ .Values.discovery.disabledArgoRollouts | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
               value: {{ .Values.discovery.disabled.replicaSet | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET

@@ -19,6 +19,7 @@ type Specification struct {
 	AdviceSingleReplicaMinReplicas         int      `json:"adviceSingleReplicaMinReplicas" split_words:"true" required:"false" default:"2"`
 	DisableDiscoveryExcludes               bool     `required:"false" split_words:"true" default:"false"`
 	LogKubernetesHttpRequests              bool     `required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledArgoRollout           bool     `json:"discoveryDisabledArgoRollout" required:"false" split_words:"true" default:"true"`
 	DiscoveryDisabledCluster               bool     `json:"discoveryDisabledCluster" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledContainer             bool     `json:"discoveryDisabledContainer" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledDaemonSet             bool     `json:"discoveryDisabledDaemonSet" required:"false" split_words:"true" default:"false"`

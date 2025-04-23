@@ -5,9 +5,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 type PermissionCheckResult struct {
@@ -62,6 +63,7 @@ var requiredPermissions = []requiredPermission{
 	{group: "", resource: "pods", subresource: "eviction", verbs: []string{"create"}, allowGracefulFailure: true},
 	{group: "", resource: "nodes", verbs: []string{"patch"}, allowGracefulFailure: true},
 	{group: "", resource: "pods", subresource: "exec", verbs: []string{"create"}, allowGracefulFailure: true},
+	{group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 	{group: "networking.k8s.io", resource: "ingresses", verbs: []string{"get", "list", "watch", "update", "patch"}, allowGracefulFailure: true},
 	{group: "networking.k8s.io", resource: "ingressclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 }
@@ -70,6 +72,13 @@ func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
 	result := make(map[string]PermissionCheckOutcome)
 	reviews := client.AuthorizationV1().SelfSubjectAccessReviews()
 	errors := false
+
+	// Conditionally add Argo rollouts permissions
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		requiredPermissions = append(requiredPermissions, requiredPermission{
+			group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true,
+		})
+	}
 
 	for _, p := range requiredPermissions {
 		for _, verb := range p.verbs {
@@ -242,6 +251,14 @@ func (p *PermissionCheckResult) IsSetImageDeploymentPermitted() bool {
 
 func MockAllPermitted() *PermissionCheckResult {
 	result := make(map[string]PermissionCheckOutcome)
+
+	// Conditionally add Argo rollouts permissions
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		requiredPermissions = append(requiredPermissions, requiredPermission{
+			group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true,
+		})
+	}
+
 	for _, p := range requiredPermissions {
 		for _, verb := range p.verbs {
 			result[p.Key(verb)] = OK
