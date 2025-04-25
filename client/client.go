@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -22,6 +23,7 @@ import (
 	listerAppsv1 "k8s.io/client-go/listers/apps/v1"
 	listerAutoscalingv2 "k8s.io/client-go/listers/autoscaling/v2"
 	listerCorev1 "k8s.io/client-go/listers/core/v1"
+	listerNetworkingv1 "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -85,6 +87,11 @@ type Client struct {
 
 	hpa struct {
 		lister   listerAutoscalingv2.HorizontalPodAutoscalerLister
+		informer cache.SharedIndexInformer
+	}
+
+	ingress struct {
+		lister   listerNetworkingv1.IngressLister
 		informer cache.SharedIndexInformer
 	}
 
@@ -336,6 +343,25 @@ func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace strin
 	return nil
 }
 
+func (c *Client) Ingresses() []*networkingv1.Ingress {
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		log.Info().Msgf("Fetching ingresses for namespace %s", extconfig.Config.Namespace)
+		ingresses, err := c.ingress.lister.Ingresses(extconfig.Config.Namespace).List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching ingresses")
+			return []*networkingv1.Ingress{}
+		}
+		return ingresses
+	} else {
+		ingresses, err := c.ingress.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching ingresses")
+			return []*networkingv1.Ingress{}
+		}
+		return ingresses
+	}
+}
+
 func logGetError(resource string, err error) {
 	if err != nil {
 		var t *k8sErrors.StatusError
@@ -494,6 +520,18 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		if _, err := client.hpa.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 			log.Fatal().Msg("failed to add hpa event handler")
 		}
+	}
+
+	// Add ingress informer
+	ingresses := factory.Networking().V1().Ingresses()
+	client.ingress.informer = ingresses.Informer()
+	client.ingress.lister = ingresses.Lister()
+	informerSyncList = append(informerSyncList, client.ingress.informer.HasSynced)
+	if err := client.ingress.informer.SetTransform(transformIngress); err != nil {
+		log.Fatal().Err(err).Msg("Failed to add ingress transformer")
+	}
+	if _, err := client.ingress.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add ingress event handler")
 	}
 
 	events := factory.Core().V1().Events()
