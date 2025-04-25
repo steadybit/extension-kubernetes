@@ -70,7 +70,7 @@ func (d *ingressDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 func (d *ingressDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       IngressTargetType,
-		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Ingress", Other: "Kubernetes Ingresses"},
+		Label:    discovery_kit_api.PluralLabel{One: "HAProxy Ingress", Other: "HAProxy Ingresses"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:     extutil.Ptr("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M19.5%2013.5V5.5H12.5V3.5H21.5V13.5H19.5ZM4.5%2010.5V18.5H11.5V20.5H2.5V10.5H4.5ZM10.76%204.59L9.47%205.88L12.59%209H8V11H12.59L9.47%2014.12L10.76%2015.41L15.76%2010.41L10.76%204.59Z%22%20fill%3D%22%231D2632%22%2F%3E%0A%3C%2Fsvg%3E"),

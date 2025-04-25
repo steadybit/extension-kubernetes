@@ -4,5 +4,5 @@
 package extingress
 
 const (
-	IngressTargetType = "com.steadybit.extension_kubernetes.kubernetes-ingress"
+	IngressTargetType = "com.steadybit.extension_kubernetes.haproxy-ingress"
 )
