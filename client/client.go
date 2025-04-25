@@ -95,6 +95,11 @@ type Client struct {
 		informer cache.SharedIndexInformer
 	}
 
+	ingressClass struct {
+		lister   listerNetworkingv1.IngressClassLister
+		informer cache.SharedIndexInformer
+	}
+
 	handlers struct {
 		sync.Mutex
 		l []chan<- interface{}
@@ -362,6 +367,36 @@ func (c *Client) Ingresses() []*networkingv1.Ingress {
 	}
 }
 
+func (c *Client) IngressClasses() []*networkingv1.IngressClass {
+	ingressClasses, err := c.ingressClass.lister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching IngressClasses")
+		return []*networkingv1.IngressClass{}
+	}
+	return ingressClasses
+}
+
+func (c *Client) GetHAProxyIngressClasses() ([]string, bool) {
+	ingressClasses := c.IngressClasses()
+	haproxyClassNames := make([]string, 0)
+	hasDefaultClass := false
+
+	for _, ic := range ingressClasses {
+		if ic.Spec.Controller == "haproxy.org/ingress-controller/haproxy" {
+			haproxyClassNames = append(haproxyClassNames, ic.Name)
+
+			// Check if this is a default class
+			if ic.Annotations != nil {
+				if value, ok := ic.Annotations["ingressclass.kubernetes.io/is-default-class"]; ok && value == "true" {
+					hasDefaultClass = true
+				}
+			}
+		}
+	}
+
+	return haproxyClassNames, hasDefaultClass
+}
+
 func logGetError(resource string, err error) {
 	if err != nil {
 		var t *k8sErrors.StatusError
@@ -532,6 +567,18 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 	if _, err := client.ingress.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 		log.Fatal().Msg("failed to add ingress event handler")
+	}
+
+	// Add ingressClasses informer
+	ingressClasses := factory.Networking().V1().IngressClasses()
+	client.ingressClass.informer = ingressClasses.Informer()
+	client.ingressClass.lister = ingressClasses.Lister()
+	informerSyncList = append(informerSyncList, client.ingressClass.informer.HasSynced)
+	if err := client.ingressClass.informer.SetTransform(transformIngressClass); err != nil {
+		log.Fatal().Err(err).Msg("Failed to add ingressClass transformer")
+	}
+	if _, err := client.ingressClass.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+		log.Fatal().Msg("failed to add ingressClass event handler")
 	}
 
 	events := factory.Core().V1().Events()

@@ -6,7 +6,7 @@ package extingress
 import (
 	"context"
 	"fmt"
-	"regexp"
+	"reflect"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -21,12 +21,10 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/utils/strings/slices"
-	"reflect"
 )
 
 type ingressDiscovery struct {
-	k8s                   *client.Client
-	ingressClassNameRegex *regexp.Regexp
+	k8s *client.Client
 }
 
 var (
@@ -34,22 +32,13 @@ var (
 )
 
 func NewIngressDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
-	var ingressClassNameRegex *regexp.Regexp
-	if extconfig.Config.IngressClassNameRegex != "" {
-		var err error
-		ingressClassNameRegex, err = regexp.Compile(extconfig.Config.IngressClassNameRegex)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to compile ingressClassName regex '%s', will not filter by ingressClassName", extconfig.Config.IngressClassNameRegex)
-		}
-	}
-
 	discovery := &ingressDiscovery{
-		k8s:                   k8s,
-		ingressClassNameRegex: ingressClassNameRegex,
+		k8s: k8s,
 	}
 
 	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s,
 		reflect.TypeOf(networkingv1.Ingress{}),
+		reflect.TypeOf(networkingv1.IngressClass{}),
 	)
 
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
@@ -94,38 +83,45 @@ func (d *ingressDiscovery) DescribeTarget() discovery_kit_api.TargetDescription 
 func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.Target, error) {
 	ingresses := d.k8s.Ingresses()
 
+	haproxyClasses, hasDefaultClass := d.k8s.GetHAProxyIngressClasses()
+	log.Debug().Msgf("Found HAProxy IngressClasses: %v, hasDefault: %v", haproxyClasses, hasDefaultClass)
+
 	filteredIngresses := make([]*networkingv1.Ingress, 0, len(ingresses))
 	for _, ingress := range ingresses {
 		if client.IsExcludedFromDiscovery(ingress.ObjectMeta) {
 			continue
 		}
 
-		// Filter by ingressClassName regex if configured
-		if d.ingressClassNameRegex != nil {
-			ingressClassName := ""
+		ingressClassName := ""
+		usesHAProxyClass := false
 
-			// First, check for the spec.ingressClassName field
-			if ingress.Spec.IngressClassName != nil {
-				ingressClassName = *ingress.Spec.IngressClassName
-			} else if ingress.ObjectMeta.Annotations != nil {
-				// If spec.ingressClassName is nil, fall back to the annotation
-				if classAnnotation, ok := ingress.ObjectMeta.Annotations["kubernetes.io/ingress.class"]; ok {
-					ingressClassName = classAnnotation
+		if ingress.Spec.IngressClassName != nil {
+			ingressClassName = *ingress.Spec.IngressClassName
+			for _, className := range haproxyClasses {
+				if ingressClassName == className {
+					usesHAProxyClass = true
+					break
 				}
 			}
-
-			// If we have a class name (from either source), check the regex
-			if ingressClassName != "" {
-				if !d.ingressClassNameRegex.MatchString(ingressClassName) {
-					continue
+		} else if ingress.ObjectMeta.Annotations != nil {
+			if classAnnotation, ok := ingress.ObjectMeta.Annotations["kubernetes.io/ingress.class"]; ok {
+				ingressClassName = classAnnotation
+				for _, className := range haproxyClasses {
+					if ingressClassName == className {
+						usesHAProxyClass = true
+						break
+					}
 				}
-			} else {
-				// No class name found, skip if the regex is configured
-				continue
+			} else if hasDefaultClass {
+				usesHAProxyClass = true
 			}
+		} else if hasDefaultClass {
+			usesHAProxyClass = true
 		}
 
-		filteredIngresses = append(filteredIngresses, ingress)
+		if usesHAProxyClass {
+			filteredIngresses = append(filteredIngresses, ingress)
+		}
 	}
 
 	targets := make([]discovery_kit_api.Target, len(filteredIngresses))
@@ -139,7 +135,6 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			"k8s.distribution":  {d.k8s.Distribution},
 		}
 
-		// Add ingressClassName from spec or annotation
 		ingressClassName := ""
 		if ingress.Spec.IngressClassName != nil {
 			ingressClassName = *ingress.Spec.IngressClassName
@@ -153,7 +148,6 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			attributes["k8s.ingress.class"] = []string{ingressClassName}
 		}
 
-		// Add all ingress rules hosts
 		hosts := make([]string, 0)
 		for _, rule := range ingress.Spec.Rules {
 			if rule.Host != "" {
@@ -164,7 +158,6 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			attributes["k8s.ingress.hosts"] = hosts
 		}
 
-		// Add TLS secret names if available
 		tlsSecrets := make([]string, 0)
 		for _, tls := range ingress.Spec.TLS {
 			if tls.SecretName != "" {
@@ -175,7 +168,6 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			attributes["k8s.ingress.tls.secrets"] = tlsSecrets
 		}
 
-		// Add labels
 		for key, value := range ingress.ObjectMeta.Labels {
 			if !slices.Contains(extconfig.Config.LabelFilter, key) {
 				attributes[fmt.Sprintf("k8s.ingress.label.%v", key)] = []string{value}
@@ -183,7 +175,6 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			}
 		}
 
-		// Add namespace labels
 		extnamespace.AddNamespaceLabels(d.k8s, ingress.Namespace, attributes)
 
 		targets[i] = discovery_kit_api.Target{
@@ -196,4 +187,3 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 
 	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesIngress), nil
 }
-

@@ -144,6 +144,29 @@ func transformHPA(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
+func transformIngressClass(i interface{}) (interface{}, error) {
+	if ic, ok := i.(*networkingv1.IngressClass); ok {
+		// Keep only needed annotations, particularly is-default-class
+		defaultClassAnnotation := ""
+		if ic.Annotations != nil {
+			defaultClassAnnotation = ic.Annotations["ingressclass.kubernetes.io/is-default-class"]
+		}
+
+		if defaultClassAnnotation != "" {
+			ic.Annotations = map[string]string{
+				"ingressclass.kubernetes.io/is-default-class": defaultClassAnnotation,
+			}
+		} else {
+			ic.Annotations = nil
+		}
+
+		ic.ObjectMeta.ManagedFields = nil
+
+		return ic, nil
+	}
+	return i, nil
+}
+
 func transformIngress(i interface{}) (interface{}, error) {
 	if d, ok := i.(*networkingv1.Ingress); ok {
 		// Preserve ingressClassName and the class annotation if present
