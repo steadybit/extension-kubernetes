@@ -69,8 +69,6 @@ func (d *ingressDiscovery) DescribeTarget() discovery_kit_api.TargetDescription 
 				{Attribute: "k8s.namespace"},
 				{Attribute: "k8s.cluster-name"},
 				{Attribute: "k8s.ingress.class"},
-				{Attribute: "k8s.ingress.controller"},
-				{Attribute: "k8s.ingress.hosts"},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
@@ -94,32 +92,8 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			continue
 		}
 
-		ingressClassName := ""
-		usesHAProxyClass := false
-
-		if ingress.Spec.IngressClassName != nil {
-			ingressClassName = *ingress.Spec.IngressClassName
-			for _, className := range haproxyClasses {
-				if ingressClassName == className {
-					usesHAProxyClass = true
-					break
-				}
-			}
-		} else if ingress.ObjectMeta.Annotations != nil {
-			if classAnnotation, ok := ingress.ObjectMeta.Annotations["kubernetes.io/ingress.class"]; ok {
-				ingressClassName = classAnnotation
-				for _, className := range haproxyClasses {
-					if ingressClassName == className {
-						usesHAProxyClass = true
-						break
-					}
-				}
-			} else if hasDefaultClass {
-				usesHAProxyClass = true
-			}
-		} else if hasDefaultClass {
-			usesHAProxyClass = true
-		}
+		ingressClassName := d.getIngressClassName(ingress)
+		usesHAProxyClass := d.isUsingHAProxyClass(ingressClassName, haproxyClasses, hasDefaultClass)
 
 		if usesHAProxyClass {
 			filteredIngresses = append(filteredIngresses, ingress)
@@ -137,21 +111,9 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			"k8s.distribution": {d.k8s.Distribution},
 		}
 
-		ingressClassName := ""
-		if ingress.Spec.IngressClassName != nil {
-			ingressClassName = *ingress.Spec.IngressClassName
-		} else if ingress.ObjectMeta.Annotations != nil {
-			if classAnnotation, ok := ingress.ObjectMeta.Annotations["kubernetes.io/ingress.class"]; ok {
-				ingressClassName = classAnnotation
-			}
-		}
-
+		ingressClassName := d.getIngressClassName(ingress)
 		if ingressClassName != "" {
 			attributes["k8s.ingress.class"] = []string{ingressClassName}
-		}
-
-		// Add the ingress controller attribute
-		if ingressClassName != "" {
 			controller := d.k8s.GetIngressControllerByClassName(ingressClassName)
 			if controller != "" {
 				attributes["k8s.ingress.controller"] = []string{controller}
@@ -186,4 +148,29 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 	}
 
 	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesIngress), nil
+}
+
+func (d *ingressDiscovery) getIngressClassName(ingress *networkingv1.Ingress) string {
+	if ingress.Spec.IngressClassName != nil {
+		return *ingress.Spec.IngressClassName
+	}
+	if ingress.ObjectMeta.Annotations != nil {
+		if classAnnotation, ok := ingress.ObjectMeta.Annotations["kubernetes.io/ingress.class"]; ok {
+			return classAnnotation
+		}
+	}
+	return ""
+}
+
+func (d *ingressDiscovery) isUsingHAProxyClass(className string, haproxyClasses []string, hasDefaultClass bool) bool {
+	if className != "" {
+		for _, haproxyClass := range haproxyClasses {
+			if className == haproxyClass {
+				return true
+			}
+		}
+	} else if hasDefaultClass {
+		return true
+	}
+	return false
 }
