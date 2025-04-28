@@ -49,7 +49,7 @@ func NewIngressDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 
 func (d *ingressDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id: IngressTargetType,
+		Id: HAProxyIngressTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("30s"),
 		},
@@ -58,7 +58,7 @@ func (d *ingressDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 
 func (d *ingressDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
-		Id:       IngressTargetType,
+		Id:       HAProxyIngressTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "HAProxy Ingress", Other: "HAProxy Ingresses"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
@@ -141,7 +141,7 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
-			TargetType: IngressTargetType,
+			TargetType: HAProxyIngressTargetType,
 			Label:      ingress.Name,
 			Attributes: attributes,
 		}
