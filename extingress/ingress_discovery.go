@@ -69,6 +69,8 @@ func (d *ingressDiscovery) DescribeTarget() discovery_kit_api.TargetDescription 
 				{Attribute: "k8s.namespace"},
 				{Attribute: "k8s.cluster-name"},
 				{Attribute: "k8s.ingress.class"},
+				{Attribute: "k8s.ingress.controller"},
+				{Attribute: "k8s.ingress.hosts"},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
@@ -129,10 +131,10 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 	for i, ingress := range filteredIngresses {
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ingress.Namespace, ingress.Name)
 		attributes := map[string][]string{
-			"k8s.namespace":     {ingress.Namespace},
-			"k8s.ingress":       {ingress.Name},
-			"k8s.cluster-name":  {extconfig.Config.ClusterName},
-			"k8s.distribution":  {d.k8s.Distribution},
+			"k8s.namespace":    {ingress.Namespace},
+			"k8s.ingress":      {ingress.Name},
+			"k8s.cluster-name": {extconfig.Config.ClusterName},
+			"k8s.distribution": {d.k8s.Distribution},
 		}
 
 		ingressClassName := ""
@@ -148,6 +150,14 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			attributes["k8s.ingress.class"] = []string{ingressClassName}
 		}
 
+		// Add the ingress controller attribute
+		if ingressClassName != "" {
+			controller := d.k8s.GetIngressControllerByClassName(ingressClassName)
+			if controller != "" {
+				attributes["k8s.ingress.controller"] = []string{controller}
+			}
+		}
+
 		hosts := make([]string, 0)
 		for _, rule := range ingress.Spec.Rules {
 			if rule.Host != "" {
@@ -156,16 +166,6 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 		}
 		if len(hosts) > 0 {
 			attributes["k8s.ingress.hosts"] = hosts
-		}
-
-		tlsSecrets := make([]string, 0)
-		for _, tls := range ingress.Spec.TLS {
-			if tls.SecretName != "" {
-				tlsSecrets = append(tlsSecrets, tls.SecretName)
-			}
-		}
-		if len(tlsSecrets) > 0 {
-			attributes["k8s.ingress.tls.secrets"] = tlsSecrets
 		}
 
 		for key, value := range ingress.ObjectMeta.Labels {

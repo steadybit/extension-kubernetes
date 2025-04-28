@@ -397,6 +397,16 @@ func (c *Client) GetHAProxyIngressClasses() ([]string, bool) {
 	return haproxyClassNames, hasDefaultClass
 }
 
+func (c *Client) GetIngressControllerByClassName(className string) string {
+	ingressClasses := c.IngressClasses()
+	for _, ic := range ingressClasses {
+		if ic.Name == className {
+			return ic.Spec.Controller
+		}
+	}
+	return ""
+}
+
 func logGetError(resource string, err error) {
 	if err != nil {
 		var t *k8sErrors.StatusError
@@ -684,3 +694,4 @@ func IsExcludedFromDiscovery(objectMeta metav1.ObjectMeta) bool {
 	}
 	return false
 }
+
