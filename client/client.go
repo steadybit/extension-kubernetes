@@ -633,6 +633,17 @@ func (c *Client) StopNotify(ch chan<- interface{}) {
 		return e == ch
 	})
 }
+func (c *Client) IngressByNamespaceAndName(namespace string, name string) (*networkingv1.Ingress, error) {
+	ingress, err := c.ingress.lister.Ingresses(namespace).Get(name)
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, fmt.Errorf("ingress %s/%s not found", namespace, name)
+		}
+		return nil, fmt.Errorf("error fetching ingress %s/%s: %w", namespace, name, err)
+	}
+	return ingress, nil
+}
+
 
 func isOpenShift(rootApiPath string) bool {
 	return rootApiPath == "/oapi" || rootApiPath == "oapi"
