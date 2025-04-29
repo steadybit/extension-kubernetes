@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.6.3 (next)
+## v2.6.3
 
 - add more prefill-queries
 - rollout restart attack check for already running rollout restart
