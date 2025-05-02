@@ -6,12 +6,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
-	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
-	networkingv1 "k8s.io/api/networking/v1"
-	"os/exec"
 	"strconv"
 	"strings"
 )
@@ -131,15 +128,6 @@ func (a *HAProxyBlockTrafficAction) Start(_ context.Context, state *HAProxyBlock
 	}
 
 	return nil, nil
-}
-
-func updateIngress(namespace string, ingressName string, annotationKey string, ingress *networkingv1.Ingress) error {
-	cmd := exec.Command("kubectl", "annotate", "ingress", fmt.Sprintf("%s", ingressName), fmt.Sprintf("%s=%s", annotationKey, ingress.Annotations[annotationKey]), "--overwrite", fmt.Sprintf("--namespace=%s", namespace), "--overwrite")
-	cmdOut, cmdErr := cmd.CombinedOutput()
-	if cmdErr != nil {
-		return extension_kit.ToError(fmt.Sprintf("Failed to update ingress: %s", cmdOut), cmdErr)
-	}
-	return nil
 }
 
 func (a *HAProxyBlockTrafficAction) Stop(_ context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StopResult, error) {

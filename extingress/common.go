@@ -6,6 +6,9 @@ package extingress
 import (
 	"fmt"
 	"github.com/google/uuid"
+	extension_kit "github.com/steadybit/extension-kit"
+	networkingv1 "k8s.io/api/networking/v1"
+	"os/exec"
 	"strings"
 )
 
@@ -31,3 +34,13 @@ func getStartMarker(executionId uuid.UUID) string {
 func getEndMarker(executionId uuid.UUID) string {
 	return fmt.Sprintf("# END STEADYBIT - %s", executionId)
 }
+
+func updateIngress(namespace string, ingressName string, annotationKey string, ingress *networkingv1.Ingress) error {
+	cmd := exec.Command("kubectl", "annotate", "ingress", fmt.Sprintf("%s", ingressName), fmt.Sprintf("%s=%s", annotationKey, ingress.Annotations[annotationKey]), "--overwrite", fmt.Sprintf("--namespace=%s", namespace), "--overwrite")
+	cmdOut, cmdErr := cmd.CombinedOutput()
+	if cmdErr != nil {
+		return extension_kit.ToError(fmt.Sprintf("Failed to update ingress: %s", cmdOut), cmdErr)
+	}
+	return nil
+}
+
