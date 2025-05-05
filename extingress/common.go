@@ -43,4 +43,3 @@ func updateIngress(namespace string, ingressName string, annotationKey string, i
 	}
 	return nil
 }
-
