@@ -4,9 +4,11 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"golang.org/x/exp/slices"
@@ -20,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	networkingv1client "k8s.io/client-go/kubernetes/typed/networking/v1"
 	listerAppsv1 "k8s.io/client-go/listers/apps/v1"
 	listerAutoscalingv2 "k8s.io/client-go/listers/autoscaling/v2"
 	listerCorev1 "k8s.io/client-go/listers/core/v1"
@@ -105,6 +108,7 @@ type Client struct {
 		l []chan<- interface{}
 	}
 	resourceEventHandler cache.ResourceEventHandlerFuncs
+	networkingV1         networkingv1client.NetworkingV1Interface
 }
 
 func (c *Client) Permissions() *PermissionCheckResult {
@@ -571,6 +575,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	ingresses := factory.Networking().V1().Ingresses()
 	client.ingress.informer = ingresses.Informer()
 	client.ingress.lister = ingresses.Lister()
+	client.networkingV1 = clientset.NetworkingV1()
 	informerSyncList = append(informerSyncList, client.ingress.informer.HasSynced)
 	if err := client.ingress.informer.SetTransform(transformIngress); err != nil {
 		log.Fatal().Err(err).Msg("Failed to add ingress transformer")
@@ -633,7 +638,21 @@ func (c *Client) StopNotify(ch chan<- interface{}) {
 		return e == ch
 	})
 }
-func (c *Client) IngressByNamespaceAndName(namespace string, name string) (*networkingv1.Ingress, error) {
+func (c *Client) IngressByNamespaceAndName(namespace string, name string, forceUpdate ...bool) (*networkingv1.Ingress, error) {
+	// Check if we should bypass the cache
+	if len(forceUpdate) > 0 && forceUpdate[0] {
+		// Get directly from the API server instead of the cache
+		ingress, err := c.networkingV1.Ingresses(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				return nil, fmt.Errorf("ingress %s/%s not found", namespace, name)
+			}
+			return nil, fmt.Errorf("error fetching ingress %s/%s directly from API: %w", namespace, name, err)
+		}
+		return ingress, nil
+	}
+
+	// Use the cache as before
 	ingress, err := c.ingress.lister.Ingresses(namespace).Get(name)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -644,6 +663,126 @@ func (c *Client) IngressByNamespaceAndName(namespace string, name string) (*netw
 	return ingress, nil
 }
 
+// GetConfig returns the kubernetes config used by the client
+func (c *Client) GetConfig() *rest.Config {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed to get in-cluster config, using default config")
+		config = &rest.Config{}
+	}
+	return config
+}
+
+
+
+func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, ingressName string, annotationKey string, newAnnotationSuffix string) error {
+	maxRetries := 10
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
+		if err != nil {
+			return fmt.Errorf("failed to fetch ingress: %w", err)
+		}
+
+		newConfig := ""
+		if ingress.Annotations == nil {
+			ingress.Annotations = make(map[string]string)
+			newConfig = newAnnotationSuffix
+		} else {
+			// Prepend the new configuration
+			newConfig = newAnnotationSuffix + "\n" + ingress.Annotations[annotationKey]
+		}
+		// Update the annotation
+		ingress.Annotations[annotationKey] = newConfig
+
+		_, err = c.networkingV1.Ingresses(namespace).Update(
+			ctx,
+			ingress,
+			metav1.UpdateOptions{},
+		)
+
+		if err == nil {
+			return nil // Update successful
+		}
+
+		// If it's not a conflict error, return the error immediately
+		if !k8sErrors.IsConflict(err) {
+			return fmt.Errorf("failed to update ingress annotation: %w", err)
+		}
+
+		// If it's a conflict error, we'll retry with the latest version of the resource
+		log.Debug().Msgf("Conflict detected while updating ingress %s/%s, retrying (attempt %d/%d)",
+			namespace, ingressName, attempt+1, maxRetries)
+	}
+
+	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
+}
+
+func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID) error {
+	maxRetries := 10
+
+	startMarker := fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
+	endMarker := fmt.Sprintf("# END STEADYBIT - %s", executionId)
+
+	// Use the clientset to update the ingress
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
+		if err != nil {
+			return fmt.Errorf("failed to fetch ingress: %w", err)
+		}
+
+		if ingress.Annotations == nil || ingress.Annotations[annotationKey] == "" {
+			return nil // Nothing to remove
+		}
+
+		// Remove the configuration block between markers
+		existingConfig := ingress.Annotations[annotationKey]
+		updatedConfig := removeAnnotationBlock(existingConfig, startMarker, endMarker)
+
+		// If nothing was removed, no need to update
+		if existingConfig == updatedConfig {
+			return nil
+		}
+
+		// Update the annotation with the block removed
+		ingress.Annotations[annotationKey] = updatedConfig
+
+		_, err = c.networkingV1.Ingresses(namespace).Update(
+			ctx,
+			ingress,
+			metav1.UpdateOptions{},
+		)
+
+		if err == nil {
+			return nil // Update successful
+		}
+
+		// If it's not a conflict error, return the error immediately
+		if !k8sErrors.IsConflict(err) {
+			return fmt.Errorf("failed to update ingress annotation: %w", err)
+		}
+
+		// If it's a conflict error, we'll retry with the latest version of the resource
+		log.Debug().Msgf("Conflict detected while removing annotation block in ingress %s/%s, retrying (attempt %d/%d)",
+			namespace, ingressName, attempt+1, maxRetries)
+	}
+
+	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
+}
+
+// removeAnnotationBlock removes the text between startMarker and endMarker (inclusive)
+func removeAnnotationBlock(config, startMarker, endMarker string) string {
+	startIndex := strings.Index(config, startMarker)
+	endIndex := strings.Index(config, endMarker)
+
+	if startIndex == -1 || endIndex == -1 {
+		return config // Markers not found
+	}
+
+	// Remove the block including the markers and return the result
+	return config[:startIndex] + config[endIndex+len(endMarker):]
+}
 
 func isOpenShift(rootApiPath string) bool {
 	return rootApiPath == "/oapi" || rootApiPath == "oapi"

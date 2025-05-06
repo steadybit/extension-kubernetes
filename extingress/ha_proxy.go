@@ -10,6 +10,12 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 )
 
+// Action IDs for HAProxy actions
+const (
+	HAProxyBlockTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-block-traffic"
+	HAProxyDelayTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-delay-traffic"
+)
+
 // HAProxyBaseState contains common state for HAProxy-related actions
 type HAProxyBaseState struct {
 	ExecutionId uuid.UUID
@@ -24,7 +30,7 @@ func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.Prepar
 	state.IngressName = request.Target.Attributes["k8s.ingress"][0]
 
 	// Check ingress availability
-	_, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName)
+	_, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName, true)
 	if err != nil {
 		return fmt.Errorf("failed to fetch ingress: %w", err)
 	}
@@ -32,21 +38,13 @@ func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.Prepar
 }
 
 // startHAProxyAction contains common start logic for HAProxy actions
-func startHAProxyAction(ctx context.Context, state *HAProxyBaseState, configGenerator func() string) error {
-	ingress, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName)
-	if err != nil {
-		return fmt.Errorf("failed to fetch ingress: %w", err)
-	}
-
-	existingConfig := ingress.Annotations[AnnotationKey]
-
+func startHAProxyAction(state *HAProxyBaseState, configGenerator func() string) error {
 	// Get the new configuration from the provided generator function
 	newConfig := configGenerator()
 
 	// Prepend the new configuration
-	ingress.Annotations[AnnotationKey] = newConfig + "\n" + existingConfig
-
-	err = updateIngress(state.Namespace, state.IngressName, AnnotationKey, ingress)
+	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, AnnotationKey, newConfig)
+	//err = updateIngressAnnotation(state.Namespace, state.IngressName, AnnotationKey, newConfig)
 	if err != nil {
 		return err
 	}
@@ -55,21 +53,16 @@ func startHAProxyAction(ctx context.Context, state *HAProxyBaseState, configGene
 }
 
 // stopHAProxyAction contains common stop logic for HAProxy actions
-func stopHAProxyAction(ctx context.Context, state *HAProxyBaseState) error {
-	ingress, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName)
+func stopHAProxyAction(state *HAProxyBaseState) error {
+	err := client.K8S.RemoveAnnotationBlock(
+		context.Background(),
+		state.Namespace,
+		state.IngressName,
+		AnnotationKey,
+		state.ExecutionId,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to fetch ingress: %w", err)
-	}
-
-	existingConfig := ingress.Annotations[AnnotationKey]
-
-	// Remove the configuration block for this execution
-	updatedConfig := removeConfigBlock(existingConfig, getStartMarker(state.ExecutionId), getEndMarker(state.ExecutionId))
-
-	ingress.Annotations[AnnotationKey] = updatedConfig
-	err = updateIngress(state.Namespace, state.IngressName, AnnotationKey, ingress)
-	if err != nil {
-		return err
+		return fmt.Errorf("failed to remove HAProxy configuration: %w", err)
 	}
 
 	return nil

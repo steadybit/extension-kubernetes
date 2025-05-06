@@ -28,7 +28,7 @@ func (a *HAProxyBlockTrafficAction) NewEmptyState() HAProxyBlockTrafficState {
 
 func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription {
 	desc := getCommonActionDescription(
-		"com.steadybit.extension_kubernetes.haproxy-block-traffic",
+		HAProxyBlockTrafficActionId,
 		"HAProxy Block Traffic",
 		"Block traffic by returning a custom HTTP status code for requests matching specific paths.")
 
@@ -42,6 +42,7 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 			DefaultValue: extutil.Ptr("[{\"key\":\"/\", \"value\":\"503\"}]"),
 			Required:     extutil.Ptr(true),
 		},
+		// ToDo: Add optional delay parameter
 	)
 
 	return desc
@@ -71,6 +72,8 @@ func (a *HAProxyBlockTrafficAction) Prepare(ctx context.Context, state *HAProxyB
 			//append to map
 			state.PathStatusCode[path] = statusCode
 		}
+
+		//ToDo: Check if annoation for delay already exists
 	}
 
 	return nil, nil
@@ -87,15 +90,15 @@ func (a *HAProxyBlockTrafficAction) Start(ctx context.Context, state *HAProxyBlo
 		return configBuilder.String()
 	}
 
-	if err := startHAProxyAction(ctx, &state.HAProxyBaseState, configGenerator); err != nil {
+	if err := startHAProxyAction(&state.HAProxyBaseState, configGenerator); err != nil {
 		return nil, err
 	}
 
 	return nil, nil
 }
 
-func (a *HAProxyBlockTrafficAction) Stop(ctx context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StopResult, error) {
-	if err := stopHAProxyAction(ctx, &state.HAProxyBaseState); err != nil {
+func (a *HAProxyBlockTrafficAction) Stop(_ context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StopResult, error) {
+	if err := stopHAProxyAction(&state.HAProxyBaseState); err != nil {
 		return nil, err
 	}
 
