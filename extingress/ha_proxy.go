@@ -8,6 +8,7 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
+	networkingv1 "k8s.io/api/networking/v1"
 )
 
 // Action IDs for HAProxy actions
@@ -24,17 +25,17 @@ type HAProxyBaseState struct {
 }
 
 // prepareHAProxyAction contains common preparation logic for HAProxy actions
-func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.PrepareActionRequestBody) error {
+func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.PrepareActionRequestBody) (*networkingv1.Ingress, error) {
 	state.ExecutionId = request.ExecutionId
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.IngressName = request.Target.Attributes["k8s.ingress"][0]
 
 	// Check ingress availability
-	_, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName, true)
+	ingress, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName, true)
 	if err != nil {
-		return fmt.Errorf("failed to fetch ingress: %w", err)
+		return nil, fmt.Errorf("failed to fetch ingress: %w", err)
 	}
-	return nil
+	return ingress, nil
 }
 
 // startHAProxyAction contains common start logic for HAProxy actions
@@ -44,7 +45,6 @@ func startHAProxyAction(state *HAProxyBaseState, configGenerator func() string) 
 
 	// Prepend the new configuration
 	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, AnnotationKey, newConfig)
-	//err = updateIngressAnnotation(state.Namespace, state.IngressName, AnnotationKey, newConfig)
 	if err != nil {
 		return err
 	}

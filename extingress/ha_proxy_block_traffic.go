@@ -42,20 +42,18 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 			DefaultValue: extutil.Ptr("[{\"key\":\"/\", \"value\":\"503\"}]"),
 			Required:     extutil.Ptr(true),
 		},
-		// ToDo: Add optional delay parameter
 	)
 
 	return desc
 }
 
 func (a *HAProxyBlockTrafficAction) Prepare(ctx context.Context, state *HAProxyBlockTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	// Use common preparation logic first
-	if err := prepareHAProxyAction(&state.HAProxyBaseState, request); err != nil {
+	ingress, err := prepareHAProxyAction(&state.HAProxyBaseState, request)
+	if err != nil {
 		return nil, err
 	}
 
 	// Handle block-specific configuration
-	var err error
 	if request.Config["pathStatusCode"] != nil {
 		pathStatusCode := make(map[string]string)
 		pathStatusCode, err = extutil.ToKeyValue(request.Config, "pathStatusCode")
@@ -73,7 +71,16 @@ func (a *HAProxyBlockTrafficAction) Prepare(ctx context.Context, state *HAProxyB
 			state.PathStatusCode[path] = statusCode
 		}
 
-		//ToDo: Check if annoation for delay already exists
+		//Check if annotation for block already exists
+		existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
+		for path, _ := range state.PathStatusCode {
+			// Check if a rule with the same path already exists
+			for _, line := range existingLines {
+				if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path %s }", path)) {
+					return nil, fmt.Errorf("a rule for path %s already exists", path)
+				}
+			}
+		}
 	}
 
 	return nil, nil

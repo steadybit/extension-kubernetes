@@ -59,8 +59,8 @@ func (a *HAProxyDelayTrafficAction) Describe() action_kit_api.ActionDescription 
 }
 
 func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyDelayTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	// Use common preparation logic first
-	if err := prepareHAProxyAction(&state.HAProxyBaseState, request); err != nil {
+	ingress, err := prepareHAProxyAction(&state.HAProxyBaseState, request)
+	if err != nil {
 		return nil, err
 	}
 
@@ -90,7 +90,13 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 	} else {
 		return nil, fmt.Errorf("delay is required")
 	}
-	//ToDo: Check if annoation for delay already exists
+	existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
+	// Check if a rule with the same path already exists
+	for _, line := range existingLines {
+		if strings.Contains(line, "tcp-request inspect-delay") {
+			return nil, fmt.Errorf("a delay rule already exists - cannot add another one", state.Path)
+		}
+	}
 	return nil, nil
 }
 
