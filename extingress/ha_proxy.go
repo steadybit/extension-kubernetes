@@ -70,14 +70,14 @@ func stopHAProxyAction(state *HAProxyBaseState) error {
 }
 
 // getCommonActionDescription returns common action description elements
-func getCommonActionDescription(id string, label string, description string) action_kit_api.ActionDescription {
+func getCommonActionDescription(id string, label string, description string, icon string) action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          id,
 		Label:       label,
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Description: description,
 		Technology:  extutil.Ptr("Kubernetes"),
-		Icon:        extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMyMjIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIvPgogIDxsaW5lIHgxPSI3IiB5MT0iNyIgeDI9IjE3IiB5Mj0iMTciLz4KPC9zdmc+"),
+		Icon:        extutil.Ptr(icon),
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType: HAProxyIngressTargetType,
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
