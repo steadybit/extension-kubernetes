@@ -370,6 +370,7 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() { _ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "haproxy-controller-discovery").Run() }()
 
 	haproxy, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
 		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
@@ -684,6 +685,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() { _ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", haProxyControllerNamespace).Run() }()
 
 	// Measure baseline latency
 	baselineLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
