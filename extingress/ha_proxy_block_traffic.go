@@ -55,8 +55,7 @@ func (a *HAProxyBlockTrafficAction) Prepare(ctx context.Context, state *HAProxyB
 
 	// Handle block-specific configuration
 	if request.Config["pathStatusCode"] != nil {
-		pathStatusCode := make(map[string]string)
-		pathStatusCode, err = extutil.ToKeyValue(request.Config, "pathStatusCode")
+		pathStatusCode, err := extutil.ToKeyValue(request.Config, "pathStatusCode")
 		if err != nil {
 			return nil, err
 		}
@@ -73,7 +72,7 @@ func (a *HAProxyBlockTrafficAction) Prepare(ctx context.Context, state *HAProxyB
 
 		//Check if annotation for block already exists
 		existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
-		for path, _ := range state.PathStatusCode {
+		for path := range state.PathStatusCode {
 			// Check if a rule with the same path already exists
 			for _, line := range existingLines {
 				if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path %s }", path)) {
