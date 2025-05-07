@@ -702,11 +702,13 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 		)
 
 		if err == nil {
+			log.Debug().Msgf("Updated ingress %s/%s annotation %s with new config: %s", namespace, ingressName, annotationKey, newConfig)
 			return nil // Update successful
 		}
 
 		// If it's not a conflict error, return the error immediately
 		if !k8sErrors.IsConflict(err) {
+			log.Error().Err(err).Msgf("Failed to update ingress %s/%s annotation %s: %v", namespace, ingressName, annotationKey, err)
 			return fmt.Errorf("failed to update ingress annotation: %w", err)
 		}
 
@@ -714,7 +716,7 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 		log.Debug().Msgf("Conflict detected while updating ingress %s/%s, retrying (attempt %d/%d)",
 			namespace, ingressName, attempt+1, maxRetries)
 	}
-
+	log.Error().Msgf("Failed to update ingress %s/%s annotation %s after %d attempts", namespace, ingressName, annotationKey, maxRetries)
 	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
 }
 

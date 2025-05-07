@@ -14,12 +14,20 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
+	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	acorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/utils/strings/slices"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -65,6 +73,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 	{
 		Name: "causeCrashLoop",
 		Test: testCauseCrashLoop,
+	},
+	{
+		Name: "haproxyDelayTraffic",
+		Test: testHAProxyDelayTraffic,
 	},
 }
 
@@ -238,12 +250,12 @@ func testCheckRolloutTwice(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	for _, tt := range tests {
 
 		config := struct {
-			Duration int  `json:"duration"`
-			Wait     bool `json:"wait"`
+			Duration    int  `json:"duration"`
+			Wait        bool `json:"wait"`
 			CheckBefore bool `json:"checkBefore"`
 		}{
-			Duration: 5000,
-			Wait:     tt.firstWait,
+			Duration:    5000,
+			Wait:        tt.firstWait,
 			CheckBefore: true,
 		}
 
@@ -643,4 +655,299 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		require.NoError(t, err)
 		assert.GreaterOrEqual(collect, p.Status.ContainerStatuses[0].RestartCount, int32(2))
 	}, 20*time.Second, 1*time.Second, "pod should be restarted at least twice")
+}
+
+func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testHAProxyDelayTraffic")
+	const haProxyControllerNamespace = "haproxy-controller"
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	// Step 1: Deploy HAProxy Ingress Controller
+	log.Info().Msg("Deploying HAProxy Ingress Controller")
+	out, err := exec.Command("kubectx", "e2e-docker").CombinedOutput()
+	require.NoError(t, err, "Failed to switch context: %s", out)
+	err = m.KubectlExec("create", "namespace", haProxyControllerNamespace).Run()
+	require.NoError(t, err, "Failed to create namespace: %s", err)
+	out, err = exec.Command("helm", "repo", "add", "haproxytech", "https://haproxytech.github.io/helm-charts").CombinedOutput()
+	require.NoError(t, err, "Failed to add HAProxy Helm repo: %s", out)
+	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
+	require.NoError(t, err, "Failed to update Helm repos: %s", out)
+	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--namespace", haProxyControllerNamespace, "--set", "controller.service.type=NodePort").CombinedOutput()
+	require.NoError(t, err, "Failed to deploy HAProxy Ingress Controller: %s", out)
+
+	// Wait for HAProxy ingress controller to be ready
+	log.Info().Msg("Waiting for HAProxy Ingress Controller to be ready")
+	err = waitForHAProxyIngressController(ctx, haProxyControllerNamespace)
+	require.NoError(t, err)
+
+	// Step 2: Create a test deployment with service
+	log.Info().Msg("Creating test deployment")
+	testAppName := "haproxy-delay-test"
+
+	// Create deployment
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: int32Ptr(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": testAppName,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": testAppName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "nginx",
+							Image: "nginx:stable-alpine",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	nginxDeployment, _, err := m.CreateDeployment(deployment)
+	defer func() {
+		_ = m.DeleteDeployment(nginxDeployment)
+	}()
+	require.NoError(t, err)
+
+	service := acorev1.Service(testAppName, "default").
+		WithLabels(map[string]string{
+			"app": testAppName,
+		}).
+		WithSpec(acorev1.ServiceSpec().
+			WithSelector(map[string]string{
+				"app": testAppName,
+			}).
+			WithPorts(acorev1.ServicePort().
+				WithPort(80).
+				WithTargetPort(intstr.FromInt32(80)),
+			),
+		)
+
+	appService, err := m.CreateService(service)
+	defer func() {
+		_ = m.DeleteService(appService)
+	}()
+	require.NoError(t, err)
+
+	// Step 3: Create ingress resource
+	log.Info().Msg("Creating ingress resource")
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "haproxy",
+			},
+		},
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
+								{
+									Path:     "/",
+									PathType: pathTypePtr(networkingv1.PathTypePrefix),
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: testAppName,
+											Port: networkingv1.ServiceBackendPort{
+												Number: 80,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	appIngress, err := m.CreateIngress(ingress)
+	defer func() {
+		_ = m.DeleteIngress(appIngress)
+	}()
+	require.NoError(t, err)
+
+	// Get HAProxy Ingress target
+	log.Info().Msg("Finding HAProxy Ingress target")
+	var ingressTarget *action_kit_api.Target
+	discoveryTarget, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
+	})
+	require.NoError(t, err, "Failed to find HAProxy ingress target")
+	ingressTarget = &action_kit_api.Target{
+		Attributes: discoveryTarget.Attributes,
+	}
+
+	// Find HAProxy Service
+	log.Info().Msg("Finding HAProxy Service")
+	haProxyServiceName, err := findServiceNameInNamespace(m, haProxyControllerNamespace)
+	require.NoError(t, err, "Failed to find HAProxy service")
+	// Measure baseline latency
+	log.Info().Msg("Measuring baseline latency")
+	haProxyService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      haProxyServiceName,
+			Namespace: haProxyControllerNamespace,
+		},
+	}
+	baselineLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
+	require.NoError(t, err)
+	log.Info().Msgf("Baseline latency: %v", baselineLatency)
+
+	// Define delay parameters
+	delayMs := 500
+	tests := []struct {
+		name        string
+		path        string
+		delay       int
+		wantedDelay bool
+	}{
+		{
+			name:        "should delay traffic for the specified path",
+			path:        "/",
+			delay:       delayMs,
+			wantedDelay: true,
+		},
+		{
+			name:        "should delay traffic for a specific endpoint",
+			path:        "/api",
+			delay:       delayMs,
+			wantedDelay: false, // We're requesting /, so /api delay shouldn't affect us
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Apply delay traffic action
+			config := struct {
+				Duration int    `json:"duration"`
+				Path     string `json:"path"`
+				Delay    int    `json:"delay"`
+			}{
+				Duration: 30000,
+				Path:     tt.path,
+				Delay:    tt.delay,
+			}
+
+			log.Info().Msgf("Applying delay of %dms to path %s", tt.delay, tt.path)
+			action, err := e.RunAction(extingress.HAProxyDelayTrafficActionId, ingressTarget, config, nil)
+			require.NoError(t, err)
+			defer func() { _ = action.Cancel() }()
+
+			// Measure latency during delay
+			time.Sleep(2 * time.Second) // Give HAProxy time to reconfigure
+			delayedLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
+			require.NoError(t, err)
+			log.Info().Msgf("Latency during delay: %v", delayedLatency)
+
+			// Verify delay
+			if tt.wantedDelay {
+				// Check that delay is applied (with some tolerance)
+				minExpectedLatency := baselineLatency + time.Duration(tt.delay-50)*time.Millisecond  // -50ms tolerance
+				maxExpectedLatency := baselineLatency + time.Duration(tt.delay+200)*time.Millisecond // +200ms tolerance for overhead
+				assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
+				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
+			} else {
+				// Latency shouldn't change significantly
+				maxExpectedLatency := baselineLatency + 100*time.Millisecond // Allow for some small variance
+				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not increase significantly")
+			}
+
+			// Cancel the action
+			require.NoError(t, action.Cancel())
+
+			// Measure latency after cancellation
+			time.Sleep(2 * time.Second) // Give HAProxy time to reconfigure
+			afterLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
+			require.NoError(t, err)
+			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
+
+			// Verify latency returned to normal
+			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+			assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
+		})
+	}
+}
+
+// Helper functions
+func waitForHAProxyIngressController(ctx context.Context, namespace string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+			cmd := exec.Command("kubectl", "get", "pods", "-n", namespace)
+			output, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to check HAProxy controller status")
+				continue
+			}
+
+			if strings.Contains(string(output), "Running") {
+				return nil
+			}
+		}
+	}
+}
+
+func findServiceNameInNamespace(m *e2e.Minikube, namespace string) (string, error) {
+	cmd := m.KubectlExec("get", "services", "-n", namespace, "-o", "jsonpath={.items[0].metadata.name}")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get service name")
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
+func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname string) (time.Duration, error) {
+	// Use curl to time a request
+	client, err := m.NewRestClientForService(service)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create REST client")
+		return 0, err
+	}
+	defer client.Close()
+	client.SetHeader("Host", hostname)
+	//measure time
+	startTime := time.Now()
+	_, err = client.R().Get("/")
+	endTime := time.Now()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make request")
+		return 0, err
+	}
+	diff := endTime.Sub(startTime)
+	log.Info().Msgf("Request took %v", diff)
+	return diff, nil
+}
+
+func int32Ptr(i int32) *int32 {
+	return &i
+}
+
+func pathTypePtr(pathType networkingv1.PathType) *networkingv1.PathType {
+	return &pathType
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
@@ -42,7 +43,7 @@ func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.Prepar
 func startHAProxyAction(state *HAProxyBaseState, configGenerator func() string) error {
 	// Get the new configuration from the provided generator function
 	newConfig := configGenerator()
-
+	log.Debug().Msgf("Adding new HAProxy configuration: %s", newConfig)
 	// Prepend the new configuration
 	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, AnnotationKey, newConfig)
 	if err != nil {

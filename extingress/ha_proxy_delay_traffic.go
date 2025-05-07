@@ -3,6 +3,7 @@ package extingress
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
@@ -61,6 +62,7 @@ func (a *HAProxyDelayTrafficAction) Describe() action_kit_api.ActionDescription 
 func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyDelayTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	ingress, err := prepareHAProxyAction(&state.HAProxyBaseState, request)
 	if err != nil {
+		log.Error().Err(err).Msg("failed to prepare HAProxy action")
 		return nil, err
 	}
 
@@ -69,9 +71,11 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 		if pathStr, isStr := path.(string); isStr {
 			state.Path = pathStr
 		} else {
+			log.Error().Msg("path must be a string")
 			return nil, fmt.Errorf("path must be a string")
 		}
 	} else {
+		log.Error().Msg("path is required")
 		return nil, fmt.Errorf("path is required")
 	}
 
@@ -83,18 +87,22 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 			state.Delay = v
 		case string:
 			// Try to parse string as number if needed
+			log.Error().Msg("delay must be a number")
 			return nil, fmt.Errorf("delay must be a number, got string: %s", v)
 		default:
+			log.Error().Msg("delay must be a number")
 			return nil, fmt.Errorf("delay must be a number")
 		}
 	} else {
+		log.Error().Msg("delay is required")
 		return nil, fmt.Errorf("delay is required")
 	}
 	existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
 	// Check if a rule with the same path already exists
 	for _, line := range existingLines {
 		if strings.Contains(line, "tcp-request inspect-delay") {
-			return nil, fmt.Errorf("a delay rule already exists - cannot add another one", state.Path)
+			log.Error().Msg("a delay rule already exists - cannot add another one")
+			return nil, fmt.Errorf("a delay rule already exists - cannot add another one")
 		}
 	}
 	return nil, nil
