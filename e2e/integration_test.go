@@ -782,7 +782,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer cancel()
 
 	// Initialize HAProxy and test resources
-	haProxyService, testAppName, ingressTarget, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, haProxyControllerNamespace)
+	haProxyService, _, ingressTarget, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, haProxyControllerNamespace)
 	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
@@ -791,29 +791,41 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}()
 
 	// Service should be reachable via haproxy service
-	err := checkStatusCode(t, m, haProxyService, 200)
+	err := checkStatusCode(t, m, haProxyService, "/", 200)
 	require.NoError(t, err)
 	log.Info().Msgf("App is available")
 
 	// Define delay parameters
 	tests := []struct {
 		name           string
+		testPath       []string
 		pathStatusCode []interface{}
 		wantedBlock    bool
 	}{
 		{
-			name: "should block traffic for the specified path",
+			name:     "should block traffic for the specified path",
+			testPath: []string{"/"},
 			pathStatusCode: []interface{}{
 				map[string]interface{}{"key": "/", "value": "503"},
 			},
 			wantedBlock: true,
 		},
 		{
-			name: "should block traffic for a specific endpoint",
+			name:     "should block traffic for a specific endpoint",
+			testPath: []string{"/"},
 			pathStatusCode: []interface{}{
 				map[string]interface{}{"key": "/api", "value": "503"},
 			},
 			wantedBlock: false, // We're requesting /, so /api block shouldn't affect us
+		},
+		{
+			name:     "should block traffic for multiple endpoints",
+			testPath: []string{"/block", "/api"},
+			pathStatusCode: []interface{}{
+				map[string]interface{}{"key": "/block", "value": "503"},
+				map[string]interface{}{"key": "/api", "value": "401"},
+			},
+			wantedBlock: true,
 		},
 	}
 
@@ -835,28 +847,41 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
 
-			// Verify delay
-			if tt.wantedBlock {
-				statusCode, err := strconv.Atoi(tt.pathStatusCode[0].(map[string]interface{})["value"].(string))
-				require.NoError(t, err)
-				err = checkStatusCode(t, m, haProxyService, statusCode)
-				require.NoError(t, err)
-			} else {
-				err = checkStatusCode(t, m, haProxyService, 200)
-				require.NoError(t, err)
+			// Verify block
+			for _, path := range tt.testPath {
+				var expectedStatusCode int
+				for _, pathStatus := range tt.pathStatusCode {
+					if pathStatus.(map[string]interface{})["key"] == path {
+						expectedStatusCode, err = strconv.Atoi(pathStatus.(map[string]interface{})["value"].(string))
+						require.NoError(t, err)
+						break
+					}
+				}
+				if expectedStatusCode == 0 {
+					if tt.wantedBlock {
+						log.Error().Msgf("Expected status code not found for path %s", path)
+						t.Fail()
+					} else {
+						expectedStatusCode = 200
+					}
+				}
+				if tt.wantedBlock {
+					err = checkStatusCode(t, m, haProxyService, path, expectedStatusCode)
+					require.NoError(t, err)
+					log.Info().Msgf("Path %s is blocked", path)
+				} else {
+					err = checkStatusCode(t, m, haProxyService, "", 200)
+					require.NoError(t, err)
+				}
 			}
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
 
-			// Measure latency after cancellation
 			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-			afterLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
-			require.NoError(t, err)
-			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
 
 			// Verify service is not blocked anymore
-			err = checkStatusCode(t, m, haProxyService, 200)
+			err = checkStatusCode(t, m, haProxyService, "", 200)
 			require.NoError(t, err)
 		})
 	}
@@ -1060,14 +1085,14 @@ func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname stri
 	return diff, nil
 }
 
-func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, expectedStatusCode int) error {
+func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path string, expectedStatusCode int) error {
 	client, err := m.NewRestClientForService(service)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create REST client")
 		return err
 	}
 	defer client.Close()
-	response, err := client.R().Get("/")
+	response, err := client.R().Get(path)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make request")
 		return err
