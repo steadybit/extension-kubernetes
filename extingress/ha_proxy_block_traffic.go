@@ -49,7 +49,7 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 	return desc
 }
 
-func (a *HAProxyBlockTrafficAction) Prepare(ctx context.Context, state *HAProxyBlockTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlockTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	ingress, err := prepareHAProxyAction(&state.HAProxyBaseState, request)
 	if err != nil {
 		return nil, err

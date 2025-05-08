@@ -28,6 +28,7 @@ import (
 	"k8s.io/utils/strings/slices"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -77,6 +78,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 	{
 		Name: "haproxyDelayTraffic",
 		Test: testHAProxyDelayTraffic,
+	},
+	{
+		Name: "haproxyBlockTraffic",
+		Test: testHAProxyBlockTraffic,
 	},
 }
 
@@ -370,7 +375,9 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
-	defer func() { _ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "haproxy-controller-discovery").Run() }()
+	defer func() {
+		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "haproxy-controller-discovery").Run()
+	}()
 
 	haproxy, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
 		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
@@ -685,7 +692,9 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
-	defer func() { _ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", haProxyControllerNamespace).Run() }()
+	defer func() {
+		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", haProxyControllerNamespace).Run()
+	}()
 
 	// Measure baseline latency
 	baselineLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
@@ -733,7 +742,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			defer func() { _ = action.Cancel() }()
 
 			// Measure latency during delay
-			time.Sleep(2 * time.Second) // Give HAProxy time to reconfigure
+			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
 			delayedLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
 			require.NoError(t, err)
 			log.Info().Msgf("Latency during delay: %v", delayedLatency)
@@ -755,7 +764,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, action.Cancel())
 
 			// Measure latency after cancellation
-			time.Sleep(2 * time.Second) // Give HAProxy time to reconfigure
+			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
 			afterLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
 			require.NoError(t, err)
 			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
@@ -763,6 +772,92 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			// Verify latency returned to normal
 			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 			assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
+		})
+	}
+}
+func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testHAProxyBlockTraffic")
+	const haProxyControllerNamespace = "haproxy-controller-block"
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	// Initialize HAProxy and test resources
+	haProxyService, testAppName, ingressTarget, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, haProxyControllerNamespace)
+	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
+	defer func() { _ = m.DeleteService(appService) }()
+	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() {
+		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", haProxyControllerNamespace).Run()
+	}()
+
+	// Service should be reachable via haproxy service
+	err := checkStatusCode(t, m, haProxyService, 200)
+	require.NoError(t, err)
+	log.Info().Msgf("App is available")
+
+	// Define delay parameters
+	tests := []struct {
+		name           string
+		pathStatusCode []interface{}
+		wantedBlock    bool
+	}{
+		{
+			name: "should block traffic for the specified path",
+			pathStatusCode: []interface{}{
+				map[string]interface{}{"key": "/", "value": "503"},
+			},
+			wantedBlock: true,
+		},
+		{
+			name: "should block traffic for a specific endpoint",
+			pathStatusCode: []interface{}{
+				map[string]interface{}{"key": "/api", "value": "503"},
+			},
+			wantedBlock: false, // We're requesting /, so /api block shouldn't affect us
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Apply delay traffic action
+			config := struct {
+				Duration       int           `json:"duration"`
+				PathStatusCode []interface{} `json:"pathStatusCode"`
+			}{
+				Duration:       30000,
+				PathStatusCode: tt.pathStatusCode,
+			}
+
+			log.Info().Msgf("Applying block to path %s", tt.pathStatusCode)
+			action, err := e.RunAction(extingress.HAProxyBlockTrafficActionId, ingressTarget, config, nil)
+			require.NoError(t, err)
+			defer func() { _ = action.Cancel() }()
+
+			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
+
+			// Verify delay
+			if tt.wantedBlock {
+				statusCode, err := strconv.Atoi(tt.pathStatusCode[0].(map[string]interface{})["value"].(string))
+				require.NoError(t, err)
+				err = checkStatusCode(t, m, haProxyService, statusCode)
+				require.NoError(t, err)
+			} else {
+				err = checkStatusCode(t, m, haProxyService, 200)
+				require.NoError(t, err)
+			}
+
+			// Cancel the action
+			require.NoError(t, action.Cancel())
+
+			// Measure latency after cancellation
+			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
+			afterLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
+			require.NoError(t, err)
+			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
+
+			// Verify service is not blocked anymore
+			err = checkStatusCode(t, m, haProxyService, 200)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -963,6 +1058,23 @@ func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname stri
 	diff := endTime.Sub(startTime)
 	log.Info().Msgf("Request took %v", diff)
 	return diff, nil
+}
+
+func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, expectedStatusCode int) error {
+	client, err := m.NewRestClientForService(service)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create REST client")
+		return err
+	}
+	defer client.Close()
+	response, err := client.R().Get("/")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to make request")
+		return err
+	}
+	assert.Equal(t, response.StatusCode(), expectedStatusCode, "Expected status code %d, got %d", expectedStatusCode, response.StatusCode())
+	log.Info().Msgf("Request returned status code %d", response.StatusCode())
+	return nil
 }
 
 func int32Ptr(i int32) *int32 {

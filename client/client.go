@@ -721,6 +721,7 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 }
 
 func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID) error {
+	log.Debug().Msgf("Removing annotation block from ingress %s/%s with execution ID %s", namespace, ingressName, executionId)
 	maxRetries := 10
 
 	startMarker := fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
