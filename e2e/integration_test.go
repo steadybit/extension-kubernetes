@@ -881,7 +881,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
 
 			// Verify service is not blocked anymore
-			err = checkStatusCode(t, m, haProxyService, "", 200)
+			err = checkStatusCode(t, m, haProxyService, "/", 200)
 			require.NoError(t, err)
 		})
 	}
