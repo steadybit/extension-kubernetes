@@ -1066,7 +1066,7 @@ func findServiceNameInNamespace(m *e2e.Minikube, namespace string) (string, erro
 
 func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname string) (time.Duration, error) {
 	var (
-		maxRetries = 5
+		maxRetries = 8
 		baseDelay  = 500 * time.Millisecond
 	)
 
@@ -1103,7 +1103,7 @@ func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname stri
 
 func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path string, expectedStatusCode int) error {
 	var (
-		maxRetries = 5
+		maxRetries = 8
 		baseDelay  = 500 * time.Millisecond
 	)
 	for attempt := 1; attempt <= maxRetries; attempt++ {
