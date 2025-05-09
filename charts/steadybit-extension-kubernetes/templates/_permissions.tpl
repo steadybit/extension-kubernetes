@@ -72,24 +72,5 @@ permissions for clusterrole or role
       - pods/exec
     verbs:
       - create
-  {{/* Required for Ingress Discovery and HAProxy Actions */}}
-  - apiGroups:
-      - networking.k8s.io
-    resources:
-      - ingresses
-    verbs:
-      - get
-      - list
-      - watch
-      - update
-      - patch
-  - apiGroups:
-      - networking.k8s.io
-    resources:
-      - ingressclasses
-    verbs:
-      - get
-      - list
-      - watch
 {{- end -}}
 

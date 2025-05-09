@@ -372,23 +372,25 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 
 	// Initialize HAProxy and test resources
-	_, testAppName, _, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, "haproxy-controller-discovery")
-	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
-	defer func() { _ = m.DeleteService(appService) }()
-	defer func() { _ = m.DeleteIngress(appIngress) }()
-	defer func() {
-		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "haproxy-controller-discovery", "--kube-context", m.Profile).Run()
-	}()
+	if !isUsingRoleBinding() {
 
-	haproxy, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
-		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
-	})
-	require.NoError(t, err)
-	assert.Equal(t, haproxy.TargetType, extingress.HAProxyIngressTargetType)
-	assert.Equal(t, haproxy.Attributes["k8s.ingress"][0], testAppName)
-	assert.Equal(t, haproxy.Attributes["k8s.ingress.controller"][0], "haproxy.org/ingress-controller/haproxy")
-	assert.Equal(t, haproxy.Attributes["k8s.ingress.class"][0], "haproxy")
+		_, testAppName, _, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, "haproxy-controller-discovery")
+		defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
+		defer func() { _ = m.DeleteService(appService) }()
+		defer func() { _ = m.DeleteIngress(appIngress) }()
+		defer func() {
+			_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "haproxy-controller-discovery", "--kube-context", m.Profile).Run()
+		}()
 
+		haproxy, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
+			return e2e.HasAttribute(target, "k8s.ingress", testAppName)
+		})
+		require.NoError(t, err)
+		assert.Equal(t, haproxy.TargetType, extingress.HAProxyIngressTargetType)
+		assert.Equal(t, haproxy.Attributes["k8s.ingress"][0], testAppName)
+		assert.Equal(t, haproxy.Attributes["k8s.ingress.controller"][0], "haproxy.org/ingress-controller/haproxy")
+		assert.Equal(t, haproxy.Attributes["k8s.ingress.class"][0], "haproxy")
+	}
 }
 
 func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
@@ -683,6 +685,10 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 }
 
 func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testHAProxyDelayTraffic because it is using role binding, and is therefore not supported")
+		return
+	}
 	log.Info().Msg("Starting testHAProxyDelayTraffic")
 	const haProxyControllerNamespace = "haproxy-controller"
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
@@ -777,6 +783,10 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 }
 func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testHAProxyBlockTraffic because it is using role binding, and is therefore not supported")
+		return
+	}
 	log.Info().Msg("Starting testHAProxyBlockTraffic")
 	const haProxyControllerNamespace = "haproxy-controller-block"
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
@@ -896,7 +906,7 @@ func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Co
 	require.NoError(t, err, "Failed to add HAProxy Helm repo: %s", out)
 	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
 	require.NoError(t, err, "Failed to update Helm repos: %s", out)
-	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", haProxyControllerNamespace, "--kube-context", m.Profile,  "--set", "controller.service.type=NodePort").CombinedOutput()
+	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", haProxyControllerNamespace, "--kube-context", m.Profile, "--set", "controller.service.type=NodePort").CombinedOutput()
 	require.NoError(t, err, "Failed to deploy HAProxy Ingress Controller: %s", out)
 
 	// Wait for HAProxy ingress controller to be ready
