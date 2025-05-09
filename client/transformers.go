@@ -4,6 +4,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 )
 
 func transformDaemonSet(i interface{}) (interface{}, error) {
@@ -142,3 +143,65 @@ func transformHPA(i interface{}) (interface{}, error) {
 	}
 	return i, nil
 }
+
+func transformIngressClass(i interface{}) (interface{}, error) {
+	if ic, ok := i.(*networkingv1.IngressClass); ok {
+		// Keep only needed annotations, particularly is-default-class
+		defaultClassAnnotation := ""
+		if ic.Annotations != nil {
+			defaultClassAnnotation = ic.Annotations["ingressclass.kubernetes.io/is-default-class"]
+		}
+
+		if defaultClassAnnotation != "" {
+			ic.Annotations = map[string]string{
+				"ingressclass.kubernetes.io/is-default-class": defaultClassAnnotation,
+			}
+		} else {
+			ic.Annotations = nil
+		}
+
+		ic.ObjectMeta.ManagedFields = nil
+
+		return ic, nil
+	}
+	return i, nil
+}
+
+func transformIngress(i interface{}) (interface{}, error) {
+	if d, ok := i.(*networkingv1.Ingress); ok {
+		// Preserve ingressClassName and the class annotation if present
+		ingressClassName := d.Spec.IngressClassName
+
+		// Preserve only the specific annotation we need
+		classAnnotation := ""
+		if d.ObjectMeta.Annotations != nil {
+			classAnnotation = d.ObjectMeta.Annotations["kubernetes.io/ingress.class"]
+		}
+
+		// Clear annotations but keep what we need in a minimal map
+		if classAnnotation != "" {
+			d.ObjectMeta.Annotations = map[string]string{
+				"kubernetes.io/ingress.class": classAnnotation,
+			}
+		} else {
+			d.ObjectMeta.Annotations = nil
+		}
+
+		d.ObjectMeta.ManagedFields = nil
+
+		// Keep the rules and TLS configuration for discovery
+		rules := d.Spec.Rules
+		tls := d.Spec.TLS
+
+		// Create minimal spec with only what we need
+		d.Spec = networkingv1.IngressSpec{
+			IngressClassName: ingressClassName,
+			Rules:           rules,
+			TLS:             tls,
+		}
+
+		return d, nil
+	}
+	return i, nil
+}
+
