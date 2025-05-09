@@ -100,7 +100,7 @@ func main() {
 
 	if !extconfig.Config.DiscoveryDisabledIngress {
 		discovery_kit_sdk.Register(extingress.NewIngressDiscovery(client.K8S))
-		action_kit_sdk.RegisterAction(extingress.NewBlockTrafficAction())
+		action_kit_sdk.RegisterAction(extingress.NewHAProxyBlockTrafficAction())
 		action_kit_sdk.RegisterAction(extingress.NewDelayTrafficAction())
 	}
 

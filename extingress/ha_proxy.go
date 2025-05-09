@@ -40,12 +40,10 @@ func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.Prepar
 }
 
 // startHAProxyAction contains common start logic for HAProxy actions
-func startHAProxyAction(state *HAProxyBaseState, configGenerator func() string) error {
-	// Get the new configuration from the provided generator function
-	newConfig := configGenerator()
-	log.Debug().Msgf("Adding new HAProxy configuration: %s", newConfig)
+func startHAProxyAction(state *HAProxyBaseState, annotationConfig string) error {
+	log.Debug().Msgf("Adding new HAProxy configuration: %s", annotationConfig)
 	// Prepend the new configuration
-	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, AnnotationKey, newConfig)
+	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, AnnotationKey, annotationConfig)
 	if err != nil {
 		return err
 	}

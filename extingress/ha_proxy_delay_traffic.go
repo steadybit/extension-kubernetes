@@ -13,8 +13,9 @@ import (
 // HAProxyDelayTrafficState extends base state with delay-specific fields
 type HAProxyDelayTrafficState struct {
 	HAProxyBaseState
-	Path  string
-	Delay int
+	Path             string
+	Delay            int
+	AnnotationConfig string
 }
 
 func NewDelayTrafficAction() action_kit_sdk.Action[HAProxyDelayTrafficState] {
@@ -107,23 +108,20 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 			return nil, fmt.Errorf("a delay rule already exists - cannot add another one")
 		}
 	}
+
+	var configBuilder strings.Builder
+	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
+	configBuilder.WriteString(fmt.Sprintf("tcp-request inspect-delay %dms\n", state.Delay))
+	configBuilder.WriteString(fmt.Sprintf("tcp-request content accept if WAIT_END || !{ path %s }\n", state.Path))
+	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
+	state.AnnotationConfig = configBuilder.String()
 	return nil, nil
 }
 
 func (a *HAProxyDelayTrafficAction) Start(ctx context.Context, state *HAProxyDelayTrafficState) (*action_kit_api.StartResult, error) {
-	configGenerator := func() string {
-		var configBuilder strings.Builder
-		configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
-		configBuilder.WriteString(fmt.Sprintf("tcp-request inspect-delay %dms\n", state.Delay))
-		configBuilder.WriteString(fmt.Sprintf("tcp-request content accept if WAIT_END || !{ path %s }\n", state.Path))
-		configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
-		return configBuilder.String()
-	}
-
-	if err := startHAProxyAction(&state.HAProxyBaseState, configGenerator); err != nil {
+	if err := startHAProxyAction(&state.HAProxyBaseState, state.AnnotationConfig); err != nil {
 		return nil, err
 	}
-
 	return nil, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -14,9 +15,10 @@ import (
 type HAProxyBlockTrafficState struct {
 	HAProxyBaseState
 	PathStatusCode map[string]int
+	AnnotationConfig string
 }
 
-func NewBlockTrafficAction() action_kit_sdk.Action[HAProxyBlockTrafficState] {
+func NewHAProxyBlockTrafficAction() action_kit_sdk.Action[HAProxyBlockTrafficState] {
 	return &HAProxyBlockTrafficAction{}
 }
 
@@ -84,21 +86,28 @@ func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlo
 		}
 	}
 
+	var configBuilder strings.Builder
+	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
+	// state.PathStatusCode sort items by key
+	keys := make([]string, 0, len(state.PathStatusCode))
+	for k := range state.PathStatusCode {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	// iterate over sorted keys
+	// and append to configBuilder
+	for _, key := range keys {
+		statusCode := state.PathStatusCode[key]
+		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path %s }\n", statusCode, key))
+	}
+	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
+	state.AnnotationConfig = configBuilder.String()
+
 	return nil, nil
 }
 
 func (a *HAProxyBlockTrafficAction) Start(ctx context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StartResult, error) {
-	configGenerator := func() string {
-		var configBuilder strings.Builder
-		configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
-		for path, statusCode := range state.PathStatusCode {
-			configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path %s }\n", statusCode, path))
-		}
-		configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
-		return configBuilder.String()
-	}
-
-	if err := startHAProxyAction(&state.HAProxyBaseState, configGenerator); err != nil {
+	if err := startHAProxyAction(&state.HAProxyBaseState, state.AnnotationConfig); err != nil {
 		return nil, err
 	}
 
