@@ -4,5 +4,6 @@
 package extcontainer
 
 const (
-	KubernetesContainerEnrichmentDataType = "com.steadybit.extension_kubernetes.kubernetes-container"
+	ContainerTargetType = "com.steadybit.extension_kubernetes.kubernetes-container"
+	SetImageActionId    = "com.steadybit.extension_kubernetes.set_image"
 )

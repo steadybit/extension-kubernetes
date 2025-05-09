@@ -6,6 +6,10 @@ package extcontainer
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -17,9 +21,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
-	"strings"
-	"time"
 )
 
 type containerDiscovery struct {
@@ -42,7 +43,7 @@ func NewContainerDiscovery(ctx context.Context, k8s *client.Client) discovery_ki
 
 func (c *containerDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id: KubernetesContainerEnrichmentDataType,
+		Id: ContainerTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("30s"),
 		},
@@ -60,7 +61,7 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 		Id:      "com.steadybit.extension_kubernetes.kubernetes-container-to-container",
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
 		Src: discovery_kit_api.SourceOrDestination{
-			Type: KubernetesContainerEnrichmentDataType,
+			Type: ContainerTargetType,
 			Selector: map[string]string{
 				"k8s.container.id.stripped": "${dest.container.id.stripped}",
 			},
@@ -199,7 +200,7 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 
 			enrichmentDataList = append(enrichmentDataList, discovery_kit_api.EnrichmentData{
 				Id:                 container.ContainerID,
-				EnrichmentDataType: KubernetesContainerEnrichmentDataType,
+				EnrichmentDataType: ContainerTargetType,
 				Attributes:         attributes,
 			})
 		}

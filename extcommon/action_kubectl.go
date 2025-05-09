@@ -3,6 +3,10 @@ package extcommon
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
@@ -11,9 +15,6 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"os"
-	"os/exec"
-	"strings"
 )
 
 // Base for actions executing a kubectl-command in the background, checking the state periodically and stopping the command and optionally rolling it back with another command.
@@ -197,6 +198,8 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 	if !state.CommandCompleted {
 		// kill command if it is still running
 		var pid = state.Pid
+		// On UNIX, os.FindProcess does not return
+		// an error if the process does not exist
 		process, err := os.FindProcess(pid)
 		if err != nil {
 			return nil, extension_kit.ToError("Failed to find process", err)
