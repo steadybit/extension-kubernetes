@@ -77,12 +77,19 @@ permissions for clusterrole or role
       - networking.k8s.io
     resources:
       - ingresses
-      - ingressclasses
     verbs:
       - get
       - list
       - watch
       - update
       - patch
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingressclasses
+    verbs:
+      - get
+      - list
+      - watch
 {{- end -}}
 

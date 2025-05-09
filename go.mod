@@ -12,7 +12,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.9.7
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.15
-	github.com/steadybit/action-kit/go/action_kit_test v1.3.3-0.20250507101533-2a4c2d318207
+	github.com/steadybit/action-kit/go/action_kit_test v1.3.3-0.20250509162614-90c2f02daee6
 	github.com/steadybit/advice-kit/go/advice_kit_api v1.1.1
 	github.com/steadybit/advice-kit/go/advice_kit_test v0.0.0-20250317221443-779baa909948
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.6.0

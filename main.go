@@ -98,7 +98,7 @@ func main() {
 		action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetPodCountCheckAction(client.K8S))
 	}
 
-	if !extconfig.Config.DiscoveryDisabledIngress {
+	if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsModifyIngressAllowed() {
 		discovery_kit_sdk.Register(extingress.NewIngressDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extingress.NewHAProxyBlockTrafficAction())
 		action_kit_sdk.RegisterAction(extingress.NewHAProxyDelayTrafficAction())

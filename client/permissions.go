@@ -60,6 +60,8 @@ var requiredPermissions = []requiredPermission{
 	{group: "", resource: "pods", subresource: "eviction", verbs: []string{"create"}, allowGracefulFailure: true},
 	{group: "", resource: "nodes", verbs: []string{"patch"}, allowGracefulFailure: true},
 	{group: "", resource: "pods", subresource: "exec", verbs: []string{"create"}, allowGracefulFailure: true},
+	{group: "networking.k8s.io", resource: "ingresses", verbs: []string{"get", "list", "watch", "update", "patch"}, allowGracefulFailure: true},
+	{group: "networking.k8s.io", resource: "ingressclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 }
 
 func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
@@ -184,6 +186,21 @@ func (p *PermissionCheckResult) IsDrainNodePermitted() bool {
 		"nodes/patch",
 	})
 }
+
+func (p *PermissionCheckResult) IsModifyIngressAllowed() bool {
+	return p.hasPermissions([]string{
+		"networking.k8s.io/ingressclasses/get",
+		"networking.k8s.io/ingressclasses/list",
+		"networking.k8s.io/ingressclasses/watch",
+		"networking.k8s.io/ingresses/get",
+		"networking.k8s.io/ingresses/list",
+		"networking.k8s.io/ingresses/watch",
+		"networking.k8s.io/ingresses/update",
+		"networking.k8s.io/ingresses/patch",
+	})
+}
+
+
 
 func (p *PermissionCheckResult) IsTaintNodePermitted() bool {
 	return p.hasPermissions([]string{

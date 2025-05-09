@@ -377,7 +377,7 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
-		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "haproxy-controller-discovery").Run()
+		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "haproxy-controller-discovery", "--kube-context", m.Profile).Run()
 	}()
 
 	haproxy, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
@@ -694,7 +694,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
-		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", haProxyControllerNamespace).Run()
+		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
 	}()
 
 	// Measure baseline latency
@@ -788,7 +788,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
-		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", haProxyControllerNamespace).Run()
+		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
 	}()
 
 	// Service should be reachable via haproxy service
@@ -892,15 +892,11 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, haProxyControllerNamespace string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
 	// Step 1: Deploy HAProxy Ingress Controller
 	log.Info().Msg("Deploying HAProxy Ingress Controller")
-	err := m.KubectlExec("config", "use-context", "e2e-docker").Run()
-	require.NoError(t, err, "Failed to switch context")
-	err = m.KubectlExec("create", "namespace", haProxyControllerNamespace).Run()
-	require.NoError(t, err, "Failed to create namespace: %s", err)
 	out, err := exec.Command("helm", "repo", "add", "haproxytech", "https://haproxytech.github.io/helm-charts").CombinedOutput()
 	require.NoError(t, err, "Failed to add HAProxy Helm repo: %s", out)
 	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
 	require.NoError(t, err, "Failed to update Helm repos: %s", out)
-	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--namespace", haProxyControllerNamespace, "--set", "controller.service.type=NodePort").CombinedOutput()
+	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", haProxyControllerNamespace, "--kube-context", m.Profile,  "--set", "controller.service.type=NodePort").CombinedOutput()
 	require.NoError(t, err, "Failed to deploy HAProxy Ingress Controller: %s", out)
 
 	// Wait for HAProxy ingress controller to be ready
@@ -1053,15 +1049,15 @@ func waitForHAProxyIngressController(ctx context.Context, namespace string) erro
 }
 
 func findServiceNameInNamespace(m *e2e.Minikube, namespace string) (string, error) {
-	cmd := m.KubectlExec("get", "services", "-n", namespace, "-o", "jsonpath={.items[0].metadata.name}")
-	cmd.Stdout = nil
-	cmd.Stderr = nil
-	output, err := cmd.CombinedOutput()
+	services, err := m.GetClient().CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to get service name")
 		return "", err
 	}
-	return strings.TrimSpace(string(output)), nil
+	if len(services.Items) == 0 {
+		return "", fmt.Errorf("no services found in namespace %s", namespace)
+	}
+	return services.Items[0].Name, nil
 }
 
 func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname string) (time.Duration, error) {
