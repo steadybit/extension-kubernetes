@@ -18,7 +18,6 @@ jobs:
   extension-ci:
     uses: steadybit/extension-kit/.github/workflows/reusable-extension-ci.yml@main
     with:
-      runs_on: steadybit_runner_ubuntu_latest_4cores_16GB
       go_version: '1.24'
       build_linux_packages: false
       VERSION_BUMPER_APPID: ${{ vars.GH_APP_STEADYBIT_APP_ID }}
