@@ -18,7 +18,7 @@ type HAProxyDelayTrafficState struct {
 	AnnotationConfig string
 }
 
-func NewDelayTrafficAction() action_kit_sdk.Action[HAProxyDelayTrafficState] {
+func NewHAProxyDelayTrafficAction() action_kit_sdk.Action[HAProxyDelayTrafficState] {
 	return &HAProxyDelayTrafficAction{}
 }
 
