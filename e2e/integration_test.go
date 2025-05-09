@@ -5,6 +5,11 @@ package e2e
 
 import (
 	"context"
+	"os"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
@@ -18,11 +23,8 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/strings/slices"
-	"os"
-	"strings"
-	"testing"
-	"time"
 )
 
 var testCases = []e2e.WithMinikubeTestCase{
@@ -65,6 +67,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 	{
 		Name: "causeCrashLoop",
 		Test: testCauseCrashLoop,
+	},
+	{
+		Name: "setImage",
+		Test: testSetImage,
 	},
 }
 
@@ -313,12 +319,12 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Contains(t, target.Attributes["k8s.pod.name"], nginx.Pods[1].Name)
 	assert.Equal(t, target.Attributes["k8s.distribution"][0], "kubernetes")
 
-	enrichmentData, err := e2e.PollForEnrichmentData(ctx, e, extcontainer.KubernetesContainerEnrichmentDataType, func(enrichmentData discovery_kit_api.EnrichmentData) bool {
+	enrichmentData, err := e2e.PollForEnrichmentData(ctx, e, extcontainer.ContainerTargetType, func(enrichmentData discovery_kit_api.EnrichmentData) bool {
 		return e2e.ContainsAttribute(enrichmentData.Attributes, "k8s.container.name", "nginx")
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, enrichmentData.EnrichmentDataType, extcontainer.KubernetesContainerEnrichmentDataType)
+	assert.Equal(t, enrichmentData.EnrichmentDataType, extcontainer.ContainerTargetType)
 	assert.Equal(t, enrichmentData.Attributes["k8s.container.name"][0], "nginx")
 	assert.Equal(t, enrichmentData.Attributes["k8s.container.image"][0], "nginx:stable-alpine")
 	assert.Equal(t, enrichmentData.Attributes["k8s.pod.label.app"][0], "nginx")
@@ -643,4 +649,96 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		require.NoError(t, err)
 		assert.GreaterOrEqual(collect, p.Status.ContainerStatuses[0].RestartCount, int32(2))
 	}, 20*time.Second, 1*time.Second, "pod should be restarted at least twice")
+}
+
+func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testSetImage")
+	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Second)
+	defer cancel()
+
+	// Start Deployment with 2 pods
+	nginx := e2e.NginxDeployment{Minikube: m}
+	err := nginx.Deploy("nginx-test-set-image")
+	require.NoError(t, err, "failed to create deployment")
+	defer func() { _ = nginx.Delete() }()
+	assert.Len(t, nginx.Pods, 2)
+
+	var distinctPodNames = make(map[string]string)
+
+	// Check if node discovery is working and listing 2 pods
+	target, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, "nginx-test-set-image-") {
+				distinctPodNames[pod] = pod
+			}
+		}
+		return len(distinctPodNames) == 2
+	})
+
+	require.NoError(t, err)
+
+	// Set image
+	config := struct {
+		Duration int    `json:"duration"`
+		Image    string `json:"image"`
+	}{
+		Duration: 120000,
+		Image:    "httpd:alpine",
+	}
+
+	action, err := e.RunAction(
+		extcontainer.SetImageActionId,
+		&action_kit_api.Target{
+			Name: target.Id,
+			Attributes: map[string][]string{
+				"k8s.namespace":      {"default"},
+				"k8s.deployment":     {"nginx-test-set-image"},
+				"k8s.container.name": {"nginx"},
+			},
+		}, config, nil)
+
+	defer func() { _ = action.Cancel() }()
+
+	require.NoError(t, err)
+
+	newDistinctPodNames := make(map[string]string)
+	httpdPodsCount := 0
+
+	// Verify creation of new pods
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, "nginx-test-set-image-") {
+				_, ok := distinctPodNames[pod]
+
+				if !ok {
+					newDistinctPodNames[pod] = pod
+				}
+			}
+		}
+
+		return len(newDistinctPodNames) == 2
+	})
+
+	require.NoError(t, err)
+
+	// Verify new pods have the new image
+	for _, pod := range newDistinctPodNames {
+		podMeta := v1.ObjectMeta{
+			Name:      pod,
+			Namespace: "default",
+		}
+
+		p, err := m.GetPod(podMeta.GetObjectMeta())
+		require.NoError(t, err)
+
+		containers := p.Spec.Containers
+
+		for _, container := range containers {
+			if container.Name == "nginx" && container.Image == "httpd:alpine" {
+				httpdPodsCount++
+			}
+		}
+	}
+
+	assert.Equal(t, httpdPodsCount, 2)
 }

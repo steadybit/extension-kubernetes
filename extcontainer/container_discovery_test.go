@@ -5,6 +5,10 @@ package extcontainer
 
 import (
 	"context"
+	"sort"
+	"testing"
+	"time"
+
 	kclient "github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
@@ -14,9 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"sort"
-	"testing"
-	"time"
 )
 
 func Test_containerDiscovery(t *testing.T) {
@@ -97,7 +98,7 @@ func Test_containerDiscovery(t *testing.T) {
 			require.Len(t, targets, 1)
 			target := targets[0]
 			assert.Equal(t, "crio://abcdef", target.Id)
-			assert.Equal(t, KubernetesContainerEnrichmentDataType, target.EnrichmentDataType)
+			assert.Equal(t, ContainerTargetType, target.EnrichmentDataType)
 			if len(tt.expectedAttributesExactly) > 0 {
 				for _, v := range target.Attributes {
 					sort.Strings(v)
