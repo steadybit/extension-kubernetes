@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
@@ -1064,42 +1065,72 @@ func findServiceNameInNamespace(m *e2e.Minikube, namespace string) (string, erro
 }
 
 func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname string) (time.Duration, error) {
-	// Use curl to time a request
-	client, err := m.NewRestClientForService(service)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create REST client")
-		return 0, err
+	var (
+		maxRetries = 5
+		baseDelay  = 500 * time.Millisecond
+	)
+
+	var diff time.Duration
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		client, err := m.NewRestClientForService(service)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create REST client")
+			if attempt == maxRetries {
+				return 0, err
+			}
+			time.Sleep(baseDelay * (1 << (attempt - 1)))
+			continue
+		}
+		defer client.Close()
+		client.SetHeader("Host", hostname)
+		startTime := time.Now()
+		_, err = client.R().Get("/")
+		endTime := time.Now()
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to make request")
+			if attempt == maxRetries {
+				return 0, err
+			}
+			time.Sleep(baseDelay * (1 << (attempt - 1)))
+			continue
+		}
+		diff = endTime.Sub(startTime)
+		log.Info().Msgf("Request took %v", diff)
+		return diff, nil
 	}
-	defer client.Close()
-	client.SetHeader("Host", hostname)
-	//measure time
-	startTime := time.Now()
-	_, err = client.R().Get("/")
-	endTime := time.Now()
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to make request")
-		return 0, err
-	}
-	diff := endTime.Sub(startTime)
-	log.Info().Msgf("Request took %v", diff)
-	return diff, nil
+	return 0, fmt.Errorf("failed to measure request latency after %d attempts", maxRetries)
 }
 
 func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path string, expectedStatusCode int) error {
-	client, err := m.NewRestClientForService(service)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create REST client")
-		return err
+	var (
+		maxRetries = 5
+		baseDelay  = 500 * time.Millisecond
+	)
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		client, err := m.NewRestClientForService(service)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to create REST client")
+			if attempt == maxRetries {
+				return err
+			}
+			time.Sleep(baseDelay * (1 << (attempt - 1)))
+			continue
+		}
+		defer client.Close()
+		response, err := client.R().Get(path)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to make request")
+			if attempt == maxRetries {
+				return err
+			}
+			time.Sleep(baseDelay * (1 << (attempt - 1)))
+			continue
+		}
+		assert.Equal(t, response.StatusCode(), expectedStatusCode, "Expected status code %d, got %d", expectedStatusCode, response.StatusCode())
+		log.Info().Msgf("Request returned status code %d", response.StatusCode())
+		return nil
 	}
-	defer client.Close()
-	response, err := client.R().Get(path)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to make request")
-		return err
-	}
-	assert.Equal(t, response.StatusCode(), expectedStatusCode, "Expected status code %d, got %d", expectedStatusCode, response.StatusCode())
-	log.Info().Msgf("Request returned status code %d", response.StatusCode())
-	return nil
+	return fmt.Errorf("failed to get expected status code after %d attempts", maxRetries)
 }
 
 func int32Ptr(i int32) *int32 {
