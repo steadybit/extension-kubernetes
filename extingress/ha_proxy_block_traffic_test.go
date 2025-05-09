@@ -37,10 +37,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 	client.K8S = testClient
 	assert.Eventually(t, func() bool {
 		name, _ := testClient.IngressByNamespaceAndName("demo", "my-ingress")
-		if name != nil {
-			return true
-		}
-		return false
+		return name != nil
 	}, time.Second, 100*time.Millisecond)
 
 	type args struct {
