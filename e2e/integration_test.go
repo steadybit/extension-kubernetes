@@ -1170,7 +1170,15 @@ func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path 
 			time.Sleep(baseDelay * (1 << (attempt - 1)))
 			continue
 		}
-		assert.Equal(t, response.StatusCode(), expectedStatusCode, "Expected status code %d, got %d", expectedStatusCode, response.StatusCode())
+		if response.StatusCode() != expectedStatusCode {
+			log.Error().Msgf("Expected status code %d, got %d", expectedStatusCode, response.StatusCode())
+			if attempt == maxRetries {
+				return fmt.Errorf("expected status code %d, got %d", expectedStatusCode, response.StatusCode())
+			}
+			time.Sleep(baseDelay * (1 << (attempt - 1)))
+			continue
+		}
+		assert.Equal(t, response.StatusCode(), expectedStatusCode, "Expected status code %d, got %d", response.StatusCode(), expectedStatusCode)
 		log.Info().Msgf("Request returned status code %d", response.StatusCode())
 		return nil
 	}
