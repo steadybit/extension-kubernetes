@@ -700,7 +700,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
-		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
+		cleanupHAProxy(m, haProxyControllerNamespace)
 	}()
 
 	// Measure baseline latency
@@ -782,6 +782,15 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		})
 	}
 }
+
+func cleanupHAProxy(m *e2e.Minikube, haProxyControllerNamespace string) {
+	_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
+	// check if clusterrole is still present
+	if checkClusterRole(m, "haproxy-ingress-kubernetes-ingress") {
+		deleteClusterRole(m, "haproxy-ingress-kubernetes-ingress")
+	}
+}
+
 func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	if isUsingRoleBinding() {
 		log.Info().Msg("Skipping testHAProxyBlockTraffic because it is using role binding, and is therefore not supported")
@@ -798,7 +807,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
-		_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
+		cleanupHAProxy(m, haProxyControllerNamespace)
 	}()
 
 	// Service should be reachable via haproxy service
@@ -1073,6 +1082,30 @@ func findServiceNameInNamespace(m *e2e.Minikube, namespace string) (string, erro
 		return "", fmt.Errorf("no services found in namespace %s", namespace)
 	}
 	return services.Items[0].Name, nil
+}
+
+func checkClusterRole(m *e2e.Minikube, name string) bool {
+	list, err := m.GetClient().RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to list cluster roles")
+		return false
+	}
+	for _, role := range list.Items {
+		if role.Name == name {
+			log.Info().Msgf("Cluster role %s found", role.Name)
+			return true
+		}
+	}
+	return false
+}
+
+func deleteClusterRole(m *e2e.Minikube, name string) {
+	err := m.GetClient().RbacV1().ClusterRoles().Delete(context.Background(), name, metav1.DeleteOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to delete cluster role %s", name)
+	} else {
+		log.Info().Msgf("Cluster role %s deleted", name)
+	}
 }
 
 func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname string) (time.Duration, error) {
