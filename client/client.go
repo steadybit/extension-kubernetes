@@ -4,24 +4,29 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	networkingv1client "k8s.io/client-go/kubernetes/typed/networking/v1"
 	listerAppsv1 "k8s.io/client-go/listers/apps/v1"
 	listerAutoscalingv2 "k8s.io/client-go/listers/autoscaling/v2"
 	listerCorev1 "k8s.io/client-go/listers/core/v1"
+	listerNetworkingv1 "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -88,11 +93,22 @@ type Client struct {
 		informer cache.SharedIndexInformer
 	}
 
+	ingress struct {
+		lister   listerNetworkingv1.IngressLister
+		informer cache.SharedIndexInformer
+	}
+
+	ingressClass struct {
+		lister   listerNetworkingv1.IngressClassLister
+		informer cache.SharedIndexInformer
+	}
+
 	handlers struct {
 		sync.Mutex
 		l []chan<- interface{}
 	}
 	resourceEventHandler cache.ResourceEventHandlerFuncs
+	networkingV1         networkingv1client.NetworkingV1Interface
 }
 
 func (c *Client) Permissions() *PermissionCheckResult {
@@ -336,6 +352,61 @@ func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace strin
 	return nil
 }
 
+func (c *Client) Ingresses() []*networkingv1.Ingress {
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		return []*networkingv1.Ingress{}
+	}
+	ingresses, err := c.ingress.lister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching ingresses")
+		return []*networkingv1.Ingress{}
+	}
+	return ingresses
+}
+
+func (c *Client) IngressClasses() []*networkingv1.IngressClass {
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		return []*networkingv1.IngressClass{}
+	}
+	ingressClasses, err := c.ingressClass.lister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching IngressClasses")
+		return []*networkingv1.IngressClass{}
+	}
+	return ingressClasses
+}
+
+func (c *Client) GetHAProxyIngressClasses() ([]string, bool) {
+	ingressClasses := c.IngressClasses()
+	haproxyClassNames := make([]string, 0)
+	hasDefaultClass := false
+
+	for _, ic := range ingressClasses {
+		if ic.Spec.Controller == "haproxy.org/ingress-controller/haproxy" {
+			haproxyClassNames = append(haproxyClassNames, ic.Name)
+
+			// Check if this is a default class
+			if ic.Annotations != nil {
+				if value, ok := ic.Annotations["ingressclass.kubernetes.io/is-default-class"]; ok && value == "true" {
+					hasDefaultClass = true
+				}
+			}
+		}
+	}
+
+	return haproxyClassNames, hasDefaultClass
+}
+
+func (c *Client) GetIngressControllerByClassName(className string) string {
+	ingressClasses := c.IngressClasses()
+	for _, ic := range ingressClasses {
+		if ic.Name == className {
+			return ic.Spec.Controller
+		}
+	}
+	return ""
+}
+
 func logGetError(resource string, err error) {
 	if err != nil {
 		var t *k8sErrors.StatusError
@@ -496,6 +567,35 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		}
 	}
 
+	// Add ingress informer
+	if !extconfig.IsUsingRoleBasedAccessControl() {
+		ingresses := factory.Networking().V1().Ingresses()
+		client.ingress.informer = ingresses.Informer()
+		client.ingress.lister = ingresses.Lister()
+		client.networkingV1 = clientset.NetworkingV1()
+		informerSyncList = append(informerSyncList, client.ingress.informer.HasSynced)
+		if err := client.ingress.informer.SetTransform(transformIngress); err != nil {
+			log.Fatal().Err(err).Msg("Failed to add ingress transformer")
+		}
+		if _, err := client.ingress.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add ingress event handler")
+		}
+	}
+
+	// Add ingressClasses informer
+	if !extconfig.IsUsingRoleBasedAccessControl() {
+		ingressClasses := factory.Networking().V1().IngressClasses()
+		client.ingressClass.informer = ingressClasses.Informer()
+		client.ingressClass.lister = ingressClasses.Lister()
+		informerSyncList = append(informerSyncList, client.ingressClass.informer.HasSynced)
+		if err := client.ingressClass.informer.SetTransform(transformIngressClass); err != nil {
+			log.Fatal().Err(err).Msg("Failed to add ingressClass transformer")
+		}
+		if _, err := client.ingressClass.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add ingressClass event handler")
+		}
+	}
+
 	events := factory.Core().V1().Events()
 	client.event.informer = events.Informer()
 	informerSyncList = append(informerSyncList, client.event.informer.HasSynced)
@@ -537,6 +637,152 @@ func (c *Client) StopNotify(ch chan<- interface{}) {
 	c.handlers.l = slices.DeleteFunc(c.handlers.l, func(e chan<- interface{}) bool {
 		return e == ch
 	})
+}
+func (c *Client) IngressByNamespaceAndName(namespace string, name string, forceUpdate ...bool) (*networkingv1.Ingress, error) {
+	// Check if we should bypass the cache
+	if len(forceUpdate) > 0 && forceUpdate[0] {
+		// Get directly from the API server instead of the cache
+		ingress, err := c.networkingV1.Ingresses(namespace).Get(context.Background(), name, metav1.GetOptions{})
+		if err != nil {
+			if k8sErrors.IsNotFound(err) {
+				return nil, fmt.Errorf("ingress %s/%s not found", namespace, name)
+			}
+			return nil, fmt.Errorf("error fetching ingress %s/%s directly from API: %w", namespace, name, err)
+		}
+		return ingress, nil
+	}
+
+	// Use the cache as before
+	ingress, err := c.ingress.lister.Ingresses(namespace).Get(name)
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, fmt.Errorf("ingress %s/%s not found", namespace, name)
+		}
+		return nil, fmt.Errorf("error fetching ingress %s/%s: %w", namespace, name, err)
+	}
+	return ingress, nil
+}
+
+// GetConfig returns the kubernetes config used by the client
+func (c *Client) GetConfig() *rest.Config {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		log.Warn().Err(err).Msgf("Failed to get in-cluster config, using default config")
+		config = &rest.Config{}
+	}
+	return config
+}
+
+func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, ingressName string, annotationKey string, newAnnotationSuffix string) error {
+	maxRetries := 10
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
+		if err != nil {
+			return fmt.Errorf("failed to fetch ingress: %w", err)
+		}
+
+		newConfig := ""
+		if ingress.Annotations == nil {
+			ingress.Annotations = make(map[string]string)
+			newConfig = newAnnotationSuffix
+		} else {
+			// Prepend the new configuration
+			newConfig = newAnnotationSuffix + "\n" + ingress.Annotations[annotationKey]
+		}
+		// Update the annotation
+		ingress.Annotations[annotationKey] = newConfig
+
+		_, err = c.networkingV1.Ingresses(namespace).Update(
+			ctx,
+			ingress,
+			metav1.UpdateOptions{},
+		)
+
+		if err == nil {
+			log.Debug().Msgf("Updated ingress %s/%s annotation %s with new config: %s", namespace, ingressName, annotationKey, newConfig)
+			return nil // Update successful
+		}
+
+		// If it's not a conflict error, return the error immediately
+		if !k8sErrors.IsConflict(err) {
+			log.Error().Err(err).Msgf("Failed to update ingress %s/%s annotation %s: %v", namespace, ingressName, annotationKey, err)
+			return fmt.Errorf("failed to update ingress annotation: %w", err)
+		}
+
+		// If it's a conflict error, we'll retry with the latest version of the resource
+		log.Debug().Msgf("Conflict detected while updating ingress %s/%s, retrying (attempt %d/%d)",
+			namespace, ingressName, attempt+1, maxRetries)
+	}
+	log.Error().Msgf("Failed to update ingress %s/%s annotation %s after %d attempts", namespace, ingressName, annotationKey, maxRetries)
+	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
+}
+
+func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID) error {
+	log.Debug().Msgf("Removing annotation block from ingress %s/%s with execution ID %s", namespace, ingressName, executionId)
+	maxRetries := 10
+
+	startMarker := fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
+	endMarker := fmt.Sprintf("# END STEADYBIT - %s", executionId)
+
+	// Use the clientset to update the ingress
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
+		if err != nil {
+			return fmt.Errorf("failed to fetch ingress: %w", err)
+		}
+
+		if ingress.Annotations == nil || ingress.Annotations[annotationKey] == "" {
+			return nil // Nothing to remove
+		}
+
+		// Remove the configuration block between markers
+		existingConfig := ingress.Annotations[annotationKey]
+		updatedConfig := removeAnnotationBlock(existingConfig, startMarker, endMarker)
+
+		// If nothing was removed, no need to update
+		if existingConfig == updatedConfig {
+			return nil
+		}
+
+		// Update the annotation with the block removed
+		ingress.Annotations[annotationKey] = updatedConfig
+
+		_, err = c.networkingV1.Ingresses(namespace).Update(
+			ctx,
+			ingress,
+			metav1.UpdateOptions{},
+		)
+
+		if err == nil {
+			return nil // Update successful
+		}
+
+		// If it's not a conflict error, return the error immediately
+		if !k8sErrors.IsConflict(err) {
+			return fmt.Errorf("failed to update ingress annotation: %w", err)
+		}
+
+		// If it's a conflict error, we'll retry with the latest version of the resource
+		log.Debug().Msgf("Conflict detected while removing annotation block in ingress %s/%s, retrying (attempt %d/%d)",
+			namespace, ingressName, attempt+1, maxRetries)
+	}
+
+	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
+}
+
+// removeAnnotationBlock removes the text between startMarker and endMarker (inclusive)
+func removeAnnotationBlock(config, startMarker, endMarker string) string {
+	startIndex := strings.Index(config, startMarker)
+	endIndex := strings.Index(config, endMarker)
+
+	if startIndex == -1 || endIndex == -1 {
+		return config // Markers not found
+	}
+
+	// Remove the block including the markers and return the result
+	return config[:startIndex] + config[endIndex+len(endMarker):]
 }
 
 func isOpenShift(rootApiPath string) bool {

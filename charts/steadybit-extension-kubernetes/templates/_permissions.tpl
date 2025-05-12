@@ -73,3 +73,4 @@ permissions for clusterrole or role
     verbs:
       - create
 {{- end -}}
+

@@ -25,12 +25,14 @@ type Specification struct {
 	DiscoveryDisabledPod                   bool     `json:"discoveryDisabledPod" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledNode                  bool     `json:"discoveryDisabledNode" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledCluster               bool     `json:"discoveryDisabledCluster" required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledIngress               bool     `required:"false" split_words:"true" default:"false"`
 	DiscoveryAttributesExcludesContainer   []string `json:"discoveryAttributesExcludesContainer" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDeployment  []string `json:"discoveryAttributesExcludesDeployment" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesStatefulSet []string `json:"discoveryAttributesExcludesStatefulSet" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDaemonSet   []string `json:"discoveryAttributesExcludesDaemonSet" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesPod         []string `json:"discoveryAttributesExcludesPod" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesNode        []string `json:"discoveryAttributesExcludesNode" split_words:"true" required:"false"`
+	DiscoveryAttributesExcludesIngress     []string `json:"discoveryAttributesExcludesIngress" split_words:"true" required:"false"`
 	DiscoveryMaxPodCount                   int      `json:"discoveryMaxPodCount" split_words:"true" required:"false" default:"50"`
 	Namespace                              string   `json:"namespace" split_words:"true" required:"false" default:""`
 }
@@ -55,3 +57,4 @@ func ValidateConfiguration() {
 func IsUsingRoleBasedAccessControl() bool { //instead of ClusterRole
 	return Config.Namespace != ""
 }
+
