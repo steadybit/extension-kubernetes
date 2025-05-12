@@ -911,7 +911,7 @@ func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Co
 
 	// Wait for HAProxy ingress controller to be ready
 	log.Info().Msg("Waiting for HAProxy Ingress Controller to be ready")
-	err = waitForHAProxyIngressController(ctx, haProxyControllerNamespace)
+	err = waitForHAProxyIngressController(m, ctx, haProxyControllerNamespace)
 	require.NoError(t, err)
 
 	// Step 2: Create a test deployment with service
@@ -1038,22 +1038,27 @@ func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Co
 	return haProxyService, testAppName, ingressTarget, nginxDeployment, appService, appIngress
 }
 
-func waitForHAProxyIngressController(ctx context.Context, namespace string) error {
+func waitForHAProxyIngressController(m *e2e.Minikube, ctx context.Context, namespace string) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(5 * time.Second):
-			cmd := exec.Command("kubectl", "get", "pods", "-n", namespace)
-			output, err := cmd.CombinedOutput()
+			pods, err := m.GetClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to check HAProxy controller status")
+				log.Error().Err(err).Msgf("Failed to check HAProxy controller status in namespace %s", namespace)
 				continue
 			}
 
-			if strings.Contains(string(output), "Running") {
-				return nil
+			for _, pod := range pods.Items {
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					if containerStatus.Ready && pod.Status.Phase == corev1.PodRunning {
+						log.Info().Msgf("HAProxy controller is ready in namespace %s", namespace)
+						return nil
+					}
+				}
 			}
+			log.Info().Msgf("Waiting for HAProxy controller in namespace %s to be ready...", namespace)
 		}
 	}
 }
