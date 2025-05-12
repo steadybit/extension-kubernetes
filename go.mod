@@ -19,7 +19,7 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.2.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.3
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.0
-	github.com/steadybit/extension-kit v1.9.1-0.20250415113328-6ef720cb0419
+	github.com/steadybit/extension-kit v1.10.0
 	github.com/stretchr/testify v1.10.0
 	github.com/zegl/kube-score v1.19.0
 	go.uber.org/automaxprocs v1.6.0
@@ -67,7 +67,7 @@ require (
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/procfs v0.16.0 // indirect
+	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
