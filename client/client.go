@@ -354,24 +354,20 @@ func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace strin
 
 func (c *Client) Ingresses() []*networkingv1.Ingress {
 	if extconfig.IsUsingRoleBasedAccessControl() {
-		log.Info().Msgf("Fetching ingresses for namespace %s", extconfig.Config.Namespace)
-		ingresses, err := c.ingress.lister.Ingresses(extconfig.Config.Namespace).List(labels.Everything())
-		if err != nil {
-			log.Error().Err(err).Msgf("Error while fetching ingresses")
-			return []*networkingv1.Ingress{}
-		}
-		return ingresses
-	} else {
-		ingresses, err := c.ingress.lister.List(labels.Everything())
-		if err != nil {
-			log.Error().Err(err).Msgf("Error while fetching ingresses")
-			return []*networkingv1.Ingress{}
-		}
-		return ingresses
+		return []*networkingv1.Ingress{}
 	}
+	ingresses, err := c.ingress.lister.List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching ingresses")
+		return []*networkingv1.Ingress{}
+	}
+	return ingresses
 }
 
 func (c *Client) IngressClasses() []*networkingv1.IngressClass {
+	if extconfig.IsUsingRoleBasedAccessControl() {
+		return []*networkingv1.IngressClass{}
+	}
 	ingressClasses, err := c.ingressClass.lister.List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching IngressClasses")
@@ -572,28 +568,32 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	// Add ingress informer
-	ingresses := factory.Networking().V1().Ingresses()
-	client.ingress.informer = ingresses.Informer()
-	client.ingress.lister = ingresses.Lister()
-	client.networkingV1 = clientset.NetworkingV1()
-	informerSyncList = append(informerSyncList, client.ingress.informer.HasSynced)
-	if err := client.ingress.informer.SetTransform(transformIngress); err != nil {
-		log.Fatal().Err(err).Msg("Failed to add ingress transformer")
-	}
-	if _, err := client.ingress.informer.AddEventHandler(client.resourceEventHandler); err != nil {
-		log.Fatal().Msg("failed to add ingress event handler")
+	if !extconfig.IsUsingRoleBasedAccessControl() {
+		ingresses := factory.Networking().V1().Ingresses()
+		client.ingress.informer = ingresses.Informer()
+		client.ingress.lister = ingresses.Lister()
+		client.networkingV1 = clientset.NetworkingV1()
+		informerSyncList = append(informerSyncList, client.ingress.informer.HasSynced)
+		if err := client.ingress.informer.SetTransform(transformIngress); err != nil {
+			log.Fatal().Err(err).Msg("Failed to add ingress transformer")
+		}
+		if _, err := client.ingress.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add ingress event handler")
+		}
 	}
 
 	// Add ingressClasses informer
-	ingressClasses := factory.Networking().V1().IngressClasses()
-	client.ingressClass.informer = ingressClasses.Informer()
-	client.ingressClass.lister = ingressClasses.Lister()
-	informerSyncList = append(informerSyncList, client.ingressClass.informer.HasSynced)
-	if err := client.ingressClass.informer.SetTransform(transformIngressClass); err != nil {
-		log.Fatal().Err(err).Msg("Failed to add ingressClass transformer")
-	}
-	if _, err := client.ingressClass.informer.AddEventHandler(client.resourceEventHandler); err != nil {
-		log.Fatal().Msg("failed to add ingressClass event handler")
+	if !extconfig.IsUsingRoleBasedAccessControl() {
+		ingressClasses := factory.Networking().V1().IngressClasses()
+		client.ingressClass.informer = ingressClasses.Informer()
+		client.ingressClass.lister = ingressClasses.Lister()
+		informerSyncList = append(informerSyncList, client.ingressClass.informer.HasSynced)
+		if err := client.ingressClass.informer.SetTransform(transformIngressClass); err != nil {
+			log.Fatal().Err(err).Msg("Failed to add ingressClass transformer")
+		}
+		if _, err := client.ingressClass.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add ingressClass event handler")
+		}
 	}
 
 	events := factory.Core().V1().Events()
@@ -672,8 +672,6 @@ func (c *Client) GetConfig() *rest.Config {
 	}
 	return config
 }
-
-
 
 func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, ingressName string, annotationKey string, newAnnotationSuffix string) error {
 	maxRetries := 10
@@ -847,4 +845,3 @@ func IsExcludedFromDiscovery(objectMeta metav1.ObjectMeta) bool {
 	}
 	return false
 }
-

@@ -893,7 +893,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			// Verify service is not blocked anymore
 			err = checkStatusCode(t, m, haProxyService, "/", 200)
-			require.NoError(t, err)
+			require.NoError(t, err, "Service should not be blocked anymore")
 		})
 	}
 }
