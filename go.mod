@@ -15,7 +15,7 @@ require (
 	github.com/steadybit/action-kit/go/action_kit_test v1.3.3-0.20250509162614-90c2f02daee6
 	github.com/steadybit/advice-kit/go/advice_kit_api v1.1.1
 	github.com/steadybit/advice-kit/go/advice_kit_test v0.0.0-20250317221443-779baa909948
-	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.6.0
+	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.7.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.2.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.3
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2
