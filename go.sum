@@ -117,8 +117,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prashantv/gostub v1.1.0 h1:BTyx3RfQjRHnUWaGF9oQos79AlQ5k8WNktv7VGvVH4g=
 github.com/prashantv/gostub v1.1.0/go.mod h1:A5zLQHz7ieHGG7is6LLXLz7I8+3LZzsrV0P1IAHhP5U=
-github.com/prometheus/procfs v0.16.0 h1:xh6oHhKwnOJKMYiYBDWmkHqQPyiY40sny36Cmx2bbsM=
-github.com/prometheus/procfs v0.16.0/go.mod h1:8veyXUu3nGP7oaCxhX6yeaM5u4stL2FeMXnCqhDthZg=
+github.com/prometheus/procfs v0.16.1 h1:hZ15bTNuirocR6u0JZ6BAHHmwS1p8B4P6MRqxtzMyRg=
+github.com/prometheus/procfs v0.16.1/go.mod h1:teAbpZRB1iIAJYREa1LsoWUXykVXA1KlTmWl8x/U+Is=
 github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR38lUII=
 github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
 github.com/rs/xid v1.6.0 h1:fV591PaemRlL6JfRxGDEPl69wICngIQ3shQtzfy2gxU=
@@ -150,8 +150,8 @@ github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.3 h1:nlajAKjGJJyjpt
 github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.3/go.mod h1:FBEM7g/o7vBVWyA3tLPJIlfGCQc4ihJv1oXxQrDiCpg=
 github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.0 h1:Pdgl5y0/MkwRqgXVWeHYYlQucTZ6BEAAAZmvgO+jzh4=
 github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.0/go.mod h1:2Ox3Se50dEoG0kSuDhTvlLEWeBvtRmSly/OZCmtDiJk=
-github.com/steadybit/extension-kit v1.9.1-0.20250415113328-6ef720cb0419 h1:0bF92M0yUwQnf+e3isTWUOiF/Fcu5b8R5MPTMO9AcUQ=
-github.com/steadybit/extension-kit v1.9.1-0.20250415113328-6ef720cb0419/go.mod h1:k7ZlmRl5s0BT3GEJPCwR4rDbxCQ9RQZgMoNrqnKftpg=
+github.com/steadybit/extension-kit v1.10.0 h1:sOeMsGwYT+9v+U+tzUxy6xLMEH2h2qVw3uzgTWhnNpk=
+github.com/steadybit/extension-kit v1.10.0/go.mod h1:Ow1kVKhBQwLGOrBRPSdGDDVdVBgaMDFjpxPV3FeoHho=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.5.2 h1:xuMeJ0Sdp5ZMRXx/aWO6RZxdr3beISkG5/G/aIRr3pY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
