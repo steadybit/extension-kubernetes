@@ -166,8 +166,8 @@ github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 h1:6fRhSjgLCkTD3JnJx
 github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0/go.mod h1:/LWChgwKmvncFJFHJ7Gvn9wZArjbV5/FppcK2fKk/tI=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
-github.com/zegl/kube-score v1.19.0 h1:+4tyAjfnn4kUFvJdYY9Nk/wokNAYfKlLW6zq8U4SMzk=
-github.com/zegl/kube-score v1.19.0/go.mod h1:DW9Mqk9J771X0E5mfhmsJYKqxdHXZKVNPNebf427ZTU=
+github.com/zegl/kube-score v1.20.0 h1:J1VqK86SunV4Gg8emPTmwUVxe0rmXnAs5K9ZUbGMKR8=
+github.com/zegl/kube-score v1.20.0/go.mod h1:mBOw3S3g7TBG/GziT8xNG15dCFn54/jUeEHndxLinE8=
 github.com/zmwangx/debounce v1.0.0 h1:Dyf+WfLESjc2bqFKHgI1dZTW9oh6CJm8SBDkhXrwLB4=
 github.com/zmwangx/debounce v1.0.0/go.mod h1:U+/QHt+bSMdUh8XKOb6U+MQV5Ew4eS8M3ua5WJ7Ns6I=
 go.uber.org/automaxprocs v1.6.0 h1:O3y2/QNTOdbF+e/dpXNNW7Rx2hZ4sTIPyybbxyNqTUs=
