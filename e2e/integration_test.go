@@ -797,7 +797,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		return
 	}
 	log.Info().Msg("Starting testHAProxyBlockTraffic")
-	const haProxyControllerNamespace = "haproxy-controller-block"
+	const haProxyControllerNamespace = "haproxy-controller"
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	HAProxyIngressTargetType = "com.steadybit.extension_kubernetes.haproxy-ingress"
+	HAProxyIngressTargetType = "com.steadybit.extension_kubernetes.extension_kubernetes-haproxy-ingress"
   AnnotationKey            = "haproxy-ingress.github.io/backend-config-snippet"
 )
 
