@@ -568,7 +568,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	// Add ingress informer
-	if !extconfig.IsUsingRoleBasedAccessControl() && K8S.Permissions().IsListIngressPermitted() {
+	if !extconfig.IsUsingRoleBasedAccessControl() && permissions.IsListIngressPermitted() {
 		ingresses := factory.Networking().V1().Ingresses()
 		client.ingress.informer = ingresses.Informer()
 		client.ingress.lister = ingresses.Lister()
@@ -583,7 +583,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	// Add ingressClasses informer
-	if !extconfig.IsUsingRoleBasedAccessControl() && K8S.Permissions().IsListIngressClassesPermitted() {
+	if !extconfig.IsUsingRoleBasedAccessControl() && permissions.IsListIngressClassesPermitted() {
 		ingressClasses := factory.Networking().V1().IngressClasses()
 		client.ingressClass.informer = ingressClasses.Informer()
 		client.ingressClass.lister = ingressClasses.Lister()
