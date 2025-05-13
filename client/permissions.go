@@ -187,14 +187,24 @@ func (p *PermissionCheckResult) IsDrainNodePermitted() bool {
 	})
 }
 
-func (p *PermissionCheckResult) IsModifyIngressAllowed() bool {
+func (p *PermissionCheckResult) IsListIngressPermitted() bool {
+	return p.hasPermissions([]string{
+		"networking.k8s.io/ingresses/get",
+		"networking.k8s.io/ingresses/list",
+		"networking.k8s.io/ingresses/watch",
+	})
+}
+
+func (p *PermissionCheckResult) IsListIngressClassesPermitted() bool {
 	return p.hasPermissions([]string{
 		"networking.k8s.io/ingressclasses/get",
 		"networking.k8s.io/ingressclasses/list",
 		"networking.k8s.io/ingressclasses/watch",
-		"networking.k8s.io/ingresses/get",
-		"networking.k8s.io/ingresses/list",
-		"networking.k8s.io/ingresses/watch",
+	})
+}
+
+func (p *PermissionCheckResult) IsModifyIngressPermitted() bool {
+	return p.hasPermissions([]string{
 		"networking.k8s.io/ingresses/update",
 		"networking.k8s.io/ingresses/patch",
 	})
