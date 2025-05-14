@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	HAProxyIngressTargetType = "com.steadybit.extension_kubernetes.extension_kubernetes-haproxy-ingress"
-  AnnotationKey            = "haproxy-ingress.github.io/backend-config-snippet"
+	HAProxyIngressTargetType = "com.steadybit.extension_kubernetes.kubernetes-haproxy-ingress"
+	AnnotationKey            = "haproxy-ingress.github.io/backend-config-snippet"
 )
 
 func getStartMarker(executionId uuid.UUID) string {
