@@ -29,7 +29,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				Namespace: "demo",
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "haproxy",
-					AnnotationKey:                 "http-request return status 503 if { path /alreadyBlocked }",
+					AnnotationKey:                 "http-request return status 503 if { path_reg /alreadyBlocked }",
 				},
 			},
 		}, metav1.CreateOptions{})
@@ -85,7 +85,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 					"/block":  502,
 					"/block2": 503,
 				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nhttp-request return status 502 if { path /block }\nhttp-request return status 503 if { path /block2 }\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nhttp-request return status 502 if { path_reg /block }\nhttp-request return status 503 if { path_reg /block2 }\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 			wantErr: nil,
 		},
