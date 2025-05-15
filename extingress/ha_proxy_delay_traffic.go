@@ -108,7 +108,7 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 	var configBuilder strings.Builder
 	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
 	configBuilder.WriteString(fmt.Sprintf("tcp-request inspect-delay %dms\n", state.Delay))
-	configBuilder.WriteString(fmt.Sprintf("tcp-request content accept if WAIT_END || !{ path %s }\n", state.Path))
+	configBuilder.WriteString(fmt.Sprintf("tcp-request content accept if WAIT_END || !{ path_reg %s }\n", state.Path))
 	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
 	state.AnnotationConfig = configBuilder.String()
 	return nil, nil

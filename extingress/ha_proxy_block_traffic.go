@@ -98,7 +98,7 @@ func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlo
 	// and append to configBuilder
 	for _, key := range keys {
 		statusCode := state.PathStatusCode[key]
-		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path %s }\n", statusCode, key))
+		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path_reg %s }\n", statusCode, key))
 	}
 	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
 	state.AnnotationConfig = configBuilder.String()
