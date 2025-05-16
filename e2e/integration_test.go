@@ -917,35 +917,25 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 	// Define delay parameters
 	tests := []struct {
-		name           string
-		testPath       []string
-		pathStatusCode []interface{}
-		wantedBlock    bool
+		name                 string
+		testPath             []string
+		conditionPathPattern string
+		responseStatusCode   int
+		wantedBlock          bool
 	}{
 		{
-			name:     "should block traffic for the specified path",
-			testPath: []string{"/"},
-			pathStatusCode: []interface{}{
-				map[string]interface{}{"key": "/", "value": "503"},
-			},
-			wantedBlock: true,
+			name:                 "should block traffic for the specified path",
+			testPath:             []string{"/"},
+			conditionPathPattern: "/",
+			responseStatusCode:   503,
+			wantedBlock:          true,
 		},
 		{
-			name:     "should block traffic for a specific endpoint",
-			testPath: []string{"/"},
-			pathStatusCode: []interface{}{
-				map[string]interface{}{"key": "/api", "value": "503"},
-			},
-			wantedBlock: false, // We're requesting /, so /api block shouldn't affect us
-		},
-		{
-			name:     "should block traffic for multiple endpoints",
-			testPath: []string{"/block", "/api"},
-			pathStatusCode: []interface{}{
-				map[string]interface{}{"key": "/block", "value": "503"},
-				map[string]interface{}{"key": "/api", "value": "401"},
-			},
-			wantedBlock: true,
+			name:                 "should block traffic for a specific endpoint",
+			testPath:             []string{"/"},
+			conditionPathPattern: "/api",
+			responseStatusCode:   503,
+			wantedBlock:          false, // We're requesting /, so /api block shouldn't affect us
 		},
 	}
 
@@ -953,14 +943,16 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Apply delay traffic action
 			config := struct {
-				Duration       int           `json:"duration"`
-				PathStatusCode []interface{} `json:"pathStatusCode"`
+				Duration             int    `json:"duration"`
+				ResponseStatusCode   int    `json:"responseStatusCode"`
+				ConditionPathPattern string `json:"conditionPathPattern"`
 			}{
-				Duration:       30000,
-				PathStatusCode: tt.pathStatusCode,
+				Duration:             30000,
+				ResponseStatusCode:   tt.responseStatusCode,
+				ConditionPathPattern: tt.conditionPathPattern,
 			}
 
-			log.Info().Msgf("Applying block to path %s", tt.pathStatusCode)
+			log.Info().Msgf("Applying block to path %s", tt.conditionPathPattern)
 			action, err := e.RunAction(extingress.HAProxyBlockTrafficActionId, ingressTarget, config, nil)
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
@@ -969,14 +961,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			// Verify block
 			for _, path := range tt.testPath {
-				var expectedStatusCode int
-				for _, pathStatus := range tt.pathStatusCode {
-					if pathStatus.(map[string]interface{})["key"] == path {
-						expectedStatusCode, err = strconv.Atoi(pathStatus.(map[string]interface{})["value"].(string))
-						require.NoError(t, err)
-						break
-					}
-				}
+				expectedStatusCode := tt.responseStatusCode
 				if expectedStatusCode == 0 {
 					if tt.wantedBlock {
 						log.Error().Msgf("Expected status code not found for path %s", path)

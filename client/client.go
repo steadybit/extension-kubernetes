@@ -781,8 +781,16 @@ func removeAnnotationBlock(config, startMarker, endMarker string) string {
 		return config // Markers not found
 	}
 
-	// Remove the block including the markers and return the result
-	return config[:startIndex] + config[endIndex+len(endMarker):]
+	// Calculate end of marker position
+	endOfMarker := endIndex + len(endMarker)
+
+	// Check if there's a newline right after the end marker
+	if endOfMarker < len(config) && config[endOfMarker] == '\n' {
+		endOfMarker++ // Include the newline in what gets removed
+	}
+
+	// Remove the block including the markers and the trailing newline if present
+	return config[:startIndex] + config[endOfMarker:]
 }
 
 func isOpenShift(rootApiPath string) bool {

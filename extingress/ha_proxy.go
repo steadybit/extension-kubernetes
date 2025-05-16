@@ -93,7 +93,7 @@ func getCommonActionDescription(id string, label string, description string, ico
 				Label:        "Duration",
 				Description:  extutil.Ptr("The duration of the action. The ingress will be affected for the specified duration."),
 				Name:         "duration",
-				Type:         action_kit_api.Duration,
+				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: extutil.Ptr("30s"),
 				Required:     extutil.Ptr(true),
 			},

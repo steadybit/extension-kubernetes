@@ -41,7 +41,7 @@ func (a *HAProxyDelayTrafficAction) Describe() action_kit_api.ActionDescription 
 			Name:         "path",
 			Label:        "Path to be delayed",
 			Description:  extutil.Ptr("The path to be delayed as regex. Example: /delay"),
-			Type:         action_kit_api.String,
+			Type:         action_kit_api.ActionParameterTypeRegex,
 			DefaultValue: extutil.Ptr("/"),
 			Required:     extutil.Ptr(true),
 		},
@@ -49,7 +49,7 @@ func (a *HAProxyDelayTrafficAction) Describe() action_kit_api.ActionDescription 
 			Name:         "delay",
 			Label:        "Delay",
 			Description:  extutil.Ptr("The delay in for the path. Example: 5s"),
-			Type:         action_kit_api.Duration,
+			Type:         action_kit_api.ActionParameterTypeDuration,
 			DefaultValue: extutil.Ptr("3s"),
 			Required:     extutil.Ptr(true),
 		},
@@ -128,3 +128,77 @@ func (a *HAProxyDelayTrafficAction) Stop(_ context.Context, state *HAProxyDelayT
 
 	return nil, nil
 }
+//
+//func (c *Client) DelayRequestsByHeaderWithValue(ctx context.Context, namespace, ingressName, headerName, headerValue string, delayMilliseconds int, executionId uuid.UUID) error {
+//	// Construct the HAProxy configuration for delaying requests with the matching header
+//	delayConfig := fmt.Sprintf("# BEGIN STEADYBIT - %s\n"+
+//		"http-request set-var(txn.should_delay) req.hdr(%s) if { req.hdr(%s) -m str %s }\n"+
+//		"http-request wait %dms if { var(txn.should_delay) -m found }\n"+
+//		"# END STEADYBIT - %s",
+//		executionId,
+//		headerName, headerName, headerValue,
+//		delayMilliseconds,
+//		executionId)
+//
+//	// Update the ingress annotation with our delay configuration
+//	err := c.k8s.UpdateIngressAnnotation(ctx, namespace, ingressName, "haproxy.org/configuration-snippet", delayConfig)
+//	if err != nil {
+//		return fmt.Errorf("failed to add delay configuration to ingress %s/%s: %w", namespace, ingressName, err)
+//	}
+//
+//	return nil
+//}
+//
+//func (c *Client) DelayRequestsByHeaderWithValue(ctx context.Context, namespace, ingressName, headerName string, headerValue *string, delayMilliseconds int, executionId uuid.UUID) error {
+//	// Configuration generation for HAProxy
+//	var haproxyConfig string
+//
+//	// Begin marker for easy removal later
+//	haproxyConfig += fmt.Sprintf("# BEGIN STEADYBIT - %s\n", executionId)
+//
+//	// Generate HAProxy configuration based on whether a header value is specified
+//	if headerValue == nil || *headerValue == "" {
+//		// Delay when header exists with any value
+//		haproxyConfig += fmt.Sprintf("http-request set-var(txn.target_delay) int(%d) if { hdr_cnt(%s) gt 0 }\n",
+//			delayMilliseconds, headerName)
+//	} else {
+//		// Delay only when header matches specific value
+//		haproxyConfig += fmt.Sprintf("http-request set-var(txn.target_delay) int(%d) if { hdr(%s) -i %s }\n",
+//			delayMilliseconds, headerName, *headerValue)
+//	}
+//
+//	// Add remaining configuration for the delay
+//	haproxyConfig += fmt.Sprintf("http-request set-var(txn.rand_delay) rand(0,%d)\n", delayMilliseconds)
+//	haproxyConfig += "http-request set-var(txn.calculated_delay) expr(txn.target_delay - txn.rand_delay)\n"
+//	haproxyConfig += "http-request set-timeout delay %dms if { var(txn.calculated_delay) gt 0 }\n"
+//	haproxyConfig += fmt.Sprintf("# END STEADYBIT - %s\n", executionId)
+//
+//	// Update the ingress annotation
+//	return c.k8s.UpdateIngressAnnotation(ctx, namespace, ingressName, "haproxy.org/configuration-snippet", haproxyConfig)
+//}
+//
+//func (c *Client) DelayRequestsByHeaderWithValue(ctx context.Context, namespace, ingressName, headerName string, headerValue *string, delayMilliseconds int, executionId uuid.UUID) error {
+//	log.Debug().Msgf("Adding delay of %dms to requests with header %s for ingress %s/%s",
+//		delayMilliseconds, headerName, namespace, ingressName)
+//
+//	// Create HAProxy config block with markers for this specific execution
+//	var configBlock string
+//	if headerValue == nil {
+//		configBlock = fmt.Sprintf("# BEGIN STEADYBIT - %s\n"+
+//			"http-request set-var(txn.delay) int(%d) if { req.hdr(%s) -m found }\n"+
+//			"http-request set-var(txn.startts) date\n"+
+//			"http-request wait-for-body time txn.startts,add(txn.delay) if { var(txn.delay) -m int gt 0 }\n"+
+//			"# END STEADYBIT - %s\n",
+//			executionId, delayMilliseconds, headerName, executionId)
+//	} else {
+//		configBlock = fmt.Sprintf("# BEGIN STEADYBIT - %s\n"+
+//			"http-request set-var(txn.delay) int(%d) if { req.hdr(%s) -m str %s }\n"+
+//			"http-request set-var(txn.startts) date\n"+
+//			"http-request wait-for-body time txn.startts,add(txn.delay) if { var(txn.delay) -m int gt 0 }\n"+
+//			"# END STEADYBIT - %s\n",
+//			executionId, delayMilliseconds, headerName, *headerValue, executionId)
+//	}
+//
+//	// Use the Kubernetes client to update the ingress annotation
+//	return c.k8s.UpdateIngressAnnotation(ctx, namespace, ingressName, "haproxy.org/config", configBlock)
+//}
