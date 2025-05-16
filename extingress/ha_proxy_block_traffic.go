@@ -79,7 +79,7 @@ func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlo
 		for path := range state.PathStatusCode {
 			// Check if a rule with the same path already exists
 			for _, line := range existingLines {
-				if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path %s }", path)) {
+				if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path_reg %s }", path)) {
 					return nil, fmt.Errorf("a rule for path %s already exists", path)
 				}
 			}
