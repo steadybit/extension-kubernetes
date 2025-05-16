@@ -6,15 +6,20 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
-	"strconv"
 	"strings"
 )
 
 // HAProxyBlockTrafficState extends base state with block-specific fields
 type HAProxyBlockTrafficState struct {
 	HAProxyBaseState
-	PathStatusCode   map[string]int
-	AnnotationConfig string
+	ResponseStatusCode             int
+	ResponseContentType            string
+	ResponseBody                   string
+	ConditionPathPattern           string
+	ConditionHttpMethod            string
+	ConditionHttpHeader            map[string]string
+	ConditionDownstreamServiceName string
+	AnnotationConfig               string
 }
 
 func NewHAProxyBlockTrafficAction() action_kit_sdk.Action[HAProxyBlockTrafficState] {
@@ -37,14 +42,88 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 
 	// Add block-specific parameter
 	desc.Parameters = append(desc.Parameters,
-		action_kit_api.ActionParameter{
-			Name:         "pathStatusCode",
-			Label:        "Path and Statuscode",
-			Description:  extutil.Ptr("Key is the path (regex), value is the status code. Example: /block=503"),
-			Type:         action_kit_api.KeyValue,
-			DefaultValue: extutil.Ptr("[{\"key\":\"/\", \"value\":\"503\"}]"),
-			Required:     extutil.Ptr(true),
-		},
+		[]action_kit_api.ActionParameter{
+			{
+				Name:  "-response-header-",
+				Type:  action_kit_api.ActionParameterTypeHeader,
+				Label: "Response",
+			},
+			{
+				Name:         "responseStatusCode",
+				Label:        "Status Code",
+				Description:  extutil.Ptr("The status code which should get returned."),
+				Type:         action_kit_api.ActionParameterTypeInteger,
+				MinValue:     extutil.Ptr(100),
+				MaxValue:     extutil.Ptr(999),
+				Required:     extutil.Ptr(true),
+				DefaultValue: extutil.Ptr("503"),
+			},
+			{
+				Name:  "-conditions-separator-",
+				Label: "-",
+				Type:  action_kit_api.ActionParameterTypeSeparator,
+			},
+			{
+				Name:  "-conditions-header-",
+				Type:  action_kit_api.ActionParameterTypeHeader,
+				Label: "Conditions",
+			},
+			{
+				Name:        "conditionPathPattern",
+				Label:       "Path Pattern",
+				Description: extutil.Ptr("The path patterns to compare against the request URL."),
+				Type:        action_kit_api.ActionParameterTypeRegex,
+				Required:    extutil.Ptr(false),
+			},
+			{
+				Name:         "conditionHttpMethod",
+				Label:        "HTTP Method",
+				Description:  extutil.Ptr("The name of the request method."),
+				Type:         action_kit_api.ActionParameterTypeString,
+				DefaultValue: extutil.Ptr("GET"),
+				Required:     extutil.Ptr(false),
+				Options: extutil.Ptr([]action_kit_api.ParameterOption{
+					action_kit_api.ExplicitParameterOption{
+						Label: "GET",
+						Value: "GET",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "POST",
+						Value: "POST",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "PUT",
+						Value: "PUT",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "PATCH",
+						Value: "PATCH",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "HEAD",
+						Value: "HEAD",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "DELETE",
+						Value: "DELETE",
+					},
+				}),
+			},
+			{
+				Name:        "conditionHttpHeader",
+				Label:       "HTTP Header",
+				Description: extutil.Ptr("The name of the HTTP header field with a maximum size of 40 characters. And a value to compare against the value of the HTTP header. The maximum size of each string is 128 characters. The comparison strings are case insensitive. The following wildcard characters are supported: * (matches 0 or more characters) and ? (matches exactly 1 character). Currently only a single header name with a single value is allowed."),
+				Type:        action_kit_api.ActionParameterTypeKeyValue,
+				Required:    extutil.Ptr(false),
+			},
+			{
+				Name:        "conditionDownstreamServiceName",
+				Label:       "Downstream Service Name",
+				Description: extutil.Ptr("The name of the downstream service to compare against the request URL. E.g. /card is the path to the card-service, but card-service in the name of the service."),
+				Type:        action_kit_api.ActionParameterTypeRegex,
+				Required:    extutil.Ptr(false),
+			},
+		}...,
 	)
 
 	return desc
@@ -56,47 +135,47 @@ func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlo
 		return nil, err
 	}
 
-	// Handle block-specific configuration
-	if request.Config["pathStatusCode"] != nil {
-		pathStatusCode, err := extutil.ToKeyValue(request.Config, "pathStatusCode")
+	state.ResponseStatusCode = extutil.ToInt(request.Config["responseStatusCode"])
+
+	state.ConditionPathPattern = extutil.ToString(request.Config["conditionPathPattern"])
+	state.ConditionHttpMethod = extutil.ToString(request.Config["conditionHttpMethod"])
+	if (request.Config["conditionHttpHeader"]) != nil {
+		state.ConditionHttpHeader, err = extutil.ToKeyValue(request.Config, "conditionHttpHeader")
 		if err != nil {
 			return nil, err
 		}
-		// check status codes
-		state.PathStatusCode = make(map[string]int)
-		for path, statusCodeStr := range pathStatusCode {
-			var statusCode int
-			if statusCode, err = strconv.Atoi(statusCodeStr); err != nil {
-				return nil, fmt.Errorf("invalid status code: %s", statusCodeStr)
-			}
-			//append to map
-			state.PathStatusCode[path] = statusCode
-		}
+	}
+	state.ConditionDownstreamServiceName = extutil.ToString(request.Config["conditionDownstreamServiceName"])
 
+	if state.ConditionPathPattern != "" {
 		//Check if annotation for block already exists
 		existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
-		for path := range state.PathStatusCode {
-			// Check if a rule with the same path already exists
-			for _, line := range existingLines {
-				if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path_reg %s }", path)) {
-					return nil, fmt.Errorf("a rule for path %s already exists", path)
-				}
+		// Check if a rule with the same path already exists
+		for _, line := range existingLines {
+			if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path_reg %s }", state.ConditionPathPattern)) {
+				return nil, fmt.Errorf("a rule for path %s already exists")
 			}
 		}
 	}
 
 	var configBuilder strings.Builder
 	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
-	keys := make([]string, 0, len(state.PathStatusCode))
-	for k := range state.PathStatusCode {
-		keys = append(keys, k)
+	hasCondition := false
+	if state.ConditionPathPattern != "" {
+		hasCondition = true
+		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path_reg %s }\n", state.ResponseStatusCode, state.ConditionPathPattern))
 	}
-	for _, key := range keys {
-		statusCode := state.PathStatusCode[key]
-		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path_reg %s }\n", statusCode, key))
+	if state.ConditionHttpHeader != nil {
+		hasCondition = true
+		for headerName, headerValue := range state.ConditionHttpHeader {
+			configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { hdr(%s) -m reg %s }\n", state.ResponseStatusCode, headerName, headerValue))
+		}
 	}
 	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
 	state.AnnotationConfig = configBuilder.String()
+	if !hasCondition {
+		return nil, fmt.Errorf("at least one condition is required")
+	}
 
 	return nil, nil
 }
@@ -116,3 +195,16 @@ func (a *HAProxyBlockTrafficAction) Stop(_ context.Context, state *HAProxyBlockT
 
 	return nil, nil
 }
+
+//
+//// Example function to add header blocking to an ingress
+//func (c *Client) BlockRequestsByHeader(ctx context.Context, namespace, ingressName, headerName, headerValue string, executionId uuid.UUID) error {
+//	// Create configuration block with markers for later removal
+//	configSnippet := fmt.Sprintf(`# BEGIN STEADYBIT - %s
+//   acl blocked_header hdr(%s) -i %s
+//   http-request deny if blocked_header
+//   # END STEADYBIT - %s`, executionId, headerName, headerValue, executionId)
+//
+//	// Add this configuration to the ingress
+//	return c.UpdateIngressAnnotation(ctx, namespace, ingressName, "haproxy.org/configuration-snippet", configSnippet)
+//}
