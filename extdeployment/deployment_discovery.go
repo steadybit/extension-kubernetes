@@ -6,6 +6,9 @@ package extdeployment
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -19,8 +22,6 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/strings/slices"
-	"reflect"
-	"time"
 )
 
 type deploymentDiscovery struct {
@@ -102,6 +103,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			"k8s.cluster-name":                 {extconfig.Config.ClusterName},
 			"k8s.distribution":                 {d.k8s.Distribution},
 			"k8s.deployment.min-ready-seconds": {fmt.Sprintf("%d", deployment.Spec.MinReadySeconds)},
+			"k8s.container.name":               {},
 		}
 		if deployment.Spec.Replicas != nil {
 			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *deployment.Spec.Replicas)}
@@ -127,6 +129,13 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		}
 		for key, value := range extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa) {
 			attributes[key] = value
+		}
+
+		for container := range deployment.Spec.Template.Spec.Containers {
+			attributes["k8s.container.name"] = append(
+				attributes["k8s.container.name"],
+				deployment.Spec.Template.Spec.Containers[container].Name,
+			)
 		}
 
 		targets[i] = discovery_kit_api.Target{

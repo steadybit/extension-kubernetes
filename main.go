@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+
 	_ "github.com/KimMachineGun/automemlimit" // By default, it sets `GOMEMLIMIT` to 90% of cgroup's memory limit.
 	"github.com/rs/zerolog"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -67,11 +68,17 @@ func main() {
 		discovery_kit_sdk.Register(extdeployment.NewDeploymentDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extdeployment.NewCheckDeploymentRolloutStatusAction())
 		action_kit_sdk.RegisterAction(extdeployment.NewDeploymentPodCountCheckAction(client.K8S))
+
 		if client.K8S.Permissions().IsRolloutRestartPermitted() {
 			action_kit_sdk.RegisterAction(extdeployment.NewDeploymentRolloutRestartAction())
 		}
+
 		if client.K8S.Permissions().IsScaleDeploymentPermitted() {
 			action_kit_sdk.RegisterAction(extdeployment.NewScaleDeploymentAction())
+		}
+
+		if client.K8S.Permissions().IsSetImagePermitted() {
+			action_kit_sdk.RegisterAction(extdeployment.NewSetImageAction())
 		}
 	}
 

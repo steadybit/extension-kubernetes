@@ -6,6 +6,10 @@ package extdeployment
 import (
 	"context"
 	"fmt"
+	"sort"
+	"testing"
+	"time"
+
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -19,9 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"sort"
-	"testing"
-	"time"
 )
 
 func Test_deploymentDiscovery(t *testing.T) {
@@ -61,6 +62,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.container.id.stripped":                  {"abcdef-aaaaa", "abcdef-bbbbb"},
 				"k8s.distribution":                           {"kubernetes"},
 				"k8s.specification.has-host-podantiaffinity": {"false"},
+				"k8s.container.name":                         {"nginx", "shop"},
 			},
 		},
 		{
