@@ -40,7 +40,7 @@ func (a *HAProxyDelayTrafficAction) Describe() action_kit_api.ActionDescription 
 		action_kit_api.ActionParameter{
 			Name:         "path",
 			Label:        "Path to be delayed",
-			Description:  extutil.Ptr("The path to be delayed. Example: /delay"),
+			Description:  extutil.Ptr("The path to be delayed as regex. Example: /delay"),
 			Type:         action_kit_api.String,
 			DefaultValue: extutil.Ptr("/"),
 			Required:     extutil.Ptr(true),

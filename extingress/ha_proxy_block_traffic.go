@@ -40,7 +40,7 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 		action_kit_api.ActionParameter{
 			Name:         "pathStatusCode",
 			Label:        "Path and Statuscode",
-			Description:  extutil.Ptr("Key is the path, value is the status code. Example: /block=503"),
+			Description:  extutil.Ptr("Key is the path (regex), value is the status code. Example: /block=503"),
 			Type:         action_kit_api.KeyValue,
 			DefaultValue: extutil.Ptr("[{\"key\":\"/\", \"value\":\"503\"}]"),
 			Required:     extutil.Ptr(true),
