@@ -28,7 +28,7 @@ type DeploymentRolloutRestartState struct {
 }
 
 type DeploymentRolloutRestartConfig struct {
-	Wait bool
+	Wait        bool
 	CheckBefore bool
 }
 

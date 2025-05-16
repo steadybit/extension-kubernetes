@@ -1,21 +1,21 @@
 package extingress
 
 import (
-"context"
-"strings"
-"testing"
-"time"
+	"context"
+	"strings"
+	"testing"
+	"time"
 
-"github.com/stretchr/testify/assert"
-"github.com/stretchr/testify/require"
-networkingv1 "k8s.io/api/networking/v1"
-metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-"k8s.io/apimachinery/pkg/runtime"
-"k8s.io/client-go/kubernetes"
-testclient "k8s.io/client-go/kubernetes/fake"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
-"github.com/steadybit/extension-kubernetes/v2/client"
-"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 )
 
 func strPtr(s string) *string {
@@ -47,7 +47,7 @@ func Test_ingressDiscovery_Basic(t *testing.T) {
 	require.NoError(t, err)
 	defaultClass := &networkingv1.IngressClass{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "defaultClass",
+			Name:        "defaultClass",
 			Annotations: map[string]string{"ingressclass.kubernetes.io/is-default-class": "true"},
 		},
 		Spec: networkingv1.IngressClassSpec{Controller: "haproxy.org/ingress-controller/haproxy"},
@@ -99,7 +99,6 @@ func Test_ingressDiscovery_Basic(t *testing.T) {
 	}
 }
 
-
 func Test_ingressDiscovery_ExcludeDisabled(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -114,7 +113,7 @@ func Test_ingressDiscovery_ExcludeDisabled(t *testing.T) {
 	require.NoError(t, err)
 	ing := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "ignored", Namespace: "default", Labels: map[string]string{"steadybit.com/discovery-disabled": "true"}},
-		Spec: networkingv1.IngressSpec{IngressClassName: strPtr("haproxy")},
+		Spec:       networkingv1.IngressSpec{IngressClassName: strPtr("haproxy")},
 	}
 	_, err = cs.NetworkingV1().Ingresses("default").Create(context.Background(), ing, metav1.CreateOptions{})
 	require.NoError(t, err)
@@ -141,7 +140,7 @@ func Test_ingressDiscovery_IncludeDisabledIfDisableDiscoveryExcludes(t *testing.
 	require.NoError(t, err)
 	ing := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "included", Namespace: "default", Labels: map[string]string{"steadybit.com/discovery-disabled": "true"}},
-		Spec: networkingv1.IngressSpec{IngressClassName: strPtr("haproxy")},
+		Spec:       networkingv1.IngressSpec{IngressClassName: strPtr("haproxy")},
 	}
 	_, err = cs.NetworkingV1().Ingresses("default").Create(context.Background(), ing, metav1.CreateOptions{})
 	require.NoError(t, err)

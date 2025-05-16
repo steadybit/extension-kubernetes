@@ -15,7 +15,7 @@ func TestRolloutRestartPrepareCheckExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"wait": true,
+			"wait":        true,
 			"checkBefore": false,
 		},
 		Target: extutil.Ptr(action_kit_api.Target{

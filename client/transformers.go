@@ -196,12 +196,11 @@ func transformIngress(i interface{}) (interface{}, error) {
 		// Create minimal spec with only what we need
 		d.Spec = networkingv1.IngressSpec{
 			IngressClassName: ingressClassName,
-			Rules:           rules,
-			TLS:             tls,
+			Rules:            rules,
+			TLS:              tls,
 		}
 
 		return d, nil
 	}
 	return i, nil
 }
-

@@ -4,10 +4,10 @@ import (
 	"context"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-import authorizationv1 "k8s.io/api/authorization/v1"
 
 type PermissionCheckResult struct {
 	Permissions map[string]PermissionCheckOutcome
@@ -209,8 +209,6 @@ func (p *PermissionCheckResult) IsModifyIngressPermitted() bool {
 		"networking.k8s.io/ingresses/patch",
 	})
 }
-
-
 
 func (p *PermissionCheckResult) IsTaintNodePermitted() bool {
 	return p.hasPermissions([]string{

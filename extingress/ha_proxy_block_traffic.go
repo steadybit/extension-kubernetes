@@ -14,7 +14,7 @@ import (
 // HAProxyBlockTrafficState extends base state with block-specific fields
 type HAProxyBlockTrafficState struct {
 	HAProxyBaseState
-	PathStatusCode map[string]int
+	PathStatusCode   map[string]int
 	AnnotationConfig string
 }
 

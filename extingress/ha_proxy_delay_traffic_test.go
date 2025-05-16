@@ -43,11 +43,11 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 		request action_kit_api.PrepareActionRequestBody
 	}
 	tests := []struct {
-		name    string
-		args    args
+		name                      string
+		args                      args
 		existingIngressAnnotation *string
-		want    HAProxyDelayTrafficState
-		wantErr *string
+		want                      HAProxyDelayTrafficState
+		wantErr                   *string
 	}{
 		{
 			name: "valid pathDelay",
@@ -107,8 +107,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 			},
 			existingIngressAnnotation: nil,
-			want:    HAProxyDelayTrafficState{},
-			wantErr: extutil.Ptr("delay must be a number, got string: abc"),
+			want:                      HAProxyDelayTrafficState{},
+			wantErr:                   extutil.Ptr("delay must be a number, got string: abc"),
 		},
 		{
 			name: "duplicate path rule",
@@ -133,8 +133,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 			},
 			existingIngressAnnotation: extutil.Ptr("tcp-request inspect-delay 1000ms\ntcp-request content accept if WAIT_END || !{ path_reg /alreadydelay }"),
-			want:    HAProxyDelayTrafficState{},
-			wantErr: extutil.Ptr("a delay rule already exists - cannot add another one"),
+			want:                      HAProxyDelayTrafficState{},
+			wantErr:                   extutil.Ptr("a delay rule already exists - cannot add another one"),
 		},
 	}
 	for _, tt := range tests {
