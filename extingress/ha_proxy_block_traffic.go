@@ -6,7 +6,6 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -88,14 +87,10 @@ func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlo
 
 	var configBuilder strings.Builder
 	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
-	// state.PathStatusCode sort items by key
 	keys := make([]string, 0, len(state.PathStatusCode))
 	for k := range state.PathStatusCode {
 		keys = append(keys, k)
 	}
-	sort.Strings(keys)
-	// iterate over sorted keys
-	// and append to configBuilder
 	for _, key := range keys {
 		statusCode := state.PathStatusCode[key]
 		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path_reg %s }\n", statusCode, key))

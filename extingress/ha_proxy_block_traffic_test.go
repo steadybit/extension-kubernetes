@@ -65,6 +65,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 						"pathStatusCode": []interface{}{
 							map[string]interface{}{"key": "/block", "value": "502"},
 							map[string]interface{}{"key": "/block2", "value": "503"},
+							map[string]interface{}{"key": "/", "value": "501"},
 						},
 					},
 					Target: extutil.Ptr(action_kit_api.Target{
@@ -84,8 +85,9 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				PathStatusCode: map[string]int{
 					"/block":  502,
 					"/block2": 503,
+					"/":       501,
 				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nhttp-request return status 502 if { path_reg /block }\nhttp-request return status 503 if { path_reg /block2 }\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nhttp-request return status 502 if { path_reg /block }\nhttp-request return status 503 if { path_reg /block2 }\nhttp-request return status 501 if { path_reg / }\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 			wantErr: nil,
 		},
