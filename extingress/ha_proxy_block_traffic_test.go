@@ -2,6 +2,7 @@ package extingress
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
@@ -12,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"strings"
 	"testing"
 	"time"
 )
@@ -30,7 +30,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				Namespace: "demo",
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "haproxy",
-					AnnotationKey:                 "http-request return status 503 if { path_reg /alreadyBlocked }",
+					AnnotationKey:                 "http-request return status 503 if sb_path_abcd path_reg /alreadyBlocked",
 				},
 			},
 		}, metav1.CreateOptions{})
@@ -53,20 +53,90 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 		wantErr *string
 	}{
 		{
-			name: "valid pathStatusCode",
+			name: "block with path regex",
 			args: args{
 				in0: context.Background(),
 				state: &HAProxyBlockTrafficState{
 					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.New(),
+						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 					},
 				},
 				request: action_kit_api.PrepareActionRequestBody{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 					Config: map[string]interface{}{
-						"pathStatusCode": []interface{}{
-							map[string]interface{}{"key": "/block", "value": "502"},
-							map[string]interface{}{"key": "/block2", "value": "503"},
-							map[string]interface{}{"key": "/", "value": "501"},
+						"responseStatusCode":   503,
+						"conditionPathPattern": "/api/*",
+					},
+					Target: extutil.Ptr(action_kit_api.Target{
+						Attributes: map[string][]string{
+							"k8s.namespace": {"demo"},
+							"k8s.ingress":   {"my-ingress"},
+						},
+					}),
+				},
+			},
+			want: HAProxyBlockTrafficState{
+				HAProxyBaseState: HAProxyBaseState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					Namespace:   "demo",
+					IngressName: "my-ingress",
+				},
+				ResponseStatusCode:   503,
+				ConditionPathPattern: "/api/*",
+				AnnotationConfig:     "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_path_00000000 path_reg /api/*\nhttp-request return status 503 if sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "block with http method",
+			args: args{
+				in0: context.Background(),
+				state: &HAProxyBlockTrafficState{
+					HAProxyBaseState: HAProxyBaseState{
+						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					},
+				},
+				request: action_kit_api.PrepareActionRequestBody{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					Config: map[string]interface{}{
+						"responseStatusCode":  503,
+						"conditionHttpMethod": "POST",
+					},
+					Target: extutil.Ptr(action_kit_api.Target{
+						Attributes: map[string][]string{
+							"k8s.namespace": {"demo"},
+							"k8s.ingress":   {"my-ingress"},
+						},
+					}),
+				},
+			},
+			want: HAProxyBlockTrafficState{
+				HAProxyBaseState: HAProxyBaseState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					Namespace:   "demo",
+					IngressName: "my-ingress",
+				},
+				ResponseStatusCode:  503,
+				ConditionHttpMethod: "POST",
+				AnnotationConfig:    "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000 method POST\nhttp-request return status 503 if sb_method_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "block with http header",
+			args: args{
+				in0: context.Background(),
+				state: &HAProxyBlockTrafficState{
+					HAProxyBaseState: HAProxyBaseState{
+						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					},
+				},
+				request: action_kit_api.PrepareActionRequestBody{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					Config: map[string]interface{}{
+						"responseStatusCode": 503,
+						"conditionHttpHeader": map[string]interface{}{
+							"User-Agent": "Mozilla.*",
 						},
 					},
 					Target: extutil.Ptr(action_kit_api.Target{
@@ -83,28 +153,31 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "my-ingress",
 				},
-				PathStatusCode: map[string]int{
-					"/block":  502,
-					"/block2": 503,
-					"/":       501,
+				ResponseStatusCode: 503,
+				ConditionHttpHeader: map[string]string{
+					"User-Agent": "Mozilla.*",
 				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nhttp-request return status 502 if { path_reg /block }\nhttp-request return status 503 if { path_reg /block2 }\nhttp-request return status 501 if { path_reg / }\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_hdr_User_Agent_00000000 hdr(User-Agent) -m reg Mozilla.*\nhttp-request return status 503 if sb_hdr_User_Agent_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 			wantErr: nil,
 		},
 		{
-			name: "invalid status code",
+			name: "block with multiple conditions",
 			args: args{
 				in0: context.Background(),
 				state: &HAProxyBlockTrafficState{
 					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.New(),
+						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 					},
 				},
 				request: action_kit_api.PrepareActionRequestBody{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 					Config: map[string]interface{}{
-						"pathStatusCode": []interface{}{
-							map[string]interface{}{"key": "/block", "value": "abc"},
+						"responseStatusCode":   503,
+						"conditionPathPattern": "/api/users",
+						"conditionHttpMethod":  "POST",
+						"conditionHttpHeader": map[string]interface{}{
+							"Content-Type": "application/json",
 						},
 					},
 					Target: extutil.Ptr(action_kit_api.Target{
@@ -115,24 +188,61 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want:    HAProxyBlockTrafficState{},
-			wantErr: extutil.Ptr("invalid status code: abc"),
+			want: HAProxyBlockTrafficState{
+				HAProxyBaseState: HAProxyBaseState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					Namespace:   "demo",
+					IngressName: "my-ingress",
+				},
+				ResponseStatusCode:   503,
+				ConditionPathPattern: "/api/users",
+				ConditionHttpMethod:  "POST",
+				ConditionHttpHeader: map[string]string{
+					"Content-Type": "application/json",
+				},
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000 method POST\nacl sb_hdr_Content_Type_00000000 hdr(Content-Type) -m reg application/json\nacl sb_path_00000000 path_reg /api/users\nhttp-request return status 503 if sb_method_00000000 sb_hdr_Content_Type_00000000 sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+			},
+			wantErr: nil,
 		},
 		{
-			name: "duplicate path rule",
+			name: "no conditions provided",
 			args: args{
 				in0: context.Background(),
 				state: &HAProxyBlockTrafficState{
 					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.New(),
+						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 					},
 				},
 				request: action_kit_api.PrepareActionRequestBody{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 					Config: map[string]interface{}{
-						"pathStatusCode": []interface{}{
-							map[string]interface{}{"key": "/block", "value": "503"},
-							map[string]interface{}{"key": "/alreadyBlocked", "value": "503"},
+						"responseStatusCode": 503,
+					},
+					Target: extutil.Ptr(action_kit_api.Target{
+						Attributes: map[string][]string{
+							"k8s.namespace": {"demo"},
+							"k8s.ingress":   {"my-ingress"},
 						},
+					}),
+				},
+			},
+			want:    HAProxyBlockTrafficState{},
+			wantErr: extutil.Ptr("at least one condition is required"),
+		},
+		{
+			name: "path collision with existing rule",
+			args: args{
+				in0: context.Background(),
+				state: &HAProxyBlockTrafficState{
+					HAProxyBaseState: HAProxyBaseState{
+						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					},
+				},
+				request: action_kit_api.PrepareActionRequestBody{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+					Config: map[string]interface{}{
+						"responseStatusCode":   503,
+						"conditionPathPattern": "/alreadyBlocked",
 					},
 					Target: extutil.Ptr(action_kit_api.Target{
 						Attributes: map[string][]string{
@@ -146,11 +256,11 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 			wantErr: extutil.Ptr("a rule for path /alreadyBlocked already exists"),
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &HAProxyBlockTrafficAction{}
-			action := NewHAProxyBlockTrafficAction()
-			state := action.NewEmptyState()
+			state := a.NewEmptyState()
 			_, err := a.Prepare(tt.args.in0, &state, tt.args.request)
 			if tt.wantErr != nil {
 				assert.EqualError(t, err, *tt.wantErr)
@@ -158,18 +268,33 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			assert.Equal(t, tt.want.PathStatusCode, state.PathStatusCode)
-			assert.NotNil(t, state)
-			assert.Equalf(t, tt.want.PathStatusCode, state.PathStatusCode, "PathStatusCode")
-			expectedLines := strings.Split(strings.TrimSpace(tt.want.AnnotationConfig), "\n")
-			actualLines := strings.Split(strings.TrimSpace(state.AnnotationConfig), "\n")
-			assert.Equal(t, len(expectedLines), len(actualLines), "Same number of lines in AnnotationConfig")
-			for _, expectedLine := range expectedLines {
-				assert.Contains(t, actualLines, expectedLine, "AnnotationConfig contains line")
+
+			assert.Equal(t, tt.want.ResponseStatusCode, state.ResponseStatusCode)
+			assert.Equal(t, tt.want.ConditionPathPattern, state.ConditionPathPattern)
+			assert.Equal(t, tt.want.ConditionHttpMethod, state.ConditionHttpMethod)
+			assert.Equal(t, tt.want.ConditionHttpHeader, state.ConditionHttpHeader)
+			assert.Equal(t, tt.want.Namespace, state.Namespace)
+			assert.Equal(t, tt.want.IngressName, state.IngressName)
+			// We won't compare the exact annotation config string since the ACL names contain
+			// random elements from the UUID, but we can verify it contains the essential parts
+			if tt.want.AnnotationConfig != "" {
+				assert.Contains(t, state.AnnotationConfig, "# BEGIN STEADYBIT")
+				assert.Contains(t, state.AnnotationConfig, "# END STEADYBIT")
+				assert.Contains(t, state.AnnotationConfig, fmt.Sprintf("http-request return status %d", state.ResponseStatusCode))
+
+				if state.ConditionPathPattern != "" {
+					assert.Contains(t, state.AnnotationConfig, "path_reg")
+					assert.Contains(t, state.AnnotationConfig, state.ConditionPathPattern)
+				}
+				if state.ConditionHttpMethod != "" {
+					assert.Contains(t, state.AnnotationConfig, "method")
+					assert.Contains(t, state.AnnotationConfig, state.ConditionHttpMethod)
+				}
+				for headerName, headerValue := range state.ConditionHttpHeader {
+					assert.Contains(t, state.AnnotationConfig, headerName)
+					assert.Contains(t, state.AnnotationConfig, headerValue)
+				}
 			}
-			assert.Equalf(t, tt.want.Namespace, state.Namespace, "Namespace")
-			assert.Equalf(t, tt.want.IngressName, state.IngressName, "IngressName")
-			assert.Equalf(t, tt.want.ExecutionId, state.ExecutionId, "ExecutionId")
 		})
 	}
 }

@@ -12,14 +12,12 @@ import (
 // HAProxyBlockTrafficState extends base state with block-specific fields
 type HAProxyBlockTrafficState struct {
 	HAProxyBaseState
-	ResponseStatusCode             int
-	ResponseContentType            string
-	ResponseBody                   string
-	ConditionPathPattern           string
-	ConditionHttpMethod            string
-	ConditionHttpHeader            map[string]string
-	ConditionDownstreamServiceName string
-	AnnotationConfig               string
+	ResponseStatusCode   int
+	ConditionPathPattern string
+	ConditionHttpMethod  string
+	ConditionHttpHeader  map[string]string
+	//ConditionDownstreamServiceName string
+	AnnotationConfig string
 }
 
 func NewHAProxyBlockTrafficAction() action_kit_sdk.Action[HAProxyBlockTrafficState] {
@@ -84,6 +82,10 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 				Required:     extutil.Ptr(false),
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
+						Label: "*",
+						Value: "*",
+					},
+					action_kit_api.ExplicitParameterOption{
 						Label: "GET",
 						Value: "GET",
 					},
@@ -116,13 +118,13 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 				Type:        action_kit_api.ActionParameterTypeKeyValue,
 				Required:    extutil.Ptr(false),
 			},
-			{
-				Name:        "conditionDownstreamServiceName",
-				Label:       "Downstream Service Name",
-				Description: extutil.Ptr("The name of the downstream service to compare against the request URL. E.g. /card is the path to the card-service, but card-service in the name of the service."),
-				Type:        action_kit_api.ActionParameterTypeRegex,
-				Required:    extutil.Ptr(false),
-			},
+			//{
+			//	Name:        "conditionDownstreamServiceName",
+			//	Label:       "Downstream Service Name",
+			//	Description: extutil.Ptr("The name of the downstream service to compare against the request URL. E.g. /card is the path to the card-service, but card-service in the name of the service."),
+			//	Type:        action_kit_api.ActionParameterTypeRegex,
+			//	Required:    extutil.Ptr(false),
+			//},
 		}...,
 	)
 
@@ -145,7 +147,7 @@ func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlo
 			return nil, err
 		}
 	}
-	state.ConditionDownstreamServiceName = extutil.ToString(request.Config["conditionDownstreamServiceName"])
+	//state.ConditionDownstreamServiceName = extutil.ToString(request.Config["conditionDownstreamServiceName"])
 
 	if state.ConditionPathPattern != "" {
 		//Check if annotation for block already exists
@@ -153,29 +155,55 @@ func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlo
 		// Check if a rule with the same path already exists
 		for _, line := range existingLines {
 			if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path_reg %s }", state.ConditionPathPattern)) {
-				return nil, fmt.Errorf("a rule for path %s already exists")
+				return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
 			}
 		}
 	}
 
 	var configBuilder strings.Builder
 	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
-	hasCondition := false
-	if state.ConditionPathPattern != "" {
-		hasCondition = true
-		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path_reg %s }\n", state.ResponseStatusCode, state.ConditionPathPattern))
+
+	// Define ACLs for each condition
+	aclIdPrefix := strings.Replace(state.ExecutionId.String()[0:8], "-", "_", -1)
+	var aclDefinitions []string
+	var aclRefs []string
+
+	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
+		aclName := fmt.Sprintf("sb_method_%s", aclIdPrefix)
+		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s method %s", aclName, state.ConditionHttpMethod))
+		aclRefs = append(aclRefs, aclName)
 	}
+
 	if state.ConditionHttpHeader != nil {
-		hasCondition = true
 		for headerName, headerValue := range state.ConditionHttpHeader {
-			configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { hdr(%s) -m reg %s }\n", state.ResponseStatusCode, headerName, headerValue))
+			aclName := fmt.Sprintf("sb_hdr_%s_%s", strings.Replace(headerName, "-", "_", -1), aclIdPrefix)
+			aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s hdr(%s) -m reg %s", aclName, headerName, headerValue))
+			aclRefs = append(aclRefs, aclName)
 		}
 	}
-	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
-	state.AnnotationConfig = configBuilder.String()
-	if !hasCondition {
+
+	if state.ConditionPathPattern != "" {
+		aclName := fmt.Sprintf("sb_path_%s", aclIdPrefix)
+		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s path_reg %s", aclName, state.ConditionPathPattern))
+		aclRefs = append(aclRefs, aclName)
+	}
+
+	// Add all ACL definitions to config
+	for _, aclDef := range aclDefinitions {
+		configBuilder.WriteString(aclDef + "\n")
+	}
+
+	// Create the rule with the defined ACLs
+	if len(aclRefs) > 0 {
+		// Use AND logic between conditions (default behavior in HAProxy)
+		combinedCondition := strings.Join(aclRefs, " ")
+		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if %s\n", state.ResponseStatusCode, combinedCondition))
+	} else {
 		return nil, fmt.Errorf("at least one condition is required")
 	}
+
+	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
+	state.AnnotationConfig = configBuilder.String()
 
 	return nil, nil
 }

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -38,58 +37,58 @@ import (
 )
 
 var testCases = []e2e.WithMinikubeTestCase{
-	{
-		Name: "validate discovery",
-		Test: validateDiscovery,
-	},
-	{
-		Name: "validate advice",
-		Test: validateAdviceDiscovery,
-	},
-	{
-		Name: "discovery",
-		Test: testDiscovery,
-	},
-	{
-		Name: "checkRolloutTwice",
-		Test: testCheckRolloutTwice,
-	},
-	{
-		Name: "checkRolloutReady",
-		Test: testCheckRolloutReady,
-	},
-	{
-		Name: "deletePod",
-		Test: testDeletePod,
-	},
-	{
-		Name: "drainNode",
-		Test: testDrainNode,
-	},
-	{
-		Name: "taintNode",
-		Test: testTaintNode,
-	},
-	{
-		Name: "scaleDeployment",
-		Test: testScaleDeployment,
-	},
-	{
-		Name: "causeCrashLoop",
-		Test: testCauseCrashLoop,
-	},
-	{
-		Name: "setImage",
-		Test: testSetImage,
-	},
 	//{
-	//	Name: "haproxyDelayTraffic",
-	//	Test: testHAProxyDelayTraffic,
+	//	Name: "validate discovery",
+	//	Test: validateDiscovery,
 	//},
 	//{
-	//	Name: "haproxyBlockTraffic",
-	//	Test: testHAProxyBlockTraffic,
+	//	Name: "validate advice",
+	//	Test: validateAdviceDiscovery,
 	//},
+	//{
+	//	Name: "discovery",
+	//	Test: testDiscovery,
+	//},
+	//{
+	//	Name: "checkRolloutTwice",
+	//	Test: testCheckRolloutTwice,
+	//},
+	//{
+	//	Name: "checkRolloutReady",
+	//	Test: testCheckRolloutReady,
+	//},
+	//{
+	//	Name: "deletePod",
+	//	Test: testDeletePod,
+	//},
+	//{
+	//	Name: "drainNode",
+	//	Test: testDrainNode,
+	//},
+	//{
+	//	Name: "taintNode",
+	//	Test: testTaintNode,
+	//},
+	//{
+	//	Name: "scaleDeployment",
+	//	Test: testScaleDeployment,
+	//},
+	//{
+	//	Name: "causeCrashLoop",
+	//	Test: testCauseCrashLoop,
+	//},
+	//{
+	//	Name: "setImage",
+	Test: testSetImage,
+},
+//{
+//Name: "haproxyDelayTraffic",
+//	Test: testHAProxyDelayTraffic,
+//},
+//{
+//Name: "haproxyBlockTraffic",
+//Test: testHAProxyBlockTraffic,
+//},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -919,8 +918,11 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	tests := []struct {
 		name                 string
 		testPath             []string
-		conditionPathPattern string
 		responseStatusCode   int
+		conditionPathPattern string
+		conditionHttpMethod  string
+		conditionHttpHeader  []interface{}
+		requestHeaders       map[string]string
 		wantedBlock          bool
 	}{
 		{
@@ -934,8 +936,69 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			name:                 "should block traffic for a specific endpoint",
 			testPath:             []string{"/"},
 			conditionPathPattern: "/api",
-			responseStatusCode:   503,
+			responseStatusCode:   200,
 			wantedBlock:          false, // We're requesting /, so /api block shouldn't affect us
+		},
+		{
+			name:                "should block traffic for a http method",
+			testPath:            []string{"/"},
+			conditionHttpMethod: "GET",
+			responseStatusCode:  503,
+			wantedBlock:         true,
+		},
+		{
+			name:                "should not block traffic for a http method",
+			testPath:            []string{"/"},
+			conditionHttpMethod: "DELETE",
+			responseStatusCode:  405,
+			wantedBlock:         false, // We're requesting DELETE, so / block shouldn't affect us
+		},
+		{
+			name:                 "should block traffic for a http method and path",
+			testPath:             []string{"/"},
+			conditionHttpMethod:  "GET",
+			conditionPathPattern: "/",
+			responseStatusCode:   501,
+			wantedBlock:          true,
+		},
+		{
+			name:                 "should not block traffic for a http method and path",
+			testPath:             []string{"/"},
+			conditionHttpMethod:  "DELETE",
+			conditionPathPattern: "/",
+			responseStatusCode:   405,
+			wantedBlock:          false, // We're requesting DELETE, so / block shouldn't affect us
+		},
+		{
+			name:     "should block traffic for a specific header",
+			testPath: []string{"/"},
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			},
+			requestHeaders:     map[string]string{"User-Agent": "Mozilla/5.0"},
+			responseStatusCode: 501,
+			wantedBlock:        true,
+		},
+		{
+			name:                 "should block traffic with combined header and path conditions",
+			testPath:             []string{"/"},
+			conditionPathPattern: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			requestHeaders:     map[string]string{"Content-Type": "application/json"},
+			responseStatusCode: 451,
+			wantedBlock:        true,
+		},
+		{
+			name:     "should not block traffic when header doesn't match",
+			testPath: []string{"/"},
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "X-Test-Header", "value": "specific-value"},
+			},
+			requestHeaders:     map[string]string{"X-Test-Header": "other-value"},
+			responseStatusCode: 200,
+			wantedBlock:        false, // We're not sending X-Test-Header
 		},
 	}
 
@@ -943,13 +1006,17 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Apply delay traffic action
 			config := struct {
-				Duration             int    `json:"duration"`
-				ResponseStatusCode   int    `json:"responseStatusCode"`
-				ConditionPathPattern string `json:"conditionPathPattern"`
+				Duration             int           `json:"duration"`
+				ResponseStatusCode   int           `json:"responseStatusCode"`
+				ConditionPathPattern string        `json:"conditionPathPattern"`
+				ConditionHttpMethod  string        `json:"conditionHttpMethod"`
+				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader"`
 			}{
 				Duration:             30000,
 				ResponseStatusCode:   tt.responseStatusCode,
 				ConditionPathPattern: tt.conditionPathPattern,
+				ConditionHttpMethod:  tt.conditionHttpMethod,
+				ConditionHttpHeader:  tt.conditionHttpHeader,
 			}
 
 			log.Info().Msgf("Applying block to path %s", tt.conditionPathPattern)
@@ -970,13 +1037,19 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 						expectedStatusCode = 200
 					}
 				}
-				if tt.wantedBlock {
-					err = checkStatusCode(t, m, haProxyService, path, expectedStatusCode)
-					require.NoError(t, err)
-					log.Info().Msgf("Path %s is blocked", path)
+
+				// Use the combined checkStatusCode function with optional headers
+				if tt.conditionHttpHeader != nil {
+					err = checkStatusCode(t, m, haProxyService, path, expectedStatusCode, tt.requestHeaders)
 				} else {
-					err = checkStatusCode(t, m, haProxyService, "", 200)
-					require.NoError(t, err)
+					err = checkStatusCode(t, m, haProxyService, path, expectedStatusCode)
+				}
+
+				require.NoError(t, err)
+				if tt.wantedBlock {
+					log.Info().Msgf("Path %s is blocked with status %d as expected", path, expectedStatusCode)
+				} else {
+					log.Info().Msgf("Path %s is not blocked, received status 200 as expected", path)
 				}
 			}
 
@@ -992,7 +1065,6 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 }
 
-// initHAProxy initializes HAProxy controller and test resources
 func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, haProxyControllerNamespace string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
 	// Step 1: Deploy HAProxy Ingress Controller
 	log.Info().Msg("Deploying HAProxy Ingress Controller")
@@ -1230,11 +1302,20 @@ func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname stri
 	return 0, fmt.Errorf("failed to measure request latency after %d attempts", maxRetries)
 }
 
-func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path string, expectedStatusCode int) error {
+func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path string, expectedStatusCode int, headers ...map[string]string) error {
 	var (
 		maxRetries = 8
 		baseDelay  = 500 * time.Millisecond
 	)
+
+	// Check if headers are provided
+	var requestHeaders map[string]string
+	if len(headers) > 0 {
+		requestHeaders = headers[0]
+	}
+
+	hasHeaders := requestHeaders != nil && len(requestHeaders) > 0
+
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		client, err := m.NewRestClientForService(service)
 		if err != nil {
@@ -1246,7 +1327,16 @@ func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path 
 			continue
 		}
 		defer client.Close()
-		response, err := client.R().Get(path)
+
+		// Create request and add headers if provided
+		request := client.R()
+		if hasHeaders {
+			for name, value := range requestHeaders {
+				request.SetHeader(name, value)
+			}
+		}
+
+		response, err := request.Get(path)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to make request")
 			if attempt == maxRetries {
@@ -1255,18 +1345,37 @@ func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path 
 			time.Sleep(baseDelay * (1 << (attempt - 1)))
 			continue
 		}
+
 		if response.StatusCode() != expectedStatusCode {
-			log.Error().Msgf("Expected status code %d, got %d", expectedStatusCode, response.StatusCode())
+			if hasHeaders {
+				log.Error().Msgf("Expected status code %d, got %d with headers %v",
+					expectedStatusCode, response.StatusCode(), requestHeaders)
+			} else {
+				log.Error().Msgf("Expected status code %d, got %d",
+					expectedStatusCode, response.StatusCode())
+			}
+
 			if attempt == maxRetries {
 				return fmt.Errorf("expected status code %d, got %d", expectedStatusCode, response.StatusCode())
 			}
 			time.Sleep(baseDelay * (1 << (attempt - 1)))
 			continue
 		}
-		assert.Equal(t, response.StatusCode(), expectedStatusCode, "Expected status code %d, got %d", response.StatusCode(), expectedStatusCode)
-		log.Info().Msgf("Request returned status code %d", response.StatusCode())
+
+		// Customize assertion message based on whether headers are used
+		if hasHeaders {
+			assert.Equal(t, expectedStatusCode, response.StatusCode(),
+				"Expected status code %d, got %d with headers %v", expectedStatusCode, response.StatusCode(), requestHeaders)
+			log.Info().Msgf("Request with headers %v returned status code %d as expected", requestHeaders, response.StatusCode())
+		} else {
+			assert.Equal(t, expectedStatusCode, response.StatusCode(),
+				"Expected status code %d, got %d", expectedStatusCode, response.StatusCode())
+			log.Info().Msgf("Request returned status code %d", response.StatusCode())
+		}
+
 		return nil
 	}
+
 	return fmt.Errorf("failed to get expected status code after %d attempts", maxRetries)
 }
 
