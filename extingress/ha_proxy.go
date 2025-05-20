@@ -125,7 +125,7 @@ func getConditionsParameters() []action_kit_api.ActionParameter {
 			Label:        "HTTP Method",
 			Description:  extutil.Ptr("The name of the request method."),
 			Type:         action_kit_api.ActionParameterTypeString,
-			DefaultValue: extutil.Ptr("GET"),
+			DefaultValue: extutil.Ptr("*"),
 			Required:     extutil.Ptr(false),
 			Options: extutil.Ptr([]action_kit_api.ParameterOption{
 				action_kit_api.ExplicitParameterOption{
