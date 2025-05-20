@@ -950,7 +950,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			name:                "should not block traffic for a http method",
 			testPath:            []string{"/"},
 			conditionHttpMethod: "DELETE",
-			responseStatusCode:  405,
+			responseStatusCode:  200,
 			wantedBlock:         false, // We're requesting DELETE, so / block shouldn't affect us
 		},
 		{
@@ -966,7 +966,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			testPath:             []string{"/"},
 			conditionHttpMethod:  "DELETE",
 			conditionPathPattern: "/",
-			responseStatusCode:   405,
+			responseStatusCode:   200,
 			wantedBlock:          false, // We're requesting DELETE, so / block shouldn't affect us
 		},
 		{

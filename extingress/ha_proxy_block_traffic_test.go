@@ -30,7 +30,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				Namespace: "demo",
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "haproxy",
-					AnnotationKey:                 "http-request return status 503 if sb_path_abcd path_reg /alreadyBlocked",
+					AnnotationKey:                 "acl sb_path_abcd path_reg /alreadyBlocked\nhttp-request return status 503 if { sb_path_abcd }\n",
 				},
 			},
 		}, metav1.CreateOptions{})
@@ -135,8 +135,8 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 					Config: map[string]interface{}{
 						"responseStatusCode": 503,
-						"conditionHttpHeader": map[string]interface{}{
-							"User-Agent": "Mozilla.*",
+						"conditionHttpHeader": []interface{}{
+							map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
 						},
 					},
 					Target: extutil.Ptr(action_kit_api.Target{
@@ -176,8 +176,8 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 						"responseStatusCode":   503,
 						"conditionPathPattern": "/api/users",
 						"conditionHttpMethod":  "POST",
-						"conditionHttpHeader": map[string]interface{}{
-							"Content-Type": "application/json",
+						"conditionHttpHeader": []interface{}{
+							map[string]interface{}{"key": "Content-Type", "value": "application/json"},
 						},
 					},
 					Target: extutil.Ptr(action_kit_api.Target{
