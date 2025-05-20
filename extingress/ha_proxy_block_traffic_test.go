@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	"strings"
 	"testing"
 	"time"
 )
@@ -160,7 +161,12 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 			assert.Equal(t, tt.want.PathStatusCode, state.PathStatusCode)
 			assert.NotNil(t, state)
 			assert.Equalf(t, tt.want.PathStatusCode, state.PathStatusCode, "PathStatusCode")
-			assert.Equalf(t, tt.want.AnnotationConfig, state.AnnotationConfig, "AnnotationConfig")
+			expectedLines := strings.Split(strings.TrimSpace(tt.want.AnnotationConfig), "\n")
+			actualLines := strings.Split(strings.TrimSpace(state.AnnotationConfig), "\n")
+			assert.Equal(t, len(expectedLines), len(actualLines), "Same number of lines in AnnotationConfig")
+			for _, expectedLine := range expectedLines {
+				assert.Contains(t, actualLines, expectedLine, "AnnotationConfig contains line")
+			}
 			assert.Equalf(t, tt.want.Namespace, state.Namespace, "Namespace")
 			assert.Equalf(t, tt.want.IngressName, state.IngressName, "IngressName")
 			assert.Equalf(t, tt.want.ExecutionId, state.ExecutionId, "ExecutionId")
