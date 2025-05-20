@@ -100,3 +100,77 @@ func getCommonActionDescription(id string, label string, description string, ico
 		},
 	}
 }
+
+func getConditionsParameters() []action_kit_api.ActionParameter {
+	return []action_kit_api.ActionParameter{
+		{
+			Name:  "-conditions-separator-",
+			Label: "-",
+			Type:  action_kit_api.ActionParameterTypeSeparator,
+		},
+		{
+			Name:  "-conditions-header-",
+			Type:  action_kit_api.ActionParameterTypeHeader,
+			Label: "Conditions",
+		},
+		{
+			Name:        "conditionPathPattern",
+			Label:       "Path Pattern",
+			Description: extutil.Ptr("The path patterns to compare against the request URL."),
+			Type:        action_kit_api.ActionParameterTypeRegex,
+			Required:    extutil.Ptr(false),
+		},
+		{
+			Name:         "conditionHttpMethod",
+			Label:        "HTTP Method",
+			Description:  extutil.Ptr("The name of the request method."),
+			Type:         action_kit_api.ActionParameterTypeString,
+			DefaultValue: extutil.Ptr("GET"),
+			Required:     extutil.Ptr(false),
+			Options: extutil.Ptr([]action_kit_api.ParameterOption{
+				action_kit_api.ExplicitParameterOption{
+					Label: "*",
+					Value: "*",
+				},
+				action_kit_api.ExplicitParameterOption{
+					Label: "GET",
+					Value: "GET",
+				},
+				action_kit_api.ExplicitParameterOption{
+					Label: "POST",
+					Value: "POST",
+				},
+				action_kit_api.ExplicitParameterOption{
+					Label: "PUT",
+					Value: "PUT",
+				},
+				action_kit_api.ExplicitParameterOption{
+					Label: "PATCH",
+					Value: "PATCH",
+				},
+				action_kit_api.ExplicitParameterOption{
+					Label: "HEAD",
+					Value: "HEAD",
+				},
+				action_kit_api.ExplicitParameterOption{
+					Label: "DELETE",
+					Value: "DELETE",
+				},
+			}),
+		},
+		{
+			Name:        "conditionHttpHeader",
+			Label:       "HTTP Header",
+			Description: extutil.Ptr("The name of the HTTP header field with a maximum size of 40 characters. And a value to compare against the value of the HTTP header. The maximum size of each string is 128 characters. The comparison strings are case insensitive. The following wildcard characters are supported: * (matches 0 or more characters) and ? (matches exactly 1 character). Currently only a single header name with a single value is allowed."),
+			Type:        action_kit_api.ActionParameterTypeKeyValue,
+			Required:    extutil.Ptr(false),
+		},
+		//{
+		//	Name:        "conditionDownstreamServiceName",
+		//	Label:       "Downstream Service Name",
+		//	Description: extutil.Ptr("The name of the downstream service to compare against the request URL. E.g. /card is the path to the card-service, but card-service in the name of the service."),
+		//	Type:        action_kit_api.ActionParameterTypeRegex,
+		//	Required:    extutil.Ptr(false),
+		//},
+	}
+}
