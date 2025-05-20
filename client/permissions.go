@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -216,9 +217,17 @@ func (p *PermissionCheckResult) IsTaintNodePermitted() bool {
 		"nodes/patch",
 	})
 }
+
 func (p *PermissionCheckResult) IsCrashLoopPodPermitted() bool {
 	return p.hasPermissions([]string{
 		"pods/exec/create",
+	})
+}
+
+func (p *PermissionCheckResult) IsSetImagePermitted() bool {
+	return p.hasPermissions([]string{
+		"apps/deployments/get",
+		"apps/deployments/patch",
 	})
 }
 

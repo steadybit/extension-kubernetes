@@ -10,4 +10,5 @@ const (
 	RolloutRestartActionId          = "com.steadybit.extension_kubernetes.rollout-restart"
 	RolloutStatusActionId           = "com.steadybit.extension_kubernetes.rollout-status"
 	ScaleDeploymentActionId         = "com.steadybit.extension_kubernetes.scale_deployment"
+	SetImageActionId                = "com.steadybit.extension_kubernetes.set_image"
 )
