@@ -39,7 +39,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				podCountCheckMode: PodCountMin1,
 			},
 			readyCount:         0,
-			wantedErrorMessage: extutil.Ptr("checkout has no ready pods."),
+			wantedErrorMessage: extutil.Ptr("shop/checkout has no ready pods."),
 		},
 		{
 			name: "podCountEqualsDesiredCountSuccess",
@@ -57,7 +57,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			},
 			readyCount:         1,
 			desiredCount:       2,
-			wantedErrorMessage: extutil.Ptr("checkout has 1 of desired 2 pods ready."),
+			wantedErrorMessage: extutil.Ptr("shop/checkout has 1 of desired 2 pods ready."),
 		},
 		{
 			name: "podCountGreaterEqualsDesiredCountSuccess",
@@ -75,7 +75,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			},
 			readyCount:         1,
 			desiredCount:       2,
-			wantedErrorMessage: extutil.Ptr("checkout has 1 of desired 2 pods ready."),
+			wantedErrorMessage: extutil.Ptr("shop/checkout has 1 of desired 2 pods ready."),
 		},
 		{
 			name: "podCountLessThanDesiredCountSuccess",
@@ -93,7 +93,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			},
 			readyCount:         2,
 			desiredCount:       2,
-			wantedErrorMessage: extutil.Ptr("checkout has all 2 desired pods ready."),
+			wantedErrorMessage: extutil.Ptr("shop/checkout has all 2 desired pods ready."),
 		},
 		{
 			name: "podCountIncreasedSuccess",
@@ -111,7 +111,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				initialCount:      2,
 			},
 			readyCount:         2,
-			wantedErrorMessage: extutil.Ptr("checkout's pod count didn't increase. Initial count: 2, current count: 2."),
+			wantedErrorMessage: extutil.Ptr("shop/checkout's pod count didn't increase. Initial count: 2, current count: 2."),
 		},
 		{
 			name: "podCountDecreasedSuccess",
@@ -129,7 +129,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				initialCount:      2,
 			},
 			readyCount:         2,
-			wantedErrorMessage: extutil.Ptr("checkout's pod count didn't decrease. Initial count: 2, current count: 2."),
+			wantedErrorMessage: extutil.Ptr("shop/checkout's pod count didn't decrease. Initial count: 2, current count: 2."),
 		},
 	}
 	for _, tt := range tests {

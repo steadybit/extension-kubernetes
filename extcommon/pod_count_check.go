@@ -171,42 +171,42 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	case PodCountMin1:
 		if !(readyCount >= 1) {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("%s has no ready pods.", state.Target),
+				Title:  fmt.Sprintf("%s/%s has no ready pods.", state.Namespace, state.Target),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountEqualsDesiredCount:
 		if !(readyCount == desiredCount) {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("%s has %d of desired %d pods ready.", state.Target, readyCount, desiredCount),
+				Title:  fmt.Sprintf("%s/%s has %d of desired %d pods ready.", state.Namespace, state.Target, readyCount, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountGreaterEqualsDesiredCount:
 		if !(readyCount >= desiredCount) {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("%s has %d of desired %d pods ready.", state.Target, readyCount, desiredCount),
+				Title:  fmt.Sprintf("%s/%s has %d of desired %d pods ready.", state.Namespace, state.Target, readyCount, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountLessThanDesiredCount:
 		if !(readyCount < desiredCount) {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("%s has all %d desired pods ready.", state.Target, desiredCount),
+				Title:  fmt.Sprintf("%s/%s has all %d desired pods ready.", state.Namespace, state.Target, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountDecreased:
 		if !(readyCount < state.InitialCount) {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("%s's pod count didn't decrease. Initial count: %d, current count: %d.", state.Target, state.InitialCount, readyCount),
+				Title:  fmt.Sprintf("%s/%s's pod count didn't decrease. Initial count: %d, current count: %d.", state.Namespace, state.Target, state.InitialCount, readyCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountIncreased:
 		if !(readyCount > state.InitialCount) {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
-				Title:  fmt.Sprintf("%s's pod count didn't increase. Initial count: %d, current count: %d.", state.Target, state.InitialCount, readyCount),
+				Title:  fmt.Sprintf("%s/%s's pod count didn't increase. Initial count: %d, current count: %d.", state.Namespace, state.Target, state.InitialCount, readyCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
