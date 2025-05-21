@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"os"
 	"os/exec"
 	"strings"
@@ -37,54 +38,54 @@ import (
 )
 
 var testCases = []e2e.WithMinikubeTestCase{
-	//{
-	//	Name: "validate discovery",
-	//	Test: validateDiscovery,
-	//},
-	//{
-	//	Name: "validate advice",
-	//	Test: validateAdviceDiscovery,
-	//},
-	//{
-	//	Name: "discovery",
-	//	Test: testDiscovery,
-	//},
-	//{
-	//	Name: "checkRolloutTwice",
-	//	Test: testCheckRolloutTwice,
-	//},
-	//{
-	//	Name: "checkRolloutReady",
-	//	Test: testCheckRolloutReady,
-	//},
-	//{
-	//	Name: "deletePod",
-	//	Test: testDeletePod,
-	//},
-	//{
-	//	Name: "drainNode",
-	//	Test: testDrainNode,
-	//},
-	//{
-	//	Name: "taintNode",
-	//	Test: testTaintNode,
-	//},
-	//{
-	//	Name: "scaleDeployment",
-	//	Test: testScaleDeployment,
-	//},
-	//{
-	//	Name: "causeCrashLoop",
-	//	Test: testCauseCrashLoop,
-	//},
-	//{
-	//	Name: "setImage",
+	{
+		Name: "validate discovery",
+		Test: validateDiscovery,
+	},
+	{
+		Name: "validate advice",
+		Test: validateAdviceDiscovery,
+	},
+	{
+		Name: "discovery",
+		Test: testDiscovery,
+	},
+	{
+		Name: "checkRolloutTwice",
+		Test: testCheckRolloutTwice,
+	},
+	{
+		Name: "checkRolloutReady",
+		Test: testCheckRolloutReady,
+	},
+	{
+		Name: "deletePod",
+		Test: testDeletePod,
+	},
+	{
+		Name: "drainNode",
+		Test: testDrainNode,
+	},
+	{
+		Name: "taintNode",
+		Test: testTaintNode,
+	},
+	{
+		Name: "scaleDeployment",
+		Test: testScaleDeployment,
+	},
+	{
+		Name: "causeCrashLoop",
+		Test: testCauseCrashLoop,
+	},
+	{
+		Name: "setImage",
 	Test: testSetImage,
 },
 //{
 //Name: "haproxyDelayTraffic",
-//	Test: testHAProxyDelayTraffic,
-//},
+	Test: testHAProxyDelayTraffic,
+},
 //{
 //Name: "haproxyBlockTraffic",
 //Test: testHAProxyBlockTraffic,
@@ -810,22 +811,96 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	// Define delay parameters
 	delayMs := 500
 	tests := []struct {
-		name        string
-		path        string
-		delay       int
-		wantedDelay bool
+		name                 string
+		responseDelay        int
+		conditionPathPattern string
+		conditionHttpMethod  string
+		conditionHttpHeader  []interface{}
+		requestPath          string
+		requestHeaders       map[string]string
+		requestMethod        string
+		wantedDelay          bool
 	}{
 		{
-			name:        "should delay traffic for the specified path",
-			path:        "/",
-			delay:       delayMs,
+			name:                 "should delay traffic for the specified path",
+			requestPath:          "/",
+			conditionPathPattern: "/",
+			responseDelay:        delayMs,
+			wantedDelay:          true,
+		},
+		{
+			name:                 "should not delay traffic for mismatched path",
+			requestPath:          "/",
+			conditionPathPattern: "/api",
+			responseDelay:        delayMs,
+			wantedDelay:          false,
+		},
+		{
+			name:                "should delay traffic for specified HTTP method",
+			requestPath:         "/",
+			responseDelay:       delayMs,
+			conditionHttpMethod: "GET",
+			wantedDelay:         true,
+		},
+		{
+			name:                "should not delay traffic for mismatched HTTP method",
+			requestPath:         "/",
+			conditionHttpMethod: "POST",
+			wantedDelay:         false,
+		},
+		{
+			name:        "should delay traffic for specified HTTP header",
+			requestPath: "/",
+			requestHeaders: map[string]string{
+				"User-Agent": "Mozilla/5.0",
+			},
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			},
+			responseDelay: delayMs,
+			wantedDelay:   true,
+		},
+		{
+			name:        "should not delay traffic for mismatched HTTP header",
+			requestPath: "/",
+			requestHeaders: map[string]string{
+				"User-Agent": "Chrome/90.0",
+			},
+			responseDelay: delayMs,
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			},
+			wantedDelay: false,
+		},
+		{
+			name:          "should delay traffic for combined conditions (all match)",
+			requestPath:   "/",
+			requestMethod: "GET",
+			requestHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
+			responseDelay:        delayMs,
+			conditionPathPattern: "/",
+			conditionHttpMethod:  "GET",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
 			wantedDelay: true,
 		},
 		{
-			name:        "should delay traffic for a specific endpoint",
-			path:        "/api",
-			delay:       delayMs,
-			wantedDelay: false, // We're requesting /, so /api delay shouldn't affect us
+			name:          "should not delay traffic for combined conditions (one mismatch)",
+			requestPath:   "/",
+			requestMethod: "GET", // Mismatch - config requires POST
+			requestHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
+			responseDelay:        delayMs,
+			conditionPathPattern: ".*",
+			conditionHttpMethod:  "POST",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			wantedDelay: false,
 		},
 	}
 
@@ -833,31 +908,49 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Apply delay traffic action
 			config := struct {
-				Duration int    `json:"duration"`
-				Path     string `json:"path"`
-				Delay    int    `json:"delay"`
+				Duration             int           `json:"duration"`
+				ResponseDelay        int           `json:"responseDelay"`
+				ConditionPathPattern string        `json:"conditionPathPattern,omitempty"`
+				ConditionHttpMethod  string        `json:"conditionHttpMethod,omitempty"`
+				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader,omitempty"`
 			}{
-				Duration: 30000,
-				Path:     tt.path,
-				Delay:    tt.delay,
+				Duration:             30000,
+				ResponseDelay:        tt.responseDelay,
+				ConditionPathPattern: tt.conditionPathPattern,
+				ConditionHttpMethod:  tt.conditionHttpMethod,
+				ConditionHttpHeader:  tt.conditionHttpHeader,
 			}
 
-			log.Info().Msgf("Applying delay of %dms to path %s", tt.delay, tt.path)
+			log.Info().Msgf("Applying delay of %dms to path %s", tt.responseDelay, tt.conditionPathPattern)
 			action, err := e.RunAction(extingress.HAProxyDelayTrafficActionId, ingressTarget, config, nil)
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
 			// Measure latency during delay
 			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-			delayedLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
+
+			// Use the correct method and headers for the test
+			var delayedLatency time.Duration
+			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
+				delayedLatency, err = measureRequestLatencyWithOptions(
+					m,
+					haProxyService,
+					testAppName+".local",
+					tt.requestPath,
+					tt.requestMethod,
+					tt.requestHeaders,
+				)
+			} else {
+				delayedLatency, err = measureRequestLatency(m, haProxyService, testAppName+".local")
+			}
 			require.NoError(t, err)
-			log.Info().Msgf("Latency during delay: %v", delayedLatency)
+			log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 
 			// Verify delay
 			if tt.wantedDelay {
 				// Check that delay is applied (with some tolerance)
-				minExpectedLatency := baselineLatency + time.Duration(tt.delay-50)*time.Millisecond  // -50ms tolerance
-				maxExpectedLatency := baselineLatency + time.Duration(tt.delay+200)*time.Millisecond // +200ms tolerance for overhead
+				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
 				assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
 			} else {
@@ -871,7 +964,19 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			// Measure latency after cancellation
 			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-			afterLatency, err := measureRequestLatency(m, haProxyService, testAppName+".local")
+			var afterLatency time.Duration
+			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
+				afterLatency, err = measureRequestLatencyWithOptions(
+					m,
+					haProxyService,
+					testAppName+".local",
+					tt.requestPath,
+					tt.requestMethod,
+					tt.requestHeaders,
+				)
+			} else {
+				afterLatency, err = measureRequestLatency(m, haProxyService, testAppName+".local")
+			}
 			require.NoError(t, err)
 			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
 
@@ -881,6 +986,77 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		})
 	}
 }
+
+//// Helper function to measure request latency with custom HTTP method and headers
+//func measureRequestLatencyWithMethodAndHeaders(m *e2e.Minikube, service metav1.Object, hostname, path, method string, headers map[string]string) (time.Duration, error) {
+//	var (
+//		maxRetries = 8
+//		baseDelay  = 500 * time.Millisecond
+//	)
+//
+//	if method == "" {
+//		method = "GET" // Default to GET if not specified
+//	}
+//
+//	var diff time.Duration
+//	for attempt := 1; attempt <= maxRetries; attempt++ {
+//		client, err2 := m.NewRestClientForService(service)
+//		if err2 != nil {
+//			log.Error().Err(err2).Msg("Failed to create REST client")
+//			if attempt == maxRetries {
+//				return 0, err2
+//			}
+//			time.Sleep(baseDelay * (1 << (attempt - 1)))
+//			continue
+//		}
+//		defer client.Close()
+//
+//		// Set host header
+//		client.SetHeader("Host", hostname)
+//
+//		// Set custom headers if provided
+//		for k, v := range headers {
+//			client.SetHeader(k, v)
+//		}
+//
+//		// Prepare request
+//		request := client.R()
+//
+//		// Make request with specified method
+//		startTime := time.Now()
+//		var resp *resty.Response
+//		var err error
+//
+//		switch strings.ToUpper(method) {
+//		case "GET":
+//			resp, err = request.Get(path)
+//		case "POST":
+//			resp, err = request.Post(path)
+//		case "PUT":
+//			resp, err = request.Put(path)
+//		case "DELETE":
+//			resp, err = request.Delete(path)
+//		case "PATCH":
+//			resp, err = request.Patch(path)
+//		default:
+//			resp, err = request.Execute(method, path)
+//		}
+//
+//		endTime := time.Now()
+//		if err != nil {
+//			log.Error().Err(err).Msgf("Failed to make %s request", method)
+//			if attempt == maxRetries {
+//				return 0, err
+//			}
+//			time.Sleep(baseDelay * (1 << (attempt - 1)))
+//			continue
+//		}
+//		diff = endTime.Sub(startTime)
+//		log.Info().Msgf("%s request to %s took %v (status: %d)", method, path, diff, resp.StatusCode())
+//		return diff, nil
+//	}
+//	return 0, fmt.Errorf("failed to measure request latency after %d attempts", maxRetries)
+//}
 
 func cleanupHAProxy(m *e2e.Minikube, haProxyControllerNamespace string) {
 	_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
@@ -917,7 +1093,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	// Define delay parameters
 	tests := []struct {
 		name                 string
-		testPath             []string
+		testPath             string
 		responseStatusCode   int
 		conditionPathPattern string
 		conditionHttpMethod  string
@@ -927,35 +1103,35 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}{
 		{
 			name:                 "should block traffic for the specified path",
-			testPath:             []string{"/"},
+			testPath:             "/",
 			conditionPathPattern: "/",
 			responseStatusCode:   503,
 			wantedBlock:          true,
 		},
 		{
 			name:                 "should block traffic for a specific endpoint",
-			testPath:             []string{"/"},
+			testPath:             "/",
 			conditionPathPattern: "/api",
 			responseStatusCode:   200,
 			wantedBlock:          false, // We're requesting /, so /api block shouldn't affect us
 		},
 		{
 			name:                "should block traffic for a http method",
-			testPath:            []string{"/"},
+			testPath:            "/",
 			conditionHttpMethod: "GET",
 			responseStatusCode:  503,
 			wantedBlock:         true,
 		},
 		{
 			name:                "should not block traffic for a http method",
-			testPath:            []string{"/"},
+			testPath:            "/",
 			conditionHttpMethod: "DELETE",
 			responseStatusCode:  200,
 			wantedBlock:         false, // We're requesting DELETE, so / block shouldn't affect us
 		},
 		{
 			name:                 "should block traffic for a http method and path",
-			testPath:             []string{"/"},
+			testPath:             "/",
 			conditionHttpMethod:  "GET",
 			conditionPathPattern: "/",
 			responseStatusCode:   501,
@@ -963,7 +1139,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		},
 		{
 			name:                 "should not block traffic for a http method and path",
-			testPath:             []string{"/"},
+			testPath:             "/",
 			conditionHttpMethod:  "DELETE",
 			conditionPathPattern: "/",
 			responseStatusCode:   200,
@@ -971,7 +1147,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		},
 		{
 			name:     "should block traffic for a specific header",
-			testPath: []string{"/"},
+			testPath: "/",
 			conditionHttpHeader: []interface{}{
 				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
 			},
@@ -981,7 +1157,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		},
 		{
 			name:                 "should block traffic with combined header and path conditions",
-			testPath:             []string{"/"},
+			testPath:             "/",
 			conditionPathPattern: "/",
 			conditionHttpHeader: []interface{}{
 				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
@@ -992,7 +1168,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		},
 		{
 			name:     "should not block traffic when header doesn't match",
-			testPath: []string{"/"},
+			testPath: "/",
 			conditionHttpHeader: []interface{}{
 				map[string]interface{}{"key": "X-Test-Header", "value": "specific-value"},
 			},
@@ -1027,30 +1203,28 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
 
 			// Verify block
-			for _, path := range tt.testPath {
-				expectedStatusCode := tt.responseStatusCode
-				if expectedStatusCode == 0 {
-					if tt.wantedBlock {
-						log.Error().Msgf("Expected status code not found for path %s", path)
-						t.Fail()
-					} else {
-						expectedStatusCode = 200
-					}
-				}
-
-				// Use the combined checkStatusCode function with optional headers
-				if tt.conditionHttpHeader != nil {
-					err = checkStatusCode(t, m, haProxyService, path, expectedStatusCode, tt.requestHeaders)
-				} else {
-					err = checkStatusCode(t, m, haProxyService, path, expectedStatusCode)
-				}
-
-				require.NoError(t, err)
+			expectedStatusCode := tt.responseStatusCode
+			if expectedStatusCode == 0 {
 				if tt.wantedBlock {
-					log.Info().Msgf("Path %s is blocked with status %d as expected", path, expectedStatusCode)
+					log.Error().Msgf("Expected status code not found for path %s", tt.testPath)
+					t.Fail()
 				} else {
-					log.Info().Msgf("Path %s is not blocked, received status 200 as expected", path)
+					expectedStatusCode = 200
 				}
+			}
+
+			// Use the combined checkStatusCode function with optional headers
+			if tt.conditionHttpHeader != nil {
+				err = checkStatusCode(t, m, haProxyService, tt.testPath, expectedStatusCode, tt.requestHeaders)
+			} else {
+				err = checkStatusCode(t, m, haProxyService, tt.testPath, expectedStatusCode)
+			}
+
+			require.NoError(t, err)
+			if tt.wantedBlock {
+				log.Info().Msgf("Path %s is blocked with status %d as expected", tt.testPath, expectedStatusCode)
+			} else {
+				log.Info().Msgf("Path %s is not blocked, received status 200 as expected", tt.testPath)
 			}
 
 			// Cancel the action
@@ -1265,30 +1439,80 @@ func deleteClusterRole(m *e2e.Minikube, name string) {
 	}
 }
 
-func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname string) (time.Duration, error) {
+// Helper function to measure request latency with optional HTTP method and headers
+// If path is empty, "/" will be used
+// If method is empty, "GET" will be used
+func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname string, path ...string) (time.Duration, error) {
+	requestPath := "/"
+	if len(path) > 0 && path[0] != "" {
+		requestPath = path[0]
+	}
+
+	return measureRequestLatencyWithOptions(m, service, hostname, requestPath, "", nil)
+}
+
+// Helper function to measure request latency with custom HTTP method and headers
+func measureRequestLatencyWithOptions(m *e2e.Minikube, service metav1.Object, hostname, path, method string, headers map[string]string) (time.Duration, error) {
 	var (
 		maxRetries = 8
 		baseDelay  = 500 * time.Millisecond
 	)
 
+	if method == "" {
+		method = "GET" // Default to GET if not specified
+	}
+
+	if path == "" {
+		path = "/" // Default to root path if not specified
+	}
+
 	var diff time.Duration
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		client, err := m.NewRestClientForService(service)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to create REST client")
+		client, err2 := m.NewRestClientForService(service)
+		if err2 != nil {
+			log.Error().Err(err2).Msg("Failed to create REST client")
 			if attempt == maxRetries {
-				return 0, err
+				return 0, err2
 			}
 			time.Sleep(baseDelay * (1 << (attempt - 1)))
 			continue
 		}
 		defer client.Close()
+
+		// Set host header
 		client.SetHeader("Host", hostname)
+
+		// Set custom headers if provided
+		for k, v := range headers {
+			client.SetHeader(k, v)
+		}
+
+		// Prepare request
+		request := client.R()
+
+		// Make request with specified method
 		startTime := time.Now()
-		_, err = client.R().Get("/")
+		var resp *resty.Response
+		var err error
+
+		switch strings.ToUpper(method) {
+		case "GET":
+			resp, err = request.Get(path)
+		case "POST":
+			resp, err = request.Post(path)
+		case "PUT":
+			resp, err = request.Put(path)
+		case "DELETE":
+			resp, err = request.Delete(path)
+		case "PATCH":
+			resp, err = request.Patch(path)
+		default:
+			resp, err = request.Execute(method, path)
+		}
+
 		endTime := time.Now()
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to make request")
+			log.Error().Err(err).Msgf("Failed to make %s request", method)
 			if attempt == maxRetries {
 				return 0, err
 			}
@@ -1296,7 +1520,7 @@ func measureRequestLatency(m *e2e.Minikube, service metav1.Object, hostname stri
 			continue
 		}
 		diff = endTime.Sub(startTime)
-		log.Info().Msgf("Request took %v", diff)
+		log.Info().Msgf("%s request to %s took %v (status: %d)", method, path, diff, resp.StatusCode())
 		return diff, nil
 	}
 	return 0, fmt.Errorf("failed to measure request latency after %d attempts", maxRetries)

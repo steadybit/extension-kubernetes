@@ -106,15 +106,21 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 
 	// Check for conflicts with existing rules
 	existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
+
+	// First check path pattern conflicts
+	if state.ConditionPathPattern != "" {
+		for _, line := range existingLines {
+			if strings.Contains(line, fmt.Sprintf("path_reg %s", state.ConditionPathPattern)) {
+				return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
+			}
+		}
+	}
+
+	// Then check for existing delay rules
 	for _, line := range existingLines {
 		if strings.Contains(line, "tcp-request inspect-delay") {
 			log.Error().Msg("a delay rule already exists - cannot add another one")
 			return nil, fmt.Errorf("a delay rule already exists - cannot add another one")
-		}
-
-		// Check for path pattern conflicts
-		if state.ConditionPathPattern != "" && strings.Contains(line, fmt.Sprintf("path_reg %s", state.ConditionPathPattern)) {
-			return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
 		}
 	}
 
