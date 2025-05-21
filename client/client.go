@@ -773,6 +773,7 @@ func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, in
 }
 
 // removeAnnotationBlock removes the text between startMarker and endMarker (inclusive)
+// and all consecutive newlines that follow the block
 func removeAnnotationBlock(config, startMarker, endMarker string) string {
 	startIndex := strings.Index(config, startMarker)
 	endIndex := strings.Index(config, endMarker)
@@ -784,12 +785,12 @@ func removeAnnotationBlock(config, startMarker, endMarker string) string {
 	// Calculate end of marker position
 	endOfMarker := endIndex + len(endMarker)
 
-	// Check if there's a newline right after the end marker
-	if endOfMarker < len(config) && config[endOfMarker] == '\n' {
-		endOfMarker++ // Include the newline in what gets removed
+	// Skip all consecutive newlines after the end marker
+	for endOfMarker < len(config) && config[endOfMarker] == '\n' {
+		endOfMarker++
 	}
 
-	// Remove the block including the markers and the trailing newline if present
+	// Remove the block including the markers and all trailing newlines
 	return config[:startIndex] + config[endOfMarker:]
 }
 
