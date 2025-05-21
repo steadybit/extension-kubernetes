@@ -80,16 +80,16 @@ var testCases = []e2e.WithMinikubeTestCase{
 	},
 	{
 		Name: "setImage",
-	Test: testSetImage,
-},
-//{
-//Name: "haproxyDelayTraffic",
-	Test: testHAProxyDelayTraffic,
-},
-//{
-//Name: "haproxyBlockTraffic",
-//Test: testHAProxyBlockTraffic,
-//},
+		Test: testSetImage,
+	},
+	//{
+		//Name: "haproxyDelayTraffic",
+		//Test: testHAProxyDelayTraffic,
+	},
+	//{
+		//Name: "haproxyBlockTraffic",
+		//Test: testHAProxyBlockTraffic,
+	//},
 }
 
 func TestWithMinikube(t *testing.T) {
