@@ -688,7 +688,11 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 			newConfig = newAnnotationSuffix
 		} else {
 			// Prepend the new configuration
-			newConfig = newAnnotationSuffix + "\n" + ingress.Annotations[annotationKey]
+			if existingValue := ingress.Annotations[annotationKey]; existingValue == "" {
+				newConfig = newAnnotationSuffix
+			} else {
+				newConfig = newAnnotationSuffix + "\n" + existingValue
+			}
 		}
 		// Update the annotation
 		ingress.Annotations[annotationKey] = newConfig
