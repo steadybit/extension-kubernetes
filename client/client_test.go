@@ -349,11 +349,6 @@ func TestRemoveAnnotationBlockMethod(t *testing.T) {
 	}
 }
 
-// Helper function to mock IngressByNamespaceAndName for testing
-func (t *Client) mockIngressByNamespaceAndName(namespace, name string, ingress *networkingv1.Ingress, err error) {
-	// This would be implemented to mock the behavior of IngressByNamespaceAndName
-}
-
 func TestUpdateIngressAnnotation(t *testing.T) {
 	tests := []struct {
 		name           string
