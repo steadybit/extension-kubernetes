@@ -1538,7 +1538,7 @@ func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path 
 		requestHeaders = headers[0]
 	}
 
-	hasHeaders := requestHeaders != nil && len(requestHeaders) > 0
+	hasHeaders := len(requestHeaders) > 0
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		client, err := m.NewRestClientForService(service)

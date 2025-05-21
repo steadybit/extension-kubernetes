@@ -134,13 +134,11 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 	// Define ACLs for each condition
 	aclIdPrefix := strings.Replace(state.ExecutionId.String()[0:8], "-", "_", -1)
 	var aclDefinitions []string
-	var aclRefs []string
 	var invertedAclRefs []string
 
 	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
 		aclName := fmt.Sprintf("sb_method_%s", aclIdPrefix)
 		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s method %s", aclName, state.ConditionHttpMethod))
-		aclRefs = append(aclRefs, aclName)
 		invertedAclRefs = append(invertedAclRefs, fmt.Sprintf("!%s", aclName))
 	}
 
@@ -148,7 +146,6 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 		for headerName, headerValue := range state.ConditionHttpHeader {
 			aclName := fmt.Sprintf("sb_hdr_%s_%s", strings.Replace(headerName, "-", "_", -1), aclIdPrefix)
 			aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s hdr(%s) -m reg %s", aclName, headerName, headerValue))
-			aclRefs = append(aclRefs, aclName)
 			invertedAclRefs = append(invertedAclRefs, fmt.Sprintf("!%s", aclName))
 		}
 	}
@@ -156,7 +153,6 @@ func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyD
 	if state.ConditionPathPattern != "" {
 		aclName := fmt.Sprintf("sb_path_%s", aclIdPrefix)
 		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s path_reg %s", aclName, state.ConditionPathPattern))
-		aclRefs = append(aclRefs, aclName)
 		invertedAclRefs = append(invertedAclRefs, fmt.Sprintf("!%s", aclName))
 	}
 
