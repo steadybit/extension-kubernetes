@@ -3,7 +3,6 @@ package extingress
 import (
 	"context"
 	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -13,89 +12,64 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-// AnnotationKey is the name of the HAProxy configuration annotation
+// Action IDs for HAProxy actions
 const (
-	AnnotationKey              = "haproxy-ingress.github.io/config-snippet"
+	HAProxyIngressTargetType = "com.steadybit.extension_kubernetes.kubernetes-haproxy-ingress"
+	AnnotationKey            = "haproxy-ingress.github.io/backend-config-snippet"
 	HAProxyBlockTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-block-traffic"
 	HAProxyDelayTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-delay-traffic"
-	HAProxyIngressTargetType    = "com.steadybit.extension_kubernetes.haproxy-ingress"
 )
 
-// HAProxyBaseState contains common state data for HAProxy-related actions
+// HAProxyBaseState contains common state for HAProxy-related actions
 type HAProxyBaseState struct {
 	ExecutionId uuid.UUID
 	Namespace   string
 	IngressName string
 }
 
-// prepareHAProxyAction performs common preparation logic for HAProxy actions
+// prepareHAProxyAction contains common preparation logic for HAProxy actions
 func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.PrepareActionRequestBody) (*networkingv1.Ingress, error) {
 	state.ExecutionId = request.ExecutionId
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.IngressName = request.Target.Attributes["k8s.ingress"][0]
 
-	// Fetch and validate the ingress resource
+	// Check ingress availability
 	ingress, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch ingress %s/%s: %w", state.Namespace, state.IngressName, err)
+		return nil, fmt.Errorf("failed to fetch ingress: %w", err)
 	}
-
 	return ingress, nil
 }
 
-// startHAProxyAction applies HAProxy configuration via ingress annotation
+// startHAProxyAction contains common start logic for HAProxy actions
 func startHAProxyAction(state *HAProxyBaseState, annotationConfig string) error {
-	log.Debug().
-		Str("namespace", state.Namespace).
-		Str("ingress", state.IngressName).
-		Str("executionId", state.ExecutionId.String()).
-		Msgf("Adding new HAProxy configuration")
-
-	if err := client.K8S.UpdateIngressAnnotation(
-		context.Background(),
-		state.Namespace,
-		state.IngressName,
-		AnnotationKey,
-		annotationConfig,
-	); err != nil {
-		return fmt.Errorf("failed to update ingress annotation: %w", err)
+	log.Debug().Msgf("Adding new HAProxy configuration: %s", annotationConfig)
+	// Prepend the new configuration
+	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, AnnotationKey, annotationConfig)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-// stopHAProxyAction removes HAProxy configuration from ingress annotation
+// stopHAProxyAction contains common stop logic for HAProxy actions
 func stopHAProxyAction(state *HAProxyBaseState) error {
-	log.Debug().
-		Str("namespace", state.Namespace).
-		Str("ingress", state.IngressName).
-		Str("executionId", state.ExecutionId.String()).
-		Msgf("Removing HAProxy configuration")
-
-	if err := client.K8S.RemoveAnnotationBlock(
+	err := client.K8S.RemoveAnnotationBlock(
 		context.Background(),
 		state.Namespace,
 		state.IngressName,
 		AnnotationKey,
 		state.ExecutionId,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("failed to remove HAProxy configuration: %w", err)
 	}
 
 	return nil
 }
 
-// getStartMarker returns the configuration block start marker
-func getStartMarker(executionId uuid.UUID) string {
-	return fmt.Sprintf("# BEGIN STEADYBIT %s", executionId)
-}
-
-// getEndMarker returns the configuration block end marker
-func getEndMarker(executionId uuid.UUID) string {
-	return fmt.Sprintf("# END STEADYBIT %s", executionId)
-}
-
-// getCommonActionDescription returns common action description properties
+// getCommonActionDescription returns common action description elements
 func getCommonActionDescription(id string, label string, description string, icon string) action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          id,
@@ -129,7 +103,6 @@ func getCommonActionDescription(id string, label string, description string, ico
 	}
 }
 
-// getConditionsParameters returns the common condition parameters for HAProxy actions
 func getConditionsParameters() []action_kit_api.ActionParameter {
 	return []action_kit_api.ActionParameter{
 		{
@@ -194,5 +167,21 @@ func getConditionsParameters() []action_kit_api.ActionParameter {
 			Type:        action_kit_api.ActionParameterTypeKeyValue,
 			Required:    extutil.Ptr(false),
 		},
+		//{
+		//	Name:        "conditionDownstreamServiceName",
+		//	Label:       "Downstream Service Name",
+		//	Description: extutil.Ptr("The name of the downstream service to compare against the request URL. E.g. /card is the path to the card-service, but card-service in the name of the service."),
+		//	Type:        action_kit_api.ActionParameterTypeRegex,
+		//	Required:    extutil.Ptr(false),
+		//},
 	}
+}
+
+
+func getStartMarker(executionId uuid.UUID) string {
+	return fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
+}
+
+func getEndMarker(executionId uuid.UUID) string {
+	return fmt.Sprintf("# END STEADYBIT - %s", executionId)
 }
