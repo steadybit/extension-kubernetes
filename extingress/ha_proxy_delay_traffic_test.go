@@ -11,6 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	testclient "k8s.io/client-go/kubernetes/fake"
 	"testing"
 	"time"
 )
@@ -293,7 +295,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 			},
 			want:    HAProxyDelayTrafficState{},
-			wantErr: extutil.Ptr("at least one condition is required"),
+			wantErr: extutil.Ptr("at least one condition (path, method, or header) is required"),
 		},
 		{
 			name:        "path collision with existing rule",
@@ -398,4 +400,10 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 			}
 		})
 	}
+}
+
+func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
+	clientset := testclient.NewSimpleClientset()
+	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	return client, clientset
 }
