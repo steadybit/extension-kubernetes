@@ -46,7 +46,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				},
 				ResponseStatusCode:   503,
 				ConditionPathPattern: "/api/*",
-				AnnotationConfig:     "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_path_00000000 path_reg /api/*\nhttp-request return status 503 if sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig:     "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_path_00000000-0000-0000-0000-000000000000 path_reg /api/*\nhttp-request return status 503 if sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				},
 				ResponseStatusCode:  503,
 				ConditionHttpMethod: "POST",
-				AnnotationConfig:    "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000 method POST\nhttp-request return status 503 if sb_method_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig:    "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000-0000-0000-0000-000000000000 method POST\nhttp-request return status 503 if sb_method_00000000-0000-0000-0000-000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -86,7 +86,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				ConditionHttpHeader: map[string]string{
 					"User-Agent": "Mozilla.*",
 				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_hdr_User_Agent_00000000 hdr(User-Agent) -m reg Mozilla.*\nhttp-request return status 503 if sb_hdr_User_Agent_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_hdr_User_Agent_00000000-0000-0000-0000-000000000000 hdr(User-Agent) -m reg Mozilla.*\nhttp-request return status 503 if sb_hdr_User_Agent_00000000-0000-0000-0000-000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -112,7 +112,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				ConditionHttpHeader: map[string]string{
 					"Content-Type": "application/json",
 				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000 method POST\nacl sb_hdr_Content_Type_00000000 hdr(Content-Type) -m reg application/json\nacl sb_path_00000000 path_reg /api/users\nhttp-request return status 503 if sb_method_00000000 sb_hdr_Content_Type_00000000 sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000-0000-0000-0000-000000000000 method POST\nacl sb_hdr_Content_Type_00000000-0000-0000-0000-000000000000 hdr(Content-Type) -m reg application/json\nacl sb_path_00000000-0000-0000-0000-000000000000 path_reg /api/users\nhttp-request return status 503 if sb_method_00000000-0000-0000-0000-000000000000 sb_hdr_Content_Type_00000000-0000-0000-0000-000000000000 sb_path_00000000-0000-0000-0000-000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{

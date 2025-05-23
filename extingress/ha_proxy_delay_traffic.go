@@ -149,7 +149,7 @@ func buildDelayConfiguration(state *HAProxyDelayTrafficState) string {
 	configBuilder.WriteString(fmt.Sprintf("tcp-request inspect-delay %dms\n", state.ResponseDelay))
 
 	// Generate a unique ACL ID prefix based on the execution ID
-	aclIdPrefix := strings.Replace(state.ExecutionId.String()[0:8], "-", "_", -1)
+	aclIdPrefix := strings.Replace(state.ExecutionId.String(), "-", "_", -1)
 
 	// Define ACLs for each condition
 	var aclDefinitions []string

@@ -113,7 +113,7 @@ func buildHAProxyBlockConfig(state *HAProxyBlockTrafficState) string {
 	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
 
 	// Generate a unique ACL ID prefix based on the execution ID
-	aclIdPrefix := strings.Replace(state.ExecutionId.String()[0:8], "-", "_", -1)
+	aclIdPrefix := strings.Replace(state.ExecutionId.String(), "-", "_", -1)
 
 	// Define ACLs for each condition
 	var aclDefinitions []string
