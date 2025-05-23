@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.6.5 (next)
+
+- HAProxy Ingress: Discovery, delay and block traffic attack
+
 ## v2.6.4
 
 - added "Set Image" attack that allows to set the image of a container in a deployment

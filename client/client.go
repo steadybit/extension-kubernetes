@@ -688,7 +688,11 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 			newConfig = newAnnotationSuffix
 		} else {
 			// Prepend the new configuration
-			newConfig = newAnnotationSuffix + "\n" + ingress.Annotations[annotationKey]
+			if existingValue := ingress.Annotations[annotationKey]; existingValue == "" {
+				newConfig = newAnnotationSuffix
+			} else {
+				newConfig = newAnnotationSuffix + "\n" + existingValue
+			}
 		}
 		// Update the annotation
 		ingress.Annotations[annotationKey] = newConfig
@@ -773,6 +777,7 @@ func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, in
 }
 
 // removeAnnotationBlock removes the text between startMarker and endMarker (inclusive)
+// and all consecutive newlines that follow the block
 func removeAnnotationBlock(config, startMarker, endMarker string) string {
 	startIndex := strings.Index(config, startMarker)
 	endIndex := strings.Index(config, endMarker)
@@ -781,8 +786,16 @@ func removeAnnotationBlock(config, startMarker, endMarker string) string {
 		return config // Markers not found
 	}
 
-	// Remove the block including the markers and return the result
-	return config[:startIndex] + config[endIndex+len(endMarker):]
+	// Calculate end of marker position
+	endOfMarker := endIndex + len(endMarker)
+
+	// Skip all consecutive newlines after the end marker
+	for endOfMarker < len(config) && config[endOfMarker] == '\n' {
+		endOfMarker++
+	}
+
+	// Remove the block including the markers and all trailing newlines
+	return config[:startIndex] + config[endOfMarker:]
 }
 
 func isOpenShift(rootApiPath string) bool {

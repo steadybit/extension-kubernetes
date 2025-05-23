@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"github.com/steadybit/extension-kubernetes/v2/extingress"
 
 	_ "github.com/KimMachineGun/automemlimit" // By default, it sets `GOMEMLIMIT` to 90% of cgroup's memory limit.
 	"github.com/rs/zerolog"
@@ -104,11 +105,11 @@ func main() {
 		action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetPodCountCheckAction(client.K8S))
 	}
 
-	//if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsListIngressPermitted() && client.K8S.Permissions().IsListIngressClassesPermitted() && client.K8S.Permissions().IsModifyIngressPermitted() && !extconfig.IsUsingRoleBasedAccessControl() {
-	//	discovery_kit_sdk.Register(extingress.NewIngressDiscovery(client.K8S))
-	//	action_kit_sdk.RegisterAction(extingress.NewHAProxyBlockTrafficAction())
-	//	action_kit_sdk.RegisterAction(extingress.NewHAProxyDelayTrafficAction())
-	//}
+	if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsListIngressPermitted() && client.K8S.Permissions().IsListIngressClassesPermitted() && client.K8S.Permissions().IsModifyIngressPermitted() && !extconfig.IsUsingRoleBasedAccessControl() {
+		discovery_kit_sdk.Register(extingress.NewIngressDiscovery(client.K8S))
+		action_kit_sdk.RegisterAction(extingress.NewHAProxyBlockTrafficAction())
+		action_kit_sdk.RegisterAction(extingress.NewHAProxyDelayTrafficAction())
+	}
 
 	if !extconfig.Config.DiscoveryDisabledNode && !extconfig.IsUsingRoleBasedAccessControl() {
 		discovery_kit_sdk.Register(extnode.NewNodeDiscovery(client.K8S))

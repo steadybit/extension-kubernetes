@@ -3,30 +3,37 @@ package extingress
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
-	"strconv"
-	"strings"
 )
 
-// HAProxyBlockTrafficState extends base state with block-specific fields
+// HAProxyBlockTrafficState contains state data for the HAProxy block traffic action
 type HAProxyBlockTrafficState struct {
 	HAProxyBaseState
-	PathStatusCode   map[string]int
-	AnnotationConfig string
+	ResponseStatusCode   int
+	ConditionPathPattern string
+	ConditionHttpMethod  string
+	ConditionHttpHeader  map[string]string
+	AnnotationConfig     string
 }
 
+// NewHAProxyBlockTrafficAction creates a new block traffic action
 func NewHAProxyBlockTrafficAction() action_kit_sdk.Action[HAProxyBlockTrafficState] {
 	return &HAProxyBlockTrafficAction{}
 }
 
+// HAProxyBlockTrafficAction implements the block traffic action
 type HAProxyBlockTrafficAction struct{}
 
+// NewEmptyState creates an empty state object
 func (a *HAProxyBlockTrafficAction) NewEmptyState() HAProxyBlockTrafficState {
 	return HAProxyBlockTrafficState{}
 }
 
+// Describe returns the action description for the HAProxy block traffic action
 func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription {
 	desc := getCommonActionDescription(
 		HAProxyBlockTrafficActionId,
@@ -37,81 +44,132 @@ func (a *HAProxyBlockTrafficAction) Describe() action_kit_api.ActionDescription 
 
 	// Add block-specific parameter
 	desc.Parameters = append(desc.Parameters,
-		action_kit_api.ActionParameter{
-			Name:         "pathStatusCode",
-			Label:        "Path and Statuscode",
-			Description:  extutil.Ptr("Key is the path (regex), value is the status code. Example: /block=503"),
-			Type:         action_kit_api.KeyValue,
-			DefaultValue: extutil.Ptr("[{\"key\":\"/\", \"value\":\"503\"}]"),
-			Required:     extutil.Ptr(true),
-		},
+		[]action_kit_api.ActionParameter{
+			{
+				Name:  "-response-header-",
+				Type:  action_kit_api.ActionParameterTypeHeader,
+				Label: "Response",
+			},
+			{
+				Name:         "responseStatusCode",
+				Label:        "Status Code",
+				Description:  extutil.Ptr("The status code which should get returned."),
+				Type:         action_kit_api.ActionParameterTypeInteger,
+				MinValue:     extutil.Ptr(100),
+				MaxValue:     extutil.Ptr(999),
+				Required:     extutil.Ptr(true),
+				DefaultValue: extutil.Ptr("503"),
+			},
+		}...,
 	)
+	desc.Parameters = append(desc.Parameters, getConditionsParameters()...)
 
 	return desc
 }
 
+// Prepare validates input parameters and prepares the state for execution
 func (a *HAProxyBlockTrafficAction) Prepare(_ context.Context, state *HAProxyBlockTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	ingress, err := prepareHAProxyAction(&state.HAProxyBaseState, request)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to prepare HAProxy block action: %w", err)
 	}
 
-	// Handle block-specific configuration
-	if request.Config["pathStatusCode"] != nil {
-		pathStatusCode, err := extutil.ToKeyValue(request.Config, "pathStatusCode")
+	// Extract parameters from request
+	state.ResponseStatusCode = extutil.ToInt(request.Config["responseStatusCode"])
+	state.ConditionPathPattern = extutil.ToString(request.Config["conditionPathPattern"])
+	state.ConditionHttpMethod = extutil.ToString(request.Config["conditionHttpMethod"])
+
+	if request.Config["conditionHttpHeader"] != nil {
+		state.ConditionHttpHeader, err = extutil.ToKeyValue(request.Config, "conditionHttpHeader")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse HTTP header condition: %w", err)
 		}
-		// check status codes
-		state.PathStatusCode = make(map[string]int)
-		for path, statusCodeStr := range pathStatusCode {
-			var statusCode int
-			if statusCode, err = strconv.Atoi(statusCodeStr); err != nil {
-				return nil, fmt.Errorf("invalid status code: %s", statusCodeStr)
-			}
-			//append to map
-			state.PathStatusCode[path] = statusCode
-		}
+	}
 
-		//Check if annotation for block already exists
+	// Validate conditions
+	if state.ConditionPathPattern == "" && state.ConditionHttpMethod == "" && len(state.ConditionHttpHeader) == 0 {
+		return nil, fmt.Errorf("at least one condition (path, method, or header) is required")
+	}
+
+	// Check for conflicts with existing rules
+	if state.ConditionPathPattern != "" {
 		existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
-		for path := range state.PathStatusCode {
-			// Check if a rule with the same path already exists
-			for _, line := range existingLines {
-				if strings.HasPrefix(line, "http-request return status") && strings.Contains(line, fmt.Sprintf("if { path_reg %s }", path)) {
-					return nil, fmt.Errorf("a rule for path %s already exists", path)
-				}
+		for _, line := range existingLines {
+			if strings.Contains(line, fmt.Sprintf("path_reg %s", state.ConditionPathPattern)) {
+				return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
 			}
 		}
 	}
 
+	// Build HAProxy configuration
+	state.AnnotationConfig = buildHAProxyBlockConfig(state)
+
+	return nil, nil
+}
+
+// buildHAProxyBlockConfig creates the HAProxy configuration for blocking traffic
+func buildHAProxyBlockConfig(state *HAProxyBlockTrafficState) string {
 	var configBuilder strings.Builder
 	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
-	keys := make([]string, 0, len(state.PathStatusCode))
-	for k := range state.PathStatusCode {
-		keys = append(keys, k)
-	}
-	for _, key := range keys {
-		statusCode := state.PathStatusCode[key]
-		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if { path_reg %s }\n", statusCode, key))
-	}
-	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
-	state.AnnotationConfig = configBuilder.String()
 
-	return nil, nil
+	// Generate a unique ACL ID prefix based on the execution ID
+	aclIdPrefix := strings.Replace(state.ExecutionId.String()[0:8], "-", "_", -1)
+
+	// Define ACLs for each condition
+	var aclDefinitions []string
+	var aclRefs []string
+
+	// Add method condition if specified
+	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
+		aclName := fmt.Sprintf("sb_method_%s", aclIdPrefix)
+		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s method %s", aclName, state.ConditionHttpMethod))
+		aclRefs = append(aclRefs, aclName)
+	}
+
+	// Add header conditions if specified
+	if state.ConditionHttpHeader != nil {
+		for headerName, headerValue := range state.ConditionHttpHeader {
+			aclName := fmt.Sprintf("sb_hdr_%s_%s", strings.Replace(headerName, "-", "_", -1), aclIdPrefix)
+			aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s hdr(%s) -m reg %s", aclName, headerName, headerValue))
+			aclRefs = append(aclRefs, aclName)
+		}
+	}
+
+	// Add path pattern condition if specified
+	if state.ConditionPathPattern != "" {
+		aclName := fmt.Sprintf("sb_path_%s", aclIdPrefix)
+		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s path_reg %s", aclName, state.ConditionPathPattern))
+		aclRefs = append(aclRefs, aclName)
+	}
+
+	// Add all ACL definitions to config
+	for _, aclDef := range aclDefinitions {
+		configBuilder.WriteString(aclDef + "\n")
+	}
+
+	// Create the rule that returns the specified status code when conditions match
+	if len(aclRefs) > 0 {
+		combinedCondition := strings.Join(aclRefs, " ")
+		configBuilder.WriteString(fmt.Sprintf("http-request return status %d if %s\n", state.ResponseStatusCode, combinedCondition))
+	}
+
+	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
+	return configBuilder.String()
 }
 
+// Start applies the HAProxy configuration to begin blocking traffic
 func (a *HAProxyBlockTrafficAction) Start(ctx context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StartResult, error) {
 	if err := startHAProxyAction(&state.HAProxyBaseState, state.AnnotationConfig); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to start HAProxy block traffic action: %w", err)
 	}
 
 	return nil, nil
 }
 
-func (a *HAProxyBlockTrafficAction) Stop(_ context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StopResult, error) {
+// Stop removes the HAProxy configuration to stop blocking traffic
+func (a *HAProxyBlockTrafficAction) Stop(ctx context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StopResult, error) {
 	if err := stopHAProxyAction(&state.HAProxyBaseState); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to stop HAProxy block traffic action: %w", err)
 	}
 
 	return nil, nil
