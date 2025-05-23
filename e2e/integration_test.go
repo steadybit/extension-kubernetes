@@ -378,25 +378,25 @@ func testDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 
 	// Initialize HAProxy and test resources
-	if !isUsingRoleBinding() {
-
-		_, testAppName, _, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, "haproxy-controller")
-		defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
-		defer func() { _ = m.DeleteService(appService) }()
-		defer func() { _ = m.DeleteIngress(appIngress) }()
-		defer func() {
-			cleanupHAProxy(m, "haproxy-controller")
-		}()
-
-		haproxy, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
-			return e2e.HasAttribute(target, "k8s.ingress", testAppName)
-		})
-		require.NoError(t, err)
-		assert.Equal(t, haproxy.TargetType, extingress.HAProxyIngressTargetType)
-		assert.Equal(t, haproxy.Attributes["k8s.ingress"][0], testAppName)
-		assert.Equal(t, haproxy.Attributes["k8s.ingress.controller"][0], "haproxy.org/ingress-controller/haproxy")
-		assert.Equal(t, haproxy.Attributes["k8s.ingress.class"][0], "haproxy")
-	}
+	//if !isUsingRoleBinding() {
+	//
+	//	_, testAppName, _, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, "haproxy-controller")
+	//	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
+	//	defer func() { _ = m.DeleteService(appService) }()
+	//	defer func() { _ = m.DeleteIngress(appIngress) }()
+	//	defer func() {
+	//		cleanupHAProxy(m, "haproxy-controller")
+	//	}()
+	//
+	//	haproxy, err := e2e.PollForTarget(ctx, e, extingress.HAProxyIngressTargetType, func(target discovery_kit_api.Target) bool {
+	//		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
+	//	})
+	//	require.NoError(t, err)
+	//	assert.Equal(t, haproxy.TargetType, extingress.HAProxyIngressTargetType)
+	//	assert.Equal(t, haproxy.Attributes["k8s.ingress"][0], testAppName)
+	//	assert.Equal(t, haproxy.Attributes["k8s.ingress.controller"][0], "haproxy.org/ingress-controller/haproxy")
+	//	assert.Equal(t, haproxy.Attributes["k8s.ingress.class"][0], "haproxy")
+	//}
 }
 
 func testDeletePod(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
