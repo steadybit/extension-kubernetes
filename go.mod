@@ -11,25 +11,25 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.34.0
 	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.10.0
-	github.com/steadybit/action-kit/go/action_kit_sdk v1.1.15
-	github.com/steadybit/action-kit/go/action_kit_test v1.3.3-0.20250509162614-90c2f02daee6
-	github.com/steadybit/advice-kit/go/advice_kit_api v1.1.1
-	github.com/steadybit/advice-kit/go/advice_kit_test v0.0.0-20250317221443-779baa909948
+	github.com/steadybit/action-kit/go/action_kit_sdk v1.2.0
+	github.com/steadybit/action-kit/go/action_kit_test v1.4.0
+	github.com/steadybit/advice-kit/go/advice_kit_api v1.2.0
+	github.com/steadybit/advice-kit/go/advice_kit_test v1.1.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.7.0
-	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.2.0
-	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.3
+	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.3.0
+	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.3.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.0
 	github.com/steadybit/extension-kit v1.10.0
 	github.com/stretchr/testify v1.10.0
-	github.com/zegl/kube-score v1.19.0
+	github.com/zegl/kube-score v1.20.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
+	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6
 	golang.org/x/text v0.25.0
 	k8s.io/api v0.33.1
 	k8s.io/apimachinery v0.33.1
-	k8s.io/client-go v0.33.0
+	k8s.io/client-go v0.33.1
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/utils v0.0.0-20241210054802-24370beab758
+	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979
 )
 
 require (
@@ -38,7 +38,7 @@ require (
 	github.com/elastic/go-sysinfo v1.15.3 // indirect
 	github.com/elastic/go-windows v1.0.2 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
-	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
 	github.com/getkin/kin-openapi v0.132.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
@@ -74,12 +74,12 @@ require (
 	github.com/yalp/jsonpath v0.0.0-20180802001716-5cc68e5049a0 // indirect
 	github.com/zmwangx/debounce v1.0.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/oauth2 v0.28.0 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -87,6 +87,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )

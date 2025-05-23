@@ -1,9 +1,10 @@
 # Changelog
 
-## v2.6.4 (next release)
+## v2.6.4
 
 - added "Set Image" attack that allows to set the image of a container in a deployment
 - added the namespace to the messages of "Pod Count Check"
+- Updated dependencies
 
 ## v2.6.3
 

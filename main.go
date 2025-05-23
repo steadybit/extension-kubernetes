@@ -40,7 +40,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extdaemonset"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
 	"github.com/steadybit/extension-kubernetes/v2/extevents"
-	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
 	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
@@ -105,11 +104,11 @@ func main() {
 		action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetPodCountCheckAction(client.K8S))
 	}
 
-	if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsListIngressPermitted() && client.K8S.Permissions().IsListIngressClassesPermitted() && client.K8S.Permissions().IsModifyIngressPermitted() && !extconfig.IsUsingRoleBasedAccessControl() {
-		discovery_kit_sdk.Register(extingress.NewIngressDiscovery(client.K8S))
-		action_kit_sdk.RegisterAction(extingress.NewHAProxyBlockTrafficAction())
-		action_kit_sdk.RegisterAction(extingress.NewHAProxyDelayTrafficAction())
-	}
+	//if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsListIngressPermitted() && client.K8S.Permissions().IsListIngressClassesPermitted() && client.K8S.Permissions().IsModifyIngressPermitted() && !extconfig.IsUsingRoleBasedAccessControl() {
+	//	discovery_kit_sdk.Register(extingress.NewIngressDiscovery(client.K8S))
+	//	action_kit_sdk.RegisterAction(extingress.NewHAProxyBlockTrafficAction())
+	//	action_kit_sdk.RegisterAction(extingress.NewHAProxyDelayTrafficAction())
+	//}
 
 	if !extconfig.Config.DiscoveryDisabledNode && !extconfig.IsUsingRoleBasedAccessControl() {
 		discovery_kit_sdk.Register(extnode.NewNodeDiscovery(client.K8S))
