@@ -14,8 +14,8 @@ import (
 
 // Action IDs for HAProxy actions
 const (
-	HAProxyIngressTargetType = "com.steadybit.extension_kubernetes.kubernetes-haproxy-ingress"
-	AnnotationKey            = "haproxy-ingress.github.io/backend-config-snippet"
+	HAProxyIngressTargetType    = "com.steadybit.extension_kubernetes.kubernetes-haproxy-ingress"
+	AnnotationKey               = "haproxy-ingress.github.io/backend-config-snippet"
 	HAProxyBlockTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-block-traffic"
 	HAProxyDelayTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-delay-traffic"
 )
@@ -163,20 +163,12 @@ func getConditionsParameters() []action_kit_api.ActionParameter {
 		{
 			Name:        "conditionHttpHeader",
 			Label:       "HTTP Header",
-			Description: extutil.Ptr("The name of the HTTP header field with a maximum size of 40 characters. And a value to compare against the value of the HTTP header. The maximum size of each string is 128 characters. The comparison strings are case insensitive. The following wildcard characters are supported: * (matches 0 or more characters) and ? (matches exactly 1 character). Currently only a single header name with a single value is allowed."),
 			Type:        action_kit_api.ActionParameterTypeKeyValue,
+			Description: extutil.Ptr("The name of the HTTP header field . And a value to compare against the value of the HTTP header as a regular expression."),
 			Required:    extutil.Ptr(false),
 		},
-		//{
-		//	Name:        "conditionDownstreamServiceName",
-		//	Label:       "Downstream Service Name",
-		//	Description: extutil.Ptr("The name of the downstream service to compare against the request URL. E.g. /card is the path to the card-service, but card-service in the name of the service."),
-		//	Type:        action_kit_api.ActionParameterTypeRegex,
-		//	Required:    extutil.Ptr(false),
-		//},
 	}
 }
-
 
 func getStartMarker(executionId uuid.UUID) string {
 	return fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
