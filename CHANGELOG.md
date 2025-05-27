@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.6.5 (next)
+## v2.6.5
 
 - HAProxy Ingress: Discovery, delay and block traffic attack
 
