@@ -38,7 +38,7 @@ RUN make licenses-report
 ##
 ## Runtime
 ##
-FROM alpine:3.21
+FROM alpine:3.22
 
 ARG VERSION=unknown
 ARG REVISION=unknown
