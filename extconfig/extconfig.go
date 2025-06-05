@@ -54,6 +54,6 @@ func ValidateConfiguration() {
 	}
 }
 
-func IsUsingRoleBasedAccessControl() bool { //instead of ClusterRole
+func HasNamespaceFilter() bool {
 	return Config.Namespace != ""
 }

@@ -116,7 +116,7 @@ func (c *Client) Permissions() *PermissionCheckResult {
 }
 
 func (c *Client) Pods() []*corev1.Pod {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		log.Info().Msgf("Fetching pods for namespace %s", extconfig.Config.Namespace)
 		pods, err := c.pod.lister.Pods(extconfig.Config.Namespace).List(labels.Everything())
 		if err != nil {
@@ -135,7 +135,7 @@ func (c *Client) Pods() []*corev1.Pod {
 }
 
 func (c *Client) Namespaces() []*corev1.Namespace {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		var namespace = &corev1.Namespace{}
 		namespace.Name = extconfig.Config.Namespace
 		return []*corev1.Namespace{namespace}
@@ -180,7 +180,7 @@ func (c *Client) onlyRunningPods(list []*corev1.Pod) []*corev1.Pod {
 }
 
 func (c *Client) Deployments() []*appsv1.Deployment {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		log.Info().Msgf("Fetching deployments for namespace %s", extconfig.Config.Namespace)
 		deployments, err := c.deployment.lister.Deployments(extconfig.Config.Namespace).List(labels.Everything())
 		if err != nil {
@@ -247,7 +247,7 @@ func (c *Client) ServicesMatchingToPodLabels(namespace string, labelSelector map
 }
 
 func (c *Client) DaemonSets() []*appsv1.DaemonSet {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		log.Info().Msgf("Fetching daemonsets for namespace %s", extconfig.Config.Namespace)
 		daemonSets, err := c.daemonSet.lister.DaemonSets(extconfig.Config.Namespace).List(labels.Everything())
 		if err != nil {
@@ -278,7 +278,7 @@ func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *ap
 }
 
 func (c *Client) StatefulSets() []*appsv1.StatefulSet {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		log.Info().Msgf("Fetching statefulsets for namespace %s", extconfig.Config.Namespace)
 		statefulSets, err := c.statefulSet.lister.StatefulSets(extconfig.Config.Namespace).List(labels.Everything())
 		if err != nil {
@@ -316,7 +316,7 @@ func (c *Client) NodesReadyCount() int {
 }
 
 func (c *Client) Nodes() []*corev1.Node {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		return []*corev1.Node{}
 	}
 	nodes, err := c.node.lister.List(labels.Everything())
@@ -353,7 +353,7 @@ func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace strin
 }
 
 func (c *Client) Ingresses() []*networkingv1.Ingress {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		return []*networkingv1.Ingress{}
 	}
 	ingresses, err := c.ingress.lister.List(labels.Everything())
@@ -365,7 +365,7 @@ func (c *Client) Ingresses() []*networkingv1.Ingress {
 }
 
 func (c *Client) IngressClasses() []*networkingv1.IngressClass {
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		return []*networkingv1.IngressClass{}
 	}
 	ingressClasses, err := c.ingressClass.lister.List(labels.Everything())
@@ -443,7 +443,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	var factory informers.SharedInformerFactory
-	if extconfig.IsUsingRoleBasedAccessControl() {
+	if extconfig.HasNamespaceFilter() {
 		factory = informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(extconfig.Config.Namespace))
 	} else {
 		factory = informers.NewSharedInformerFactory(clientset, 0)
@@ -495,7 +495,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Fatal().Msg("failed to add pod event handler")
 	}
 
-	if permissions.CanReadNamespaces() && !extconfig.IsUsingRoleBasedAccessControl() {
+	if permissions.CanReadNamespaces() && !extconfig.HasNamespaceFilter() {
 		namespaces := factory.Core().V1().Namespaces()
 		client.namespace.informer = namespaces.Informer()
 		client.namespace.lister = namespaces.Lister()
@@ -541,7 +541,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Fatal().Msg("failed to add statefulSet event handler")
 	}
 
-	if !extconfig.IsUsingRoleBasedAccessControl() {
+	if !extconfig.HasNamespaceFilter() {
 		nodes := factory.Core().V1().Nodes()
 		client.node.informer = nodes.Informer()
 		client.node.lister = nodes.Lister()
@@ -568,7 +568,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	// Add ingress informer
-	if !extconfig.IsUsingRoleBasedAccessControl() && permissions.IsListIngressPermitted() {
+	if !extconfig.HasNamespaceFilter() && permissions.IsListIngressPermitted() {
 		ingresses := factory.Networking().V1().Ingresses()
 		client.ingress.informer = ingresses.Informer()
 		client.ingress.lister = ingresses.Lister()
@@ -583,7 +583,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	// Add ingressClasses informer
-	if !extconfig.IsUsingRoleBasedAccessControl() && permissions.IsListIngressClassesPermitted() {
+	if !extconfig.HasNamespaceFilter() && permissions.IsListIngressClassesPermitted() {
 		ingressClasses := factory.Networking().V1().IngressClasses()
 		client.ingressClass.informer = ingressClasses.Informer()
 		client.ingressClass.lister = ingressClasses.Lister()

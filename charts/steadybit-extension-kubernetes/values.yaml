@@ -4,6 +4,8 @@
 kubernetes:
   # kubernetes.clusterName -- The name of the kubernetes cluster
   clusterName: null
+  # kubernetes.namespaceFilter -- The namespace filter for the extension. If set, the extension will only discover resources in this namespace.
+  namespaceFilter: null
 
 image:
   # image.name -- The container image to use for the steadybit Kubernetes extension.

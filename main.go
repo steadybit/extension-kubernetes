@@ -105,13 +105,13 @@ func main() {
 		action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetPodCountCheckAction(client.K8S))
 	}
 
-	if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsListIngressPermitted() && client.K8S.Permissions().IsListIngressClassesPermitted() && client.K8S.Permissions().IsModifyIngressPermitted() && !extconfig.IsUsingRoleBasedAccessControl() {
+	if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsListIngressPermitted() && client.K8S.Permissions().IsListIngressClassesPermitted() && client.K8S.Permissions().IsModifyIngressPermitted() && !extconfig.HasNamespaceFilter() {
 		discovery_kit_sdk.Register(extingress.NewIngressDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extingress.NewHAProxyBlockTrafficAction())
 		action_kit_sdk.RegisterAction(extingress.NewHAProxyDelayTrafficAction())
 	}
 
-	if !extconfig.Config.DiscoveryDisabledNode && !extconfig.IsUsingRoleBasedAccessControl() {
+	if !extconfig.Config.DiscoveryDisabledNode && !extconfig.HasNamespaceFilter() {
 		discovery_kit_sdk.Register(extnode.NewNodeDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extnode.NewNodeCountCheckAction())
 
