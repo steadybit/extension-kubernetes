@@ -118,6 +118,7 @@ func TestWithMinikubeViaRole(t *testing.T) {
 				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
 				"--set", "logging.level=debug",
 				"--set", "role.create=true",
+				"--set", "kubernetes.namespaceFilter=default",
 				"--set", "roleBinding.create=true",
 				"--set", "clusterRole.create=false",
 				"--set", "clusterRoleBinding.create=false",
