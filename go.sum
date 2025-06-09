@@ -136,8 +136,8 @@ github.com/steadybit/action-kit/go/action_kit_api/v2 v2.10.0 h1:XIEeNvyXacUn52nO
 github.com/steadybit/action-kit/go/action_kit_api/v2 v2.10.0/go.mod h1:kc36KasHIY867fB7rBJtxg2orPaCU7xbezsAA05qcA8=
 github.com/steadybit/action-kit/go/action_kit_sdk v1.2.0 h1:Jr/RVP4rrE5bDYPzPMxGI038qEUjxFY51BCGvvrk3uk=
 github.com/steadybit/action-kit/go/action_kit_sdk v1.2.0/go.mod h1:vFcl8fQMFbD+xw8CqtvixmITLToYDT4RRMqRwlVC3Zc=
-github.com/steadybit/action-kit/go/action_kit_test v1.4.1 h1:c7bem/RrQyJRTADc7lfdbT84sAnbiskZFDqtV/AAFQM=
-github.com/steadybit/action-kit/go/action_kit_test v1.4.1/go.mod h1:7vqpIZI0kasNi50I29fe7QybNZ3AaJpbap24j6w8Ujw=
+github.com/steadybit/action-kit/go/action_kit_test v1.4.2 h1:jCjnVMvJO1hzYKZgn4ivwzJNSWId2rRNhKvo9uGCKmk=
+github.com/steadybit/action-kit/go/action_kit_test v1.4.2/go.mod h1:7vqpIZI0kasNi50I29fe7QybNZ3AaJpbap24j6w8Ujw=
 github.com/steadybit/advice-kit/go/advice_kit_api v1.2.0 h1:0M4tthKcuVyTn1kzyD5/Q3/XlRNGBnN8MXsV71XNeZs=
 github.com/steadybit/advice-kit/go/advice_kit_api v1.2.0/go.mod h1:P9e6rqDUEgLiW+1ouboV2uN1Je7bubP3SWLTd6TRKz4=
 github.com/steadybit/advice-kit/go/advice_kit_test v1.1.0 h1:/hky+DoeB7k+fBzkEuf1NPO8GVAhv7fAJevrAVxpb0Y=
