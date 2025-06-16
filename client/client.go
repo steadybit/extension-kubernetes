@@ -397,6 +397,42 @@ func (c *Client) GetHAProxyIngressClasses() ([]string, bool) {
 	return haproxyClassNames, hasDefaultClass
 }
 
+func (c *Client) GetNginxIngressClasses() ([]string, bool) {
+	ingressClasses := c.IngressClasses()
+	nginxClassNames := make([]string, 0)
+	hasDefaultClass := false
+
+	// Controller names for both open source and enterprise NGINX ingress controllers
+	nginxControllers := []string{
+		"k8s.io/ingress-nginx",         // Open source NGINX Ingress Controller
+		"nginx.org/ingress-controller", // NGINX Enterprise Ingress Controller
+	}
+
+	for _, ic := range ingressClasses {
+		// Check if this IngressClass uses an NGINX controller
+		for _, controller := range nginxControllers {
+			if ic.Spec.Controller == controller {
+				nginxClassNames = append(nginxClassNames, ic.Name)
+
+				// Check if this is a default class
+				if ic.Annotations != nil {
+					if value, ok := ic.Annotations["ingressclass.kubernetes.io/is-default-class"]; ok && value == "true" {
+						hasDefaultClass = true
+					}
+				}
+				break // No need to check other controllers for this class
+			}
+		}
+	}
+
+	// Also include the classic "nginx" class name for backward compatibility
+	if !slices.Contains(nginxClassNames, "nginx") {
+		nginxClassNames = append(nginxClassNames, "nginx")
+	}
+
+	return nginxClassNames, hasDefaultClass
+}
+
 func (c *Client) GetIngressControllerByClassName(className string) string {
 	ingressClasses := c.IngressClasses()
 	for _, ic := range ingressClasses {
