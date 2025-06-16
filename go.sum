@@ -1,5 +1,5 @@
-github.com/KimMachineGun/automemlimit v0.7.2 h1:DyfHI7zLWmZPn2Wqdy2AgTiUvrGPmnYWgwhHXtAegX4=
-github.com/KimMachineGun/automemlimit v0.7.2/go.mod h1:QZxpHaGOQoYvFhv/r4u3U0JTC2ZcOwbSr11UZF46UBM=
+github.com/KimMachineGun/automemlimit v0.7.3 h1:oPgMp0bsWez+4fvgSa11Rd9nUDrd8RLtDjBoT3ro+/A=
+github.com/KimMachineGun/automemlimit v0.7.3/go.mod h1:QZxpHaGOQoYvFhv/r4u3U0JTC2ZcOwbSr11UZF46UBM=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0 h1:axGnT1gRIfimI7gJifB699GoE/oq+F2MU7Dml6nw9rQ=
 github.com/apapsch/go-jsonmerge/v2 v2.0.0/go.mod h1:lvDnEdqiQrp0O42VQGgmlKpxL1AP2+08jFMw88y4klk=
