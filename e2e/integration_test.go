@@ -5,6 +5,7 @@ package e2e
 
 import (
 	"context"
+	"github.com/steadybit/extension-kit/extutil"
 
 	"fmt"
 	"github.com/go-resty/resty/v2"
@@ -90,6 +91,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "haproxyBlockTraffic",
 		Test: testHAProxyBlockTraffic,
 	},
+	{
+		Name: "nginxIngressDiscovery",
+		Test: testNginxIngressDiscovery,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -101,7 +106,7 @@ func TestWithMinikube(t *testing.T) {
 				"--set", "kubernetes.clusterName=e2e-cluster",
 				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
 				"--set", "discovery.refreshThrottle=1",
-				"--set", "logging.level=debug",
+				"--set", "logging.level=INFO",
 			}
 		},
 	}
@@ -1612,4 +1617,225 @@ func int32Ptr(i int32) *int32 {
 
 func pathTypePtr(pathType networkingv1.PathType) *networkingv1.PathType {
 	return &pathType
+}
+
+func testNginxIngressDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testNginxIngressDiscovery because it is using role binding, and is therefore not supported")
+		return
+	}
+	log.Info().Msg("Starting testNginxIngressDiscovery")
+	const nginxControllerNamespace = "nginx-controller"
+	ctx, cancel := context.WithTimeout(context.Background(), 1800*time.Second)
+	defer cancel()
+
+	// Initialize NGINX Ingress Controller and test resources
+	nginxService, testAppName, _, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxControllerNamespace)
+	defer func() { _ = m.DeleteDeployment(appDeployment) }()
+	defer func() { _ = m.DeleteService(appService) }()
+	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() {
+		cleanupNginxIngress(m, nginxControllerNamespace)
+	}()
+
+	// Test that we can find the NGINX Ingress target
+	nginx, err := e2e.PollForTarget(ctx, e, extingress.NginxIngressTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, nginx.TargetType, extingress.NginxIngressTargetType)
+	assert.Equal(t, nginx.Attributes["k8s.ingress"][0], testAppName)
+	assert.Contains(t, nginx.Attributes["k8s.ingress.controller"][0], "ingress-nginx")
+	assert.Equal(t, nginx.Attributes["k8s.ingress.class"][0], "nginx")
+
+	// Verify the application is accessible through NGINX Ingress
+	err = checkStatusCode(t, m, nginxService, "/", 200)
+	require.NoError(t, err)
+	log.Info().Msg("Application is accessible through NGINX Ingress")
+}
+
+func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, nginxControllerNamespace string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
+	// Step 1: Deploy NGINX Ingress Controller
+	log.Info().Msg("Deploying NGINX Ingress Controller")
+	out, err := exec.Command("helm", "repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx").CombinedOutput()
+	require.NoError(t, err, "Failed to add NGINX Helm repo: %s", out)
+	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
+	require.NoError(t, err, "Failed to update Helm repos: %s", out)
+	out, err = exec.Command("helm", "upgrade", "--install", "nginx-ingress", "ingress-nginx/ingress-nginx",
+		"--create-namespace",
+		"--namespace", nginxControllerNamespace,
+		"--kube-context", m.Profile,
+		"--set", "controller.service.type=NodePort",
+		"--set", "controller.ingressClassResource.name=nginx",
+		"--set", "controller.ingressClassResource.default=true").CombinedOutput()
+	require.NoError(t, err, "Failed to deploy NGINX Ingress Controller: %s", out)
+
+	// Wait for NGINX ingress controller to be ready
+	log.Info().Msg("Waiting for NGINX Ingress Controller to be ready")
+	err = waitForNginxIngressController(m, ctx, nginxControllerNamespace)
+	require.NoError(t, err)
+
+	// Step 2: Create a test deployment with service
+	log.Info().Msg("Creating test deployment")
+	testAppName := "nginx-ingress-test"
+
+	// Create deployment
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: int32Ptr(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": testAppName,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": testAppName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "nginx",
+							Image: "nginx:stable-alpine",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	appDeployment, _, err := m.CreateDeployment(deployment)
+	require.NoError(t, err)
+
+	service := acorev1.Service(testAppName, "default").
+		WithLabels(map[string]string{
+			"app": testAppName,
+		}).
+		WithSpec(acorev1.ServiceSpec().
+			WithSelector(map[string]string{
+				"app": testAppName,
+			}).
+			WithPorts(acorev1.ServicePort().
+				WithPort(80).
+				WithTargetPort(intstr.FromInt32(80)),
+			),
+		)
+
+	appService, err := m.CreateService(service)
+	require.NoError(t, err)
+
+	// Step 3: Create ingress resource
+	log.Info().Msg("Creating ingress resource")
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "nginx",
+			},
+		},
+		Spec: networkingv1.IngressSpec{
+			IngressClassName: extutil.Ptr("nginx"),
+			Rules: []networkingv1.IngressRule{
+				{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
+								{
+									Path:     "/",
+									PathType: pathTypePtr(networkingv1.PathTypePrefix),
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: testAppName,
+											Port: networkingv1.ServiceBackendPort{
+												Number: 80,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	appIngress, err := m.CreateIngress(ingress)
+	require.NoError(t, err)
+
+	// Get NGINX Ingress target
+	log.Info().Msg("Finding NGINX Ingress target")
+	var ingressTarget *action_kit_api.Target
+	discoveryTarget, err := e2e.PollForTarget(ctx, e, extingress.NginxIngressTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
+	})
+	require.NoError(t, err, "Failed to find NGINX ingress target")
+	ingressTarget = &action_kit_api.Target{
+		Attributes: discoveryTarget.Attributes,
+	}
+
+	// Find NGINX Service
+	log.Info().Msg("Finding NGINX Service")
+	nginxServiceName, err := findServiceNameInNamespace(m, nginxControllerNamespace)
+	require.NoError(t, err, "Failed to find NGINX service")
+
+	nginxService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      nginxServiceName,
+			Namespace: nginxControllerNamespace,
+		},
+	}
+
+	return nginxService, testAppName, ingressTarget, appDeployment, appService, appIngress
+}
+
+func waitForNginxIngressController(m *e2e.Minikube, ctx context.Context, namespace string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+			pods, err := m.GetClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to check NGINX controller status in namespace %s", namespace)
+				continue
+			}
+
+			allReady := false
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, "controller") {
+					for _, containerStatus := range pod.Status.ContainerStatuses {
+						if containerStatus.Ready && pod.Status.Phase == corev1.PodRunning {
+							allReady = true
+							break
+						}
+					}
+					if allReady {
+						break
+					}
+				}
+			}
+
+			if allReady {
+				log.Info().Msgf("NGINX controller is ready in namespace %s", namespace)
+				return nil
+			}
+			log.Info().Msgf("Waiting for NGINX controller in namespace %s to be ready...", namespace)
+		}
+	}
+}
+
+func cleanupNginxIngress(m *e2e.Minikube, nginxControllerNamespace string) {
+	_ = exec.Command("helm", "uninstall", "nginx-ingress", "--namespace", nginxControllerNamespace, "--kube-context", m.Profile).Run()
+	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxControllerNamespace, "--ignore-not-found").Run()
 }
