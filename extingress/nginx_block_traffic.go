@@ -103,7 +103,7 @@ func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTr
 			}
 		}
 	}
-	
+
 	if request.Config["conditionHttpHeader"] != nil {
 		state.ConditionHttpHeader, err = extutil.ToKeyValue(request.Config, "conditionHttpHeader")
 		if err != nil {

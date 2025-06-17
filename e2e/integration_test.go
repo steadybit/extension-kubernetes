@@ -39,62 +39,62 @@ import (
 )
 
 var testCases = []e2e.WithMinikubeTestCase{
-	//{
-	//	Name: "validate discovery",
-	//	Test: validateDiscovery,
-	//},
-	//{
-	//	Name: "validate advice",
-	//	Test: validateAdviceDiscovery,
-	//},
-	//{
-	//	Name: "discovery",
-	//	Test: testDiscovery,
-	//},
-	//{
-	//	Name: "checkRolloutTwice",
-	//	Test: testCheckRolloutTwice,
-	//},
-	//{
-	//	Name: "checkRolloutReady",
-	//	Test: testCheckRolloutReady,
-	//},
-	//{
-	//	Name: "deletePod",
-	//	Test: testDeletePod,
-	//},
-	//{
-	//	Name: "drainNode",
-	//	Test: testDrainNode,
-	//},
-	//{
-	//	Name: "taintNode",
-	//	Test: testTaintNode,
-	//},
-	//{
-	//	Name: "scaleDeployment",
-	//	Test: testScaleDeployment,
-	//},
-	//{
-	//	Name: "causeCrashLoop",
-	//	Test: testCauseCrashLoop,
-	//},
-	//{
-	//	Name: "setImage",
-	//	Test: testSetImage,
-	//},
-	//{
-	//	Name: "haproxyDelayTraffic",
-	//	Test: testHAProxyDelayTraffic,
-	//},
-	//{
-	//	Name: "haproxyBlockTraffic",
-	//	Test: testHAProxyBlockTraffic,
-	//},
-	//{
-	//	Name: "nginxIngressDiscovery",
-	//	Test: testNginxIngressDiscovery,
-	//},
+	{
+		Name: "validate discovery",
+		Test: validateDiscovery,
+	},
+	{
+		Name: "validate advice",
+		Test: validateAdviceDiscovery,
+	},
+	{
+		Name: "discovery",
+		Test: testDiscovery,
+	},
+	{
+		Name: "checkRolloutTwice",
+		Test: testCheckRolloutTwice,
+	},
+	{
+		Name: "checkRolloutReady",
+		Test: testCheckRolloutReady,
+	},
+	{
+		Name: "deletePod",
+		Test: testDeletePod,
+	},
+	{
+		Name: "drainNode",
+		Test: testDrainNode,
+	},
+	{
+		Name: "taintNode",
+		Test: testTaintNode,
+	},
+	{
+		Name: "scaleDeployment",
+		Test: testScaleDeployment,
+	},
+	{
+		Name: "causeCrashLoop",
+		Test: testCauseCrashLoop,
+	},
+	{
+		Name: "setImage",
+		Test: testSetImage,
+	},
+	{
+		Name: "haproxyDelayTraffic",
+		Test: testHAProxyDelayTraffic,
+	},
+	{
+		Name: "haproxyBlockTraffic",
+		Test: testHAProxyBlockTraffic,
+	},
+	{
+		Name: "nginxIngressDiscovery",
+		Test: testNginxIngressDiscovery,
+	},
 	{
 		Name: "nginxBlockTraffic",
 		Test: testNginxBlockTraffic,
