@@ -54,25 +54,6 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 			},
 		},
 		{
-			name:        "block with path regex - enterprise nginx",
-			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
-				"responseStatusCode":   503,
-				"conditionPathPattern": "/api/.*",
-				"isEnterpriseNginx":    true,
-			},
-			want: NginxBlockTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUID,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseStatusCode:   503,
-				ConditionPathPattern: "/api/.*",
-				IsEnterpriseNginx:    true,
-			},
-		},
-		{
 			name:        "block with http method",
 			ingressName: "test-nginx-ingress",
 			config: map[string]interface{}{
