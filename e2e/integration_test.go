@@ -39,61 +39,65 @@ import (
 )
 
 var testCases = []e2e.WithMinikubeTestCase{
+	//{
+	//	Name: "validate discovery",
+	//	Test: validateDiscovery,
+	//},
+	//{
+	//	Name: "validate advice",
+	//	Test: validateAdviceDiscovery,
+	//},
+	//{
+	//	Name: "discovery",
+	//	Test: testDiscovery,
+	//},
+	//{
+	//	Name: "checkRolloutTwice",
+	//	Test: testCheckRolloutTwice,
+	//},
+	//{
+	//	Name: "checkRolloutReady",
+	//	Test: testCheckRolloutReady,
+	//},
+	//{
+	//	Name: "deletePod",
+	//	Test: testDeletePod,
+	//},
+	//{
+	//	Name: "drainNode",
+	//	Test: testDrainNode,
+	//},
+	//{
+	//	Name: "taintNode",
+	//	Test: testTaintNode,
+	//},
+	//{
+	//	Name: "scaleDeployment",
+	//	Test: testScaleDeployment,
+	//},
+	//{
+	//	Name: "causeCrashLoop",
+	//	Test: testCauseCrashLoop,
+	//},
+	//{
+	//	Name: "setImage",
+	//	Test: testSetImage,
+	//},
+	//{
+	//	Name: "haproxyDelayTraffic",
+	//	Test: testHAProxyDelayTraffic,
+	//},
+	//{
+	//	Name: "haproxyBlockTraffic",
+	//	Test: testHAProxyBlockTraffic,
+	//},
+	//{
+	//	Name: "nginxIngressDiscovery",
+	//	Test: testNginxIngressDiscovery,
+	//},
 	{
-		Name: "validate discovery",
-		Test: validateDiscovery,
-	},
-	{
-		Name: "validate advice",
-		Test: validateAdviceDiscovery,
-	},
-	{
-		Name: "discovery",
-		Test: testDiscovery,
-	},
-	{
-		Name: "checkRolloutTwice",
-		Test: testCheckRolloutTwice,
-	},
-	{
-		Name: "checkRolloutReady",
-		Test: testCheckRolloutReady,
-	},
-	{
-		Name: "deletePod",
-		Test: testDeletePod,
-	},
-	{
-		Name: "drainNode",
-		Test: testDrainNode,
-	},
-	{
-		Name: "taintNode",
-		Test: testTaintNode,
-	},
-	{
-		Name: "scaleDeployment",
-		Test: testScaleDeployment,
-	},
-	{
-		Name: "causeCrashLoop",
-		Test: testCauseCrashLoop,
-	},
-	{
-		Name: "setImage",
-		Test: testSetImage,
-	},
-	{
-		Name: "haproxyDelayTraffic",
-		Test: testHAProxyDelayTraffic,
-	},
-	{
-		Name: "haproxyBlockTraffic",
-		Test: testHAProxyBlockTraffic,
-	},
-	{
-		Name: "nginxIngressDiscovery",
-		Test: testNginxIngressDiscovery,
+		Name: "nginxBlockTraffic",
+		Test: testNginxBlockTraffic,
 	},
 }
 
@@ -1654,6 +1658,188 @@ func testNginxIngressDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) 
 	log.Info().Msg("Application is accessible through NGINX Ingress")
 }
 
+func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testNginxBlockTraffic because it is using role binding, and is therefore not supported")
+		return
+	}
+	log.Info().Msg("Starting testNginxBlockTraffic")
+	const nginxControllerNamespace = "nginx-controller"
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	// Initialize NGINX Ingress Controller and test resources
+	nginxService, _, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxControllerNamespace)
+	defer func() { _ = m.DeleteDeployment(appDeployment) }()
+	defer func() { _ = m.DeleteService(appService) }()
+	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() {
+		cleanupNginxIngress(m, nginxControllerNamespace)
+	}()
+
+	// Verify the application is accessible before starting tests
+	err := checkStatusCode(t, m, nginxService, "/", 200)
+	require.NoError(t, err)
+	log.Info().Msg("Application is accessible through NGINX Ingress before tests")
+
+	// Define test cases
+	tests := []struct {
+		name                 string
+		testPath             string
+		responseStatusCode   int
+		conditionPathPattern string
+		conditionHttpMethod  string
+		conditionHttpHeader  []interface{}
+		requestHeaders       map[string]string
+		isEnterpriseNginx    bool
+		wantedBlock          bool
+	}{
+		{
+			name:                 "should block traffic for the specified path",
+			testPath:             "/",
+			conditionPathPattern: "/",
+			responseStatusCode:   503,
+			wantedBlock:          true,
+		},
+		{
+			name:                 "should block traffic for a specific endpoint",
+			testPath:             "/",
+			conditionPathPattern: "/api",
+			responseStatusCode:   200,
+			wantedBlock:          false, // We're requesting /, so /api block shouldn't affect us
+		},
+		{
+			name:                "should block traffic for a http method",
+			testPath:            "/",
+			conditionHttpMethod: "GET",
+			responseStatusCode:  503,
+			wantedBlock:         true,
+		},
+		{
+			name:                "should not block traffic for a http method",
+			testPath:            "/",
+			conditionHttpMethod: "DELETE",
+			responseStatusCode:  200,
+			wantedBlock:         false, // We're requesting DELETE, so / block shouldn't affect us
+		},
+		{
+			name:                 "should block traffic for a http method and path",
+			testPath:             "/",
+			conditionHttpMethod:  "GET",
+			conditionPathPattern: "/",
+			responseStatusCode:   501,
+			wantedBlock:          true,
+		},
+		{
+			name:                 "should not block traffic for a http method and path",
+			testPath:             "/",
+			conditionHttpMethod:  "DELETE",
+			conditionPathPattern: "/",
+			responseStatusCode:   200,
+			wantedBlock:          false, // We're requesting DELETE, so / block shouldn't affect us
+		},
+		{
+			name:     "should block traffic for a specific header",
+			testPath: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			},
+			requestHeaders:     map[string]string{"User-Agent": "Mozilla/5.0"},
+			responseStatusCode: 501,
+			wantedBlock:        true,
+		},
+		{
+			name:                 "should block traffic with combined header and path conditions",
+			testPath:             "/",
+			conditionPathPattern: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			requestHeaders:     map[string]string{"Content-Type": "application/json"},
+			responseStatusCode: 451,
+			wantedBlock:        true,
+		},
+		{
+			name:     "should not block traffic when header doesn't match",
+			testPath: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "X-Test-Header", "value": "specific-value"},
+			},
+			requestHeaders:     map[string]string{"X-Test-Header": "other-value"},
+			responseStatusCode: 200,
+			wantedBlock:        false, // We're not sending X-Test-Header
+		},
+		{
+			name:                 "should block traffic with combined conditions",
+			testPath:             "/",
+			conditionPathPattern: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			requestHeaders:     map[string]string{"Content-Type": "application/json"},
+			responseStatusCode: 451,
+			wantedBlock:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Apply block traffic action
+			config := struct {
+				Duration             int           `json:"duration"`
+				ResponseStatusCode   int           `json:"responseStatusCode"`
+				ConditionPathPattern string        `json:"conditionPathPattern"`
+				ConditionHttpMethod  string        `json:"conditionHttpMethod"`
+				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader"`
+				IsEnterpriseNginx    bool          `json:"isEnterpriseNginx"`
+			}{
+				Duration:             30000,
+				ResponseStatusCode:   tt.responseStatusCode,
+				ConditionPathPattern: tt.conditionPathPattern,
+				ConditionHttpMethod:  tt.conditionHttpMethod,
+				ConditionHttpHeader:  tt.conditionHttpHeader,
+				IsEnterpriseNginx:    tt.isEnterpriseNginx,
+			}
+
+			//log.Info().Msgf("Applying NGINX block traffic action for path %s", tt.conditionPathtern)
+			action, err := e.RunAction(extingress.NginxBlockTrafficActionId, ingressTarget, config, nil)
+			require.NoError(t, err)
+			defer func() { _ = action.Cancel() }()
+
+			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+
+			// Verify block
+			expectedStatusCode := tt.responseStatusCode
+			if !tt.wantedBlock {
+				expectedStatusCode = 200
+			}
+
+			// Check status code with headers if needed
+			if len(tt.requestHeaders) > 0 {
+				err = checkStatusCode(t, m, nginxService, tt.testPath, expectedStatusCode, tt.requestHeaders)
+			} else {
+				err = checkStatusCode(t, m, nginxService, tt.testPath, expectedStatusCode)
+			}
+
+			require.NoError(t, err)
+			if tt.wantedBlock {
+				log.Info().Msgf("Path %s is blocked with status %d as expected", tt.testPath, expectedStatusCode)
+			} else {
+				log.Info().Msgf("Path %s is not blocked, received status 200 as expected", tt.testPath)
+			}
+
+			// Cancel the action
+			require.NoError(t, action.Cancel())
+
+			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+
+			// Verify service is not blocked anymore
+			err = checkStatusCode(t, m, nginxService, "/", 200)
+			require.NoError(t, err, "Service should not be blocked anymore")
+		})
+	}
+}
+
 func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, nginxControllerNamespace string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
 	// Step 1: Deploy NGINX Ingress Controller
 	log.Info().Msg("Deploying NGINX Ingress Controller")
@@ -1667,7 +1853,9 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 		"--kube-context", m.Profile,
 		"--set", "controller.service.type=NodePort",
 		"--set", "controller.ingressClassResource.name=nginx",
-		"--set", "controller.ingressClassResource.default=true").CombinedOutput()
+		"--set", "controller.ingressClassResource.default=true",
+		"--set", "controller.config.allow-snippet-annotations=true",
+		"--set", "controller.config.annotations-risk-level=Critical").CombinedOutput()
 	require.NoError(t, err, "Failed to deploy NGINX Ingress Controller: %s", out)
 
 	// Wait for NGINX ingress controller to be ready

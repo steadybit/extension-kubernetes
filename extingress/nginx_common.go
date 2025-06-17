@@ -18,11 +18,16 @@ import (
 
 // Action IDs and constants for NGINX actions
 const (
-	NginxIngressTargetType       = "com.steadybit.extension_kubernetes.kubernetes-nginx-ingress"
-	NginxAnnotationKey           = "nginx.ingress.kubernetes.io/configuration-snippet"
+	NginxIngressTargetType = "com.steadybit.extension_kubernetes.kubernetes-nginx-ingress"
+	NginxAnnotationKey     = "nginx.ingress.kubernetes.io/configuration-snippet"
+	//NginxAnnotationKey           = "nginx.ingress.kubernetes.io/server-snippet"
 	NginxEnterpriseAnnotationKey = "nginx.org/server-snippets"
-	NginxBlockTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-block-traffic"
-	NginxDelayTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-delay-traffic"
+	// Alternative annotations when snippet directives are disabled
+	//NginxRewriteAnnotationKey        = "nginx.ingress.kubernetes.io/rewrite-target"
+	//NginxCustomErrorsAnnotationKey   = "nginx.ingress.kubernetes.io/custom-http-errors"
+	//NginxDefaultBackendAnnotationKey = "nginx.ingress.kubernetes.io/default-backend"
+	NginxBlockTrafficActionId = "com.steadybit.extension_kubernetes.nginx-block-traffic"
+	NginxDelayTrafficActionId = "com.steadybit.extension_kubernetes.nginx-delay-traffic"
 )
 
 // NginxBaseState contains common state for NGINX-related actions
@@ -54,8 +59,6 @@ func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterpri
 	if isEnterprise {
 		annotationKey = NginxEnterpriseAnnotationKey
 	}
-
-	// Prepend the new configuration
 	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, annotationKey, annotationConfig)
 	if err != nil {
 		return err
