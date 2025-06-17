@@ -135,145 +135,87 @@ func buildNginxBlockConfig(state *NginxBlockTrafficState) string {
 	var configBuilder strings.Builder
 	configBuilder.WriteString(getNginxStartMarker(state.ExecutionId) + "\n")
 
-	// NGINX configuration uses a different approach than HAProxy
-	// For Enterprise NGINX, we use server-snippets with if blocks
-	// For Open Source NGINX Ingress Controller, we use configuration-snippet
-
-	if state.IsEnterpriseNginx {
-		// Enterprise NGINX configuration
-		configBuilder.WriteString(buildEnterpriseNginxConfig(state))
-	} else {
-		// Open Source NGINX Ingress Controller configuration
-		configBuilder.WriteString(buildOSNginxConfig(state))
-	}
+	configBuilder.WriteString(buildNginxConfig(state))
 
 	configBuilder.WriteString(getNginxEndMarker(state.ExecutionId) + "\n")
 	return configBuilder.String()
 }
 
-// buildEnterpriseNginxConfig creates configuration for NGINX Enterprise
-func buildEnterpriseNginxConfig(state *NginxBlockTrafficState) string {
+// buildNginxConfig creates configuration for NGINX Ingress Controller (both open source and enterprise)
+func buildNginxConfig(state *NginxBlockTrafficState) string {
 	var configBuilder strings.Builder
 
-	// For path condition, create a location block
+	// Initialize the blocking flag
+	configBuilder.WriteString("set $should_block 0;\n")
+
+	// Add path pattern condition if provided
 	if state.ConditionPathPattern != "" {
-		configBuilder.WriteString(fmt.Sprintf("location ~ %s {\n", state.ConditionPathPattern))
-
-		// Add method condition inside the location block if specified
-		if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-			// Use set flag instead of nested if
-			configBuilder.WriteString(fmt.Sprintf("  set $method_match 0;\n"))
-			configBuilder.WriteString(fmt.Sprintf("  if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString("    set $method_match 1;\n")
-			configBuilder.WriteString("  }\n")
-			configBuilder.WriteString("  if ($method_match = 1) {\n")
-			configBuilder.WriteString(fmt.Sprintf("    return %d;\n", state.ResponseStatusCode))
-			configBuilder.WriteString("  }\n")
-		} else {
-			// No method condition, block all methods for this path
-			configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
-		}
-
+		configBuilder.WriteString(fmt.Sprintf("if ($request_uri ~* %s) {\n", state.ConditionPathPattern))
+		configBuilder.WriteString("  set $should_block 1;\n")
 		configBuilder.WriteString("}\n")
-	} else {
-		// No path condition, use set flags for method and/or headers
-		if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" || len(state.ConditionHttpHeader) > 0 {
-			configBuilder.WriteString("set $should_block 0;\n")
+	}
 
-			// Method condition
-			if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-				configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-				configBuilder.WriteString("  set $should_block 1;\n")
+	// Add HTTP method condition if provided
+	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
+		// If path is also specified, we need to track method separately and then combine
+		if state.ConditionPathPattern != "" {
+			// Reset $should_block to allow combination with path
+			configBuilder.WriteString("set $method_match 0;\n")
+			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
+			configBuilder.WriteString("  set $method_match 1;\n")
+			configBuilder.WriteString("}\n")
+
+			// Only block if both path and method match (create combined check)
+			configBuilder.WriteString("set $combined_check \"${should_block}${method_match}\";\n")
+			configBuilder.WriteString("if ($combined_check = \"11\") {\n")
+			configBuilder.WriteString("  set $should_block 1;\n")
+			configBuilder.WriteString("} else {\n")
+			configBuilder.WriteString("  set $should_block 0;\n")
+			configBuilder.WriteString("}\n")
+		} else {
+			// If no path specified, simply set should_block based on method
+			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
+			configBuilder.WriteString("  set $should_block 1;\n")
+			configBuilder.WriteString("}\n")
+		}
+	}
+
+	// Add HTTP header conditions if provided
+	if len(state.ConditionHttpHeader) > 0 {
+		// If path or method (or both) are also specified, we need to track headers separately
+		if state.ConditionPathPattern != "" || (state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*") {
+			configBuilder.WriteString("set $header_match 0;\n")
+
+			// Process each header condition
+			for headerName, headerValue := range state.ConditionHttpHeader {
+				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
+				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
+				configBuilder.WriteString("  set $header_match 1;\n")
 				configBuilder.WriteString("}\n")
 			}
 
-			// Header conditions - each can independently trigger a block
+			// Combine with existing conditions
+			configBuilder.WriteString("set $final_check \"${should_block}${header_match}\";\n")
+			configBuilder.WriteString("if ($final_check = \"11\") {\n")
+			configBuilder.WriteString("  set $should_block 1;\n")
+			configBuilder.WriteString("} else {\n")
+			configBuilder.WriteString("  set $should_block 0;\n")
+			configBuilder.WriteString("}\n")
+		} else {
+			// If no path or method specified, set should_block based only on headers
 			for headerName, headerValue := range state.ConditionHttpHeader {
 				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
 				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
 				configBuilder.WriteString("  set $should_block 1;\n")
 				configBuilder.WriteString("}\n")
 			}
-
-			// Apply the block if any condition matched
-			configBuilder.WriteString("if ($should_block = 1) {\n")
-			configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
-			configBuilder.WriteString("}\n")
 		}
 	}
 
-	return configBuilder.String()
-}
-
-// buildOSNginxConfig creates configuration for open source NGINX Ingress Controller
-func buildOSNginxConfig(state *NginxBlockTrafficState) string {
-	var configBuilder strings.Builder
-
-	// Setup variables for conditions
-	if (state.ConditionPathPattern != "" && state.ConditionHttpMethod != "") || len(state.ConditionHttpHeader) > 0 {
-		// Initialize blocking flag
-		configBuilder.WriteString("set $should_block 0;\n")
-
-		// For path and method conditions
-		if state.ConditionPathPattern != "" {
-			// Check path match
-			configBuilder.WriteString(fmt.Sprintf("set $path_match 0;\n"))
-			configBuilder.WriteString(fmt.Sprintf("if ($request_uri ~* %s) {\n", state.ConditionPathPattern))
-			configBuilder.WriteString("  set $path_match 1;\n")
-			configBuilder.WriteString("}\n")
-
-			if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-				// Method condition combined with path
-				configBuilder.WriteString(fmt.Sprintf("set $method_match 0;\n"))
-				configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-				configBuilder.WriteString("  set $method_match 1;\n")
-				configBuilder.WriteString("}\n")
-
-				// Combine path and method conditions using string concatenation approach
-				// Create a combined variable that will be "11" only when both conditions are true
-				configBuilder.WriteString("set $path_method_check \"${path_match}${method_match}\";\n")
-				configBuilder.WriteString("if ($path_method_check = \"11\") {\n")
-				configBuilder.WriteString("  set $should_block 1;\n")
-				configBuilder.WriteString("}\n")
-			} else {
-				// Only path condition
-				configBuilder.WriteString("if ($path_match = 1) {\n")
-				configBuilder.WriteString("  set $should_block 1;\n")
-				configBuilder.WriteString("}\n")
-			}
-		} else if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-			// Only method condition
-			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString("  set $should_block 1;\n")
-			configBuilder.WriteString("}\n")
-		}
-
-		// For header conditions - each can independently trigger a block
-		for headerName, headerValue := range state.ConditionHttpHeader {
-			normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
-			configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
-			configBuilder.WriteString("  set $should_block 1;\n")
-			configBuilder.WriteString("}\n")
-		}
-
-		// Apply the block if any condition matched
-		configBuilder.WriteString("if ($should_block = 1) {\n")
-		configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
-		configBuilder.WriteString("}\n")
-	} else {
-		// Simpler cases - single conditions
-		if state.ConditionPathPattern != "" {
-			// Only path condition
-			configBuilder.WriteString(fmt.Sprintf("if ($request_uri ~* %s) {\n", state.ConditionPathPattern))
-			configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
-			configBuilder.WriteString("}\n")
-		} else if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-			// Only method condition
-			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
-			configBuilder.WriteString("}\n")
-		}
-	}
+	// Apply the block if conditions matched
+	configBuilder.WriteString("if ($should_block = 1) {\n")
+	configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
+	configBuilder.WriteString("}\n")
 
 	return configBuilder.String()
 }
