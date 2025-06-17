@@ -157,56 +157,37 @@ func buildNginxConfig(state *NginxBlockTrafficState) string {
 
 	// Add HTTP method condition if provided
 	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-		// If path is also specified, we need to track method separately and then combine
-		if state.ConditionPathPattern != "" {
-			// Reset $should_block to allow combination with path
-			configBuilder.WriteString("set $method_match 0;\n")
-			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString("  set $method_match 1;\n")
-			configBuilder.WriteString("}\n")
-
-			// Only block if both path and method match (create combined check)
-			configBuilder.WriteString("set $combined_check \"${should_block}${method_match}\";\n")
-			configBuilder.WriteString("if ($combined_check = \"11\") {\n")
-			configBuilder.WriteString("  set $should_block 1;\n")
-			configBuilder.WriteString("} else {\n")
-			configBuilder.WriteString("  set $should_block 0;\n")
-			configBuilder.WriteString("}\n")
-		} else {
+		if state.ConditionPathPattern == "" {
 			// If no path specified, simply set should_block based on method
 			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
 			configBuilder.WriteString("  set $should_block 1;\n")
+			configBuilder.WriteString("}\n")
+		} else {
+			// When path is also specified, we need to check if the method matches too
+			// This ensures we only block when both path AND method match
+			configBuilder.WriteString(fmt.Sprintf("if ($request_method != %s) {\n", state.ConditionHttpMethod))
+			configBuilder.WriteString("  set $should_block 0; # Reset if method doesn't match\n")
 			configBuilder.WriteString("}\n")
 		}
 	}
 
 	// Add HTTP header conditions if provided
 	if len(state.ConditionHttpHeader) > 0 {
-		// If path or method (or both) are also specified, we need to track headers separately
-		if state.ConditionPathPattern != "" || (state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*") {
-			configBuilder.WriteString("set $header_match 0;\n")
-
-			// Process each header condition
-			for headerName, headerValue := range state.ConditionHttpHeader {
-				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
-				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString("  set $header_match 1;\n")
-				configBuilder.WriteString("}\n")
-			}
-
-			// Combine with existing conditions
-			configBuilder.WriteString("set $final_check \"${should_block}${header_match}\";\n")
-			configBuilder.WriteString("if ($final_check = \"11\") {\n")
-			configBuilder.WriteString("  set $should_block 1;\n")
-			configBuilder.WriteString("} else {\n")
-			configBuilder.WriteString("  set $should_block 0;\n")
-			configBuilder.WriteString("}\n")
-		} else {
+		if state.ConditionPathPattern == "" && (state.ConditionHttpMethod == "" || state.ConditionHttpMethod == "*") {
 			// If no path or method specified, set should_block based only on headers
 			for headerName, headerValue := range state.ConditionHttpHeader {
 				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
 				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
 				configBuilder.WriteString("  set $should_block 1;\n")
+				configBuilder.WriteString("}\n")
+			}
+		} else {
+			// If other conditions are specified, we need to check headers too
+			// This ensures that headers must also match when combined with other conditions
+			for headerName, headerValue := range state.ConditionHttpHeader {
+				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
+				configBuilder.WriteString(fmt.Sprintf("if ($http_%s !~* %s) {\n", normalizedHeaderName, headerValue))
+				configBuilder.WriteString("  set $should_block 0; # Reset if header doesn't match\n")
 				configBuilder.WriteString("}\n")
 			}
 		}
