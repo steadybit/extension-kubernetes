@@ -67,11 +67,12 @@ func (a *NginxBlockTrafficAction) Describe() action_kit_api.ActionDescription {
 			},
 			{
 				Name:         "isEnterpriseNginx",
-				Label:        "Enterprise NGINX",
+				Label:        "Force Enterprise NGINX",
 				Description:  extutil.Ptr("Whether to use Enterprise NGINX configuration (nginx.org/server-snippets) instead of open source (nginx.ingress.kubernetes.io/configuration-snippet)."),
 				Type:         action_kit_api.ActionParameterTypeBoolean,
 				DefaultValue: extutil.Ptr("false"),
 				Required:     extutil.Ptr(false),
+				Advanced:     extutil.Ptr(true),
 			},
 		}...,
 	)
@@ -93,6 +94,16 @@ func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTr
 	state.ConditionHttpMethod = extutil.ToString(request.Config["conditionHttpMethod"])
 	state.IsEnterpriseNginx = extutil.ToBool(request.Config["isEnterpriseNginx"])
 
+	// Check for Enterprise NGINX based on ingress controller
+	if ingressClass, ok := request.Target.Attributes["k8s.ingress.class"]; ok && len(ingressClass) > 0 {
+		if controller, ok := request.Target.Attributes["k8s.ingress.controller"]; ok && len(controller) > 0 {
+			if controller[0] == "nginx.org/ingress-controller" {
+				// Override with detected Enterprise NGINX
+				state.IsEnterpriseNginx = true
+			}
+		}
+	}
+	
 	if request.Config["conditionHttpHeader"] != nil {
 		state.ConditionHttpHeader, err = extutil.ToKeyValue(request.Config, "conditionHttpHeader")
 		if err != nil {
