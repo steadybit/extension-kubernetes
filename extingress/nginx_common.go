@@ -18,16 +18,11 @@ import (
 
 // Action IDs and constants for NGINX actions
 const (
-	NginxIngressTargetType = "com.steadybit.extension_kubernetes.kubernetes-nginx-ingress"
-	NginxAnnotationKey     = "nginx.ingress.kubernetes.io/configuration-snippet"
-	//NginxAnnotationKey           = "nginx.ingress.kubernetes.io/server-snippet"
+	NginxIngressTargetType       = "com.steadybit.extension_kubernetes.kubernetes-nginx-ingress"
+	NginxAnnotationKey           = "nginx.ingress.kubernetes.io/configuration-snippet"
 	NginxEnterpriseAnnotationKey = "nginx.org/server-snippets"
-	// Alternative annotations when snippet directives are disabled
-	//NginxRewriteAnnotationKey        = "nginx.ingress.kubernetes.io/rewrite-target"
-	//NginxCustomErrorsAnnotationKey   = "nginx.ingress.kubernetes.io/custom-http-errors"
-	//NginxDefaultBackendAnnotationKey = "nginx.ingress.kubernetes.io/default-backend"
-	NginxBlockTrafficActionId = "com.steadybit.extension_kubernetes.nginx-block-traffic"
-	NginxDelayTrafficActionId = "com.steadybit.extension_kubernetes.nginx-delay-traffic"
+	NginxBlockTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-block-traffic"
+	NginxDelayTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-delay-traffic"
 )
 
 // NginxBaseState contains common state for NGINX-related actions
