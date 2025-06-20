@@ -113,8 +113,11 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {
 			attributes[key] = value
 		}
-		for key, value := range extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {
-			attributes[key] = value
+
+		if !extconfig.Config.DisableAdvice {
+			for key, value := range extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {
+				attributes[key] = value
+			}
 		}
 
 		targets[i] = discovery_kit_api.Target{

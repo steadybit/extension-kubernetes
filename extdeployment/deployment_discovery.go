@@ -127,8 +127,11 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
 			hpa = d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name)
 		}
-		for key, value := range extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa) {
-			attributes[key] = value
+
+		if !extconfig.Config.DisableAdvice {
+			for key, value := range extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa) {
+				attributes[key] = value
+			}
 		}
 
 		for container := range deployment.Spec.Template.Spec.Containers {

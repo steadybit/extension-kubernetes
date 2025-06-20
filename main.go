@@ -180,85 +180,87 @@ func getExtensionList() ExtensionListResponse {
 func getAdviceRefs() []advice_kit_api.DescribingEndpointReference {
 	var refs []advice_kit_api.DescribingEndpointReference
 	refs = make([]advice_kit_api.DescribingEndpointReference, 0)
-	for _, adviceId := range extconfig.Config.ActiveAdviceList {
-		// Deployments
-		if adviceId == "*" || adviceId == deployment_strategy.DeploymentStrategyID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-deployment-strategy",
-			})
-		}
-		if adviceId == "*" || adviceId == cpu_limit.CpuLimitID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-cpu-limit",
-			})
-		}
-		if adviceId == "*" || adviceId == memory_limit.MemoryLimitID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-memory-limit",
-			})
-		}
-		if adviceId == "*" || adviceId == ephemeral_storage_limit.EphemeralStorageLimitID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-ephemeral-storage-limit",
-			})
-		}
-		if adviceId == "*" || adviceId == cpu_request.CpuRequestID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-cpu-request",
-			})
-		}
-		if adviceId == "*" || adviceId == memory_request.MemoryRequestID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-memory-request",
-			})
-		}
-		if adviceId == "*" || adviceId == ephemeral_storage_request.EphemeralStorageRequestID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-ephemeral-storage-request",
-			})
-		}
-		if adviceId == "*" || adviceId == image_latest_tag.ImageVersioningID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-image-latest-tag",
-			})
-		}
-		if adviceId == "*" || adviceId == image_pull_policy.ImagePullPolicyID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-image-pull-policy",
-			})
-		}
-		if adviceId == "*" || adviceId == probes.ProbesID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-probes",
-			})
-		}
-		if adviceId == "*" || adviceId == single_replica.SingleReplicaID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-single-replica",
-			})
-		}
-		if adviceId == "*" || adviceId == host_podantiaffinity.HostPodantiaffinityID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/k8s-host-podantiaffinity",
-			})
-		}
-		if adviceId == "*" || adviceId == single_zone.SingleZoneID {
-			refs = append(refs, advice_kit_api.DescribingEndpointReference{
-				Method: "GET",
-				Path:   "/advice/single-zone",
-			})
+	if !extconfig.Config.DisableAdvice {
+		for _, adviceId := range extconfig.Config.ActiveAdviceList {
+			// Deployments
+			if adviceId == "*" || adviceId == deployment_strategy.DeploymentStrategyID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-deployment-strategy",
+				})
+			}
+			if adviceId == "*" || adviceId == cpu_limit.CpuLimitID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-cpu-limit",
+				})
+			}
+			if adviceId == "*" || adviceId == memory_limit.MemoryLimitID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-memory-limit",
+				})
+			}
+			if adviceId == "*" || adviceId == ephemeral_storage_limit.EphemeralStorageLimitID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-ephemeral-storage-limit",
+				})
+			}
+			if adviceId == "*" || adviceId == cpu_request.CpuRequestID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-cpu-request",
+				})
+			}
+			if adviceId == "*" || adviceId == memory_request.MemoryRequestID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-memory-request",
+				})
+			}
+			if adviceId == "*" || adviceId == ephemeral_storage_request.EphemeralStorageRequestID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-ephemeral-storage-request",
+				})
+			}
+			if adviceId == "*" || adviceId == image_latest_tag.ImageVersioningID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-image-latest-tag",
+				})
+			}
+			if adviceId == "*" || adviceId == image_pull_policy.ImagePullPolicyID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-image-pull-policy",
+				})
+			}
+			if adviceId == "*" || adviceId == probes.ProbesID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-probes",
+				})
+			}
+			if adviceId == "*" || adviceId == single_replica.SingleReplicaID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-single-replica",
+				})
+			}
+			if adviceId == "*" || adviceId == host_podantiaffinity.HostPodantiaffinityID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/k8s-host-podantiaffinity",
+				})
+			}
+			if adviceId == "*" || adviceId == single_zone.SingleZoneID {
+				refs = append(refs, advice_kit_api.DescribingEndpointReference{
+					Method: "GET",
+					Path:   "/advice/single-zone",
+				})
+			}
 		}
 	}
 	return refs

@@ -165,6 +165,8 @@ extraEnvFrom: []
 discovery:
   # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-disabled` (mainly for internal use)
   disableExcludes: false
+  # discovery.disableAdvice -- Disable the advice / kubescore feature of the extension.
+  disableAdvice: false
   # discovery.maxPodCount -- Skip listing pods, containers and hosts for deployments, statefulsets, etc. if there are more then the given pods.
   maxPodCount: 50
   attributes:

@@ -90,6 +90,10 @@ spec:
             - name: STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES
               value: "true"
             {{- end }}
+            {{- if .Values.discovery.disableAdvice }}
+            - name: STEADYBIT_EXTENSION_DISABLE_ADVICE
+              value: "true"
+            {{- end }}
             {{- with .Values.extraEnv }}
               {{- toYaml . | nindent 12 }}
             {{- end }}

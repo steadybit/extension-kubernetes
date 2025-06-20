@@ -2,6 +2,7 @@
 
 ## v2.6.6
 
+- possibility to disable the advice / kubescore feature
 - Updated dependencies
 - Updated go version to 1.24.4
 

@@ -108,8 +108,11 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {
 			attributes[key] = value
 		}
-		for key, value := range extcommon.GetKubeScoreForDaemonSet(ds, d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {
-			attributes[key] = value
+
+		if !extconfig.Config.DisableAdvice {
+			for key, value := range extcommon.GetKubeScoreForDaemonSet(ds, d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {
+				attributes[key] = value
+			}
 		}
 
 		targets[i] = discovery_kit_api.Target{
