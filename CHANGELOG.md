@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.6
+
+- Updated dependencies
+- Updated go version to 1.24.4
+
 ## v2.6.5
 
 - HAProxy Ingress: Discovery, delay and block traffic attack

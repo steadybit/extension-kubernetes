@@ -3,7 +3,7 @@
 
 module github.com/steadybit/extension-kubernetes/v2
 
-go 1.24.1
+go 1.24.4
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.3
