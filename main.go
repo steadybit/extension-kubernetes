@@ -111,6 +111,7 @@ func main() {
 		action_kit_sdk.RegisterAction(extingress.NewHAProxyDelayTrafficAction())
 		discovery_kit_sdk.Register(extingress.NewNginxIngressDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extingress.NewNginxBlockTrafficAction())
+		action_kit_sdk.RegisterAction(extingress.NewNginxDelayTrafficAction())
 	}
 
 	if !extconfig.Config.DiscoveryDisabledNode && !extconfig.HasNamespaceFilter() {
