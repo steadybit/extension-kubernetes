@@ -189,13 +189,19 @@ func addContainerEphemeralStorageScores(scores []scorecard.TestScore, attributes
 }
 
 func addProbesScores(scores []scorecard.TestScore, attributes map[string][]string) {
+	checkProbesIdentical := getTestScore(scores, "pod-probes-identical")
 	check := getTestScore(scores, "pod-probes")
-	if check != nil {
-		for _, comment := range check.Comments {
+	if checkProbesIdentical != nil {
+		for _, comment := range checkProbesIdentical.Comments {
 			if comment.Summary == "Container has the same readiness and liveness probe" {
 				attributes["k8s.specification.probes.summary"] = []string{"*Same readiness and liveness probe*\n\nMake sure to not use the same probes for readiness and liveness."}
 				return
-			} else if comment.Summary == "Container is missing a readinessProbe" {
+			}
+		}
+	}
+	if check != nil {
+		for _, comment := range check.Comments {
+			if comment.Summary == "Container is missing a readinessProbe" {
 				attributes["k8s.specification.probes.summary"] = []string{"*Missing readinessProbe*\n\nWhen Kubernetes redeploys, it can't determine when the pod is ready to accept incoming requests. They may receive requests before being able to handle them properly."}
 				return
 			} else if comment.Summary == "Container is missing a livenessProbe" {
