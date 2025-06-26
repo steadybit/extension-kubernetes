@@ -39,6 +39,8 @@ manifest should match snapshot using podAnnotations and Labels:
                   value: test
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -121,6 +123,8 @@ manifest should match snapshot with TLS:
                   value: test
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -218,6 +222,8 @@ manifest should match snapshot with attribute excluded:
                   value: k8s.label.*,attribute.123.node
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -296,6 +302,8 @@ manifest should match snapshot with clusterName from parent chart:
                   value: test
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -376,6 +384,8 @@ manifest should match snapshot with disabled excludes:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -456,6 +466,8 @@ manifest should match snapshot with extra env vars:
                   value: bar
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               envFrom:
                 - configMapRef: null
                   name: env-configmap
@@ -541,6 +553,8 @@ manifest should match snapshot with extra labels:
                   value: null
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -625,6 +639,8 @@ manifest should match snapshot with mutual TLS:
                   value: test
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -723,6 +739,8 @@ manifest should match snapshot with mutual TLS using containerPaths:
                   value: null
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -801,6 +819,8 @@ manifest should match snapshot with podSecurityContext:
                   value: null
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -880,6 +900,8 @@ manifest should match snapshot with priority class:
                   value: null
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -959,6 +981,8 @@ manifest should match snapshot without TLS:
                   value: test
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:

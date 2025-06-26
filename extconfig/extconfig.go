@@ -35,6 +35,7 @@ type Specification struct {
 	DiscoveryAttributesExcludesNode        []string `json:"discoveryAttributesExcludesNode" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesIngress     []string `json:"discoveryAttributesExcludesIngress" split_words:"true" required:"false"`
 	DiscoveryMaxPodCount                   int      `json:"discoveryMaxPodCount" split_words:"true" required:"false" default:"50"`
+	DiscoveryRefreshThrottle               int      `json:"DiscoveryRefreshThrottle" required:"false" split_words:"true" default:"30"`
 	Namespace                              string   `json:"namespace" split_words:"true" required:"false" default:""`
 }
 
