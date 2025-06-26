@@ -169,6 +169,8 @@ discovery:
   disableAdvice: false
   # discovery.maxPodCount -- Skip listing pods, containers and hosts for deployments, statefulsets, etc. if there are more then the given pods.
   maxPodCount: 50
+  # discovery.refreshThrottle -- Number of seconds between successive refreshes of the target data.
+  refreshThrottle: 20
   attributes:
     excludes:
       # discovery.attributes.excludes.container -- List of attributes to exclude from container discovery.

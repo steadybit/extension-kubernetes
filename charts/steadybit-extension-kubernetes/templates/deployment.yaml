@@ -99,6 +99,8 @@ spec:
             {{- end }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
               value: "{{ .Values.discovery.maxPodCount }}"
+            - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+              value: "{{ .Values.discovery.refreshThrottle }}"
           {{- with .Values.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

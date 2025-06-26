@@ -100,6 +100,7 @@ func TestWithMinikube(t *testing.T) {
 			return []string{
 				"--set", "kubernetes.clusterName=e2e-cluster",
 				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
+				"--set", "discovery.refreshThrottle=1",
 				"--set", "logging.level=debug",
 			}
 		},
@@ -116,6 +117,7 @@ func TestWithMinikubeViaRole(t *testing.T) {
 			return []string{
 				"--set", "kubernetes.clusterName=e2e-cluster",
 				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
+				"--set", "discovery.refreshThrottle=1",
 				"--set", "logging.level=debug",
 				"--set", "role.create=true",
 				"--set", "kubernetes.namespaceFilter=default",
