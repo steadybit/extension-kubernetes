@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+
 package extcommon
 
 import (
@@ -250,8 +253,13 @@ func getScores(inputs []kubeScoreInput) []scorecard.TestScore {
 			}
 		}
 	}()
-	manifests := prepareManifests(inputs)
-	scoreCard := getKubeScoreCard(manifests)
+
+	kubeObjects := NewScoreObjects(inputs)
+	scoreCard := getKubeScoreCardForObjects(&kubeObjects)
+
+	//manifests := prepareManifests(inputs)
+	//scoreCard := getKubeScoreCard(manifests)
+
 	if scoreCard == nil {
 		return []scorecard.TestScore{}
 	}
@@ -295,6 +303,10 @@ func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
 		return nil
 	}
 
+	return getKubeScoreCardForObjects(parsedFiles)
+}
+
+func getKubeScoreCardForObjects(kubeObjects ks.AllTypes) *scorecard.Scorecard {
 	runCnf := &config.RunConfiguration{
 		IgnoreContainerCpuLimitRequirement:    false,
 		IgnoreContainerMemoryLimitRequirement: false,
@@ -304,9 +316,9 @@ func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
 	}
 	checksConfig := &checks.Config{}
 
-	allChecks := score.RegisterAllChecks(parsedFiles, checksConfig, runCnf)
+	allChecks := score.RegisterAllChecks(kubeObjects, checksConfig, runCnf)
 
-	scoreCard, err := score.Score(parsedFiles, allChecks, runCnf)
+	scoreCard, err := score.Score(kubeObjects, allChecks, runCnf)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to run kubescore")
 		return nil
