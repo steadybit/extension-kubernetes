@@ -442,11 +442,12 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		client.Distribution = "openshift"
 	}
 
+	informerResyncDuration := time.Duration(extconfig.Config.DiscoveryInformerResync) * time.Second
 	var factory informers.SharedInformerFactory
 	if extconfig.HasNamespaceFilter() {
-		factory = informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(extconfig.Config.Namespace))
+		factory = informers.NewSharedInformerFactoryWithOptions(clientset, informerResyncDuration, informers.WithNamespace(extconfig.Config.Namespace))
 	} else {
-		factory = informers.NewSharedInformerFactory(clientset, 0)
+		factory = informers.NewSharedInformerFactory(clientset, informerResyncDuration)
 	}
 	client.resourceEventHandler = cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
