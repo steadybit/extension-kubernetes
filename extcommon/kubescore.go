@@ -4,17 +4,13 @@
 package extcommon
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/zegl/kube-score/config"
 	ks "github.com/zegl/kube-score/domain"
-	"github.com/zegl/kube-score/parser"
 	"github.com/zegl/kube-score/score"
 	"github.com/zegl/kube-score/score/checks"
 	"github.com/zegl/kube-score/scorecard"
-	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +19,6 @@ import (
 	"k8s.io/utils/ptr"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -257,9 +252,6 @@ func getScores(inputs []kubeScoreInput) []scorecard.TestScore {
 	kubeObjects := NewScoreObjects(inputs)
 	scoreCard := getKubeScoreCardForObjects(&kubeObjects)
 
-	//manifests := prepareManifests(inputs)
-	//scoreCard := getKubeScoreCard(manifests)
-
 	if scoreCard == nil {
 		return []scorecard.TestScore{}
 	}
@@ -268,42 +260,6 @@ func getScores(inputs []kubeScoreInput) []scorecard.TestScore {
 		scores = append(scores, scoredObject.Checks...)
 	}
 	return scores
-}
-
-func prepareManifests(objects []kubeScoreInput) []ks.NamedReader {
-	manifests := make([]ks.NamedReader, 0, len(objects))
-	for _, obj := range objects {
-		manifestBuf := new(bytes.Buffer)
-		err := serializer.Encode(obj, manifestBuf)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal obj %s/%s", obj.GetName(), obj.GetNamespace())
-		} else {
-			manifests = append(manifests, inputReader{
-				Reader: strings.NewReader(manifestBuf.String()),
-				name:   fmt.Sprintf("%s/%s/%s", obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName(), obj.GetNamespace()),
-			})
-		}
-	}
-	return manifests
-}
-
-func getKubeScoreCard(manifests []ks.NamedReader) *scorecard.Scorecard {
-	cnf := &parser.Config{
-		VerboseOutput: 0,
-	}
-
-	p, err := parser.New(cnf)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create kubescore parser")
-		return nil
-	}
-	parsedFiles, err := p.ParseFiles(manifests)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to parse files")
-		return nil
-	}
-
-	return getKubeScoreCardForObjects(parsedFiles)
 }
 
 func getKubeScoreCardForObjects(kubeObjects ks.AllTypes) *scorecard.Scorecard {
@@ -344,13 +300,4 @@ func isCheckOk(score *scorecard.TestScore) bool {
 	default:
 		return false
 	}
-}
-
-type inputReader struct {
-	io.Reader
-	name string
-}
-
-func (p inputReader) Name() string {
-	return p.name
 }
