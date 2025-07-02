@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.6.7
+
+- Resync internal k8s cache every 10m and increase update debounce to 20s (both values are configurable)
+- Optimize advice generation
+- Updated dependencies
+
 ## v2.6.6
 
 - possibility to disable the advice / kubescore feature
