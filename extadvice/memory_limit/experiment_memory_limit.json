@@ -36,12 +36,14 @@
           "type": "action",
           "ignoreFailure": false,
           "parameters": {
+            "mode": "absolute",
+            "size": 80,
+            "unit": "%",
             "duration": "60s",
-            "percentage": 200,
             "failOnOomKill": false
           },
           "customLabel": "WHEN: Stressing Memory of ${target.attr('steadybit.label')}",
-          "actionType": "com.steadybit.extension_container.stress_mem",
+          "actionType": "com.steadybit.extension_container.fill_mem",
           "radius": {
             "targetType": "com.steadybit.extension_container.container",
             "predicate": {
