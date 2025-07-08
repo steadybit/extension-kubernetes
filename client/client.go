@@ -734,6 +734,7 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 		// Update the annotation
 		ingress.Annotations[annotationKey] = newConfig
 
+		updateTime := time.Now()
 		_, err = c.networkingV1.Ingresses(namespace).Update(
 			ctx,
 			ingress,
@@ -742,6 +743,13 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 
 		if err == nil {
 			log.Debug().Msgf("Updated ingress %s/%s annotation %s with new config: %s", namespace, ingressName, annotationKey, newConfig)
+
+			// Check for ingress events after the annotation update
+			if eventErr := c.checkIngressEvents(namespace, ingressName, updateTime); eventErr != nil {
+				log.Warn().Err(eventErr).Msgf("Warning detected in ingress events after annotation update")
+				return fmt.Errorf("ingress annotation rejected: %w", eventErr)
+			}
+
 			return nil // Update successful
 		}
 
@@ -757,6 +765,43 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 	}
 	log.Error().Msgf("Failed to update ingress %s/%s annotation %s after %d attempts", namespace, ingressName, annotationKey, maxRetries)
 	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
+}
+
+// checkIngressEvents checks for warning events related to the ingress after a specific time
+func (c *Client) checkIngressEvents(namespace, ingressName string, since time.Time) error {
+	// Wait a short time for events to be generated
+	time.Sleep(2 * time.Second)
+
+	events := c.Events(since)
+	if events == nil {
+		return nil
+	}
+
+	for _, event := range *events {
+		// Check if the event is related to our ingress
+		if event.InvolvedObject.Kind == "Ingress" &&
+			event.InvolvedObject.Name == ingressName &&
+			event.InvolvedObject.Namespace == namespace {
+
+			// Check for warning events, especially rejection reasons
+			if event.Type == corev1.EventTypeWarning {
+				switch event.Reason {
+				case "Rejected", "InvalidConfiguration", "ConfigurationError", "SyncError", "AddedOrUpdatedWithError":
+					return fmt.Errorf("ingress configuration rejected - Type:%s Reason:%s Age:%s Message:%s",
+						event.Type, event.Reason,
+						time.Since(event.LastTimestamp.Time).Round(time.Second),
+						event.Message)
+				default:
+					log.Warn().Msgf("Ingress warning event detected - Type:%s Reason:%s Age:%s Message:%s",
+						event.Type, event.Reason,
+						time.Since(event.LastTimestamp.Time).Round(time.Second),
+						event.Message)
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID) error {
