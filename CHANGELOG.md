@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.6.8
+
+- Improve the experiment suggestion of the memory limit advice
+
 ## v2.6.7
 
 - Resync internal k8s cache every 10m and increase update debounce to 20s (both values are configurable)
