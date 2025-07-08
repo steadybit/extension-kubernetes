@@ -21,8 +21,8 @@ const (
 	NginxIngressTargetType       = "com.steadybit.extension_kubernetes.kubernetes-nginx-ingress"
 	NginxAnnotationKey           = "nginx.ingress.kubernetes.io/configuration-snippet"
 	NginxEnterpriseAnnotationKey = "nginx.org/server-snippets"
-	NginxBlockTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-block-traffic"
-	NginxDelayTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-delay-traffic"
+	NginxBlockTrafficActionId         = "com.steadybit.extension_kubernetes.nginx-block-traffic"
+	NginxDelayTrafficActionId         = "com.steadybit.extension_kubernetes.nginx-delay-traffic"
 )
 
 // NginxBaseState contains common state for NGINX-related actions

@@ -153,7 +153,7 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 		if existingConfig, exists := ingress.Annotations[annotationKey]; exists && existingConfig != "" {
 			existingLines := strings.Split(existingConfig, "\n")
 			for _, line := range existingLines {
-				if strings.Contains(line, "echo_sleep") {
+				if strings.Contains(line, "sb_sleep_ms") {
 					return nil, fmt.Errorf("a delay rule already exists - cannot add another one")
 				}
 			}
@@ -229,10 +229,12 @@ func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 		}
 	}
 
-	// Apply the delay if conditions matched using the echo_sleep module
+	// Set up a variable for the delay and then apply it unconditionally
+	configBuilder.WriteString(fmt.Sprintf("set $sb_sleep_ms_duration 0;\n"))
 	configBuilder.WriteString("if ($should_delay = 1) {\n")
-	configBuilder.WriteString(fmt.Sprintf("  echo_sleep %0.3f;\n", float64(state.ResponseDelay)/1000.0))
+	configBuilder.WriteString(fmt.Sprintf("  set $sb_sleep_ms_duration %d;\n", state.ResponseDelay))
 	configBuilder.WriteString("}\n")
+	configBuilder.WriteString("sb_sleep_ms $sb_sleep_ms_duration;\n")
 
 	return configBuilder.String()
 }

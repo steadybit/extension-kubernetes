@@ -222,7 +222,7 @@ func TestNginxDelayTrafficAction_PrepareFluentChaining(t *testing.T) {
 	assert.Contains(t, state.AnnotationConfig, "if ($request_uri ~* /api/users)")
 	assert.Contains(t, state.AnnotationConfig, "if ($request_method != POST)")
 	assert.Contains(t, state.AnnotationConfig, "if ($http_content_type !~* application/json)")
-	assert.Contains(t, state.AnnotationConfig, "echo_sleep 0.500")
+	assert.Contains(t, state.AnnotationConfig, "sb_sleep_ms 0.500")
 }
 
 // Test Helpers
@@ -272,7 +272,7 @@ func createTestDelayNginxIngresses(t *testing.T, clientset kubernetes.Interface)
 	createNginxIngress(t, clientset, "conflict-nginx-ingress", "location ~ /alreadyDelayed {\n  return 503;\n}\n")
 
 	// Ingress with existing delay rule for testing conflicts
-	createNginxIngress(t, clientset, "delay-conflict-nginx-ingress", "if ($request_uri ~* /existingPath) {\n  echo_sleep 0.200;\n}\n")
+	createNginxIngress(t, clientset, "delay-conflict-nginx-ingress", "if ($request_uri ~* /existingPath) {\n  sb_sleep_ms 0.200;\n}\n")
 }
 
 // createDelayNginxTestRequest creates a test request with the given ingress name and config
@@ -303,7 +303,7 @@ func assertNginxDelayStateMatches(t *testing.T, expected, actual NginxDelayTraff
 	// Check annotation config contains expected elements
 	assert.Contains(t, actual.AnnotationConfig, "# BEGIN STEADYBIT")
 	assert.Contains(t, actual.AnnotationConfig, "# END STEADYBIT")
-	assert.Contains(t, actual.AnnotationConfig, "echo_sleep")
+	assert.Contains(t, actual.AnnotationConfig, "sb_sleep_ms")
 
 	if actual.ConditionPathPattern != "" {
 		assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("$request_uri ~* %s", actual.ConditionPathPattern))
