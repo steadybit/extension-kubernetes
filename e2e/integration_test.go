@@ -98,10 +98,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "nginxBlockTraffic",
 		Test: testNginxBlockTraffic,
 	},
-	//{
-	//	Name: "nginxDelayTraffic",
-	//	Test: testNginxDelayTraffic,
-	//},
+	{
+		Name: "nginxDelayTraffic",
+		Test: testNginxDelayTraffic,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -1789,10 +1789,14 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 		"--set", "controller.ingressClassResource.default=true",
 		"--set", "controller.config.allow-snippet-annotations=true",
 		"--set", "controller.config.annotations-risk-level=Critical",
+		"--set", "controller.config.custom-http-snippet=\"load_module /etc/nginx/modules/ngx_steadybit_sleep_module.so;\"",
+		"--set", "controller.configSnippet=\"load_module /etc/nginx/modules/ngx_steadybit_sleep_module.so;\"",
 	}
 
 	if imageName != "" {
-		args = append(args, "--set", "controller.image.name="+imageName)
+		args = append(args, "--set", "controller.image.repository="+imageName)
+		// Clear the digest to prevent SHA256 conflicts
+		args = append(args, "--set", "controller.image.digest=")
 	}
 	if imageTag != "" {
 		args = append(args, "--set", "controller.image.tag="+imageTag)
@@ -1981,10 +1985,8 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 
-	// Initialize NGINX with echo-nginx-module and test resources
-	// Initialize NGINX Ingress Controller and test resources
-	nginxService, testAppName, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxNamespace, "ghcr.io/steadybit/kubernetes-ingress", "5.1.0-snapshot")
-	//nginxService, testAppName, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxNamespace, "soulteary/prebuilt-nginx-modules", "ngx-1.21.1-echo-0.62")
+	// Initialize Ingress NGINX  Controller and test resources
+	nginxService, testAppName, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxNamespace, "ghcr.io/steadybit/ingress-nginx-controller-with-steadybit-module", "main-community-v1.13.0")
 	defer func() { _ = m.DeleteDeployment(appDeployment) }()
 	defer func() { _ = m.DeleteService(appService) }()
 	defer func() { _ = m.DeleteIngress(appIngress) }()
