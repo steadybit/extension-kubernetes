@@ -222,7 +222,7 @@ func TestNginxDelayTrafficAction_PrepareFluentChaining(t *testing.T) {
 	assert.Contains(t, state.AnnotationConfig, "if ($request_uri ~* /api/users)")
 	assert.Contains(t, state.AnnotationConfig, "if ($request_method != POST)")
 	assert.Contains(t, state.AnnotationConfig, "if ($http_content_type !~* application/json)")
-	assert.Contains(t, state.AnnotationConfig, "sb_sleep_ms 0.500")
+	assert.Contains(t, state.AnnotationConfig, "sb_sleep_ms $sb_sleep_ms_duration")
 }
 
 // Test Helpers
