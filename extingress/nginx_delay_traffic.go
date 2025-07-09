@@ -230,7 +230,7 @@ func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 	}
 
 	// Set up a variable for the delay and then apply it unconditionally
-	configBuilder.WriteString(fmt.Sprintf("set $sb_sleep_ms_duration 0;\n"))
+	configBuilder.WriteString("set $sb_sleep_ms_duration 0;\n")
 	configBuilder.WriteString("if ($should_delay = 1) {\n")
 	configBuilder.WriteString(fmt.Sprintf("  set $sb_sleep_ms_duration %d;\n", state.ResponseDelay))
 	configBuilder.WriteString("}\n")
