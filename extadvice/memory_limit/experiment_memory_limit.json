@@ -10,7 +10,7 @@
           "parameters": {
             "duration": "40s"
           },
-          "customLabel": "Wait for Memory stress"
+          "customLabel": "Wait for Memory fill"
         },
         {
           "type": "wait",
@@ -42,7 +42,7 @@
             "duration": "60s",
             "failOnOomKill": false
           },
-          "customLabel": "WHEN: Stressing Memory of ${target.attr('steadybit.label')}",
+          "customLabel": "WHEN: Filling Memory of ${target.attr('steadybit.label')}",
           "actionType": "com.steadybit.extension_container.fill_mem",
           "radius": {
             "targetType": "com.steadybit.extension_container.container",
