@@ -5,9 +5,9 @@ package e2e
 
 import (
 	"context"
-
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"github.com/steadybit/extension-kit/extutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -90,6 +90,18 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "haproxyBlockTraffic",
 		Test: testHAProxyBlockTraffic,
 	},
+	{
+		Name: "nginxIngressDiscovery",
+		Test: testNginxIngressDiscovery,
+	},
+	{
+		Name: "nginxBlockTraffic",
+		Test: testNginxBlockTraffic,
+	},
+	{
+		Name: "nginxDelayTraffic",
+		Test: testNginxDelayTraffic,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -101,7 +113,7 @@ func TestWithMinikube(t *testing.T) {
 				"--set", "kubernetes.clusterName=e2e-cluster",
 				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
 				"--set", "discovery.refreshThrottle=1",
-				"--set", "logging.level=debug",
+				"--set", "logging.level=INFO",
 			}
 		},
 	}
@@ -990,77 +1002,6 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 }
 
-//// Helper function to measure request latency with custom HTTP method and headers
-//func measureRequestLatencyWithMethodAndHeaders(m *e2e.Minikube, service metav1.Object, hostname, path, method string, headers map[string]string) (time.Duration, error) {
-//	var (
-//		maxRetries = 8
-//		baseDelay  = 500 * time.Millisecond
-//	)
-//
-//	if method == "" {
-//		method = "GET" // Default to GET if not specified
-//	}
-//
-//	var diff time.Duration
-//	for attempt := 1; attempt <= maxRetries; attempt++ {
-//		client, err2 := m.NewRestClientForService(service)
-//		if err2 != nil {
-//			log.Error().Err(err2).Msg("Failed to create REST client")
-//			if attempt == maxRetries {
-//				return 0, err2
-//			}
-//			time.Sleep(baseDelay * (1 << (attempt - 1)))
-//			continue
-//		}
-//		defer client.Close()
-//
-//		// Set host header
-//		client.SetHeader("Host", hostname)
-//
-//		// Set custom headers if provided
-//		for k, v := range headers {
-//			client.SetHeader(k, v)
-//		}
-//
-//		// Prepare request
-//		request := client.R()
-//
-//		// Make request with specified method
-//		startTime := time.Now()
-//		var resp *resty.Response
-//		var err error
-//
-//		switch strings.ToUpper(method) {
-//		case "GET":
-//			resp, err = request.Get(path)
-//		case "POST":
-//			resp, err = request.Post(path)
-//		case "PUT":
-//			resp, err = request.Put(path)
-//		case "DELETE":
-//			resp, err = request.Delete(path)
-//		case "PATCH":
-//			resp, err = request.Patch(path)
-//		default:
-//			resp, err = request.Execute(method, path)
-//		}
-//
-//		endTime := time.Now()
-//		if err != nil {
-//			log.Error().Err(err).Msgf("Failed to make %s request", method)
-//			if attempt == maxRetries {
-//				return 0, err
-//			}
-//			time.Sleep(baseDelay * (1 << (attempt - 1)))
-//			continue
-//		}
-//		diff = endTime.Sub(startTime)
-//		log.Info().Msgf("%s request to %s took %v (status: %d)", method, path, diff, resp.StatusCode())
-//		return diff, nil
-//	}
-//	return 0, fmt.Errorf("failed to measure request latency after %d attempts", maxRetries)
-//}
-
 func cleanupHAProxy(m *e2e.Minikube, haProxyControllerNamespace string) {
 	_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
 	// check if clusterrole is still present
@@ -1612,4 +1553,626 @@ func int32Ptr(i int32) *int32 {
 
 func pathTypePtr(pathType networkingv1.PathType) *networkingv1.PathType {
 	return &pathType
+}
+
+func testNginxIngressDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testNginxIngressDiscovery because it is using role binding, and is therefore not supported")
+		return
+	}
+	log.Info().Msg("Starting testNginxIngressDiscovery")
+	const nginxControllerNamespace = "nginx-controller"
+	ctx, cancel := context.WithTimeout(context.Background(), 1800*time.Second)
+	defer cancel()
+
+	// Initialize NGINX Ingress Controller and test resources
+	nginxService, testAppName, _, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxControllerNamespace, "", "")
+	defer func() { _ = m.DeleteDeployment(appDeployment) }()
+	defer func() { _ = m.DeleteService(appService) }()
+	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() {
+		cleanupNginxIngress(m, nginxControllerNamespace)
+	}()
+
+	// Test that we can find the NGINX Ingress target
+	nginx, err := e2e.PollForTarget(ctx, e, extingress.NginxIngressTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
+	})
+	require.NoError(t, err)
+	assert.Equal(t, nginx.TargetType, extingress.NginxIngressTargetType)
+	assert.Equal(t, nginx.Attributes["k8s.ingress"][0], testAppName)
+	assert.Contains(t, nginx.Attributes["k8s.ingress.controller"][0], "ingress-nginx")
+	assert.Equal(t, nginx.Attributes["k8s.ingress.class"][0], "nginx")
+
+	// Verify the application is accessible through NGINX Ingress
+	err = checkStatusCode(t, m, nginxService, "/", 200)
+	require.NoError(t, err)
+	log.Info().Msg("Application is accessible through NGINX Ingress")
+}
+
+func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testNginxBlockTraffic because it is using role binding, and is therefore not supported")
+		return
+	}
+	log.Info().Msg("Starting testNginxBlockTraffic")
+	const nginxControllerNamespace = "nginx-controller"
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	// Initialize NGINX Ingress Controller and test resources
+	nginxService, _, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxControllerNamespace, "", "")
+	defer func() { _ = m.DeleteDeployment(appDeployment) }()
+	defer func() { _ = m.DeleteService(appService) }()
+	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() {
+		cleanupNginxIngress(m, nginxControllerNamespace)
+	}()
+
+	// Verify the application is accessible before starting tests
+	err := checkStatusCode(t, m, nginxService, "/", 200)
+	require.NoError(t, err)
+	log.Info().Msg("Application is accessible through NGINX Ingress before tests")
+
+	// Define test cases
+	tests := []struct {
+		name                 string
+		testPath             string
+		responseStatusCode   int
+		conditionPathPattern string
+		conditionHttpMethod  string
+		conditionHttpHeader  []interface{}
+		requestHeaders       map[string]string
+		isEnterpriseNginx    bool
+		wantedBlock          bool
+	}{
+		{
+			name:                 "should block traffic for the specified path",
+			testPath:             "/",
+			conditionPathPattern: "/",
+			responseStatusCode:   503,
+			wantedBlock:          true,
+		},
+		{
+			name:                 "should block traffic for a specific endpoint",
+			testPath:             "/",
+			conditionPathPattern: "/api",
+			responseStatusCode:   200,
+			wantedBlock:          false, // We're requesting /, so /api block shouldn't affect us
+		},
+		{
+			name:                "should block traffic for a http method",
+			testPath:            "/",
+			conditionHttpMethod: "GET",
+			responseStatusCode:  503,
+			wantedBlock:         true,
+		},
+		{
+			name:                "should not block traffic for a http method",
+			testPath:            "/",
+			conditionHttpMethod: "DELETE",
+			responseStatusCode:  200,
+			wantedBlock:         false, // We're requesting DELETE, so / block shouldn't affect us
+		},
+		{
+			name:                 "should block traffic for a http method and path",
+			testPath:             "/",
+			conditionHttpMethod:  "GET",
+			conditionPathPattern: "/",
+			responseStatusCode:   501,
+			wantedBlock:          true,
+		},
+		{
+			name:                 "should not block traffic for a http method and path",
+			testPath:             "/",
+			conditionHttpMethod:  "DELETE",
+			conditionPathPattern: "/",
+			responseStatusCode:   200,
+			wantedBlock:          false, // We're requesting DELETE, so / block shouldn't affect us
+		},
+		{
+			name:     "should block traffic for a specific header",
+			testPath: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			},
+			requestHeaders:     map[string]string{"User-Agent": "Mozilla/5.0"},
+			responseStatusCode: 501,
+			wantedBlock:        true,
+		},
+		{
+			name:                 "should block traffic with combined header and path conditions",
+			testPath:             "/",
+			conditionPathPattern: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			requestHeaders:     map[string]string{"Content-Type": "application/json"},
+			responseStatusCode: 451,
+			wantedBlock:        true,
+		},
+		{
+			name:     "should not block traffic when header doesn't match",
+			testPath: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "X-Test-Header", "value": "specific-value"},
+			},
+			requestHeaders:     map[string]string{"X-Test-Header": "other-value"},
+			responseStatusCode: 200,
+			wantedBlock:        false, // We're not sending X-Test-Header
+		},
+		{
+			name:                 "should block traffic with combined conditions",
+			testPath:             "/",
+			conditionPathPattern: "/",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			requestHeaders:     map[string]string{"Content-Type": "application/json"},
+			responseStatusCode: 451,
+			wantedBlock:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Apply block traffic action
+			config := struct {
+				Duration             int           `json:"duration"`
+				ResponseStatusCode   int           `json:"responseStatusCode"`
+				ConditionPathPattern string        `json:"conditionPathPattern"`
+				ConditionHttpMethod  string        `json:"conditionHttpMethod"`
+				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader"`
+				IsEnterpriseNginx    bool          `json:"isEnterpriseNginx"`
+			}{
+				Duration:             30000,
+				ResponseStatusCode:   tt.responseStatusCode,
+				ConditionPathPattern: tt.conditionPathPattern,
+				ConditionHttpMethod:  tt.conditionHttpMethod,
+				ConditionHttpHeader:  tt.conditionHttpHeader,
+				IsEnterpriseNginx:    tt.isEnterpriseNginx,
+			}
+
+			//log.Info().Msgf("Applying NGINX block traffic action for path %s", tt.conditionPathtern)
+			action, err := e.RunAction(extingress.NginxBlockTrafficActionId, ingressTarget, config, nil)
+			require.NoError(t, err)
+			defer func() { _ = action.Cancel() }()
+
+			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+
+			// Verify block
+			expectedStatusCode := tt.responseStatusCode
+			if !tt.wantedBlock {
+				expectedStatusCode = 200
+			}
+
+			// Check status code with headers if needed
+			if len(tt.requestHeaders) > 0 {
+				err = checkStatusCode(t, m, nginxService, tt.testPath, expectedStatusCode, tt.requestHeaders)
+			} else {
+				err = checkStatusCode(t, m, nginxService, tt.testPath, expectedStatusCode)
+			}
+
+			require.NoError(t, err)
+			if tt.wantedBlock {
+				log.Info().Msgf("Path %s is blocked with status %d as expected", tt.testPath, expectedStatusCode)
+			} else {
+				log.Info().Msgf("Path %s is not blocked, received status 200 as expected", tt.testPath)
+			}
+
+			// Cancel the action
+			require.NoError(t, action.Cancel())
+
+			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+
+			// Verify service is not blocked anymore
+			err = checkStatusCode(t, m, nginxService, "/", 200)
+			require.NoError(t, err, "Service should not be blocked anymore")
+		})
+	}
+}
+
+func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, nginxControllerNamespace string, imageName string, imageTag string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
+	// Step 1: Deploy NGINX Ingress Controller
+	log.Info().Msg("Deploying NGINX Ingress Controller")
+	out, err := exec.Command("helm", "repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx").CombinedOutput()
+	require.NoError(t, err, "Failed to add NGINX Helm repo: %s", out)
+	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
+	require.NoError(t, err, "Failed to update Helm repos: %s", out)
+	args := []string{
+		"upgrade", "--install", "nginx-ingress", "ingress-nginx/ingress-nginx",
+		"--create-namespace",
+		"--namespace", nginxControllerNamespace,
+		"--kube-context", m.Profile,
+		"--set", "controller.service.type=NodePort",
+		"--set", "controller.ingressClassResource.name=nginx",
+		"--set", "controller.ingressClassResource.default=true",
+		"--set", "controller.config.allow-snippet-annotations=true",
+		"--set", "controller.config.annotations-risk-level=Critical",
+		"--set", "controller.config.custom-http-snippet=\"load_module /etc/nginx/modules/ngx_steadybit_sleep_module.so;\"",
+	}
+
+	if imageName != "" {
+		args = append(args, "--set", "controller.image.repository="+imageName)
+		// Clear the digest to prevent SHA256 conflicts
+		args = append(args, "--set", "controller.image.digest=")
+	}
+	if imageTag != "" {
+		args = append(args, "--set", "controller.image.tag="+imageTag)
+	}
+
+	out, err = exec.Command("helm", args...).CombinedOutput()
+	require.NoError(t, err, "Failed to deploy NGINX Ingress Controller: %s", out)
+
+	// Wait for NGINX ingress controller to be ready
+	log.Info().Msg("Waiting for NGINX Ingress Controller to be ready")
+	err = waitForNginxIngressController(m, ctx, nginxControllerNamespace)
+	require.NoError(t, err)
+
+	// Step 2: Create a test deployment with service
+	log.Info().Msg("Creating test deployment")
+	testAppName := "nginx-ingress-test"
+
+	// Create deployment
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: int32Ptr(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": testAppName,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": testAppName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "nginx",
+							Image: "nginx:stable-alpine",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	appDeployment, _, err := m.CreateDeployment(deployment)
+	require.NoError(t, err)
+
+	service := acorev1.Service(testAppName, "default").
+		WithLabels(map[string]string{
+			"app": testAppName,
+		}).
+		WithSpec(acorev1.ServiceSpec().
+			WithSelector(map[string]string{
+				"app": testAppName,
+			}).
+			WithPorts(acorev1.ServicePort().
+				WithPort(80).
+				WithTargetPort(intstr.FromInt32(80)),
+			),
+		)
+
+	appService, err := m.CreateService(service)
+	require.NoError(t, err)
+
+	// Step 3: Create ingress resource
+	log.Info().Msg("Creating ingress resource")
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "nginx",
+			},
+		},
+		Spec: networkingv1.IngressSpec{
+			IngressClassName: extutil.Ptr("nginx"),
+			Rules: []networkingv1.IngressRule{
+				{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
+								{
+									Path:     "/",
+									PathType: pathTypePtr(networkingv1.PathTypePrefix),
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: testAppName,
+											Port: networkingv1.ServiceBackendPort{
+												Number: 80,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	appIngress, err := m.CreateIngress(ingress)
+	require.NoError(t, err)
+
+	// Get NGINX Ingress target
+	log.Info().Msg("Finding NGINX Ingress target")
+	var ingressTarget *action_kit_api.Target
+	discoveryTarget, err := e2e.PollForTarget(ctx, e, extingress.NginxIngressTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.ingress", testAppName)
+	})
+	require.NoError(t, err, "Failed to find NGINX ingress target")
+	ingressTarget = &action_kit_api.Target{
+		Attributes: discoveryTarget.Attributes,
+	}
+
+	// Find NGINX Service
+	log.Info().Msg("Finding NGINX Service")
+	nginxServiceName, err := findServiceNameInNamespace(m, nginxControllerNamespace)
+	require.NoError(t, err, "Failed to find NGINX service")
+
+	nginxService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      nginxServiceName,
+			Namespace: nginxControllerNamespace,
+		},
+	}
+
+	return nginxService, testAppName, ingressTarget, appDeployment, appService, appIngress
+}
+
+func waitForNginxIngressController(m *e2e.Minikube, ctx context.Context, namespace string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+			pods, err := m.GetClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to check NGINX controller status in namespace %s", namespace)
+				continue
+			}
+
+			allReady := false
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, "controller") {
+					for _, containerStatus := range pod.Status.ContainerStatuses {
+						if containerStatus.Ready && pod.Status.Phase == corev1.PodRunning {
+							allReady = true
+							break
+						}
+					}
+					if allReady {
+						break
+					}
+				}
+			}
+
+			if allReady {
+				log.Info().Msgf("NGINX controller is ready in namespace %s", namespace)
+				return nil
+			}
+			log.Info().Msgf("Waiting for NGINX controller in namespace %s to be ready...", namespace)
+		}
+	}
+}
+
+func cleanupNginxIngress(m *e2e.Minikube, nginxControllerNamespace string) {
+	_ = exec.Command("helm", "uninstall", "nginx-ingress", "--namespace", nginxControllerNamespace, "--kube-context", m.Profile).Run()
+	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxControllerNamespace, "--ignore-not-found").Run()
+}
+
+func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testNginxDelayTraffic because it is using role binding, and is therefore not supported")
+		return
+	}
+	log.Info().Msg("Starting testNginxDelayTraffic")
+	const nginxNamespace = "nginx-ingress"
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	// Initialize Ingress NGINX  Controller and test resources
+	nginxService, testAppName, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxNamespace, "ghcr.io/steadybit/ingress-nginx-controller-with-steadybit-module", "main-community-v1.13.0")
+	defer func() { _ = m.DeleteDeployment(appDeployment) }()
+	defer func() { _ = m.DeleteService(appService) }()
+	defer func() { _ = m.DeleteIngress(appIngress) }()
+	defer func() {
+		cleanupNginxIngress(m, nginxNamespace)
+	}()
+
+	// Measure baseline latency
+	baselineLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	require.NoError(t, err)
+	log.Info().Msgf("Baseline latency: %v", baselineLatency)
+
+	// Define delay parameters
+	delayMs := 500
+	tests := []struct {
+		name                 string
+		responseDelay        int
+		conditionPathPattern string
+		conditionHttpMethod  string
+		conditionHttpHeader  []interface{}
+		requestPath          string
+		requestHeaders       map[string]string
+		requestMethod        string
+		wantedDelay          bool
+	}{
+		{
+			name:                 "should delay traffic for the specified path",
+			requestPath:          "/",
+			conditionPathPattern: "/",
+			responseDelay:        delayMs,
+			wantedDelay:          true,
+		},
+		{
+			name:                 "should not delay traffic for mismatched path",
+			requestPath:          "/",
+			conditionPathPattern: "/api",
+			responseDelay:        delayMs,
+			wantedDelay:          false,
+		},
+		{
+			name:                "should delay traffic for specified HTTP method",
+			requestPath:         "/",
+			responseDelay:       delayMs,
+			conditionHttpMethod: "GET",
+			wantedDelay:         true,
+		},
+		{
+			name:                "should not delay traffic for mismatched HTTP method",
+			requestPath:         "/",
+			conditionHttpMethod: "POST",
+			wantedDelay:         false,
+		},
+		{
+			name:        "should delay traffic for specified HTTP header",
+			requestPath: "/",
+			requestHeaders: map[string]string{
+				"User-Agent": "Mozilla/5.0",
+			},
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			},
+			responseDelay: delayMs,
+			wantedDelay:   true,
+		},
+		{
+			name:        "should not delay traffic for mismatched HTTP header",
+			requestPath: "/",
+			requestHeaders: map[string]string{
+				"User-Agent": "Chrome/90.0",
+			},
+			responseDelay: delayMs,
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			},
+			wantedDelay: false,
+		},
+		{
+			name:          "should delay traffic for combined conditions (all match)",
+			requestPath:   "/",
+			requestMethod: "GET",
+			requestHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
+			responseDelay:        delayMs,
+			conditionPathPattern: "/",
+			conditionHttpMethod:  "GET",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			wantedDelay: true,
+		},
+		{
+			name:          "should not delay traffic for combined conditions (one mismatch)",
+			requestPath:   "/",
+			requestMethod: "GET", // Mismatch - config requires POST
+			requestHeaders: map[string]string{
+				"Content-Type": "application/json",
+			},
+			responseDelay:        delayMs,
+			conditionPathPattern: ".*",
+			conditionHttpMethod:  "POST",
+			conditionHttpHeader: []interface{}{
+				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			},
+			wantedDelay: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Apply delay traffic action
+			config := struct {
+				Duration             int           `json:"duration"`
+				ResponseDelay        int           `json:"responseDelay"`
+				ConditionPathPattern string        `json:"conditionPathPattern,omitempty"`
+				ConditionHttpMethod  string        `json:"conditionHttpMethod,omitempty"`
+				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader,omitempty"`
+			}{
+				Duration:             30000,
+				ResponseDelay:        tt.responseDelay,
+				ConditionPathPattern: tt.conditionPathPattern,
+				ConditionHttpMethod:  tt.conditionHttpMethod,
+				ConditionHttpHeader:  tt.conditionHttpHeader,
+			}
+
+			log.Info().Msgf("Applying delay of %dms to path %s", tt.responseDelay, tt.conditionPathPattern)
+			action, err := e.RunAction(extingress.NginxDelayTrafficActionId, ingressTarget, config, nil)
+			require.NoError(t, err)
+			defer func() { _ = action.Cancel() }()
+
+			// Measure latency during delay
+			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+
+			// Use the correct method and headers for the test
+			var delayedLatency time.Duration
+			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
+				delayedLatency, err = measureRequestLatencyWithOptions(
+					m,
+					nginxService,
+					testAppName+".local",
+					tt.requestPath,
+					tt.requestMethod,
+					tt.requestHeaders,
+				)
+			} else {
+				delayedLatency, err = measureRequestLatency(m, nginxService, testAppName+".local")
+			}
+			require.NoError(t, err)
+			log.Info().Msgf("Latency during delay test: %v", delayedLatency)
+
+			// Verify delay
+			if tt.wantedDelay {
+				// Check that delay is applied (with some tolerance)
+				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
+				assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
+				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
+			} else {
+				// Latency shouldn't change significantly
+				maxExpectedLatency := baselineLatency + 100*time.Millisecond // Allow for some small variance
+				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not increase significantly")
+			}
+
+			// Cancel the action
+			require.NoError(t, action.Cancel())
+
+			// Measure latency after cancellation
+			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+			var afterLatency time.Duration
+			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
+				afterLatency, err = measureRequestLatencyWithOptions(
+					m,
+					nginxService,
+					testAppName+".local",
+					tt.requestPath,
+					tt.requestMethod,
+					tt.requestHeaders,
+				)
+			} else {
+				afterLatency, err = measureRequestLatency(m, nginxService, testAppName+".local")
+			}
+			require.NoError(t, err)
+			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
+
+			// Verify latency returned to normal
+			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+			assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
+		})
+	}
 }
