@@ -130,7 +130,7 @@ func getNginxEndMarker(executionId uuid.UUID) string {
 // getNginxVariablePrefix generates a unique variable prefix based on execution ID
 func getNginxVariablePrefix(executionId uuid.UUID) string {
 	// Use only the first 8 characters of the UUID (without hyphens) to keep variable names manageable
-	return strings.Replace(executionId.String()[:8], "-", "", -1)
+	return strings.Replace(executionId.String(), "-", "", -1)
 }
 
 // getNginxUniqueVariableName generates a unique NGINX variable name
