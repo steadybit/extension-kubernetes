@@ -1790,7 +1790,6 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 		"--set", "controller.config.allow-snippet-annotations=true",
 		"--set", "controller.config.annotations-risk-level=Critical",
 		"--set", "controller.config.custom-http-snippet=\"load_module /etc/nginx/modules/ngx_steadybit_sleep_module.so;\"",
-		"--set", "controller.configSnippet=\"load_module /etc/nginx/modules/ngx_steadybit_sleep_module.so;\"",
 	}
 
 	if imageName != "" {
