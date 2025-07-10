@@ -7,6 +7,7 @@ package extingress
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 	"testing"
 	"time"
@@ -44,7 +45,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 			},
 			want: NginxBlockTrafficState{
 				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUID,
+					ExecutionId: testUUIDBlock,
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
@@ -62,7 +63,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 			},
 			want: NginxBlockTrafficState{
 				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUID,
+					ExecutionId: testUUIDBlock,
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
@@ -81,7 +82,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 			},
 			want: NginxBlockTrafficState{
 				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUID,
+					ExecutionId: testUUIDBlock,
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
@@ -104,7 +105,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 			},
 			want: NginxBlockTrafficState{
 				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUID,
+					ExecutionId: testUUIDBlock,
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
@@ -159,6 +160,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 }
 
 // Fixed test UUID for predictable test results
+var testUUIDBlock = uuid.MustParse("00000000-0000-0000-0000-000000000000")
 
 // setupNginxTestEnvironment creates and configures the test environment for NGINX
 func setupNginxTestEnvironment(t *testing.T) *testEnvironment {
@@ -216,7 +218,7 @@ func createNginxIngress(t *testing.T, clientset kubernetes.Interface, name, conf
 // createNginxTestRequest creates a test request with the given ingress name and config
 func createNginxTestRequest(ingressName string, config map[string]interface{}) action_kit_api.PrepareActionRequestBody {
 	return action_kit_api.PrepareActionRequestBody{
-		ExecutionId: testUUID,
+		ExecutionId: testUUIDBlock,
 		Config:      config,
 		Target: extutil.Ptr(action_kit_api.Target{
 			Attributes: map[string][]string{
