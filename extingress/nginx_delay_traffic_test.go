@@ -222,7 +222,10 @@ func TestNginxDelayTrafficAction_PrepareFluentChaining(t *testing.T) {
 	assert.Contains(t, state.AnnotationConfig, "if ($request_uri ~* /api/users)")
 	assert.Contains(t, state.AnnotationConfig, "if ($request_method != POST)")
 	assert.Contains(t, state.AnnotationConfig, "if ($http_content_type !~* application/json)")
-	assert.Contains(t, state.AnnotationConfig, "sb_sleep_ms $sb_sleep_ms_duration")
+
+	// Check for unique variable names based on execution ID
+	expectedSleepDurationVar := getNginxUniqueVariableName(state.ExecutionId, "sleep_ms_duration")
+	assert.Contains(t, state.AnnotationConfig, fmt.Sprintf("sb_sleep_ms %s", expectedSleepDurationVar))
 }
 
 // Test Helpers
@@ -304,6 +307,15 @@ func assertNginxDelayStateMatches(t *testing.T, expected, actual NginxDelayTraff
 	assert.Contains(t, actual.AnnotationConfig, "# BEGIN STEADYBIT")
 	assert.Contains(t, actual.AnnotationConfig, "# END STEADYBIT")
 	assert.Contains(t, actual.AnnotationConfig, "sb_sleep_ms")
+
+	// Generate expected unique variable names for this execution
+	expectedShouldDelayVar := getNginxUniqueVariableName(actual.ExecutionId, "should_delay")
+	expectedSleepDurationVar := getNginxUniqueVariableName(actual.ExecutionId, "sleep_ms_duration")
+
+	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("set %s", expectedShouldDelayVar))
+	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("set %s", expectedSleepDurationVar))
+	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("if (%s = 1)", expectedShouldDelayVar))
+	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("sb_sleep_ms %s", expectedSleepDurationVar))
 
 	if actual.ConditionPathPattern != "" {
 		assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("$request_uri ~* %s", actual.ConditionPathPattern))

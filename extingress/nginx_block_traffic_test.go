@@ -243,6 +243,11 @@ func assertNginxBlockStateMatches(t *testing.T, expected, actual NginxBlockTraff
 	assert.Contains(t, actual.AnnotationConfig, "# END STEADYBIT")
 	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("return %d", actual.ResponseStatusCode))
 
+	// Generate expected unique variable name for this execution
+	expectedShouldBlockVar := getNginxUniqueVariableName(actual.ExecutionId, "should_block")
+	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("set %s", expectedShouldBlockVar))
+	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("if (%s = 1)", expectedShouldBlockVar))
+
 	if actual.ConditionPathPattern != "" {
 		if actual.IsEnterpriseNginx {
 			assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("location ~ %s", actual.ConditionPathPattern))

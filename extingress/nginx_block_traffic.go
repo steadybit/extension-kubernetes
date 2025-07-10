@@ -156,13 +156,16 @@ func buildNginxBlockConfig(state *NginxBlockTrafficState) string {
 func buildNginxConfig(state *NginxBlockTrafficState) string {
 	var configBuilder strings.Builder
 
+	// Generate unique variable names based on execution ID
+	shouldBlockVar := getNginxUniqueVariableName(state.ExecutionId, "should_block")
+
 	// Initialize the blocking flag
-	configBuilder.WriteString("set $should_block 0;\n")
+	configBuilder.WriteString(fmt.Sprintf("set %s 0;\n", shouldBlockVar))
 
 	// Add path pattern condition if provided
 	if state.ConditionPathPattern != "" {
 		configBuilder.WriteString(fmt.Sprintf("if ($request_uri ~* %s) {\n", state.ConditionPathPattern))
-		configBuilder.WriteString("  set $should_block 1;\n")
+		configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldBlockVar))
 		configBuilder.WriteString("}\n")
 	}
 
@@ -171,13 +174,13 @@ func buildNginxConfig(state *NginxBlockTrafficState) string {
 		if state.ConditionPathPattern == "" {
 			// If no path specified, simply set should_block based on method
 			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString("  set $should_block 1;\n")
+			configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldBlockVar))
 			configBuilder.WriteString("}\n")
 		} else {
 			// When path is also specified, we need to check if the method matches too
 			// This ensures we only block when both path AND method match
 			configBuilder.WriteString(fmt.Sprintf("if ($request_method != %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString("  set $should_block 0; # Reset if method doesn't match\n")
+			configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if method doesn't match\n", shouldBlockVar))
 			configBuilder.WriteString("}\n")
 		}
 	}
@@ -189,7 +192,7 @@ func buildNginxConfig(state *NginxBlockTrafficState) string {
 			for headerName, headerValue := range state.ConditionHttpHeader {
 				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
 				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString("  set $should_block 1;\n")
+				configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldBlockVar))
 				configBuilder.WriteString("}\n")
 			}
 		} else {
@@ -198,14 +201,14 @@ func buildNginxConfig(state *NginxBlockTrafficState) string {
 			for headerName, headerValue := range state.ConditionHttpHeader {
 				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
 				configBuilder.WriteString(fmt.Sprintf("if ($http_%s !~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString("  set $should_block 0; # Reset if header doesn't match\n")
+				configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if header doesn't match\n", shouldBlockVar))
 				configBuilder.WriteString("}\n")
 			}
 		}
 	}
 
 	// Apply the block if conditions matched
-	configBuilder.WriteString("if ($should_block = 1) {\n")
+	configBuilder.WriteString(fmt.Sprintf("if (%s = 1) {\n", shouldBlockVar))
 	configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
 	configBuilder.WriteString("}\n")
 

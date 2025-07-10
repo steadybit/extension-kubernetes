@@ -14,6 +14,7 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	networkingv1 "k8s.io/api/networking/v1"
+	"strings"
 )
 
 // Action IDs and constants for NGINX actions
@@ -124,4 +125,15 @@ func getNginxStartMarker(executionId uuid.UUID) string {
 
 func getNginxEndMarker(executionId uuid.UUID) string {
 	return fmt.Sprintf("# END STEADYBIT - %s", executionId)
+}
+
+// getNginxVariablePrefix generates a unique variable prefix based on execution ID
+func getNginxVariablePrefix(executionId uuid.UUID) string {
+	// Use only the first 8 characters of the UUID (without hyphens) to keep variable names manageable
+	return strings.Replace(executionId.String()[:8], "-", "", -1)
+}
+
+// getNginxUniqueVariableName generates a unique NGINX variable name
+func getNginxUniqueVariableName(executionId uuid.UUID, baseName string) string {
+	return fmt.Sprintf("$sb_%s_%s", baseName, getNginxVariablePrefix(executionId))
 }

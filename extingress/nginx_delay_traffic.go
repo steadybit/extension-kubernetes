@@ -181,13 +181,17 @@ func buildNginxDelayConfig(state *NginxDelayTrafficState) string {
 func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 	var configBuilder strings.Builder
 
+	// Generate unique variable names based on execution ID
+	shouldDelayVar := getNginxUniqueVariableName(state.ExecutionId, "should_delay")
+	sleepDurationVar := getNginxUniqueVariableName(state.ExecutionId, "sleep_ms_duration")
+
 	// Initialize the delay flag
-	configBuilder.WriteString("set $should_delay 0;\n")
+	configBuilder.WriteString(fmt.Sprintf("set %s 0;\n", shouldDelayVar))
 
 	// Add path pattern condition if provided
 	if state.ConditionPathPattern != "" {
 		configBuilder.WriteString(fmt.Sprintf("if ($request_uri ~* %s) {\n", state.ConditionPathPattern))
-		configBuilder.WriteString("  set $should_delay 1;\n")
+		configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldDelayVar))
 		configBuilder.WriteString("}\n")
 	}
 
@@ -196,13 +200,13 @@ func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 		if state.ConditionPathPattern == "" {
 			// If no path specified, simply set should_delay based on method
 			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString("  set $should_delay 1;\n")
+			configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldDelayVar))
 			configBuilder.WriteString("}\n")
 		} else {
 			// When path is also specified, we need to check if the method matches too
 			// This ensures we only delay when both path AND method match
 			configBuilder.WriteString(fmt.Sprintf("if ($request_method != %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString("  set $should_delay 0; # Reset if method doesn't match\n")
+			configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if method doesn't match\n", shouldDelayVar))
 			configBuilder.WriteString("}\n")
 		}
 	}
@@ -214,7 +218,7 @@ func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 			for headerName, headerValue := range state.ConditionHttpHeader {
 				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
 				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString("  set $should_delay 1;\n")
+				configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldDelayVar))
 				configBuilder.WriteString("}\n")
 			}
 		} else {
@@ -223,18 +227,18 @@ func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 			for headerName, headerValue := range state.ConditionHttpHeader {
 				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
 				configBuilder.WriteString(fmt.Sprintf("if ($http_%s !~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString("  set $should_delay 0; # Reset if header doesn't match\n")
+				configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if header doesn't match\n", shouldDelayVar))
 				configBuilder.WriteString("}\n")
 			}
 		}
 	}
 
 	// Set up a variable for the delay and then apply it unconditionally
-	configBuilder.WriteString("set $sb_sleep_ms_duration 0;\n")
-	configBuilder.WriteString("if ($should_delay = 1) {\n")
-	configBuilder.WriteString(fmt.Sprintf("  set $sb_sleep_ms_duration %d;\n", state.ResponseDelay))
+	configBuilder.WriteString(fmt.Sprintf("set %s 0;\n", sleepDurationVar))
+	configBuilder.WriteString(fmt.Sprintf("if (%s = 1) {\n", shouldDelayVar))
+	configBuilder.WriteString(fmt.Sprintf("  set %s %d;\n", sleepDurationVar, state.ResponseDelay))
 	configBuilder.WriteString("}\n")
-	configBuilder.WriteString("sb_sleep_ms $sb_sleep_ms_duration;\n")
+	configBuilder.WriteString(fmt.Sprintf("sb_sleep_ms %s;\n", sleepDurationVar))
 
 	return configBuilder.String()
 }
