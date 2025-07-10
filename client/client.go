@@ -328,6 +328,11 @@ func (c *Client) Nodes() []*corev1.Node {
 }
 
 func (c *Client) Events(since time.Time) *[]corev1.Event {
+	// Check if event informer is initialized (may be nil in tests)
+	if c.event.informer == nil {
+		return &[]corev1.Event{}
+	}
+
 	events := c.event.informer.GetIndexer().List()
 	//filter events by time
 	result := filterEvents(events, since)
