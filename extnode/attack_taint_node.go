@@ -42,7 +42,7 @@ func getTaintNodeDescription() action_kit_api.ActionDescription {
 			{
 				Label:        "Duration",
 				Name:         "duration",
-				Type:         action_kit_api.Duration,
+				Type:         action_kit_api.ActionParameterTypeDuration,
 				Description:  extutil.Ptr("The duration of the action. The taint will be removed after the action."),
 				Advanced:     extutil.Ptr(false),
 				Required:     extutil.Ptr(true),
@@ -52,7 +52,7 @@ func getTaintNodeDescription() action_kit_api.ActionDescription {
 			{
 				Label:       "Key",
 				Name:        "key",
-				Type:        action_kit_api.String,
+				Type:        action_kit_api.ActionParameterTypeString,
 				Description: extutil.Ptr("The key of the taint."),
 				Advanced:    extutil.Ptr(false),
 				Required:    extutil.Ptr(true),
@@ -61,7 +61,7 @@ func getTaintNodeDescription() action_kit_api.ActionDescription {
 			{
 				Label:       "Value",
 				Name:        "value",
-				Type:        action_kit_api.String,
+				Type:        action_kit_api.ActionParameterTypeString,
 				Description: extutil.Ptr("The optional value of the taint."),
 				Advanced:    extutil.Ptr(false),
 				Required:    extutil.Ptr(false),
@@ -70,7 +70,7 @@ func getTaintNodeDescription() action_kit_api.ActionDescription {
 			{
 				Label:        "Effect",
 				Name:         "effect",
-				Type:         action_kit_api.String,
+				Type:         action_kit_api.ActionParameterTypeString,
 				Description:  extutil.Ptr("The effect of the taint."),
 				Advanced:     extutil.Ptr(false),
 				Required:     extutil.Ptr(true),

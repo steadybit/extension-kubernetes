@@ -34,7 +34,7 @@ func getDrainNodeDescription() action_kit_api.ActionDescription {
 			{
 				Label:        "Duration",
 				Name:         "duration",
-				Type:         action_kit_api.Duration,
+				Type:         action_kit_api.ActionParameterTypeDuration,
 				Description:  extutil.Ptr("The duration of the action. The node will be uncordoned after the action."),
 				Advanced:     extutil.Ptr(false),
 				Required:     extutil.Ptr(true),

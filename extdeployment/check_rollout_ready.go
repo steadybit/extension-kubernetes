@@ -70,7 +70,7 @@ func (f CheckDeploymentRolloutStatusAction) Describe() action_kit_api.ActionDesc
 				Label:        "Timeout",
 				Description:  extutil.Ptr("Maximum time to wait for the rollout to be rolled out completely."),
 				Name:         "duration",
-				Type:         action_kit_api.Duration,
+				Type:         action_kit_api.ActionParameterTypeDuration,
 				Advanced:     extutil.Ptr(false),
 				DefaultValue: extutil.Ptr("10m"),
 			},

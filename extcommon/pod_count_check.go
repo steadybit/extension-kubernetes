@@ -70,7 +70,7 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType:          f.TargetType,
-			QuantityRestriction: extutil.Ptr(action_kit_api.All),
+			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionAll),
 			SelectionTemplates:  f.SelectionTemplates,
 		}),
 		Parameters: []action_kit_api.ActionParameter{
@@ -78,7 +78,7 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Name:         "duration",
 				Label:        "Timeout",
 				Description:  extutil.Ptr("How long should the check wait for the specified pod count."),
-				Type:         action_kit_api.Duration,
+				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: extutil.Ptr("10s"),
 				Order:        extutil.Ptr(1),
 				Required:     extutil.Ptr(true),
@@ -87,7 +87,7 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Name:         "podCountCheckMode",
 				Label:        "Pod count",
 				Description:  extutil.Ptr("How many pods are required to let the check pass."),
-				Type:         action_kit_api.String,
+				Type:         action_kit_api.ActionParameterTypeString,
 				DefaultValue: extutil.Ptr("podCountEqualsDesiredCount"),
 				Order:        extutil.Ptr(2),
 				Required:     extutil.Ptr(true),

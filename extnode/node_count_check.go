@@ -64,7 +64,7 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType:          extcluster.ClusterTargetType,
-			QuantityRestriction: extutil.Ptr(action_kit_api.ExactlyOne),
+			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionExactlyOne),
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "cluster name",
@@ -78,7 +78,7 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Name:         "duration",
 				Label:        "Timeout",
 				Description:  extutil.Ptr("How long should the check wait for the specified node count."),
-				Type:         action_kit_api.Duration,
+				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: extutil.Ptr("10s"),
 				Order:        extutil.Ptr(1),
 				Required:     extutil.Ptr(true),
@@ -87,7 +87,7 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Name:         "nodeCount",
 				Label:        "Node count",
 				Description:  extutil.Ptr("How many nodes are required or should change to let the check pass."),
-				Type:         action_kit_api.Integer,
+				Type:         action_kit_api.ActionParameterTypeInteger,
 				DefaultValue: extutil.Ptr("1"),
 				Order:        extutil.Ptr(2),
 				Required:     extutil.Ptr(true),
@@ -96,7 +96,7 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Name:         "nodeCountCheckMode",
 				Label:        "Check type",
 				Description:  extutil.Ptr("How should the node count change?"),
-				Type:         action_kit_api.String,
+				Type:         action_kit_api.ActionParameterTypeString,
 				DefaultValue: extutil.Ptr(nodeCountAtLeast),
 				Order:        extutil.Ptr(2),
 				Required:     extutil.Ptr(true),

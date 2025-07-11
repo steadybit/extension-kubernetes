@@ -55,7 +55,7 @@ func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 		TimeControl: action_kit_api.TimeControlInternal,
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType:          extcluster.ClusterTargetType,
-			QuantityRestriction: extutil.Ptr(action_kit_api.ExactlyOne),
+			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionExactlyOne),
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "cluster name",
@@ -69,7 +69,7 @@ func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 				Name:         "duration",
 				Label:        "Duration",
 				Description:  extutil.Ptr(""),
-				Type:         action_kit_api.Duration,
+				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: extutil.Ptr("60s"),
 				Order:        extutil.Ptr(1),
 				Required:     extutil.Ptr(true),

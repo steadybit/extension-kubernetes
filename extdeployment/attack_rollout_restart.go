@@ -67,14 +67,14 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 			{
 				Label:        "Wait for rollout completion",
 				Name:         "wait",
-				Type:         action_kit_api.Boolean,
+				Type:         action_kit_api.ActionParameterTypeBoolean,
 				Advanced:     extutil.Ptr(true),
 				DefaultValue: extutil.Ptr("false"),
 			},
 			{
 				Label:        "Fail on already running rollout",
 				Name:         "checkBefore",
-				Type:         action_kit_api.Boolean,
+				Type:         action_kit_api.ActionParameterTypeBoolean,
 				Advanced:     extutil.Ptr(true),
 				DefaultValue: extutil.Ptr("true"),
 			},

@@ -39,7 +39,7 @@ func getSetImageDescription() action_kit_api.ActionDescription {
 		Technology:  extutil.Ptr("Kubernetes"),
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType:          DeploymentTargetType,
-			QuantityRestriction: extutil.Ptr(action_kit_api.ExactlyOne),
+			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionExactlyOne),
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "Deployment",
