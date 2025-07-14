@@ -43,6 +43,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extevents"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
+	"github.com/steadybit/extension-kubernetes/v2/extreplicaset"
 	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
 	_ "go.uber.org/automaxprocs" // Importing automaxprocs automatically adjusts GOMAXPROCS.
 )
@@ -77,8 +78,16 @@ func main() {
 			action_kit_sdk.RegisterAction(extdeployment.NewScaleDeploymentAction())
 		}
 
-		if client.K8S.Permissions().IsSetImagePermitted() {
+		if client.K8S.Permissions().IsSetImageDeploymentPermitted() {
 			action_kit_sdk.RegisterAction(extdeployment.NewSetImageAction())
+		}
+	}
+
+	if !extconfig.Config.DiscoveryDisabledReplicaSet {
+		discovery_kit_sdk.Register(extreplicaset.NewReplicaSetDiscovery(client.K8S))
+		action_kit_sdk.RegisterAction(extreplicaset.NewReplicaSetPodCountCheckAction(client.K8S))
+		if client.K8S.Permissions().IsScaleReplicaSetPermitted() {
+			action_kit_sdk.RegisterAction(extreplicaset.NewScaleReplicaSetAction())
 		}
 	}
 

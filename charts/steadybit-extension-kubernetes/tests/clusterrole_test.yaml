@@ -4,3 +4,18 @@ tests:
   - it: manifest should match snapshot
     asserts:
       - matchSnapshot: { }
+  - it: manifest should match snapshot with some disabled features
+    set:
+      discovery:
+        disabled:
+          cluster: true
+          container: true
+          daemonSet: true
+          deployment: true
+          ingress: true
+          node: true
+          pod: true
+          replicaSet: false #default is true
+          statefulSet: true
+    asserts:
+      - matchSnapshot: { }

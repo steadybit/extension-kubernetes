@@ -66,25 +66,33 @@ spec:
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_CONTAINER
               value: {{ join "," .Values.discovery.attributes.excludes.container | quote }}
             {{- end }}
-            {{- if .Values.discovery.attributes.excludes.deployment }}
-            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DEPLOYMENT
-              value: {{ join "," .Values.discovery.attributes.excludes.deployment | quote }}
-            {{- end }}
             {{- if .Values.discovery.attributes.excludes.daemonSet }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DAEMON_SET
               value: {{ join "," .Values.discovery.attributes.excludes.daemonSet | quote }}
             {{- end }}
-            {{- if .Values.discovery.attributes.excludes.statefulSet }}
-            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_STATEFUL_SET
-              value: {{ join "," .Values.discovery.attributes.excludes.statefulSet | quote }}
+            {{- if .Values.discovery.attributes.excludes.deployment }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DEPLOYMENT
+              value: {{ join "," .Values.discovery.attributes.excludes.deployment | quote }}
+            {{- end }}
+            {{- if .Values.discovery.attributes.excludes.ingress }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_INGRESS
+              value: {{ join "," .Values.discovery.attributes.excludes.ingress | quote }}
+            {{- end }}
+            {{- if .Values.discovery.attributes.excludes.node }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_NODE
+              value: {{ join "," .Values.discovery.attributes.excludes.node | quote }}
             {{- end }}
             {{- if .Values.discovery.attributes.excludes.pod }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_POD
               value: {{ join "," .Values.discovery.attributes.excludes.pod | quote }}
             {{- end }}
-            {{- if .Values.discovery.attributes.excludes.node }}
-            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_NODE
-              value: {{ join "," .Values.discovery.attributes.excludes.node | quote }}
+            {{- if .Values.discovery.attributes.excludes.replicaSet }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_REPLICA_SET
+              value: {{ join "," .Values.discovery.attributes.excludes.replicaSet | quote }}
+            {{- end }}
+            {{- if .Values.discovery.attributes.excludes.statefulSet }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_STATEFUL_SET
+              value: {{ join "," .Values.discovery.attributes.excludes.statefulSet | quote }}
             {{- end }}
             {{- if .Values.discovery.disableExcludes }}
             - name: STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES
@@ -92,6 +100,42 @@ spec:
             {{- end }}
             {{- if .Values.discovery.disableAdvice }}
             - name: STEADYBIT_EXTENSION_DISABLE_ADVICE
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.cluster }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_CLUSTER
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.container }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_CONTAINER
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.daemonSet }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_DAEMON_SET
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.deployment }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_DEPLOYMENT
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.ingress }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_INGRESS
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.node }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_NODE
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.pod }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.replicaSet }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
+              value: "true"
+            {{- end }}
+            {{- if .Values.discovery.disabled.statefulSet }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
               value: "true"
             {{- end }}
             {{- with .Values.extraEnv }}

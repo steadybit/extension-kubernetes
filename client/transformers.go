@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -80,8 +81,10 @@ func transformReplicaSet(i interface{}) (interface{}, error) {
 	if rs, ok := i.(*appsv1.ReplicaSet); ok {
 		rs.ObjectMeta.Annotations = nil
 		rs.ObjectMeta.ManagedFields = nil
-		rs.Spec = appsv1.ReplicaSetSpec{}
-		rs.Status = appsv1.ReplicaSetStatus{}
+		if extconfig.Config.DiscoveryDisabledReplicaSet {
+			rs.Spec = appsv1.ReplicaSetSpec{}
+			rs.Status = appsv1.ReplicaSetStatus{}
+		}
 		return rs, nil
 	}
 	return i, nil

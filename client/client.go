@@ -271,6 +271,25 @@ func (c *Client) DaemonSetByNamespaceAndName(namespace string, name string) *app
 	return item
 }
 
+func (c *Client) ReplicaSets() []*appsv1.ReplicaSet {
+	if extconfig.HasNamespaceFilter() {
+		log.Info().Msgf("Fetching replicasets for namespace %s", extconfig.Config.Namespace)
+		replicaSets, err := c.replicaSet.lister.ReplicaSets(extconfig.Config.Namespace).List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching replicasets")
+			return []*appsv1.ReplicaSet{}
+		}
+		return replicaSets
+	} else {
+		replicaSets, err := c.replicaSet.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching replicasets")
+			return []*appsv1.ReplicaSet{}
+		}
+		return replicaSets
+	}
+}
+
 func (c *Client) ReplicaSetByNamespaceAndName(namespace string, name string) *appsv1.ReplicaSet {
 	item, err := c.replicaSet.lister.ReplicaSets(namespace).Get(name)
 	logGetError(fmt.Sprintf("replicaset %s/%s", namespace, name), err)

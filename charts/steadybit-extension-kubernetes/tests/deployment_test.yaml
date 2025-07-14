@@ -112,20 +112,44 @@ tests:
             container:
               - "k8s.label.*"
               - "attribute.123.container"
-            deployment:
-              - "k8s.label.*"
-              - "attribute.123.deployment"
             daemonSet:
               - "k8s.label.*"
               - "attribute.123.daemonSet"
-            statefulSet:
+            deployment:
               - "k8s.label.*"
-              - "attribute.123.statefulSet"
-            pod:
+              - "attribute.123.deployment"
+            ingress:
               - "k8s.label.*"
-              - "attribute.123.pod"
+              - "attribute.123.ingress"
             node:
               - "k8s.label.*"
               - "attribute.123.node"
+            pod:
+              - "k8s.label.*"
+              - "attribute.123.pod"
+            replicaSet:
+              - "k8s.label.*"
+              - "attribute.123.replicaSet"
+            statefulSet:
+              - "k8s.label.*"
+              - "attribute.123.statefulSet"
     asserts:
       - matchSnapshot: {}
+  - it: manifest should match snapshot with disabled discoveries
+    set:
+      kubernetes:
+        clusterName: test
+      discovery:
+        disabled:
+          cluster: true
+          container: true
+          daemonSet: true
+          deployment: true
+          ingress: true
+          node: true
+          pod: true
+          replicaSet: false #default is true
+          statefulSet: true
+    asserts:
+      - matchSnapshot: {}
+

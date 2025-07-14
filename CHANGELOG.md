@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.6.9 (Next)
+
+- Discovery, Pod Count Check and Set Scale Action for ReplicaSets
+
 ## v2.6.8
 
 - Improve the experiment suggestion of the memory limit advice

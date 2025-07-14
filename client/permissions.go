@@ -56,6 +56,7 @@ var requiredPermissions = []requiredPermission{
 	{group: "", resource: "events", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "apps", resource: "deployments", verbs: []string{"patch"}, allowGracefulFailure: true},
 	{group: "apps", resource: "deployments", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
+	{group: "apps", resource: "replicasets", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
 	{group: "apps", resource: "statefulsets", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
 	{group: "", resource: "pods", verbs: []string{"delete"}, allowGracefulFailure: true},
 	{group: "", resource: "pods", subresource: "eviction", verbs: []string{"create"}, allowGracefulFailure: true},
@@ -167,6 +168,14 @@ func (p *PermissionCheckResult) IsScaleDeploymentPermitted() bool {
 	})
 }
 
+func (p *PermissionCheckResult) IsScaleReplicaSetPermitted() bool {
+	return p.hasPermissions([]string{
+		"apps/replicasets/scale/get",
+		"apps/replicasets/scale/update",
+		"apps/replicasets/scale/patch",
+	})
+}
+
 func (p *PermissionCheckResult) IsScaleStatefulSetPermitted() bool {
 	return p.hasPermissions([]string{
 		"apps/statefulsets/scale/get",
@@ -224,7 +233,7 @@ func (p *PermissionCheckResult) IsCrashLoopPodPermitted() bool {
 	})
 }
 
-func (p *PermissionCheckResult) IsSetImagePermitted() bool {
+func (p *PermissionCheckResult) IsSetImageDeploymentPermitted() bool {
 	return p.hasPermissions([]string{
 		"apps/deployments/get",
 		"apps/deployments/patch",

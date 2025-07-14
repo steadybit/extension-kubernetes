@@ -175,17 +175,39 @@ discovery:
     excludes:
       # discovery.attributes.excludes.container -- List of attributes to exclude from container discovery.
       container: []
-      # discovery.attributes.excludes.deployment -- List of attributes to exclude from deployment discovery.
-      deployment: []
       # discovery.attributes.excludes.daemonSet -- List of attributes to exclude from daemonSet discovery.
       daemonSet: []
-      # discovery.attributes.excludes.statefulSet -- List of attributes to exclude from statefulSet discovery.
-      statefulSet: []
+      # discovery.attributes.excludes.deployment -- List of attributes to exclude from deployment discovery.
+      deployment: []
+      # discovery.attributes.excludes.ingress -- List of attributes to exclude from deployment discovery.
+      ingress: []
+      # discovery.attributes.excludes.node -- List of attributes to exclude from deployment discovery.
+      node: []
       # discovery.attributes.excludes.pod -- List of attributes to exclude from pod discovery.
       pod: []
-      # discovery.attributes.excludes.node -- List of attributes to exclude from node discovery.
-      node: []
-
+      # discovery.attributes.excludes.replicaSet -- List of attributes to exclude from replicaSet discovery.
+      replicaSet: []
+      # discovery.attributes.excludes.statefulSet -- List of attributes to exclude from statefulSet discovery.
+      statefulSet: []
+  disabled:
+    # discovery.disabled.cluster -- Should the extension skip discovery of cluster targets?
+    cluster: false
+    # discovery.disabled.container -- Should the extension skip discovery of containers?
+    container: false
+    # discovery.disabled.daemonSet -- Should the extension skip discovery of daemonSets?
+    daemonSet: false
+    # discovery.disabled.deployment -- Should the extension skip discovery of deployments?
+    deployment: false
+    # discovery.disabled.ingress -- Should the extension skip discovery of ingress?
+    ingress: false
+    # discovery.disabled.node -- Should the extension skip discovery of nodes?
+    node: false
+    # discovery.disabled.pod -- Should the extension skip discovery of pods?
+    pod: false
+    # discovery.disabled.replicaSet -- Should the extension skip discovery of replicaSets?
+    replicaSet: true
+    # discovery.disabled.statefulSet -- Should the extension skip discovery of statefulSets?
+    statefulSet: false
 service:
   extensionlib:
     list:

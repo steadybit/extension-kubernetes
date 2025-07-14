@@ -8,6 +8,7 @@ metadata:
     {{ $key }}: {{ $value }}
   {{- end }}
 rules:
+  {{- if not .Values.discovery.disabled.node }}
   {{/* Required for Drain/Taint Node Attacks */}}
   - apiGroups: [""]
     resources:
@@ -19,6 +20,8 @@ rules:
       - nodes
     verbs:
       - patch
+  {{- end }}
+  {{- if not .Values.discovery.disabled.ingress }}
   {{/* Required for Ingress Discovery and HAProxy Actions */}}
   - apiGroups:
       - networking.k8s.io
@@ -38,5 +41,6 @@ rules:
       - get
       - list
       - watch
+  {{- end }}
 {{- template "defaultPermissions" . }}
 {{- end }}

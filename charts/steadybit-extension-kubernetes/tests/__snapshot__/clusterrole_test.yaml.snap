@@ -101,3 +101,50 @@ manifest should match snapshot:
           - pods/exec
         verbs:
           - create
+manifest should match snapshot with some disabled features:
+  1: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      labels: null
+      name: steadybit-extension-kubernetes
+    rules:
+      - apiGroups:
+          - apps
+        resources:
+          - deployments
+          - replicasets
+          - daemonsets
+          - statefulsets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - ""
+        resources:
+          - services
+          - pods
+          - nodes
+          - events
+          - namespaces
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - autoscaling
+        resources:
+          - horizontalpodautoscalers
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - apps
+        resources:
+          - replicasets/scale
+        verbs:
+          - get
+          - update
+          - patch

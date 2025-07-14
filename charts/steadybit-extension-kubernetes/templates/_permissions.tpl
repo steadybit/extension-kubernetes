@@ -2,7 +2,7 @@
 permissions for clusterrole or role
 */}}
 {{- define "defaultPermissions" -}}
-{{/* Required for Discoveries */}}
+  {{/* Required for Discoveries */}}
   - apiGroups:
       - apps
     resources:
@@ -35,6 +35,7 @@ permissions for clusterrole or role
       - get
       - list
       - watch
+  {{- if not .Values.discovery.disabled.deployment }}
   {{/* Required for Rollout Restart Attack */}}
   - apiGroups:
       - apps
@@ -42,6 +43,8 @@ permissions for clusterrole or role
       - deployments
     verbs:
       - patch
+  {{- end }}
+  {{- if not .Values.discovery.disabled.deployment }}
   {{/* Required for Scale Deployments Attack */}}
   - apiGroups:
       - apps
@@ -51,6 +54,19 @@ permissions for clusterrole or role
       - get
       - update
       - patch
+  {{- end }}
+  {{- if not .Values.discovery.disabled.replicaSet }}
+  {{/* Required for Scale ReplicaSet Attack */}}
+  - apiGroups:
+      - apps
+    resources:
+      - replicasets/scale
+    verbs:
+      - get
+      - update
+      - patch
+  {{- end }}
+  {{- if not .Values.discovery.disabled.statefulSet }}
   {{/* Required for Scale StatefulSets Attack */}}
   - apiGroups:
       - apps
@@ -60,17 +76,22 @@ permissions for clusterrole or role
       - get
       - update
       - patch
+  {{- end }}
+  {{- if not .Values.discovery.disabled.pod }}
   {{/* Required for Delete Pod Attack */}}
   - apiGroups: [""]
     resources:
       - pods
     verbs:
       - delete
+  {{- end }}
+  {{- if not .Values.discovery.disabled.pod }}
   {{/* Required for Crash Loop Pod Attack */}}
   - apiGroups: [""]
     resources:
       - pods/exec
     verbs:
       - create
+  {{- end }}
 {{- end -}}
 
