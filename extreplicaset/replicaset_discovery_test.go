@@ -137,6 +137,7 @@ func Test_replicasetDiscovery(t *testing.T) {
 						Namespace: "default",
 					},
 				}, metav1.CreateOptions{})
+			require.NoError(t, err)
 
 			if tt.service != nil {
 				_, err := clientset.CoreV1().
