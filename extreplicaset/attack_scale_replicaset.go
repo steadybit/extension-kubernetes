@@ -77,6 +77,12 @@ func scaleReplicaSet() extcommon.KubectlOptsProvider {
 		namespace := request.Target.Attributes["k8s.namespace"][0]
 		replicaset := request.Target.Attributes["k8s.replicaset"][0]
 
+		if workloadTypes, ok := request.Target.Attributes["k8s.workload-type"]; ok && len(workloadTypes) > 0 {
+			if workloadTypes[0] == "deployment" {
+				return nil, extension_kit.ToError("Scaling replicaSets controlled by deployments will have no effect. Please use the 'Scale Deployment' action instead.", nil)
+			}
+		}
+
 		var config ScaleReplicaSetConfig
 		if err := extconversion.Convert(request.Config, &config); err != nil {
 			return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
