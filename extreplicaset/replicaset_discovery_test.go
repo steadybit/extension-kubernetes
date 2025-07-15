@@ -125,6 +125,22 @@ func Test_replicasetDiscovery(t *testing.T) {
 				Create(context.Background(), tt.replicaset, metav1.CreateOptions{})
 			require.NoError(t, err)
 
+			tt.replicaset.Name = "shop-1"
+			tt.replicaset.Annotations["deployment.kubernetes.io/revision"] = "13"
+			_, err = clientset.
+				AppsV1().
+				ReplicaSets("default").
+				Create(context.Background(), tt.replicaset, metav1.CreateOptions{})
+			require.NoError(t, err)
+
+			tt.replicaset.Name = "shop-2"
+			tt.replicaset.Annotations["deployment.kubernetes.io/revision"] = "14"
+			_, err = clientset.
+				AppsV1().
+				ReplicaSets("default").
+				Create(context.Background(), tt.replicaset, metav1.CreateOptions{})
+			require.NoError(t, err)
+
 			_, err = clientset.
 				AppsV1().
 				Deployments("default").

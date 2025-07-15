@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
@@ -144,5 +145,56 @@ func (d *replicasetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			Attributes: attributes,
 		}
 	}
+	targets = onlyHighestRevision(targets)
 	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesReplicaSet), nil
+}
+
+func onlyHighestRevision(targets []discovery_kit_api.Target) []discovery_kit_api.Target {
+	// Filter targets by workload-owner, workload-type, and namespace, keeping only the highest revision
+	filteredTargets := make([]discovery_kit_api.Target, 0, len(targets))
+	grouped := make(map[string]discovery_kit_api.Target)
+
+	for _, t := range targets {
+		owner := firstOrEmpty(t.Attributes["k8s.workload-owner"])
+		typ := firstOrEmpty(t.Attributes["k8s.workload-type"])
+		ns := firstOrEmpty(t.Attributes["k8s.namespace"])
+		revStr := firstOrEmpty(t.Attributes["k8s.replicaset.revision"])
+
+		if owner == "" || typ == "" || ns == "" || revStr == "" {
+			// If any attribute is missing, add target as-is
+			filteredTargets = append(filteredTargets, t)
+			continue
+		}
+
+		key := fmt.Sprintf("%s|%s|%s", owner, typ, ns)
+		rev, err := strconv.Atoi(revStr)
+		if err != nil {
+			filteredTargets = append(filteredTargets, t)
+			continue
+		}
+
+		existing, exists := grouped[key]
+		if !exists {
+			grouped[key] = t
+		} else {
+			existingRev, err := strconv.Atoi(firstOrEmpty(existing.Attributes["k8s.replicaset.revision"]))
+			if err != nil || rev > existingRev {
+				grouped[key] = t
+			}
+		}
+	}
+
+	// Add grouped targets to filteredTargets
+	for _, t := range grouped {
+		filteredTargets = append(filteredTargets, t)
+	}
+
+	return filteredTargets
+}
+
+func firstOrEmpty(values []string) string {
+	if len(values) > 0 {
+		return values[0]
+	}
+	return ""
 }
