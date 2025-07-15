@@ -59,6 +59,7 @@ func Test_replicasetDiscovery(t *testing.T) {
 				"k8s.container.id.stripped":      {"abcdef-aaaaa", "abcdef-bbbbb"},
 				"k8s.distribution":               {"kubernetes"},
 				"k8s.container.name":             {"nginx", "shop"},
+				"k8s.replicaset.revision":        {"15"},
 			},
 		},
 		{
@@ -220,6 +221,9 @@ func testReplicaSet(modifier func(*appsv1.ReplicaSet)) *appsv1.ReplicaSet {
 			Labels: map[string]string{
 				"best-city":    "Kevelaer",
 				"secret-label": "secret-value",
+			},
+			Annotations: map[string]string{
+				"deployment.kubernetes.io/revision": "15",
 			},
 		},
 		Spec: appsv1.ReplicaSetSpec{

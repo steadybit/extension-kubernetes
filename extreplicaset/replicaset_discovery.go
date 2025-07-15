@@ -116,6 +116,11 @@ func (d *replicasetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
 			}
 		}
+		if replicaset.ObjectMeta.Annotations != nil {
+			if value, ok := replicaset.ObjectMeta.Annotations["deployment.kubernetes.io/revision"]; ok {
+				attributes["k8s.replicaset.revision"] = []string{value}
+			}
+		}
 		extnamespace.AddNamespaceLabels(d.k8s, replicaset.Namespace, attributes)
 
 		for key, value := range extcommon.GetPodBasedAttributes("replicaset", replicaset.ObjectMeta, d.k8s.PodsByLabelSelector(replicaset.Spec.Selector, replicaset.Namespace), nodes) {

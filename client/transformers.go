@@ -79,9 +79,9 @@ func transformNamespace(i interface{}) (interface{}, error) {
 
 func transformReplicaSet(i interface{}) (interface{}, error) {
 	if rs, ok := i.(*appsv1.ReplicaSet); ok {
-		rs.ObjectMeta.Annotations = nil
 		rs.ObjectMeta.ManagedFields = nil
 		if extconfig.Config.DiscoveryDisabledReplicaSet {
+			rs.ObjectMeta.Annotations = nil
 			rs.Spec = appsv1.ReplicaSetSpec{}
 			rs.Status = appsv1.ReplicaSetStatus{}
 		}
