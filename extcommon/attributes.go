@@ -66,5 +66,12 @@ func (a *attributeDescriber) DescribeAttributes() []discovery_kit_api.AttributeD
 				Other: "Pod names",
 			},
 		},
+		{
+			Attribute: "k8s.replicaset",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "ReplicaSet name",
+				Other: "ReplicaSet names",
+			},
+		},
 	}
 }
