@@ -77,8 +77,8 @@ func drainNode() extcommon.KubectlOptsProvider {
 
 		return &extcommon.KubectlOpts{
 			Command:                     command,
-			RollbackPreconditionCommand: &rollbackPreconditionCommand,
-			RollbackCommand:             &rollbackCommand,
+			RollbackPreconditionCommand: rollbackPreconditionCommand,
+			RollbackCommand:             rollbackCommand,
 			LogTargetType:               "node",
 			LogTargetName:               nodeName,
 			LogActionName:               "drain node",

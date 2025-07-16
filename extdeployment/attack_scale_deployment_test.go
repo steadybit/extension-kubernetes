@@ -61,5 +61,5 @@ func TestScaleDeploymentPreparesCommands(t *testing.T) {
 
 	// Then
 	require.Equal(t, []string{"kubectl", "scale", "--replicas=5", "--current-replicas=2", "--namespace=demo", "deployment/shop"}, state.Opts.Command)
-	require.Equal(t, []string{"kubectl", "scale", "--replicas=2", "--namespace=demo", "deployment/shop"}, *state.Opts.RollbackCommand)
+	require.Equal(t, []string{"kubectl", "scale", "--replicas=2", "--namespace=demo", "deployment/shop"}, state.Opts.RollbackCommand)
 }

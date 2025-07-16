@@ -33,6 +33,6 @@ func TestDrainNodePrepareCommands(t *testing.T) {
 
 	// Then
 	require.Equal(t, []string{"kubectl", "drain", "test", "--pod-selector=steadybit.com/extension!=true,steadybit.com/agent!=true", "--delete-emptydir-data", "--ignore-daemonsets", "--force"}, state.Opts.Command)
-	require.Equal(t, []string{"kubectl", "get", "node", "test"}, *state.Opts.RollbackPreconditionCommand)
-	require.Equal(t, []string{"kubectl", "uncordon", "test"}, *state.Opts.RollbackCommand)
+	require.Equal(t, []string{"kubectl", "get", "node", "test"}, state.Opts.RollbackPreconditionCommand)
+	require.Equal(t, []string{"kubectl", "uncordon", "test"}, state.Opts.RollbackCommand)
 }

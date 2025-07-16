@@ -21,12 +21,12 @@ import (
 // - if the action does not define a duration, the action is stopped after the command has completed
 
 type KubectlOpts struct {
-	Command                     []string  `json:"command"`
-	RollbackPreconditionCommand *[]string `json:"rollbackPreconditionCommand,omitempty"`
-	RollbackCommand             *[]string `json:"rollbackCommand,omitempty"`
-	LogTargetType               string    `json:"targetType"`
-	LogTargetName               string    `json:"targetName"`
-	LogActionName               string    `json:"actionName"`
+	Command                     []string `json:"command"`
+	RollbackPreconditionCommand []string `json:"rollbackPreconditionCommand,omitempty"`
+	RollbackCommand             []string `json:"rollbackCommand,omitempty"`
+	LogTargetType               string   `json:"targetType"`
+	LogTargetName               string   `json:"targetName"`
+	LogActionName               string   `json:"actionName"`
 }
 
 type KubectlActionState struct {
@@ -136,14 +136,14 @@ func (a KubectlAction) Status(_ context.Context, state *KubectlActionState) (*ac
 			}
 		} else {
 			title := fmt.Sprintf("Failed to %s exit-code %d", state.Opts.LogActionName, exitCode)
-			stdOutError := extractErrorFromStdOut(stdOut)
-			if stdOutError != nil {
-				title = *stdOutError
+			if stdOutError := extractErrorFromStdOut(stdOut); stdOutError != "" {
+				title = stdOutError
 			}
 			result.Completed = true
 			result.Error = &action_kit_api.ActionKitError{
 				Status: extutil.Ptr(action_kit_api.Errored),
 				Title:  title,
+				Detail: extutil.Ptr(strings.Join(stdOut, "\n")),
 			}
 			state.CommandCompleted = true
 		}
@@ -164,17 +164,17 @@ func stdOutToLog(lines []string, opts KubectlOpts) {
 	}
 }
 
-func extractErrorFromStdOut(lines []string) *string {
+func extractErrorFromStdOut(lines []string) string {
 	//Find error, last log lines first
 	for i := len(lines) - 1; i >= 0; i-- {
 		if strings.Contains(lines[i], "error: ") {
 			split := strings.SplitAfter(lines[i], "error: ")
 			if len(split) > 1 {
-				return extutil.Ptr(strings.Join(split[1:], ""))
+				return strings.Join(split[1:], "")
 			}
 		}
 	}
-	return nil
+	return ""
 }
 
 func hasDuration(description *action_kit_api.ActionDescription) bool {
@@ -196,20 +196,18 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 
 	if !state.CommandCompleted {
 		// kill command if it is still running
-		var pid = state.Pid
-		process, err := os.FindProcess(pid)
-		if err != nil {
+		if process, err := os.FindProcess(state.Pid); err == nil {
+			_ = process.Kill()
+		} else {
 			return nil, extension_kit.ToError("Failed to find process", err)
 		}
-		_ = process.Kill()
 		log.Debug().
 			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
 			Msg("Command was still running - killed now.")
 	}
 
 	// remove cmd state and read remaining stdout
-	cmdState, err := extcmd.GetCmdState(state.CmdStateID)
-	if err == nil {
+	if cmdState, err := extcmd.GetCmdState(state.CmdStateID); err == nil {
 		extcmd.RemoveCmdState(state.CmdStateID)
 		// read Stout and log it
 		stdOut := cmdState.GetLines(true)
@@ -217,11 +215,11 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 	}
 
 	performRollback := true
-	if state.Opts.RollbackPreconditionCommand != nil {
+	if len(state.Opts.RollbackPreconditionCommand) > 0 {
 		log.Info().
 			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
-			Msgf("Check if Rollback for %s is required with command '%s'", state.Opts.LogActionName, strings.Join(*state.Opts.RollbackPreconditionCommand, " "))
-		cmd := exec.Command((*state.Opts.RollbackPreconditionCommand)[0], (*state.Opts.RollbackPreconditionCommand)[1:]...)
+			Msgf("Check if Rollback for %s is required with command '%s'", state.Opts.LogActionName, strings.Join(state.Opts.RollbackPreconditionCommand, " "))
+		cmd := exec.Command((state.Opts.RollbackPreconditionCommand)[0], (state.Opts.RollbackPreconditionCommand)[1:]...)
 		output, rollbackPreconditionErr := cmd.CombinedOutput()
 		log.Debug().Msgf("Rollback precondition output: %s", string(output))
 		if rollbackPreconditionErr != nil {
@@ -231,12 +229,12 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 	}
 
 	// rollback action
-	if performRollback && state.Opts.RollbackCommand != nil {
+	if performRollback && len(state.Opts.RollbackCommand) > 0 {
 		log.Info().
 			Str(state.Opts.LogTargetType, state.Opts.LogTargetName).
-			Msgf("Rollback %s with command '%s'", state.Opts.LogActionName, strings.Join(*state.Opts.RollbackCommand, " "))
+			Msgf("Rollback %s with command '%s'", state.Opts.LogActionName, strings.Join(state.Opts.RollbackCommand, " "))
 
-		cmd := exec.Command((*state.Opts.RollbackCommand)[0], (*state.Opts.RollbackCommand)[1:]...)
+		cmd := exec.Command((state.Opts.RollbackCommand)[0], (state.Opts.RollbackCommand)[1:]...)
 		output, rollbackErr := cmd.CombinedOutput()
 
 		if rollbackErr != nil {

@@ -36,5 +36,5 @@ func TestTaintNodePreparesCommands(t *testing.T) {
 
 	// Then
 	require.Equal(t, []string{"kubectl", "taint", "node", "test", "test=abc:NoSchedule"}, state.Opts.Command)
-	require.Equal(t, []string{"kubectl", "taint", "node", "test", "test=abc:NoSchedule-"}, *state.Opts.RollbackCommand)
+	require.Equal(t, []string{"kubectl", "taint", "node", "test", "test=abc:NoSchedule-"}, state.Opts.RollbackCommand)
 }

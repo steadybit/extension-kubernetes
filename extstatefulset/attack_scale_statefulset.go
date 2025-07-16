@@ -109,7 +109,7 @@ func scaleStatefulSet() extcommon.KubectlOptsProvider {
 
 		return &extcommon.KubectlOpts{
 			Command:         command,
-			RollbackCommand: &rollbackCommand,
+			RollbackCommand: rollbackCommand,
 			LogTargetType:   "statefulSet",
 			LogTargetName:   fmt.Sprintf("%s/%s", namespace, statefulSet),
 			LogActionName:   "scale statefulSet",

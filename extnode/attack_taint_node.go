@@ -129,7 +129,7 @@ func taintNode() extcommon.KubectlOptsProvider {
 
 		return &extcommon.KubectlOpts{
 			Command:         command,
-			RollbackCommand: &rollbackCommand,
+			RollbackCommand: rollbackCommand,
 			LogTargetType:   "node",
 			LogTargetName:   nodeName,
 			LogActionName:   "taint node",

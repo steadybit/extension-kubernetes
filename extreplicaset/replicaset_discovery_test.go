@@ -431,7 +431,7 @@ func Test_getDiscoveredReplicaSetsShouldNotIgnoreLabeledReplicaSetsIfExcludesDis
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 	return client, clientset
 }

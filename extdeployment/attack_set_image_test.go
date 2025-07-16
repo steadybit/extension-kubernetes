@@ -109,6 +109,6 @@ func TestSetImagePreparesCommands(t *testing.T) {
 			"deployment/shop",
 			"cashier=nginx:123",
 		},
-		*state.Opts.RollbackCommand,
+		state.Opts.RollbackCommand,
 	)
 }
