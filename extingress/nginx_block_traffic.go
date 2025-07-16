@@ -217,20 +217,10 @@ func buildNginxConfig(state *NginxBlockTrafficState) string {
 
 // Start applies the NGINX configuration to begin blocking traffic
 func (a *NginxBlockTrafficAction) Start(ctx context.Context, state *NginxBlockTrafficState) (*action_kit_api.StartResult, error) {
-	var err error
-	var warnings []action_kit_api.Message
-	if warnings, err = startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
+	if err := startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
 		return nil, fmt.Errorf("failed to start NGINX block traffic action: %w", err)
 	}
-
-	var result *action_kit_api.StartResult
-	if len(warnings) > 0 {
-		result = &action_kit_api.StartResult{
-			Messages: extutil.Ptr(warnings),
-		}
-	}
-
-	return result, nil
+	return nil, nil
 }
 
 // Stop removes the NGINX configuration to stop blocking traffic

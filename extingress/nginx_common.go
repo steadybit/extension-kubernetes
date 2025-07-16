@@ -51,7 +51,7 @@ func prepareNginxAction(state *NginxBaseState, request action_kit_api.PrepareAct
 }
 
 // startNginxAction contains common start logic for NGINX actions
-func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterprise bool) ([]action_kit_api.Message, error) {
+func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterprise bool) error {
 	log.Debug().Msgf("Adding new NGINX configuration: %s", annotationConfig)
 
 	annotationKey := NginxAnnotationKey
@@ -64,7 +64,6 @@ func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterpri
 		return nil, err
 	}
 
-	var warnings []action_kit_api.Message
 	// Check for conflicting actions in the final annotation
 	if finalAnnotation != "" {
 		lines := strings.Split(finalAnnotation, "\n")
@@ -80,18 +79,13 @@ func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterpri
 			}
 		}
 
-		// Log warnings if both actions are present
+		// Return error if both actions are present
 		if hasDelayAction && hasBlockAction {
-			warning := fmt.Sprintf("⚠️ - Both delay and block actions are now active on ingress `%s/%s`. They may interfere with each other on the same matching request. Block will win.", state.Namespace, state.IngressName)
-			warnings = append(warnings, action_kit_api.Message{
-				Type:    extutil.Ptr("NGINX"),
-				Message: warning,
-			})
-			log.Warn().Msgf(warning, state.Namespace, state.IngressName)
+			return nil, fmt.Errorf("cannot start action: both delay and block actions are already active on ingress %s/%s - they would interfere with each other on the same matching request", state.Namespace, state.IngressName)
 		}
 	}
 
-	return warnings, nil
+	return nil
 }
 
 // stopNginxAction contains common stop logic for NGINX actions
