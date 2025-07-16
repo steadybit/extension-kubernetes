@@ -4,6 +4,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"flag"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 	"sort"
@@ -109,6 +111,7 @@ type Client struct {
 	}
 	resourceEventHandler cache.ResourceEventHandlerFuncs
 	networkingV1         networkingv1client.NetworkingV1Interface
+	clientset            kubernetes.Interface
 }
 
 func (c *Client) Permissions() *PermissionCheckResult {
@@ -167,6 +170,58 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 		return nil
 	}
 	return c.onlyRunningPods(list)
+}
+
+// ExecInPod executes a command in a pod container and returns the output
+func (c *Client) ExecInPod(ctx context.Context, namespace, podName, containerName string, command []string) (string, error) {
+	config := c.GetConfig()
+	
+	// Check if we have a valid REST config
+	if config.Host == "" {
+		return "", fmt.Errorf("no valid Kubernetes REST config available - cannot execute pod commands")
+	}
+	
+	req := c.clientset.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec").
+		Param("container", containerName).
+		Param("command", command[0]).
+		Param("stdout", "true").
+		Param("stderr", "true")
+	
+	// Add additional command arguments
+	for _, arg := range command[1:] {
+		req.Param("command", arg)
+	}
+
+	executor, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return "", fmt.Errorf("error creating executor: %w", err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	err = executor.Stream(remotecommand.StreamOptions{
+		Stdout: &stdout,
+		Stderr: &stderr,
+	})
+	
+	if err != nil {
+		return "", fmt.Errorf("error executing command: %w, stderr: %s", err, stderr.String())
+	}
+	
+	return stdout.String(), nil
+}
+
+// FileExistsInPod checks if a file exists in a pod container
+func (c *Client) FileExistsInPod(ctx context.Context, namespace, podName, containerName, filePath string) (bool, error) {
+	_, err := c.ExecInPod(ctx, namespace, podName, containerName, []string{"test", "-f", filePath})
+	if err != nil {
+		// test command returns non-zero exit code if file doesn't exist
+		return false, nil
+	}
+	return true, nil
 }
 
 func (c *Client) onlyRunningPods(list []*corev1.Pod) []*corev1.Pod {
@@ -497,6 +552,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	client := &Client{
 		Distribution: "kubernetes",
 		permissions:  permissions,
+		clientset:    clientset,
 	}
 	if isOpenShift(rootApiPath) {
 		client.Distribution = "openshift"
@@ -728,7 +784,13 @@ func (c *Client) IngressByNamespaceAndName(namespace string, name string, forceU
 func (c *Client) GetConfig() *rest.Config {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Warn().Err(err).Msgf("Failed to get in-cluster config, using default config")
+		// Try to get config from kubeconfig file
+		kubeconfig := filepath.Join(homedir.HomeDir(), ".kube", "config")
+		if config, err := clientcmd.BuildConfigFromFlags("", kubeconfig); err == nil {
+			log.Debug().Msgf("Using kubeconfig from %s", kubeconfig)
+			return config
+		}
+		log.Warn().Err(err).Msgf("Failed to get in-cluster config and kubeconfig, using default config")
 		config = &rest.Config{}
 	}
 	return config

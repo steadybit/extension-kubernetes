@@ -15,7 +15,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os/exec"
 	"strings"
 )
 
@@ -269,12 +268,9 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 	var configPath string
 
 	for _, path := range configPaths {
-		cmd := exec.Command("kubectl", "exec", pod.Name, "-c", containerName, "-n", controllerNamespace, "--",
-			"cat", path)
-
-		output, err := cmd.CombinedOutput()
+		output, err := client.K8S.ExecInPod(context.Background(), controllerNamespace, pod.Name, containerName, []string{"cat", path})
 		if err == nil {
-			configContent = string(output)
+			configContent = output
 			configPath = path
 			break
 		}
@@ -299,10 +295,8 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 	}
 
 	for _, modulePath := range modulePaths {
-		cmd := exec.Command("kubectl", "exec", pod.Name, "-c", containerName, "-n", controllerNamespace, "--",
-			"test", "-f", modulePath)
-
-		if err := cmd.Run(); err == nil {
+		exists, err := client.K8S.FileExistsInPod(context.Background(), controllerNamespace, pod.Name, containerName, modulePath)
+		if err == nil && exists {
 			log.Debug().Msgf("Found ngx_steadybit_sleep_module.so at %s in pod %s, but it's not loaded in nginx.conf", modulePath, pod.Name)
 			return fmt.Errorf("ngx_steadybit_sleep_module.so exists at %s but is not loaded. Please add 'load_module %s;' to the nginx configuration", modulePath, modulePath)
 		}
