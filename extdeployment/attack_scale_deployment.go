@@ -109,7 +109,7 @@ func scaleDeployment() extcommon.KubectlOptsProvider {
 
 		return &extcommon.KubectlOpts{
 			Command:         command,
-			RollbackCommand: &rollbackCommand,
+			RollbackCommand: rollbackCommand,
 			LogTargetType:   "deployment",
 			LogTargetName:   fmt.Sprintf("%s/%s", namespace, deployment),
 			LogActionName:   "scale deployment",

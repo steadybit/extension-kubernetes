@@ -137,6 +137,7 @@ func Test_replicasetDiscovery(t *testing.T) {
 						Namespace: "default",
 					},
 				}, metav1.CreateOptions{})
+			require.NoError(t, err)
 
 			if tt.service != nil {
 				_, err := clientset.CoreV1().
@@ -410,7 +411,7 @@ func Test_getDiscoveredReplicaSetsShouldNotIgnoreLabeledReplicaSetsIfExcludesDis
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 	return client, clientset
 }

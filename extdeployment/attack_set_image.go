@@ -160,7 +160,7 @@ func setImage() extcommon.KubectlOptsProvider {
 
 		return &extcommon.KubectlOpts{
 			Command:         command,
-			RollbackCommand: &rollbackCommand,
+			RollbackCommand: rollbackCommand,
 			LogTargetType:   "container",
 			LogTargetName: fmt.Sprintf(
 				"%s/%s/%s",

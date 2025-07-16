@@ -109,7 +109,7 @@ func scaleReplicaSet() extcommon.KubectlOptsProvider {
 
 		return &extcommon.KubectlOpts{
 			Command:         command,
-			RollbackCommand: &rollbackCommand,
+			RollbackCommand: rollbackCommand,
 			LogTargetType:   "replicaset",
 			LogTargetName:   fmt.Sprintf("%s/%s", namespace, replicaset),
 			LogActionName:   "scale replicaset",
