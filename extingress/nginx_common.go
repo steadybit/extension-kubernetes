@@ -142,14 +142,6 @@ func getNginxActionDescription(id string, label string, description string, icon
 				Required:     extutil.Ptr(true),
 			},
 		},
-		Widgets: extutil.Ptr([]action_kit_api.Widget{
-			action_kit_api.MarkdownWidget{
-				Type:        action_kit_api.ComSteadybitWidgetMarkdown,
-				Title:       "Nginx",
-				MessageType: "NGINX",
-				Append:      true,
-			},
-		}),
 	}
 }
 
