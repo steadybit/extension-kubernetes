@@ -86,6 +86,11 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 		return nil, fmt.Errorf("failed to prepare NGINX delay action: %w", err)
 	}
 
+	// Validate that the NGINX steadybit sleep module is loaded
+	if err := validateNginxSteadybitModule(request.Target.Attributes); err != nil {
+		return nil, fmt.Errorf("NGINX steadybit sleep module validation failed: %w", err)
+	}
+
 	// Extract and validate delay parameter
 	if delay, ok := request.Config["responseDelay"]; ok {
 		switch v := delay.(type) {
@@ -233,7 +238,7 @@ func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 		}
 	}
 
-	// Set up a variable for the delay and then apply it unconditionally
+	// Set up a variable for the delay and then apply it conditionally
 	configBuilder.WriteString(fmt.Sprintf("set %s 0;\n", sleepDurationVar))
 	configBuilder.WriteString(fmt.Sprintf("if (%s = 1) {\n", shouldDelayVar))
 	configBuilder.WriteString(fmt.Sprintf("  set %s %d;\n", sleepDurationVar, state.ResponseDelay))
