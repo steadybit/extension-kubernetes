@@ -61,7 +61,7 @@ func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterpri
 
 	finalAnnotation, err := client.K8S.UpdateIngressAnnotationWithReturn(context.Background(), state.Namespace, state.IngressName, annotationKey, annotationConfig)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Check for conflicting actions in the final annotation
@@ -81,7 +81,7 @@ func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterpri
 
 		// Return error if both actions are present
 		if hasDelayAction && hasBlockAction {
-			return nil, fmt.Errorf("cannot start action: both delay and block actions are already active on ingress %s/%s - they would interfere with each other on the same matching request", state.Namespace, state.IngressName)
+			return fmt.Errorf("cannot start action: both delay and block actions are already active on ingress %s/%s - they would interfere with each other on the same matching request", state.Namespace, state.IngressName)
 		}
 	}
 
