@@ -87,7 +87,7 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 	}
 
 	// Validate that the NGINX steadybit sleep module is loaded
-	if err := validateNginxSteadybitModule(request.Target.Attributes); err != nil {
+	if err := nginxModuleValidator.ValidateNginxSteadybitModule(request.Target.Attributes); err != nil {
 		return nil, fmt.Errorf("NGINX steadybit sleep module validation failed: %w", err)
 	}
 
@@ -140,26 +140,24 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 		annotationKey = NginxEnterpriseAnnotationKey
 	}
 
-	if state.ConditionPathPattern != "" && ingress.Annotations != nil {
-		if existingConfig, exists := ingress.Annotations[annotationKey]; exists && existingConfig != "" {
-			existingLines := strings.Split(existingConfig, "\n")
-			for _, line := range existingLines {
-				// Check for location block with same path
-				if strings.Contains(line, fmt.Sprintf("location ~ %s", state.ConditionPathPattern)) ||
-					strings.Contains(line, fmt.Sprintf("location = %s", state.ConditionPathPattern)) {
-					return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
-				}
-			}
-		}
-	}
-
-	// Check for existing delay
 	if ingress.Annotations != nil {
 		if existingConfig, exists := ingress.Annotations[annotationKey]; exists && existingConfig != "" {
 			existingLines := strings.Split(existingConfig, "\n")
+
+			// Check for existing delay actions
 			for _, line := range existingLines {
 				if strings.Contains(line, "sb_sleep_ms") {
 					return nil, fmt.Errorf("a delay rule already exists - cannot add another one")
+				}
+			}
+
+			// Check for location block with same path
+			if state.ConditionPathPattern != "" {
+				for _, line := range existingLines {
+					if strings.Contains(line, fmt.Sprintf("location ~ %s", state.ConditionPathPattern)) ||
+						strings.Contains(line, fmt.Sprintf("location = %s", state.ConditionPathPattern)) {
+						return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
+					}
 				}
 			}
 		}
@@ -174,11 +172,11 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 // buildNginxDelayConfig creates the NGINX configuration for traffic delay
 func buildNginxDelayConfig(state *NginxDelayTrafficState) string {
 	var configBuilder strings.Builder
-	configBuilder.WriteString(getNginxStartMarker(state.ExecutionId) + "\n")
+	configBuilder.WriteString(GetNginxStartMarker(state.ExecutionId, NginxActionSubTypeDelay) + "\n")
 
 	configBuilder.WriteString(buildNginxDelayConfigContent(state))
 
-	configBuilder.WriteString(getNginxEndMarker(state.ExecutionId) + "\n")
+	configBuilder.WriteString(GetNginxEndMarker(state.ExecutionId, NginxActionSubTypeDelay) + "\n")
 	return configBuilder.String()
 }
 
@@ -250,16 +248,25 @@ func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
 
 // Start applies the NGINX configuration to begin delaying traffic
 func (a *NginxDelayTrafficAction) Start(ctx context.Context, state *NginxDelayTrafficState) (*action_kit_api.StartResult, error) {
-	if err := startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
+	var err error
+	var warnings []action_kit_api.Message
+	if warnings, err = startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
 		return nil, fmt.Errorf("failed to start NGINX delay traffic action: %w", err)
 	}
 
-	return nil, nil
+	var result *action_kit_api.StartResult
+	if len(warnings) > 0 {
+		result = &action_kit_api.StartResult{
+			Messages: extutil.Ptr(warnings),
+		}
+	}
+
+	return result, nil
 }
 
 // Stop removes the NGINX configuration to stop delaying traffic
 func (a *NginxDelayTrafficAction) Stop(ctx context.Context, state *NginxDelayTrafficState) (*action_kit_api.StopResult, error) {
-	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx); err != nil {
+	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx, NginxActionSubTypeDelay); err != nil {
 		return nil, fmt.Errorf("failed to stop NGINX delay traffic action: %w", err)
 	}
 

@@ -61,6 +61,8 @@ func stopHAProxyAction(state *HAProxyBaseState) error {
 		state.IngressName,
 		AnnotationKey,
 		state.ExecutionId,
+		getStartMarker(state.ExecutionId),
+		getEndMarker(state.ExecutionId),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to remove HAProxy configuration: %w", err)

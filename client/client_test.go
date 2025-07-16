@@ -7,6 +7,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -319,6 +320,8 @@ func TestRemoveAnnotationBlockMethod(t *testing.T) {
 				tt.ingressName,
 				tt.annotationKey,
 				executionId,
+				fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId.String()),
+				fmt.Sprintf("# END STEADYBIT - %s", executionId.String()),
 			)
 
 			// Verify the result

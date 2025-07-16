@@ -247,6 +247,10 @@ func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 	testClient, clientset := getTestClient(stopCh)
 	client.K8S = testClient
 
+	// Use no-op validator for tests
+	originalValidator := nginxModuleValidator
+	nginxModuleValidator = &NoOpNginxModuleValidator{}
+
 	// Create test ingresses
 	createTestDelayNginxIngresses(t, clientset)
 
@@ -262,6 +266,7 @@ func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 		client: testClient,
 		cleanup: func() {
 			close(stopCh)
+			nginxModuleValidator = originalValidator // Restore original validator
 		},
 	}
 }

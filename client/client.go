@@ -735,12 +735,17 @@ func (c *Client) GetConfig() *rest.Config {
 }
 
 func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, ingressName string, annotationKey string, newAnnotationSuffix string) error {
+	_, err := c.UpdateIngressAnnotationWithReturn(ctx, namespace, ingressName, annotationKey, newAnnotationSuffix)
+	return err
+}
+
+func (c *Client) UpdateIngressAnnotationWithReturn(ctx context.Context, namespace string, ingressName string, annotationKey string, newAnnotationSuffix string) (string, error) {
 	maxRetries := 10
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
 		if err != nil {
-			return fmt.Errorf("failed to fetch ingress: %w", err)
+			return "", fmt.Errorf("failed to fetch ingress: %w", err)
 		}
 
 		newConfig := ""
@@ -771,16 +776,16 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 			// Check for ingress events after the annotation update
 			if eventErr := c.checkIngressEvents(namespace, ingressName, updateTime); eventErr != nil {
 				log.Warn().Err(eventErr).Msgf("Warning detected in ingress events after annotation update")
-				return fmt.Errorf("ingress annotation rejected: %w", eventErr)
+				return "", fmt.Errorf("ingress annotation rejected: %w", eventErr)
 			}
 
-			return nil // Update successful
+			return newConfig, nil // Update successful
 		}
 
 		// If it's not a conflict error, return the error immediately
 		if !k8sErrors.IsConflict(err) {
 			log.Error().Err(err).Msgf("Failed to update ingress %s/%s annotation %s: %v", namespace, ingressName, annotationKey, err)
-			return fmt.Errorf("failed to update ingress annotation: %w", err)
+			return "", fmt.Errorf("failed to update ingress annotation: %w", err)
 		}
 
 		// If it's a conflict error, we'll retry with the latest version of the resource
@@ -788,7 +793,7 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 			namespace, ingressName, attempt+1, maxRetries)
 	}
 	log.Error().Msgf("Failed to update ingress %s/%s annotation %s after %d attempts", namespace, ingressName, annotationKey, maxRetries)
-	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
+	return "", fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
 }
 
 // checkIngressEvents checks for warning events related to the ingress after a specific time
@@ -828,12 +833,9 @@ func (c *Client) checkIngressEvents(namespace, ingressName string, since time.Ti
 	return nil
 }
 
-func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID) error {
+func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID, startMarker string, endMarker string) error {
 	log.Debug().Msgf("Removing annotation block from ingress %s/%s with execution ID %s", namespace, ingressName, executionId)
 	maxRetries := 10
-
-	startMarker := fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
-	endMarker := fmt.Sprintf("# END STEADYBIT - %s", executionId)
 
 	// Use the clientset to update the ingress
 

@@ -26,6 +26,8 @@ const (
 	NginxEnterpriseAnnotationKey = "nginx.org/server-snippets"
 	NginxBlockTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-block-traffic"
 	NginxDelayTrafficActionId    = "com.steadybit.extension_kubernetes.nginx-delay-traffic"
+	NginxActionSubTypeDelay      = "Delay"
+	NginxActionSubTypeBlock      = "Block"
 )
 
 // NginxBaseState contains common state for NGINX-related actions
@@ -50,23 +52,51 @@ func prepareNginxAction(state *NginxBaseState, request action_kit_api.PrepareAct
 }
 
 // startNginxAction contains common start logic for NGINX actions
-func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterprise bool) error {
+func startNginxAction(state *NginxBaseState, annotationConfig string, isEnterprise bool) ([]action_kit_api.Message, error) {
 	log.Debug().Msgf("Adding new NGINX configuration: %s", annotationConfig)
 
 	annotationKey := NginxAnnotationKey
 	if isEnterprise {
 		annotationKey = NginxEnterpriseAnnotationKey
 	}
-	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, annotationKey, annotationConfig)
+
+	finalAnnotation, err := client.K8S.UpdateIngressAnnotationWithReturn(context.Background(), state.Namespace, state.IngressName, annotationKey, annotationConfig)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	var warnings []action_kit_api.Message
+	// Check for conflicting actions in the final annotation
+	if finalAnnotation != "" {
+		lines := strings.Split(finalAnnotation, "\n")
+		hasDelayAction := false
+		hasBlockAction := false
+
+		for _, line := range lines {
+			if strings.Contains(line, "BEGIN STEADYBIT - Delay") {
+				hasDelayAction = true
+			}
+			if strings.Contains(line, "BEGIN STEADYBIT - Block") {
+				hasBlockAction = true
+			}
+		}
+
+		// Log warnings if both actions are present
+		if hasDelayAction && hasBlockAction {
+			warning := fmt.Sprintf("⚠️ - Both delay and block actions are now active on ingress `%s/%s`. They may interfere with each other on the same matching request. Block will win.", state.Namespace, state.IngressName)
+			warnings = append(warnings, action_kit_api.Message{
+				Type:    extutil.Ptr("NGINX"),
+				Message: warning,
+			})
+			log.Warn().Msgf(warning, state.Namespace, state.IngressName)
+		}
+	}
+
+	return warnings, nil
 }
 
 // stopNginxAction contains common stop logic for NGINX actions
-func stopNginxAction(state *NginxBaseState, isEnterprise bool) error {
+func stopNginxAction(state *NginxBaseState, isEnterprise bool, subtype string) error {
 	annotationKey := NginxAnnotationKey
 	if isEnterprise {
 		annotationKey = NginxEnterpriseAnnotationKey
@@ -78,6 +108,8 @@ func stopNginxAction(state *NginxBaseState, isEnterprise bool) error {
 		state.IngressName,
 		annotationKey,
 		state.ExecutionId,
+		GetNginxStartMarker(state.ExecutionId, subtype),
+		GetNginxEndMarker(state.ExecutionId, subtype),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to remove NGINX configuration: %w", err)
@@ -117,16 +149,24 @@ func getNginxActionDescription(id string, label string, description string, icon
 				Required:     extutil.Ptr(true),
 			},
 		},
+		Widgets: extutil.Ptr([]action_kit_api.Widget{
+			action_kit_api.MarkdownWidget{
+				Type:        action_kit_api.ComSteadybitWidgetMarkdown,
+				Title:       "Nginx",
+				MessageType: "NGINX",
+				Append:      true,
+			},
+		}),
 	}
 }
 
-// Helper functions similar to HAProxy implementation
-func getNginxStartMarker(executionId uuid.UUID) string {
-	return fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
+// GetNginxStartMarker Helper functions similar to HAProxy implementation
+func GetNginxStartMarker(executionId uuid.UUID, subtype string) string {
+	return fmt.Sprintf("# BEGIN STEADYBIT - %s - %s", subtype, executionId)
 }
 
-func getNginxEndMarker(executionId uuid.UUID) string {
-	return fmt.Sprintf("# END STEADYBIT - %s", executionId)
+func GetNginxEndMarker(executionId uuid.UUID, subtype string) string {
+	return fmt.Sprintf("# END STEADYBIT - %s - %s", subtype, executionId)
 }
 
 // getNginxVariablePrefix generates a unique variable prefix based on execution ID
@@ -270,3 +310,27 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 
 	return fmt.Errorf("ngx_steadybit_sleep_module is not loaded in NGINX ingress controller pod %s. Please ensure the module is installed and loaded with 'load_module /path/to/ngx_steadybit_sleep_module.so;' in the nginx configuration at %s", pod.Name, configPath)
 }
+
+// NginxModuleValidator interface for validating NGINX modules
+type NginxModuleValidator interface {
+	ValidateNginxSteadybitModule(targetAttributes map[string][]string) error
+}
+
+// DefaultNginxModuleValidator is the default implementation
+type DefaultNginxModuleValidator struct{}
+
+// ValidateNginxSteadybitModule validates the NGINX steadybit module
+func (v *DefaultNginxModuleValidator) ValidateNginxSteadybitModule(targetAttributes map[string][]string) error {
+	return validateNginxSteadybitModule(targetAttributes)
+}
+
+// NoOpNginxModuleValidator is a no-op validator for testing
+type NoOpNginxModuleValidator struct{}
+
+// ValidateNginxSteadybitModule does nothing (for testing)
+func (v *NoOpNginxModuleValidator) ValidateNginxSteadybitModule(targetAttributes map[string][]string) error {
+	return nil
+}
+
+// Global validator instance (can be overridden for testing)
+var nginxModuleValidator NginxModuleValidator = &DefaultNginxModuleValidator{}

@@ -144,11 +144,11 @@ func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTr
 // buildNginxBlockConfig creates the NGINX configuration for blocking traffic
 func buildNginxBlockConfig(state *NginxBlockTrafficState) string {
 	var configBuilder strings.Builder
-	configBuilder.WriteString(getNginxStartMarker(state.ExecutionId) + "\n")
+	configBuilder.WriteString(GetNginxStartMarker(state.ExecutionId, NginxActionSubTypeBlock) + "\n")
 
 	configBuilder.WriteString(buildNginxConfig(state))
 
-	configBuilder.WriteString(getNginxEndMarker(state.ExecutionId) + "\n")
+	configBuilder.WriteString(GetNginxEndMarker(state.ExecutionId, NginxActionSubTypeBlock) + "\n")
 	return configBuilder.String()
 }
 
@@ -217,16 +217,25 @@ func buildNginxConfig(state *NginxBlockTrafficState) string {
 
 // Start applies the NGINX configuration to begin blocking traffic
 func (a *NginxBlockTrafficAction) Start(ctx context.Context, state *NginxBlockTrafficState) (*action_kit_api.StartResult, error) {
-	if err := startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
+	var err error
+	var warnings []action_kit_api.Message
+	if warnings, err = startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
 		return nil, fmt.Errorf("failed to start NGINX block traffic action: %w", err)
 	}
 
-	return nil, nil
+	var result *action_kit_api.StartResult
+	if len(warnings) > 0 {
+		result = &action_kit_api.StartResult{
+			Messages: extutil.Ptr(warnings),
+		}
+	}
+
+	return result, nil
 }
 
 // Stop removes the NGINX configuration to stop blocking traffic
 func (a *NginxBlockTrafficAction) Stop(ctx context.Context, state *NginxBlockTrafficState) (*action_kit_api.StopResult, error) {
-	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx); err != nil {
+	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx, NginxActionSubTypeBlock); err != nil {
 		return nil, fmt.Errorf("failed to stop NGINX block traffic action: %w", err)
 	}
 
