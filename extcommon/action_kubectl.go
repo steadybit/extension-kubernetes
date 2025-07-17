@@ -1,3 +1,5 @@
+// Copyright 2025 steadybit GmbH. All rights reserved.
+
 package extcommon
 
 import (
@@ -13,6 +15,7 @@ import (
 	"golang.org/x/text/language"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -164,13 +167,17 @@ func stdOutToLog(lines []string, opts KubectlOpts) {
 	}
 }
 
+var regexpErrors = []*regexp.Regexp{regexp.MustCompile(`^error: (.*)$`), regexp.MustCompile(`^Error from server \([^)]+\): (.*)$`)}
+
 func extractErrorFromStdOut(lines []string) string {
 	//Find error, last log lines first
 	for i := len(lines) - 1; i >= 0; i-- {
-		if strings.Contains(lines[i], "error: ") {
-			split := strings.SplitAfter(lines[i], "error: ")
-			if len(split) > 1 {
-				return strings.Join(split[1:], "")
+		for _, re := range regexpErrors {
+			if re.MatchString(lines[i]) {
+				matches := re.FindStringSubmatch(lines[i])
+				if len(matches) > 1 {
+					return matches[1]
+				}
 			}
 		}
 	}
