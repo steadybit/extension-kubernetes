@@ -3,6 +3,7 @@
 ## v2.6.9 (Next)
 
 - Discovery, Pod Count Check and Set Scale Action for ReplicaSets
+- Nginx Ingress: Discovery, delay and block traffic attack
 
 ## v2.6.8
 
