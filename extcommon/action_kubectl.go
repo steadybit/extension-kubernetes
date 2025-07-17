@@ -138,15 +138,14 @@ func (a KubectlAction) Status(_ context.Context, state *KubectlActionState) (*ac
 				result.Completed = true
 			}
 		} else {
-			title := fmt.Sprintf("Failed to %s exit-code %d", state.Opts.LogActionName, exitCode)
-			if stdOutError := extractErrorFromStdOut(stdOut); stdOutError != "" {
-				title = stdOutError
-			}
 			result.Completed = true
 			result.Error = &action_kit_api.ActionKitError{
 				Status: extutil.Ptr(action_kit_api.Errored),
-				Title:  title,
+				Title:  fmt.Sprintf("Failed to %s exit-code %d", state.Opts.LogActionName, exitCode),
 				Detail: extutil.Ptr(strings.Join(stdOut, "\n")),
+			}
+			if stdOutError := extractErrorFromStdOut(stdOut); stdOutError != "" {
+				result.Error.Title = stdOutError
 			}
 			state.CommandCompleted = true
 		}
@@ -167,17 +166,14 @@ func stdOutToLog(lines []string, opts KubectlOpts) {
 	}
 }
 
-var regexpErrors = []*regexp.Regexp{regexp.MustCompile(`^error: (.*)$`), regexp.MustCompile(`^Error from server \([^)]+\): (.*)$`)}
+var regexpErrors = []*regexp.Regexp{regexp.MustCompile(`error: (.*)$`), regexp.MustCompile(`Error from server \([^)]+\): (.*)`)}
 
 func extractErrorFromStdOut(lines []string) string {
 	//Find error, last log lines first
 	for i := len(lines) - 1; i >= 0; i-- {
 		for _, re := range regexpErrors {
-			if re.MatchString(lines[i]) {
-				matches := re.FindStringSubmatch(lines[i])
-				if len(matches) > 1 {
-					return matches[1]
-				}
+			if matches := re.FindStringSubmatch(lines[i]); len(matches) > 1 {
+				return matches[1]
 			}
 		}
 	}
