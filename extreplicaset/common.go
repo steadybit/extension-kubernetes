@@ -5,6 +5,6 @@ package extreplicaset
 
 const (
 	ReplicaSetTargetType            = "com.steadybit.extension_kubernetes.kubernetes-replicaset"
-	ReplicaSetPodCountCheckActionId = "com.steadybit.extension_kubernetes.replicaset_pod_count_check"
-	ScaleReplicaSetActionId         = "com.steadybit.extension_kubernetes.replicaset_scale"
+	ReplicaSetPodCountCheckActionId = "com.steadybit.extension_kubernetes.pod_count_check_replicaset"
+	ScaleReplicaSetActionId         = "com.steadybit.extension_kubernetes.scale_replicaset"
 )
