@@ -1,6 +1,6 @@
 # Changelog
 
-## v2.6.9 (Next)
+## v2.6.9
 
 - Discovery, Pod Count Check and Set Scale Action for ReplicaSets
 - Nginx Ingress: Discovery, delay and block traffic attack
