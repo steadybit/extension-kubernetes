@@ -1582,7 +1582,7 @@ func testNginxIngressDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) 
 	assert.Equal(t, nginx.TargetType, extingress.NginxIngressTargetType)
 	assert.Equal(t, nginx.Attributes["k8s.ingress"][0], testAppName)
 	assert.Contains(t, nginx.Attributes["k8s.ingress.controller"][0], "ingress-nginx")
-	assert.Equal(t, nginx.Attributes["k8s.ingress.class"][0], "nginx")
+	assert.Equal(t, nginx.Attributes["k8s.ingress.class"][0], "nginx-steadybit")
 
 	// Verify the application is accessible through NGINX Ingress
 	err = checkStatusCode(t, m, nginxService, "/", 200)
