@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -20,6 +21,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/strings/slices"
@@ -183,88 +185,90 @@ func (d *nginxIngressDiscovery) isUsingNginxClass(className string, nginxClasses
 	return false
 }
 
-// getNginxControllerInfo finds the NGINX controller namespace and pod information for the given ingress class
+// getNginxControllerInfo finds the NGINX controller namespace for the given ingress class
 func (d *nginxIngressDiscovery) getNginxControllerInfo(ingressClassName string) string {
-	// Common NGINX controller namespaces to check first
-	commonNamespaces := []string{
-		"ingress-nginx",
-		"nginx-ingress",
-		"kube-system",
-		"default",
-	}
-
-	// First, try common namespaces for better performance
-	for _, ns := range commonNamespaces {
-		if controllerNs := d.searchNginxControllerInNamespace(ns); controllerNs != "" {
-			return controllerNs
-		}
-	}
-
-	// If not found in common namespaces, search in all namespaces as fallback
-	log.Debug().Msgf("NGINX controller not found in common namespaces, searching all namespaces")
-
+	// Search all namespaces for NGINX controllers
 	allNamespaces := d.k8s.Namespaces()
 	for _, ns := range allNamespaces {
-		// Skip namespaces we already checked
-		if contains(commonNamespaces, ns.Name) {
-			continue
-		}
-
-		if controllerNs := d.searchNginxControllerInNamespace(ns.Name); controllerNs != "" {
-			log.Debug().Msgf("Found NGINX controller in namespace %s (not in common list)", ns.Name)
-			return controllerNs
+		if d.hasNginxControllerForClass(ns.Name, ingressClassName) {
+			log.Debug().Msgf("Found NGINX controller for IngressClass %s in namespace %s", ingressClassName, ns.Name)
+			return ns.Name
 		}
 	}
 
+	log.Debug().Msgf("No NGINX controller found for IngressClass %s", ingressClassName)
 	return ""
 }
 
-// searchNginxControllerInNamespace searches for NGINX controller pods in a specific namespace
-func (d *nginxIngressDiscovery) searchNginxControllerInNamespace(namespace string) string {
-	// Check for NGINX ingress controller pods using primary label selector
-	labelSelector := &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app.kubernetes.io/name": "ingress-nginx",
-		},
+// hasNginxControllerForClass checks if there's an NGINX controller in the namespace that handles the IngressClass
+func (d *nginxIngressDiscovery) hasNginxControllerForClass(namespace string, ingressClassName string) bool {
+	// NGINX controller label selectors for different variants
+	labelSelectors := []map[string]string{
+		// Community NGINX Ingress Controller (k8s.io/ingress-nginx)
+		{"app.kubernetes.io/name": "ingress-nginx"},
+		{"app.kubernetes.io/component": "controller", "app.kubernetes.io/name": "ingress-nginx"},
+		
+		// Enterprise NGINX Ingress Controller (nginx.org/ingress-controller) 
+		{"app": "nginx-ingress"},
+		{"app.kubernetes.io/name": "nginx-ingress"},
+		
+		// Legacy and custom installations
+		{"k8s-app": "nginx-ingress-controller"},
+		{"name": "nginx-ingress-controller"},
+		{"app": "nginx-ingress-controller"},
+		
+		// Additional patterns for UBI and other variants
+		{"app.kubernetes.io/component": "controller"},
+		{"component": "nginx-ingress-controller"},
 	}
-	pods := d.k8s.PodsByLabelSelector(labelSelector, namespace)
 
-	if len(pods) == 0 {
-		// Try alternative label selector for different NGINX ingress installations
-		labelSelector = &metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"app": "nginx-ingress",
-			},
+	for _, selector := range labelSelectors {
+		labelSelector := &metav1.LabelSelector{
+			MatchLabels: selector,
 		}
-		pods = d.k8s.PodsByLabelSelector(labelSelector, namespace)
-	}
+		pods := d.k8s.PodsByLabelSelector(labelSelector, namespace)
 
-	if len(pods) == 0 {
-		// Try additional label selectors for enterprise NGINX or custom installations
-		alternativeSelectors := []map[string]string{
-			{"app.kubernetes.io/name": "nginx-ingress"},
-			{"app.kubernetes.io/component": "controller"},
-			{"k8s-app": "nginx-ingress-controller"},
-			{"name": "nginx-ingress-controller"},
-		}
-
-		for _, selector := range alternativeSelectors {
-			labelSelector = &metav1.LabelSelector{
-				MatchLabels: selector,
+		for _, pod := range pods {
+			// If we have a specific IngressClass name, check if this controller handles it
+			if ingressClassName != "" && d.controllerHandlesClass(pod, ingressClassName) {
+				return true
 			}
-			pods = d.k8s.PodsByLabelSelector(labelSelector, namespace)
-			if len(pods) > 0 {
-				break
+			// If no specific IngressClass or controller doesn't specify class, assume it matches
+			if ingressClassName == "" || !d.controllerHasClassArg(pod) {
+				return true
 			}
 		}
 	}
 
-	if len(pods) > 0 {
-		// Found controller pods in this namespace
-		return namespace
-	}
+	return false
+}
 
-	return ""
+// controllerHandlesClass checks if the controller pod is configured for the specific IngressClass
+func (d *nginxIngressDiscovery) controllerHandlesClass(pod *corev1.Pod, ingressClassName string) bool {
+	if ingressClassName == "" {
+		return false
+	}
+	
+	for _, container := range pod.Spec.Containers {
+		for _, arg := range container.Args {
+			if strings.HasPrefix(arg, "--ingress-class="+ingressClassName) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// controllerHasClassArg checks if the controller has any --ingress-class argument
+func (d *nginxIngressDiscovery) controllerHasClassArg(pod *corev1.Pod) bool {
+	for _, container := range pod.Spec.Containers {
+		for _, arg := range container.Args {
+			if strings.HasPrefix(arg, "--ingress-class=") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // contains checks if a string slice contains a specific string

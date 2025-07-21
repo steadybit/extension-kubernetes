@@ -14,6 +14,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -220,3 +221,113 @@ func Test_nginxIngressDiscovery_IncludeDisabledIfDisableDiscoveryExcludes(t *tes
 	targets, _ := d.DiscoverTargets(context.Background())
 	assert.Equal(t, "test-cluster/default/included", targets[0].Id)
 }
+
+func Test_nginxIngressDiscovery_ControllerHandlesClass(t *testing.T) {
+	tests := []struct {
+		name             string
+		containerArgs    []string
+		ingressClassName string
+		expected         bool
+	}{
+		{
+			name:             "exact match",
+			containerArgs:    []string{"--ingress-class=nginx-test", "--other-arg"},
+			ingressClassName: "nginx-test",
+			expected:         true,
+		},
+		{
+			name:             "no match",
+			containerArgs:    []string{"--ingress-class=nginx-other", "--other-arg"},
+			ingressClassName: "nginx-test",
+			expected:         false,
+		},
+		{
+			name:             "no class argument",
+			containerArgs:    []string{"--other-arg"},
+			ingressClassName: "nginx-test",
+			expected:         false,
+		},
+		{
+			name:             "empty class name",
+			containerArgs:    []string{"--ingress-class=nginx-test"},
+			ingressClassName: "",
+			expected:         false,
+		},
+		{
+			name:             "multiple args with match",
+			containerArgs:    []string{"--config=/etc/nginx", "--ingress-class=steadybit-nginx", "--v=2"},
+			ingressClassName: "steadybit-nginx",
+			expected:         true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock pod with the specified args
+			pod := &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "nginx-controller",
+							Args: tt.containerArgs,
+						},
+					},
+				},
+			}
+
+			d := &nginxIngressDiscovery{}
+			result := d.controllerHandlesClass(pod, tt.ingressClassName)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func Test_nginxIngressDiscovery_ControllerHasClassArg(t *testing.T) {
+	tests := []struct {
+		name          string
+		containerArgs []string
+		expected      bool
+	}{
+		{
+			name:          "has class argument",
+			containerArgs: []string{"--ingress-class=nginx-test", "--other-arg"},
+			expected:      true,
+		},
+		{
+			name:          "no class argument",
+			containerArgs: []string{"--other-arg", "--another-arg"},
+			expected:      false,
+		},
+		{
+			name:          "empty args",
+			containerArgs: []string{},
+			expected:      false,
+		},
+		{
+			name:          "has different ingress class",
+			containerArgs: []string{"--ingress-class=different-class"},
+			expected:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock pod with the specified args
+			pod := &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name: "nginx-controller",
+							Args: tt.containerArgs,
+						},
+					},
+				},
+			}
+
+			d := &nginxIngressDiscovery{}
+			result := d.controllerHasClassArg(pod)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+

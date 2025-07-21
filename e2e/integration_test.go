@@ -1785,7 +1785,7 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 		"--namespace", nginxControllerNamespace,
 		"--kube-context", m.Profile,
 		"--set", "controller.service.type=NodePort",
-		"--set", "controller.ingressClassResource.name=nginx",
+		"--set", "controller.ingressClassResource.name=nginx-steadybit",
 		"--set", "controller.ingressClassResource.default=true",
 		"--set", "controller.config.allow-snippet-annotations=true",
 		"--set", "controller.config.annotations-risk-level=Critical",
@@ -1875,11 +1875,11 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 			Name:      testAppName,
 			Namespace: "default",
 			Annotations: map[string]string{
-				"kubernetes.io/ingress.class": "nginx",
+				"kubernetes.io/ingress.class": "nginx-steadybit",
 			},
 		},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: extutil.Ptr("nginx"),
+			IngressClassName: extutil.Ptr("nginx-steadybit"),
 			Rules: []networkingv1.IngressRule{
 				{
 					IngressRuleValue: networkingv1.IngressRuleValue{
@@ -1980,7 +1980,7 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		return
 	}
 	log.Info().Msg("Starting testNginxDelayTraffic")
-	const nginxNamespace = "nginx-ingress"
+	const nginxNamespace = "nginx-ingress-steadybit"
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 
