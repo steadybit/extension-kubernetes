@@ -227,10 +227,15 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 		if len(nginxPods) == 0 {
 			if releaseNamespace, exists := targetIngressClass.Annotations["meta.helm.sh/release-namespace"]; exists {
 				// Common label selectors for community NGINX ingress controller
+				releaseName := "ingress-nginx"
+				if targetIngressClass.Annotations["meta.helm.sh/release-name"] != "" {
+					releaseName = targetIngressClass.Annotations["meta.helm.sh/release-name"]
+				}
 				labelSelectors := []map[string]string{
-					{"app.kubernetes.io/name": "ingress-nginx", "app.kubernetes.io/component": "controller"},
-					{"app.kubernetes.io/name": "ingress-nginx"},
-					{"app": "ingress-nginx-controller"},
+					{"app.kubernetes.io/instance": releaseName},
+					{"app.kubernetes.io/name": releaseName, "app.kubernetes.io/component": "controller"},
+					{"app.kubernetes.io/name": releaseName},
+					{"app": releaseName},
 				}
 				log.Debug().Msgf("Searching for NGINX pods in release namespace %s with label selectors: %v", releaseNamespace, labelSelectors)
 				nginxPods = findPodsWithLabelSelectors(labelSelectors, releaseNamespace, ingressClassName)
@@ -336,6 +341,7 @@ func isNginxControllerPod(pod *corev1.Pod) bool {
 			// Check image patterns
 			if strings.Contains(container.Image, "nginx") ||
 				strings.Contains(container.Image, "ingress-nginx") ||
+				strings.Contains(container.Image, "nginx-ingress") ||
 				strings.Contains(container.Image, "steadybit") {
 				return true
 			}
