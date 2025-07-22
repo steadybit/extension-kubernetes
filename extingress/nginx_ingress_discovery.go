@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -21,9 +20,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
-	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/strings/slices"
 )
 
@@ -123,11 +120,6 @@ func (d *nginxIngressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_
 				attributes["k8s.ingress.controller"] = []string{controller}
 			}
 
-			// Add NGINX controller namespace and pod information
-			controllerNamespace := d.getNginxControllerInfo(ingressClassName)
-			if controllerNamespace != "" {
-				attributes["k8s.nginx.controller.namespace"] = []string{controllerNamespace}
-			}
 		}
 
 		hosts := make([]string, 0)
@@ -185,98 +177,3 @@ func (d *nginxIngressDiscovery) isUsingNginxClass(className string, nginxClasses
 	return false
 }
 
-// getNginxControllerInfo finds the NGINX controller namespace for the given ingress class
-func (d *nginxIngressDiscovery) getNginxControllerInfo(ingressClassName string) string {
-	// Search all namespaces for NGINX controllers
-	allNamespaces := d.k8s.Namespaces()
-	for _, ns := range allNamespaces {
-		if d.hasNginxControllerForClass(ns.Name, ingressClassName) {
-			log.Debug().Msgf("Found NGINX controller for IngressClass %s in namespace %s", ingressClassName, ns.Name)
-			return ns.Name
-		}
-	}
-
-	log.Debug().Msgf("No NGINX controller found for IngressClass %s", ingressClassName)
-	return ""
-}
-
-// hasNginxControllerForClass checks if there's an NGINX controller in the namespace that handles the IngressClass
-func (d *nginxIngressDiscovery) hasNginxControllerForClass(namespace string, ingressClassName string) bool {
-	// NGINX controller label selectors for different variants
-	labelSelectors := []map[string]string{
-		// Community NGINX Ingress Controller (k8s.io/ingress-nginx)
-		{"app.kubernetes.io/name": "ingress-nginx"},
-		{"app.kubernetes.io/component": "controller", "app.kubernetes.io/name": "ingress-nginx"},
-		
-		// Enterprise NGINX Ingress Controller (nginx.org/ingress-controller) 
-		{"app": "nginx-ingress"},
-		{"app.kubernetes.io/name": "nginx-ingress"},
-		
-		// Legacy and custom installations
-		{"k8s-app": "nginx-ingress-controller"},
-		{"name": "nginx-ingress-controller"},
-		{"app": "nginx-ingress-controller"},
-		
-		// Additional patterns for UBI and other variants
-		{"app.kubernetes.io/component": "controller"},
-		{"component": "nginx-ingress-controller"},
-	}
-
-	for _, selector := range labelSelectors {
-		labelSelector := &metav1.LabelSelector{
-			MatchLabels: selector,
-		}
-		pods := d.k8s.PodsByLabelSelector(labelSelector, namespace)
-
-		for _, pod := range pods {
-			// If we have a specific IngressClass name, check if this controller handles it
-			if ingressClassName != "" && d.controllerHandlesClass(pod, ingressClassName) {
-				return true
-			}
-			// If no specific IngressClass or controller doesn't specify class, assume it matches
-			if ingressClassName == "" || !d.controllerHasClassArg(pod) {
-				return true
-			}
-		}
-	}
-
-	return false
-}
-
-// controllerHandlesClass checks if the controller pod is configured for the specific IngressClass
-func (d *nginxIngressDiscovery) controllerHandlesClass(pod *corev1.Pod, ingressClassName string) bool {
-	if ingressClassName == "" {
-		return false
-	}
-	
-	for _, container := range pod.Spec.Containers {
-		for _, arg := range container.Args {
-			if strings.HasPrefix(arg, "--ingress-class="+ingressClassName) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// controllerHasClassArg checks if the controller has any --ingress-class argument
-func (d *nginxIngressDiscovery) controllerHasClassArg(pod *corev1.Pod) bool {
-	for _, container := range pod.Spec.Containers {
-		for _, arg := range container.Args {
-			if strings.HasPrefix(arg, "--ingress-class=") {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// contains checks if a string slice contains a specific string
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
-}

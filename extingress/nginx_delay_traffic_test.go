@@ -17,6 +17,8 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -251,10 +253,18 @@ func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 	originalValidator := nginxModuleValidator
 	nginxModuleValidator = &NoOpNginxModuleValidator{}
 
+	// Create test IngressClass for NGINX
+	createTestNginxIngressClass(t, clientset)
+
 	// Create test ingresses
 	createTestDelayNginxIngresses(t, clientset)
 
-	// Wait for ingresses to be registered
+	// Wait for IngressClass and ingresses to be registered
+	assert.Eventually(t, func() bool {
+		ingressClasses := testClient.IngressClasses()
+		return len(ingressClasses) > 0
+	}, time.Second, 100*time.Millisecond)
+
 	assert.Eventually(t, func() bool {
 		ingress, _ := testClient.IngressByNamespaceAndName("demo", "test-nginx-ingress")
 		return ingress != nil
@@ -269,6 +279,21 @@ func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 			nginxModuleValidator = originalValidator // Restore original validator
 		},
 	}
+}
+
+// createTestNginxIngressClass creates a test NGINX IngressClass
+func createTestNginxIngressClass(t *testing.T, clientset kubernetes.Interface) {
+	ingressClass := &networkingv1.IngressClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "nginx",
+		},
+		Spec: networkingv1.IngressClassSpec{
+			Controller: "k8s.io/ingress-nginx",
+		},
+	}
+
+	_, err := clientset.NetworkingV1().IngressClasses().Create(context.Background(), ingressClass, metav1.CreateOptions{})
+	require.NoError(t, err)
 }
 
 // createTestDelayNginxIngresses creates test ingress resources for NGINX
@@ -290,8 +315,9 @@ func createDelayNginxTestRequest(ingressName string, config map[string]interface
 		Config:      config,
 		Target: extutil.Ptr(action_kit_api.Target{
 			Attributes: map[string][]string{
-				"k8s.namespace": {"demo"},
-				"k8s.ingress":   {ingressName},
+				"k8s.namespace":     {"demo"},
+				"k8s.ingress":       {ingressName},
+				"k8s.ingress.class": {"nginx"},
 			},
 		}),
 	}
