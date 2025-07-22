@@ -51,6 +51,7 @@ func transformPod(i interface{}) (interface{}, error) {
 					Limits:   container.Resources.Limits,
 					Requests: container.Resources.Requests,
 				},
+				Args: container.Args, // needed for nginx delay prepare check
 			})
 		}
 		pod.Spec = newPodSpec
@@ -149,16 +150,28 @@ func transformHPA(i interface{}) (interface{}, error) {
 
 func transformIngressClass(i interface{}) (interface{}, error) {
 	if ic, ok := i.(*networkingv1.IngressClass); ok {
-		// Keep only needed annotations, particularly is-default-class
-		defaultClassAnnotation := ""
+		// Keep only needed annotations for ingress controller discovery
+		keptAnnotations := map[string]string{}
+
 		if ic.Annotations != nil {
-			defaultClassAnnotation = ic.Annotations["ingressclass.kubernetes.io/is-default-class"]
+			// Keep is-default-class annotation
+			if defaultClass := ic.Annotations["ingressclass.kubernetes.io/is-default-class"]; defaultClass != "" {
+				keptAnnotations["ingressclass.kubernetes.io/is-default-class"] = defaultClass
+			}
+
+			// Keep operator-sdk/primary-resource annotation (for UBI NGINX discovery)
+			if primaryResource := ic.Annotations["operator-sdk/primary-resource"]; primaryResource != "" {
+				keptAnnotations["operator-sdk/primary-resource"] = primaryResource
+			}
+
+			// Keep meta.helm.sh/release-namespace annotation (for community NGINX discovery)
+			if releaseNamespace := ic.Annotations["meta.helm.sh/release-namespace"]; releaseNamespace != "" {
+				keptAnnotations["meta.helm.sh/release-namespace"] = releaseNamespace
+			}
 		}
 
-		if defaultClassAnnotation != "" {
-			ic.Annotations = map[string]string{
-				"ingressclass.kubernetes.io/is-default-class": defaultClassAnnotation,
-			}
+		if len(keptAnnotations) > 0 {
+			ic.Annotations = keptAnnotations
 		} else {
 			ic.Annotations = nil
 		}
