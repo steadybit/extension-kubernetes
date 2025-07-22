@@ -40,6 +40,7 @@ type Specification struct {
 	DiscoveryRefreshThrottle               int      `json:"DiscoveryRefreshThrottle" required:"false" split_words:"true" default:"20"`
 	DiscoveryInformerResync                int      `json:"DiscoveryInformerResync" required:"false" split_words:"true" default:"600"`
 	Namespace                              string   `json:"namespace" split_words:"true" required:"false" default:""`
+	NginxDelaySkipImageCheck               bool     `json:"nginxDelaySkipImageCheck" split_words:"true" required:"false" default:"false"`
 }
 
 var (

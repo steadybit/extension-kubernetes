@@ -1786,6 +1786,7 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 		"--kube-context", m.Profile,
 		"--set", "controller.service.type=NodePort",
 		"--set", "controller.ingressClassResource.name=nginx-steadybit",
+		"--set", "controller.ingressClass=nginx-steadybit",
 		"--set", "controller.ingressClassResource.default=true",
 		"--set", "controller.config.allow-snippet-annotations=true",
 		"--set", "controller.config.annotations-risk-level=Critical",

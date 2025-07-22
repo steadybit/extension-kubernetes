@@ -7,6 +7,8 @@ package extingress
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"strings"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -86,15 +88,19 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 		return nil, fmt.Errorf("failed to prepare NGINX delay action: %w", err)
 	}
 
-	// Validate that the NGINX steadybit sleep module is loaded by directly searching for NGINX controller pods
-	if ingressClass, exists := request.Target.Attributes["k8s.ingress.class"]; exists && len(ingressClass) > 0 {
-		if err := nginxModuleValidator.ValidateNginxSteadybitModule(map[string][]string{
-			"k8s.ingress.class": {ingressClass[0]},
-		}); err != nil {
-			return nil, fmt.Errorf("NGINX steadybit sleep module validation failed: %w", err)
+	if !extconfig.Config.NginxDelaySkipImageCheck {
+		// Validate that the NGINX steadybit sleep module is loaded by directly searching for NGINX controller pods
+		if ingressClass, exists := request.Target.Attributes["k8s.ingress.class"]; exists && len(ingressClass) > 0 {
+			if err := nginxModuleValidator.ValidateNginxSteadybitModule(map[string][]string{
+				"k8s.ingress.class": {ingressClass[0]},
+			}); err != nil {
+				return nil, fmt.Errorf("NGINX steadybit sleep module validation failed: %w", err)
+			}
+		} else {
+			return nil, fmt.Errorf("no ingress class found in target attributes")
 		}
 	} else {
-		return nil, fmt.Errorf("no ingress class found in target attributes")
+		log.Info().Msg("Skipping NGINX module validation as per configuration")
 	}
 
 	// Extract and validate delay parameter
