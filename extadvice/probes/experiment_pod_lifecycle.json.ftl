@@ -194,7 +194,7 @@
               ]
             },
             "query": null,
-            "percentage": 50
+            "maximum": 1
           }
         },
         {
