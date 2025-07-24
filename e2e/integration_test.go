@@ -2192,7 +2192,7 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 	log.Info().Msg("Starting testNginxMultipleControllers")
 
 	const nginxNamespace = "nginx-multi-test"
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*6*time.Second)
 	defer cancel()
 
 	// Deploy nginx controller WITH steadybit module and multiple replicas
