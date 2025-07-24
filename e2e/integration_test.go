@@ -102,6 +102,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "nginxDelayTraffic",
 		Test: testNginxDelayTraffic,
 	},
+	{
+		Name: "nginxMultipleControllers",
+		Test: testNginxMultipleControllers,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -2177,3 +2181,231 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		})
 	}
 }
+
+
+// testNginxMultipleControllers tests the scenario where the nginx controller
+// has multiple replicas/pods and validates that module validation works correctly
+func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testNginxMultipleControllers because it is using role binding, and is therefore not supported")
+		return
+	}
+	log.Info().Msg("Starting testNginxMultipleControllers")
+
+	const nginxNamespace = "nginx-multi-test"
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	defer cancel()
+
+	// Deploy nginx controller WITH steadybit module and multiple replicas
+	log.Info().Msg("Deploying NGINX Ingress Controller with steadybit module and multiple replicas")
+	out, err := exec.Command("helm", "repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx").CombinedOutput()
+	require.NoError(t, err, "Failed to add NGINX Helm repo: %s", out)
+	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
+	require.NoError(t, err, "Failed to update Helm repos: %s", out)
+
+	args := []string{
+		"upgrade", "--install", "nginx-steadybit", "ingress-nginx/ingress-nginx",
+		"--create-namespace",
+		"--namespace", nginxNamespace,
+		"--kube-context", m.Profile,
+		"--set", "controller.service.type=NodePort",
+		"--set", "controller.ingressClassResource.name=nginx-steadybit",
+		"--set", "controller.ingressClass=nginx-steadybit",
+		"--set", "controller.config.allow-snippet-annotations=true",
+		"--set", "controller.config.annotations-risk-level=Critical",
+		"--set", "controller.config.custom-http-snippet=\"load_module /etc/nginx/modules/ngx_steadybit_sleep_module.so;\"",
+		"--set", "controller.image.repository=ghcr.io/steadybit/ingress-nginx-controller-with-steadybit-module",
+		"--set", "controller.image.tag=main-community-v1.13.0",
+		// Scale to 2 replicas to simulate having multiple pods that the discovery logic needs to check
+		"--set", "controller.replicaCount=2",
+	}
+	out, err = exec.Command("helm", args...).CombinedOutput()
+	require.NoError(t, err, "Failed to deploy NGINX Ingress Controller: %s", out)
+	defer func() {
+		_ = exec.Command("helm", "uninstall", "nginx-steadybit", "--namespace", nginxNamespace, "--kube-context", m.Profile).Run()
+		_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxNamespace, "--ignore-not-found").Run()
+	}()
+
+	// Wait for controller(s) - both replicas should be ready
+	err = waitForNginxIngressController(m, ctx, nginxNamespace)
+	require.NoError(t, err)
+
+	// Create test deployment and service
+	log.Info().Msg("Creating test deployment")
+	testAppName := "nginx-multi-controller-test"
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: int32Ptr(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": testAppName,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": testAppName,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "nginx",
+							Image: "nginx:stable-alpine",
+							Ports: []corev1.ContainerPort{
+								{
+									ContainerPort: 80,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	appDeployment, _, err := m.CreateDeployment(deployment)
+	require.NoError(t, err)
+	defer func() { _ = m.DeleteDeployment(appDeployment) }()
+
+	service := acorev1.Service(testAppName, "default").
+		WithLabels(map[string]string{
+			"app": testAppName,
+		}).
+		WithSpec(acorev1.ServiceSpec().
+			WithSelector(map[string]string{
+				"app": testAppName,
+			}).
+			WithPorts(acorev1.ServicePort().
+				WithPort(80).
+				WithTargetPort(intstr.FromInt32(80)),
+			),
+		)
+
+	appService, err := m.CreateService(service)
+	require.NoError(t, err)
+	defer func() { _ = m.DeleteService(appService) }()
+
+	// Create ingress with steadybit class
+	log.Info().Msg("Creating ingress resource targeting nginx-steadybit class")
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testAppName,
+			Namespace: "default",
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "nginx-steadybit",
+			},
+		},
+		Spec: networkingv1.IngressSpec{
+			IngressClassName: extutil.Ptr("nginx-steadybit"),
+			Rules: []networkingv1.IngressRule{
+				{
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{
+								{
+									Path:     "/",
+									PathType: pathTypePtr(networkingv1.PathTypePrefix),
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: testAppName,
+											Port: networkingv1.ServiceBackendPort{
+												Number: 80,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	appIngress, err := m.CreateIngress(ingress)
+	require.NoError(t, err)
+	defer func() { _ = m.DeleteIngress(appIngress) }()
+
+	// Wait for ingress target to be discovered
+	log.Info().Msg("Finding NGINX Ingress target for steadybit class")
+	var ingressTarget *action_kit_api.Target
+	discoveryTarget, err := e2e.PollForTarget(ctx, e, extingress.NginxIngressTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.ingress", testAppName) &&
+			e2e.HasAttribute(target, "k8s.ingress.class", "nginx-steadybit")
+	})
+	require.NoError(t, err, "Failed to find NGINX ingress target with nginx-steadybit class")
+	ingressTarget = &action_kit_api.Target{
+		Attributes: discoveryTarget.Attributes,
+	}
+
+	// Find NGINX Service for delay measurement
+	log.Info().Msg("Finding NGINX Service for delay measurement")
+	nginxServiceName, err := findServiceNameInNamespace(m, nginxNamespace)
+	require.NoError(t, err, "Failed to find NGINX service")
+	nginxService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      nginxServiceName,
+			Namespace: nginxNamespace,
+		},
+	}
+
+	// Measure baseline latency
+	log.Info().Msg("Measuring baseline latency")
+	baselineLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	require.NoError(t, err)
+	log.Info().Msgf("Baseline latency: %v", baselineLatency)
+
+	// Test delay traffic with module validation
+	log.Info().Msg("Testing nginx delay traffic with module validation on multiple replicas")
+	delayMs := 1000 // 1 second delay
+	config := struct {
+		Duration             int    `json:"duration"`
+		ResponseDelay        int    `json:"responseDelay"`
+		ConditionPathPattern string `json:"conditionPathPattern"`
+	}{
+		Duration:             15000, // 15 seconds
+		ResponseDelay:        delayMs,
+		ConditionPathPattern: "/", // Match all paths - required condition
+	}
+
+	// This tests that validation works when there are multiple nginx controller pods
+	action, err := e.RunAction(extingress.NginxDelayTrafficActionId, ingressTarget, config, nil)
+	require.NoError(t, err, "Action should succeed with multiple nginx controller replicas")
+	defer func() {
+		if action != nil {
+			_ = action.Cancel()
+		}
+	}()
+
+	log.Info().Msg("Successfully validated nginx controller with steadybit module on multiple replicas")
+
+	// Measure latency during delay
+	time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+	delayedLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	require.NoError(t, err)
+	log.Info().Msgf("Latency during delay test: %v", delayedLatency)
+
+	// Verify delay is applied (with tolerance)
+	minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+	maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
+	assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
+	assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
+
+	// Cancel the action
+	require.NoError(t, action.Cancel())
+
+	// Measure latency after cancellation
+	time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
+	afterLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	require.NoError(t, err)
+	log.Info().Msgf("Latency after cancellation: %v", afterLatency)
+
+	// Verify latency returned to normal
+	maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+	assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
+}
+EOF < /dev/null

@@ -164,9 +164,14 @@ func transformIngressClass(i interface{}) (interface{}, error) {
 				keptAnnotations["operator-sdk/primary-resource"] = primaryResource
 			}
 
-			// Keep meta.helm.sh/release-namespace annotation (for community NGINX discovery)
+			// Keep meta.helm.sh/release-namespace annotation (for NGINX discovery)
 			if releaseNamespace := ic.Annotations["meta.helm.sh/release-namespace"]; releaseNamespace != "" {
 				keptAnnotations["meta.helm.sh/release-namespace"] = releaseNamespace
+			}
+
+			// Keep meta.helm.sh/release-name annotation (for NGINX discovery)
+			if releaseName := ic.Annotations["meta.helm.sh/release-name"]; releaseName != "" {
+				keptAnnotations["meta.helm.sh/release-name"] = releaseName
 			}
 		}
 

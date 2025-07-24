@@ -247,64 +247,81 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 		return fmt.Errorf("no NGINX ingress controller pods found for IngressClass %s", ingressClassName)
 	}
 
-	// Check the first available pod for the module
-	pod := nginxPods[0]
-	containerName := "controller" // Default container name for NGINX ingress controller
+	// Check all available pods for the module - we need at least one with the steadybit module
+	// This handles cases where multiple nginx controllers exist but only some have the module
+	var lastError error
+	var checkedPods []string
 
-	// Try to find the correct container name
-	for _, container := range pod.Spec.Containers {
-		if strings.Contains(container.Name, "nginx") || strings.Contains(container.Name, "controller") {
-			containerName = container.Name
-			break
+	for _, pod := range nginxPods {
+		checkedPods = append(checkedPods, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+
+		containerName := "controller" // Default container name for NGINX ingress controller
+
+		// Try to find the correct container name
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Name, "nginx") || strings.Contains(container.Name, "controller") {
+				containerName = container.Name
+				break
+			}
 		}
-	}
 
-	// Check multiple possible nginx.conf locations
-	configPaths := []string{
-		"/etc/nginx/nginx.conf",
-		"/usr/local/nginx/conf/nginx.conf",
-		"/opt/nginx/conf/nginx.conf",
-	}
-
-	var configContent string
-	var configPath string
-
-	for _, path := range configPaths {
-		output, err := client.K8S.ExecInPod(context.Background(), pod.Namespace, pod.Name, containerName, []string{"cat", path})
-		if err == nil {
-			configContent = output
-			configPath = path
-			break
+		// Check multiple possible nginx.conf locations
+		configPaths := []string{
+			"/etc/nginx/nginx.conf",
+			"/usr/local/nginx/conf/nginx.conf",
+			"/opt/nginx/conf/nginx.conf",
 		}
-	}
 
-	if configContent == "" {
-		return fmt.Errorf("failed to read nginx.conf from pod %s/%s: could not find configuration at any of the expected paths %v", pod.Namespace, pod.Name, configPaths)
-	}
+		var configContent string
+		var configPath string
 
-	// Check if the steadybit sleep module is loaded via load_module directive
-	if strings.Contains(configContent, "ngx_steadybit_sleep_module") {
-		log.Debug().Msgf("NGINX steadybit sleep module is loaded via load_module directive in %s in pod %s/%s", configPath, pod.Namespace, pod.Name)
-		return nil
-	}
-
-	// If not found in main config, check if module file exists in common module directories
-	modulePaths := []string{
-		"/etc/nginx/modules/ngx_steadybit_sleep_module.so",
-		"/usr/local/nginx/modules/ngx_steadybit_sleep_module.so",
-		"/opt/nginx/modules/ngx_steadybit_sleep_module.so",
-		"/usr/lib/nginx/modules/ngx_steadybit_sleep_module.so",
-	}
-
-	for _, modulePath := range modulePaths {
-		exists, err := client.K8S.FileExistsInPod(context.Background(), pod.Namespace, pod.Name, containerName, modulePath)
-		if err == nil && exists {
-			log.Debug().Msgf("Found ngx_steadybit_sleep_module.so at %s in pod %s/%s, but it's not loaded in nginx.conf", modulePath, pod.Namespace, pod.Name)
-			return fmt.Errorf("ngx_steadybit_sleep_module.so exists at %s but is not loaded. Please add 'load_module %s;' to the nginx configuration", modulePath, modulePath)
+		for _, path := range configPaths {
+			output, err := client.K8S.ExecInPod(context.Background(), pod.Namespace, pod.Name, containerName, []string{"cat", path})
+			if err == nil {
+				configContent = output
+				configPath = path
+				break
+			}
 		}
+
+		if configContent == "" {
+			lastError = fmt.Errorf("failed to read nginx.conf from pod %s/%s: could not find configuration at any of the expected paths %v", pod.Namespace, pod.Name, configPaths)
+			log.Debug().Msgf("Could not read nginx.conf from pod %s/%s, trying next pod", pod.Namespace, pod.Name)
+			continue
+		}
+
+		// Check if the steadybit sleep module is loaded via load_module directive
+		if strings.Contains(configContent, "ngx_steadybit_sleep_module") {
+			log.Debug().Msgf("NGINX steadybit sleep module is loaded via load_module directive in %s in pod %s/%s", configPath, pod.Namespace, pod.Name)
+			return nil // Found a controller with the module - success!
+		}
+
+		// If not found in main config, check if module file exists in common module directories
+		modulePaths := []string{
+			"/etc/nginx/modules/ngx_steadybit_sleep_module.so",
+			"/usr/local/nginx/modules/ngx_steadybit_sleep_module.so",
+			"/opt/nginx/modules/ngx_steadybit_sleep_module.so",
+			"/usr/lib/nginx/modules/ngx_steadybit_sleep_module.so",
+		}
+
+		for _, modulePath := range modulePaths {
+			exists, err := client.K8S.FileExistsInPod(context.Background(), pod.Namespace, pod.Name, containerName, modulePath)
+			if err == nil && exists {
+				log.Debug().Msgf("Found ngx_steadybit_sleep_module.so at %s in pod %s/%s, but it's not loaded in nginx.conf, trying next pod", modulePath, pod.Namespace, pod.Name)
+				lastError = fmt.Errorf("ngx_steadybit_sleep_module.so exists at %s but is not loaded. Please add 'load_module %s;' to the nginx configuration", modulePath, modulePath)
+				break // Move to next pod
+			}
+		}
+
+		if lastError == nil {
+			lastError = fmt.Errorf("ngx_steadybit_sleep_module is not loaded in NGINX ingress controller pod %s/%s. Please ensure the module is installed and loaded with 'load_module /path/to/ngx_steadybit_sleep_module.so;' in the nginx configuration at %s", pod.Namespace, pod.Name, configPath)
+		}
+
+		log.Debug().Msgf("Pod %s/%s does not have steadybit module, trying next pod", pod.Namespace, pod.Name)
 	}
 
-	return fmt.Errorf("ngx_steadybit_sleep_module is not loaded in NGINX ingress controller pod %s/%s. Please ensure the module is installed and loaded with 'load_module /path/to/ngx_steadybit_sleep_module.so;' in the nginx configuration at %s", pod.Namespace, pod.Name, configPath)
+	// If we get here, none of the pods had the steadybit module
+	return fmt.Errorf("ngx_steadybit_sleep_module is not loaded in any of the NGINX ingress controller pods for IngressClass %s (checked pods: %s). Please ensure at least one controller has the module installed and loaded with 'load_module /path/to/ngx_steadybit_sleep_module.so;'. Last error: %v", ingressClassName, strings.Join(checkedPods, ", "), lastError)
 }
 
 // findPodsWithLabelSelectors tries to find pods with the given label selectors in the specified namespace
