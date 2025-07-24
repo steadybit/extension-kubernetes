@@ -209,7 +209,7 @@
               ]
             },
             "query": null,
-            "percentage": 50
+            "percentage": 100
           }
         },
         {
