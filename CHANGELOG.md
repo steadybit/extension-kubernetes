@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.6.10 (Next)
+- Changing Advice's experiment templates
+  - Schedule Pods Across Zones: attack 100% of the containers in one zone
+  - Limit CPU/memory resources: attack 1 random container
+  - Probes configured: attack 1 random container
+
 ## v2.6.9
 
 - Discovery, Pod Count Check and Set Scale Action for ReplicaSets
