@@ -2182,7 +2182,6 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 }
 
-
 // testNginxMultipleControllers tests the scenario where the nginx controller
 // has multiple replicas/pods and validates that module validation works correctly
 func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
@@ -2408,4 +2407,3 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 	maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 	assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
 }
-EOF < /dev/null
