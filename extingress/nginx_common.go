@@ -228,7 +228,7 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 			if releaseNamespace, exists := targetIngressClass.Annotations["meta.helm.sh/release-namespace"]; exists {
 				log.Debug().Msgf("Using meta.helm.sh/release-namespace annotation to find NGINX pods in namespace %s", releaseNamespace)
 				// Common label selectors for community NGINX ingress controller
-				releaseName := "ingress-nginx"
+				releaseName := "nginx-ingress"
 				if releaseNamAnno, exists := targetIngressClass.Annotations["meta.helm.sh/release-name"]; exists {
 					log.Debug().Msgf("Using meta.helm.sh/release-name annotation to find NGINX pods with release name %s", releaseName)
 					releaseName = releaseNamAnno
