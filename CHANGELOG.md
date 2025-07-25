@@ -1,10 +1,11 @@
 # Changelog
 
-## v2.6.10 (Next)
+## v2.6.10
 - Changing Advice's experiment templates
   - Schedule Pods Across Zones: attack 100% of the containers in one zone
   - Limit CPU/memory resources: attack 1 random container
   - Probes configured: attack 1 random container
+- fix: nginx ingress delay action (prepare step failed in some cases)
 
 ## v2.6.9
 
