@@ -226,11 +226,14 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 		// For community NGINX: use "meta.helm.sh/release-namespace" annotation
 		if len(nginxPods) == 0 {
 			if releaseNamespace, exists := targetIngressClass.Annotations["meta.helm.sh/release-namespace"]; exists {
+				log.Debug().Msgf("Using meta.helm.sh/release-namespace annotation to find NGINX pods in namespace %s", releaseNamespace)
 				// Common label selectors for community NGINX ingress controller
-				releaseName := "ingress-nginx"
-				if targetIngressClass.Annotations["meta.helm.sh/release-name"] != "" {
-					releaseName = targetIngressClass.Annotations["meta.helm.sh/release-name"]
+				releaseName := "nginx-ingress"
+				if releaseNamAnno, exists := targetIngressClass.Annotations["meta.helm.sh/release-name"]; exists {
+					log.Debug().Msgf("Using meta.helm.sh/release-name annotation to find NGINX pods with release name %s", releaseName)
+					releaseName = releaseNamAnno
 				}
+				log.Debug().Msgf("Using release name %s to find NGINX pods", releaseName)
 				labelSelectors := []map[string]string{
 					{"app.kubernetes.io/instance": releaseName},
 					{"app.kubernetes.io/name": releaseName, "app.kubernetes.io/component": "controller"},
@@ -241,6 +244,8 @@ func validateNginxSteadybitModule(targetAttributes map[string][]string) error {
 				nginxPods = findPodsWithLabelSelectors(labelSelectors, releaseNamespace, ingressClassName)
 			}
 		}
+	} else {
+		return fmt.Errorf("IngressClass %s has no Annotations", ingressClassName)
 	}
 
 	if len(nginxPods) == 0 {
