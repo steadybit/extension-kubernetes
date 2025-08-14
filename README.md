@@ -20,6 +20,7 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_DAEMON_SET`   | `discovery.attributes.excludes.daemonSet`   | List of Target Attributes which will be excluded during daemonSet discovery. Checked by key equality and supporting trailing "*"                                   | false    |                                                                      |
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_STATEFUL_SET` | `discovery.attributes.excludes.statefulSet` | List of Target Attributes which will be excluded during statefulSet discovery. Checked by key equality and supporting trailing "*"                                 | false    |                                                                      |
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_POD`          | `discovery.attributes.excludes.pod`         | List of Target Attributes which will be excluded during pod discovery. Checked by key equality and supporting trailing "*"                                         | false    |                                                                      |
+| `STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET`             | `discovery.disabled.replicaSet`             | Disables discovery of ReplicaSets in favor of discovering Deployments, StatefulSets, DaemonSets, etc.                                                              | false    | `true`                                                               |
 | `STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT`                    | `discovery.maxPodCount`                     | Skip listing pods, containers and hosts for deployments, statefulsets, etc. if there are more then the given pods.                                                 | false    | 50                                                                   |
 | `STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE`                 | `discovery.refreshThrottle`                 | Number of seconds between successive refreshes of the target data.                                                                                                 | false    | 20                                                                   |
 | `STEADYBIT_EXTENSION_DISCOVERY_INFORMER_RESYNC`                  |                                             | Number of seconds until a full refresh of the internal kubernetes cache.                                                                                           | false    | 600                                                                  |
@@ -28,12 +29,15 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 
 ## Permissions
-The process requires access rights to interact with the Kubernetes API ([permissions in helm chart](/charts/steadybit-extension-kubernetes/templates/_permissions.tpl)).
+
+The process requires access rights to interact with the Kubernetes
+API ([permissions in helm chart](/charts/steadybit-extension-kubernetes/templates/_permissions.tpl)).
 
 The cluster role for the extension requires "read" permissions for different kind of workloads in the cluster.
 If the permission is not granted to a specific resource type, those will not be discovered and cannot be attacked.
 
 To run the different attacks "write" permissions are required:
+
 - Scale Deployment/StatefulSet/DaemonSet: `update`, `patch` on the workload type
 - Rollout Restart Deployment: `patch` on `deployment`
 - Delete Pod Attack: `delete` on `pod`
@@ -94,6 +98,7 @@ to exclude a deployment / namespace / pod from discovery you can add the label `
 ## Version and Revision
 
 The version and revision of the extension:
+
 - are printed during the startup of the extension
 - are added as a Docker label to the image
 - are available via the `version.txt`/`revision.txt` files in the root of the image
