@@ -23,10 +23,10 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.3.1
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.0
 	github.com/steadybit/extension-kit v1.10.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/zegl/kube-score v1.20.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/exp v0.0.0-20250711185948-6ae5c78190dc
+	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
 	golang.org/x/text v0.28.0
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
