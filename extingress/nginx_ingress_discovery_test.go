@@ -220,6 +220,3 @@ func Test_nginxIngressDiscovery_IncludeDisabledIfDisableDiscoveryExcludes(t *tes
 	targets, _ := d.DiscoverTargets(context.Background())
 	assert.Equal(t, "test-cluster/default/included", targets[0].Id)
 }
-
-
-

@@ -33,7 +33,7 @@ func Test_findNginxControllerNamespace_Basic(t *testing.T) {
 	defer close(stopCh)
 
 	cli, cs := newNginxTestClient(stopCh)
-	
+
 	// Override the global client for testing
 	originalClient := client.K8S
 	client.K8S = cli
@@ -42,7 +42,7 @@ func Test_findNginxControllerNamespace_Basic(t *testing.T) {
 	// Test 1: Non-NGINX controller should return empty
 	nonNginxClass := &networkingv1.IngressClass{
 		ObjectMeta: metav1.ObjectMeta{Name: "traefik"},
-		Spec: networkingv1.IngressClassSpec{Controller: "traefik.io/ingress-controller"},
+		Spec:       networkingv1.IngressClassSpec{Controller: "traefik.io/ingress-controller"},
 	}
 	_, err := cs.NetworkingV1().IngressClasses().Create(context.Background(), nonNginxClass, metav1.CreateOptions{})
 	require.NoError(t, err)
@@ -50,7 +50,7 @@ func Test_findNginxControllerNamespace_Basic(t *testing.T) {
 	// Test 2: Valid NGINX controller
 	nginxClass := &networkingv1.IngressClass{
 		ObjectMeta: metav1.ObjectMeta{Name: "nginx"},
-		Spec: networkingv1.IngressClassSpec{Controller: "k8s.io/ingress-nginx"},
+		Spec:       networkingv1.IngressClassSpec{Controller: "k8s.io/ingress-nginx"},
 	}
 	_, err = cs.NetworkingV1().IngressClasses().Create(context.Background(), nginxClass, metav1.CreateOptions{})
 	require.NoError(t, err)
@@ -100,7 +100,7 @@ func Test_hasNginxControllerPods(t *testing.T) {
 	defer close(stopCh)
 
 	cli, _ := newNginxTestClient(stopCh)
-	
+
 	// Override the global client for testing
 	originalClient := client.K8S
 	client.K8S = cli
@@ -120,7 +120,7 @@ func Test_findNginxControllerNamespace_WithAnnotations(t *testing.T) {
 	defer close(stopCh)
 
 	cli, cs := newNginxTestClient(stopCh)
-	
+
 	// Override the global client for testing
 	originalClient := client.K8S
 	client.K8S = cli
@@ -163,7 +163,7 @@ func Test_findNginxControllerNamespace_WithAnnotations(t *testing.T) {
 	// Will return empty since no pods exist, but that's expected in test environment
 	assert.Equal(t, "", result, "UBI NGINX controller without pods should return empty")
 
-	// Test community NGINX - should try to look in ingress-nginx namespace  
+	// Test community NGINX - should try to look in ingress-nginx namespace
 	result = findNginxControllerNamespace("community-nginx")
 	// Will return empty since no pods exist, but that's expected in test environment
 	assert.Equal(t, "", result, "Community NGINX controller without pods should return empty")
@@ -171,10 +171,10 @@ func Test_findNginxControllerNamespace_WithAnnotations(t *testing.T) {
 
 func Test_podServesIngressClass(t *testing.T) {
 	tests := []struct {
-		name          string
-		pod           *corev1.Pod
-		ingressClass  string
-		expected      bool
+		name         string
+		pod          *corev1.Pod
+		ingressClass string
+		expected     bool
 	}{
 		{
 			name: "pod with -ingress-class flag (separate args)",
