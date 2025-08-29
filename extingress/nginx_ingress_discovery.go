@@ -176,4 +176,3 @@ func (d *nginxIngressDiscovery) isUsingNginxClass(className string, nginxClasses
 	}
 	return false
 }
-

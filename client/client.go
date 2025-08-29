@@ -175,12 +175,12 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 // ExecInPod executes a command in a pod container and returns the output
 func (c *Client) ExecInPod(ctx context.Context, namespace, podName, containerName string, command []string) (string, error) {
 	config := c.GetConfig()
-	
+
 	// Check if we have a valid REST config
 	if config.Host == "" {
 		return "", fmt.Errorf("no valid Kubernetes REST config available - cannot execute pod commands")
 	}
-	
+
 	req := c.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
@@ -190,7 +190,7 @@ func (c *Client) ExecInPod(ctx context.Context, namespace, podName, containerNam
 		Param("command", command[0]).
 		Param("stdout", "true").
 		Param("stderr", "true")
-	
+
 	// Add additional command arguments
 	for _, arg := range command[1:] {
 		req.Param("command", arg)
@@ -206,11 +206,11 @@ func (c *Client) ExecInPod(ctx context.Context, namespace, podName, containerNam
 		Stdout: &stdout,
 		Stderr: &stderr,
 	})
-	
+
 	if err != nil {
 		return "", fmt.Errorf("error executing command: %w, stderr: %s", err, stderr.String())
 	}
-	
+
 	return stdout.String(), nil
 }
 
