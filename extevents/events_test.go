@@ -6,14 +6,17 @@ package extevents
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
+	"k8s.io/client-go/rest"
 )
 
 func TestPrepareExtractsState(t *testing.T) {
@@ -40,7 +43,7 @@ func TestPrepareExtractsState(t *testing.T) {
 func TestStatusEventsFound(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
-	defer close(stopCh)
+	t.Cleanup(func() { close(stopCh) })
 
 	state, k8sClient := prepareTest(t, stopCh)
 
@@ -92,5 +95,6 @@ func prepareTest(t *testing.T, stopCh chan struct{}) (*K8sEventsState, *client.C
 		}, metav1.CreateOptions{})
 
 	require.NoError(t, err)
-	return &state, client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	return &state, client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), &rest.Config{}, dynamicClient)
 }

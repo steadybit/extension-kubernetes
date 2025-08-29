@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"github.com/steadybit/extension-kubernetes/v2/extingress"
 
 	_ "github.com/KimMachineGun/automemlimit" // By default, it sets `GOMEMLIMIT` to 90% of cgroup's memory limit.
 	"github.com/rs/zerolog"
@@ -41,9 +40,11 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extdaemonset"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
 	"github.com/steadybit/extension-kubernetes/v2/extevents"
+	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
 	"github.com/steadybit/extension-kubernetes/v2/extreplicaset"
+	"github.com/steadybit/extension-kubernetes/v2/extrollout"
 	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
 	_ "go.uber.org/automaxprocs" // Importing automaxprocs automatically adjusts GOMAXPROCS.
 )
@@ -64,6 +65,10 @@ func main() {
 	exthealth.StartProbes(8089)
 
 	client.PrepareClient(stopCh)
+
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		discovery_kit_sdk.Register(extrollout.NewRolloutDiscovery(client.K8S))
+	}
 
 	if !extconfig.Config.DiscoveryDisabledDeployment {
 		discovery_kit_sdk.Register(extdeployment.NewDeploymentDiscovery(client.K8S))

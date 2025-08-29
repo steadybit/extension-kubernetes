@@ -13,6 +13,7 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 )
 
 func Test_replicasetDiscovery(t *testing.T) {
@@ -432,6 +434,7 @@ func Test_getDiscoveredReplicaSetsShouldNotIgnoreLabeledReplicaSetsIfExcludesDis
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
 	clientset := testclient.NewClientset()
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), &rest.Config{}, dynamicClient)
 	return client, clientset
 }

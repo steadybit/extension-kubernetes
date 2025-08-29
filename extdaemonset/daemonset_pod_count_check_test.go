@@ -2,18 +2,21 @@ package extdaemonset
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
+	"k8s.io/client-go/rest"
 )
 
 func TestPrepareCheckExtractsState(t *testing.T) {
@@ -54,7 +57,8 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), &rest.Config{}, dynamicClient)
 	assert.Eventually(t, func() bool {
 		return k8sclient.DaemonSetByNamespaceAndName("shop", "xyz") != nil
 	}, time.Second, 100*time.Millisecond)
@@ -98,7 +102,8 @@ func TestStatusCheckDaemonSetNotFound(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), &rest.Config{}, dynamicClient)
 
 	action := NewDaemonSetPodCountCheckAction(k8sclient).(action_kit_sdk.ActionWithStatus[extcommon.PodCountCheckState])
 

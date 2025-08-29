@@ -5,8 +5,13 @@ package extcontainer
 
 import (
 	"context"
+	"sort"
+	"testing"
+	"time"
+
 	kclient "github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -14,9 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"sort"
-	"testing"
-	"time"
+	"k8s.io/client-go/rest"
 )
 
 func Test_containerDiscovery(t *testing.T) {
@@ -256,6 +259,7 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 
 func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {
 	clientset := testclient.NewSimpleClientset()
-	client := kclient.CreateClient(clientset, stopCh, "/oapi", kclient.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	client := kclient.CreateClient(clientset, stopCh, "/oapi", kclient.MockAllPermitted(), &rest.Config{}, dynamicClient)
 	return client, clientset
 }
