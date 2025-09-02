@@ -6,6 +6,10 @@ package extpod
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -17,9 +21,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
-	"strings"
-	"time"
 )
 
 type podDiscovery struct {
@@ -60,7 +61,7 @@ func (*podDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 				{Attribute: "k8s.pod.name"},
 				{Attribute: "k8s.cluster-name"},
 				{Attribute: "k8s.namespace"},
-				{Attribute: "k8s.deployment", FallbackAttributes: extutil.Ptr([]string{"k8s.statefulset", "k8s.daemonset"})},
+				{Attribute: "k8s.deployment", FallbackAttributes: extutil.Ptr([]string{"k8s.statefulset", "k8s.daemonset", "k8s.argo-rollout"})},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
