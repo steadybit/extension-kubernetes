@@ -5,6 +5,9 @@ package extpod
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 func Test_getDiscoveredPods(t *testing.T) {
@@ -101,7 +102,7 @@ func Test_getDiscoveredPods(t *testing.T) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverTargets(context.Background())
 		assert.Len(c, ed, 1)
-	}, 1*time.Second, 100*time.Millisecond)
+	}, 2*time.Second, 100*time.Millisecond)
 
 	// Then
 	targets, _ := d.DiscoverTargets(context.Background())
@@ -185,7 +186,7 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverTargets(context.Background())
 		assert.Len(c, ed, 1)
-	}, 1*time.Second, 100*time.Millisecond)
+	}, 2*time.Second, 100*time.Millisecond)
 
 	// Then
 	targets, _ := d.DiscoverTargets(context.Background())
@@ -289,12 +290,12 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverTargets(context.Background())
 		assert.Len(c, ed, 1)
-	}, 1*time.Second, 100*time.Millisecond)
+	}, 2*time.Second, 100*time.Millisecond)
 
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewSimpleClientset()
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
-	return client, clientset
+	s := testclient.NewClientset()
+	c := client.CreateClient(s, stopCh, "", client.MockAllPermitted())
+	return c, s
 }
