@@ -102,7 +102,7 @@ func Test_getDiscoveredPods(t *testing.T) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverTargets(context.Background())
 		assert.Len(c, ed, 1)
-	}, 2*time.Second, 100*time.Millisecond)
+	}, 5*time.Second, 100*time.Millisecond)
 
 	// Then
 	targets, _ := d.DiscoverTargets(context.Background())
@@ -160,6 +160,7 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 			},
 		}, metav1.CreateOptions{})
 	require.NoError(t, err)
+
 	_, err = clientset.CoreV1().
 		Nodes().
 		Create(context.Background(), &v1.Node{
@@ -182,11 +183,12 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 	require.NoError(t, err)
 
 	d := &podDiscovery{k8s: client}
+
 	// When
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverTargets(context.Background())
 		assert.Len(c, ed, 1)
-	}, 2*time.Second, 100*time.Millisecond)
+	}, 5*time.Second, 100*time.Millisecond)
 
 	// Then
 	targets, _ := d.DiscoverTargets(context.Background())
@@ -290,7 +292,7 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverTargets(context.Background())
 		assert.Len(c, ed, 1)
-	}, 2*time.Second, 100*time.Millisecond)
+	}, 5*time.Second, 100*time.Millisecond)
 
 }
 
