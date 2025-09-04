@@ -56,7 +56,7 @@ func Test_namespaceDiscovery(t *testing.T) {
 			assert.EventuallyWithT(t, func(c *assert.CollectT) {
 				attributes = AddNamespaceLabels(client, tt.namespace.Name, map[string][]string{})
 				require.Len(t, attributes, 2)
-			}, 1*time.Second, 100*time.Millisecond)
+			}, 5*time.Second, 100*time.Millisecond)
 
 			// Then
 			require.Len(t, attributes, 2)

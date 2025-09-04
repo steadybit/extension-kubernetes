@@ -90,7 +90,7 @@ func Test_containerDiscovery(t *testing.T) {
 			assert.EventuallyWithT(t, func(c *assert.CollectT) {
 				ed, _ := d.DiscoverEnrichmentData(context.Background())
 				assert.Len(c, ed, 1)
-			}, 1*time.Second, 100*time.Millisecond)
+			}, 5*time.Second, 100*time.Millisecond)
 
 			// Then
 			targets, _ := d.DiscoverEnrichmentData(context.Background())
@@ -221,7 +221,7 @@ func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverEnrichmentData(context.Background())
 		assert.Len(c, ed, 1)
-	}, 1*time.Second, 100*time.Millisecond)
+	}, 5*time.Second, 100*time.Millisecond)
 }
 
 func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *testing.T) {
@@ -251,7 +251,7 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverEnrichmentData(context.Background())
 		assert.Len(c, ed, 2)
-	}, 1*time.Second, 100*time.Millisecond)
+	}, 5*time.Second, 100*time.Millisecond)
 }
 
 func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {

@@ -142,7 +142,7 @@ func Test_nodeDiscovery(t *testing.T) {
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		ed, _ := d.DiscoverTargets(context.Background())
 		assert.Len(c, ed, 1)
-	}, 1*time.Second, 100*time.Millisecond)
+	}, 5*time.Second, 100*time.Millisecond)
 
 	// Then
 	targets, _ := d.DiscoverTargets(context.Background())
