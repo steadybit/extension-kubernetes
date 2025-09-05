@@ -426,7 +426,7 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
 	return client, clientset
 }

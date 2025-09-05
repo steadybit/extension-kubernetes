@@ -50,7 +50,7 @@ func TestStatusReturnsMetrics(t *testing.T) {
 	availableCount := int32(2)
 	readyCount := int32(1)
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		AppsV1().
 		Deployments("default").

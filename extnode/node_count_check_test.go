@@ -31,7 +31,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		}),
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Nodes().
@@ -83,7 +83,7 @@ func TestStatusCheckNodeCountAtLeastSuccess(t *testing.T) {
 		InitialNodeCount:   1,
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Nodes().
@@ -151,7 +151,7 @@ func TestStatusCheckNodeCountAtFail(t *testing.T) {
 		InitialNodeCount:   1,
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Nodes().
@@ -197,7 +197,7 @@ func TestStatusCheckNodeCountDecreasedBySuccess(t *testing.T) {
 		InitialNodeCount:   3,
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Nodes().
@@ -243,7 +243,7 @@ func TestStatusCheckNodeCountDecreasedByFail(t *testing.T) {
 		InitialNodeCount:   3,
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Nodes().
@@ -311,7 +311,7 @@ func TestStatusCheckNodeCountIncreasedBySuccess(t *testing.T) {
 		InitialNodeCount:   0,
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Nodes().
@@ -379,7 +379,7 @@ func TestStatusCheckNodeCountIncreasedByFail(t *testing.T) {
 		InitialNodeCount:   0,
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		CoreV1().
 		Nodes().

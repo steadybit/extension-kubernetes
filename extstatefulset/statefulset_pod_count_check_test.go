@@ -32,7 +32,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		}),
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		AppsV1().
 		StatefulSets("shop").
@@ -86,7 +86,7 @@ func TestStatusCheckStatefulSetNotFound(t *testing.T) {
 		Target:            "xyz",
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		AppsV1().
 		StatefulSets("shop").
