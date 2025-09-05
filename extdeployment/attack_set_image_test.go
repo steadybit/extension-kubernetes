@@ -38,39 +38,32 @@ func TestSetImagePreparesCommands(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
-	testClient, clientset := getTestClient(stopCh)
-
-	_, err := clientset.
-		AppsV1().
-		Deployments("demo").
-		Create(context.Background(), &appsv1.Deployment{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Deployment",
-				APIVersion: "apps/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop",
-				Namespace: "demo",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Template: v1.PodTemplateSpec{
-					Spec: v1.PodSpec{
-						Containers: []v1.Container{
-							{
-								Name:  "main",
-								Image: "nginx:123",
-							},
-							{
-								Name:  "cashier",
-								Image: "nginx:123",
-							},
+	testClient := getTestClient(stopCh, &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop",
+			Namespace: "demo",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Name:  "main",
+							Image: "nginx:123",
+						},
+						{
+							Name:  "cashier",
+							Image: "nginx:123",
 						},
 					},
 				},
 			},
-		}, metav1.CreateOptions{})
-
-	require.NoError(t, err)
+		},
+	})
 
 	client.K8S = testClient
 
@@ -82,7 +75,7 @@ func TestSetImagePreparesCommands(t *testing.T) {
 	state := action.NewEmptyState()
 
 	// When
-	_, err = action.Prepare(context.Background(), &state, request)
+	_, err := action.Prepare(context.Background(), &state, request)
 	require.NoError(t, err)
 
 	// Then

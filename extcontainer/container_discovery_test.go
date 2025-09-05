@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extcontainer
 
 import (
 	"context"
+	"sort"
+	"testing"
+	"time"
+
 	kclient "github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
@@ -12,11 +16,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"sort"
-	"testing"
-	"time"
 )
 
 func Test_containerDiscovery(t *testing.T) {
@@ -68,22 +69,16 @@ func Test_containerDiscovery(t *testing.T) {
 			// Given
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			client, clientset := getTestClient(stopCh)
+
+			objects := []runtime.Object{tt.pod}
+			for _, service := range tt.services {
+				objects = append(objects, service)
+			}
+
+			client := getTestClient(stopCh, objects...)
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
 			extconfig.Config.DiscoveryMaxPodCount = 50
-
-			_, err := clientset.CoreV1().
-				Pods("default").
-				Create(context.Background(), tt.pod, metav1.CreateOptions{})
-			require.NoError(t, err)
-
-			for _, service := range tt.services {
-				_, err := clientset.CoreV1().
-					Services("default").
-					Create(context.Background(), service, metav1.CreateOptions{})
-				require.NoError(t, err)
-			}
 
 			d := &containerDiscovery{k8s: client}
 			// When
@@ -118,6 +113,45 @@ func Test_containerDiscovery(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client := getTestClient(stopCh, testPod(nil), testPod(func(pod *v1.Pod) {
+		pod.ObjectMeta.Name = "shop-ignored"
+		pod.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
+	}))
+	extconfig.Config.ClusterName = "development"
+
+	d := &containerDiscovery{k8s: client}
+
+	// Then
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverEnrichmentData(context.Background())
+		assert.Len(c, ed, 1)
+	}, 5*time.Second, 100*time.Millisecond)
+}
+
+func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	client := getTestClient(stopCh, testPod(nil), testPod(func(pod *v1.Pod) {
+		pod.ObjectMeta.Name = "shop-ignored"
+		pod.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
+	}))
+	extconfig.Config.ClusterName = "development"
+	extconfig.Config.DisableDiscoveryExcludes = true
+
+	d := &containerDiscovery{k8s: client}
+
+	// Then
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		ed, _ := d.DiscoverEnrichmentData(context.Background())
+		assert.Len(c, ed, 2)
+	}, 5*time.Second, 100*time.Millisecond)
 }
 
 func testService(modifier func(service *v1.Service)) *v1.Service {
@@ -195,67 +229,6 @@ func testPod(modifier func(pod *v1.Pod)) *v1.Pod {
 	return pod
 }
 
-func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
-	// Given
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
-	extconfig.Config.ClusterName = "development"
-
-	_, err := clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), testPod(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	_, err = clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), testPod(func(pod *v1.Pod) {
-			pod.ObjectMeta.Name = "shop-ignored"
-			pod.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	d := &containerDiscovery{k8s: client}
-
-	// Then
-	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		ed, _ := d.DiscoverEnrichmentData(context.Background())
-		assert.Len(c, ed, 1)
-	}, 5*time.Second, 100*time.Millisecond)
-}
-
-func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *testing.T) {
-	// Given
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
-	extconfig.Config.ClusterName = "development"
-	extconfig.Config.DisableDiscoveryExcludes = true
-
-	_, err := clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), testPod(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	_, err = clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), testPod(func(pod *v1.Pod) {
-			pod.ObjectMeta.Name = "shop-ignored"
-			pod.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	d := &containerDiscovery{k8s: client}
-
-	// Then
-	assert.EventuallyWithT(t, func(c *assert.CollectT) {
-		ed, _ := d.DiscoverEnrichmentData(context.Background())
-		assert.Len(c, ed, 2)
-	}, 5*time.Second, 100*time.Millisecond)
-}
-
-func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {
-	clientset := testclient.NewClientset()
-	client := kclient.CreateClient(clientset, stopCh, "/oapi", kclient.MockAllPermitted())
-	return client, clientset
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *kclient.Client {
+	return kclient.CreateClient(testclient.NewClientset(objects...), stopCh, "/oapi", kclient.MockAllPermitted())
 }

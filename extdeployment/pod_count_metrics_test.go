@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2022 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extdeployment
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -12,8 +15,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 func TestPrepareMetricsExtractsState(t *testing.T) {
@@ -50,29 +51,24 @@ func TestStatusReturnsMetrics(t *testing.T) {
 	availableCount := int32(2)
 	readyCount := int32(1)
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		AppsV1().
-		Deployments("default").
-		Create(context.Background(), &appsv1.Deployment{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Deployment",
-				APIVersion: "apps/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop",
-				Namespace: "default",
-			},
-			Spec: appsv1.DeploymentSpec{
-				Replicas: &desiredCount,
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:          currentCount,
-				AvailableReplicas: availableCount,
-				ReadyReplicas:     readyCount,
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+	clientset := testclient.NewClientset(&appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop",
+			Namespace: "default",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &desiredCount,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:          currentCount,
+			AvailableReplicas: availableCount,
+			ReadyReplicas:     readyCount,
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)

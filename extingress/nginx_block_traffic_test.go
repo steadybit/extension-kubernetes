@@ -1,16 +1,17 @@
-/*
- * Copyright 2025 steadybit GmbH. All rights reserved.
- */
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extingress
 
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
@@ -19,7 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 // TestNginxBlockTrafficAction_Prepare tests the Prepare method of NginxBlockTrafficAction
@@ -166,11 +166,15 @@ var testUUIDBlock = uuid.MustParse("00000000-0000-0000-0000-000000000000")
 func setupNginxTestEnvironment(t *testing.T) *testEnvironment {
 	// Create test environment
 	stopCh := make(chan struct{})
-	testClient, clientset := getTestClient(stopCh)
-	client.K8S = testClient
 
 	// Create test ingresses
-	createTestNginxIngresses(t, clientset)
+	var objects []runtime.Object
+	for _, obj := range createTestNginxIngresses() {
+		objects = append(objects, obj)
+	}
+
+	testClient := getTestClient(stopCh, objects...)
+	client.K8S = testClient
 
 	// Wait for ingresses to be registered
 	assert.Eventually(t, func() bool {
@@ -189,30 +193,28 @@ func setupNginxTestEnvironment(t *testing.T) *testEnvironment {
 }
 
 // createTestNginxIngresses creates test ingress resources for NGINX
-func createTestNginxIngresses(t *testing.T, clientset kubernetes.Interface) {
-	// Regular ingress for most test cases
-	createNginxIngress(t, clientset, "test-nginx-ingress", "# Some config\nif ($request_uri ~* /someOtherPath) {\n  return 404;\n}\n")
+func createTestNginxIngresses() []*networkingv1.Ingress {
+	return []*networkingv1.Ingress{
+		// Regular ingress for most test cases
+		createNginxIngress("test-nginx-ingress", "# Some config\nif ($request_uri ~* /someOtherPath) {\n  return 404;\n}\n"),
 
-	// Ingress with existing path rule for testing conflicts
-	createNginxIngress(t, clientset, "conflict-nginx-ingress", "location ~ /alreadyBlocked {\n  return 503;\n}\n")
+		// Ingress with existing path rule for testing conflicts
+		createNginxIngress("conflict-nginx-ingress", "location ~ /alreadyBlocked {\n  return 503;\n}\n"),
+	}
 }
 
 // createNginxIngress creates a test ingress with the given name and config
-func createNginxIngress(t *testing.T, clientset kubernetes.Interface, name, configSnippet string) {
-	_, err := clientset.
-		NetworkingV1().
-		Ingresses("demo").
-		Create(context.Background(), &networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: "demo",
-				Annotations: map[string]string{
-					"kubernetes.io/ingress.class": "nginx",
-					NginxAnnotationKey:            configSnippet,
-				},
+func createNginxIngress(name, configSnippet string) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "demo",
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "nginx",
+				NginxAnnotationKey:            configSnippet,
 			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+	}
 }
 
 // createNginxTestRequest creates a test request with the given ingress name and config

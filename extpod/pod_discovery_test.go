@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extpod
 
@@ -15,7 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -23,79 +23,65 @@ func Test_getDiscoveredPods(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
+	client := getTestClient(stopCh, &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop-pod",
+			Namespace: "default",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind: "Deployment",
+					Name: "shop",
+				},
+			},
+			Labels: map[string]string{
+				"best-city": "kevelaer",
+			},
+		},
+		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					ContainerID: "crio://abcdef",
+					Name:        "MrFancyPants",
+					Image:       "nginx",
+				},
+			},
+		},
+		Spec: v1.PodSpec{
+			NodeName: "worker-1",
+		},
+	}, &v1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "worker-1",
+		},
+		Status: v1.NodeStatus{
+			Addresses: []v1.NodeAddress{
+				{
+					Type:    v1.NodeInternalDNS,
+					Address: "worker-1.internal",
+				},
+			},
+		},
+	}, &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop",
+			Namespace: "default",
+		},
+	})
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.LabelFilter = []string{"secret-label"}
-
-	_, err := clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), &v1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Pod",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop-pod",
-				Namespace: "default",
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Kind: "Deployment",
-						Name: "shop",
-					},
-				},
-				Labels: map[string]string{
-					"best-city": "kevelaer",
-				},
-			},
-			Status: v1.PodStatus{
-				Phase: v1.PodRunning,
-				ContainerStatuses: []v1.ContainerStatus{
-					{
-						ContainerID: "crio://abcdef",
-						Name:        "MrFancyPants",
-						Image:       "nginx",
-					},
-				},
-			},
-			Spec: v1.PodSpec{
-				NodeName: "worker-1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.CoreV1().
-		Nodes().
-		Create(context.Background(), &v1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "worker-1",
-			},
-			Status: v1.NodeStatus{
-				Addresses: []v1.NodeAddress{
-					{
-						Type:    v1.NodeInternalDNS,
-						Address: "worker-1.internal",
-					},
-				},
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		AppsV1().
-		Deployments("default").
-		Create(context.Background(), &appsv1.Deployment{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Deployment",
-				APIVersion: "apps/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop",
-				Namespace: "default",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
 
 	d := &podDiscovery{k8s: client}
 	// When
@@ -131,56 +117,46 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
+	client := getTestClient(stopCh, &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop-pod",
+			Namespace: "default",
+		},
+		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					Name:  "MrFancyPants",
+					Image: "nginx",
+				},
+			},
+		},
+		Spec: v1.PodSpec{
+			NodeName: "worker-1",
+		},
+	}, &v1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "worker-1",
+		},
+		Status: v1.NodeStatus{
+			Addresses: []v1.NodeAddress{
+				{
+					Type:    v1.NodeInternalDNS,
+					Address: "worker-1.internal",
+				},
+			},
+		},
+	})
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.LabelFilter = []string{"secret-label"}
-
-	_, err := clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), &v1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Pod",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop-pod",
-				Namespace: "default",
-			},
-			Status: v1.PodStatus{
-				Phase: v1.PodRunning,
-				ContainerStatuses: []v1.ContainerStatus{
-					{
-						Name:  "MrFancyPants",
-						Image: "nginx",
-					},
-				},
-			},
-			Spec: v1.PodSpec{
-				NodeName: "worker-1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	_, err = clientset.CoreV1().
-		Nodes().
-		Create(context.Background(), &v1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "worker-1",
-			},
-			Status: v1.NodeStatus{
-				Addresses: []v1.NodeAddress{
-					{
-						Type:    v1.NodeInternalDNS,
-						Address: "worker-1.internal",
-					},
-				},
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
 
 	d := &podDiscovery{k8s: client}
 
@@ -211,81 +187,72 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
+	client := getTestClient(stopCh, &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop-pod",
+			Namespace: "default",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind: "Deployment",
+					Name: "shop",
+				},
+			},
+			Labels: map[string]string{
+				"best-city": "kevelaer",
+			},
+		},
+		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					ContainerID: "crio://abcdef",
+					Name:        "MrFancyPants",
+					Image:       "nginx",
+				},
+			},
+		},
+		Spec: v1.PodSpec{
+			NodeName: "worker-1",
+		},
+	}, &v1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop-ignore",
+			Namespace: "default",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind: "Deployment",
+					Name: "shop",
+				},
+			},
+			Labels: map[string]string{
+				"best-city":                        "kevelaer",
+				"steadybit.com/discovery-disabled": "true",
+			},
+		},
+		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					ContainerID: "crio://abcdef",
+					Name:        "MrFancyPants",
+					Image:       "nginx",
+				},
+			},
+		},
+		Spec: v1.PodSpec{
+			NodeName: "worker-1",
+		},
+	})
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.LabelFilter = []string{"secret-label"}
-
-	_, err := clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), &v1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Pod",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop-pod",
-				Namespace: "default",
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Kind: "Deployment",
-						Name: "shop",
-					},
-				},
-				Labels: map[string]string{
-					"best-city": "kevelaer",
-				},
-			},
-			Status: v1.PodStatus{
-				Phase: v1.PodRunning,
-				ContainerStatuses: []v1.ContainerStatus{
-					{
-						ContainerID: "crio://abcdef",
-						Name:        "MrFancyPants",
-						Image:       "nginx",
-					},
-				},
-			},
-			Spec: v1.PodSpec{
-				NodeName: "worker-1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.CoreV1().
-		Pods("default").
-		Create(context.Background(), &v1.Pod{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Pod",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "shop-ignore",
-				Namespace: "default",
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Kind: "Deployment",
-						Name: "shop",
-					},
-				},
-				Labels: map[string]string{
-					"best-city":                        "kevelaer",
-					"steadybit.com/discovery-disabled": "true",
-				},
-			},
-			Status: v1.PodStatus{
-				Phase: v1.PodRunning,
-				ContainerStatuses: []v1.ContainerStatus{
-					{
-						ContainerID: "crio://abcdef",
-						Name:        "MrFancyPants",
-						Image:       "nginx",
-					},
-				},
-			},
-			Spec: v1.PodSpec{
-				NodeName: "worker-1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
 
 	d := &podDiscovery{k8s: client}
 	// Then
@@ -296,8 +263,6 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 
 }
 
-func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	s := testclient.NewClientset()
-	c := client.CreateClient(s, stopCh, "", client.MockAllPermitted())
-	return c, s
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
+	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted())
 }

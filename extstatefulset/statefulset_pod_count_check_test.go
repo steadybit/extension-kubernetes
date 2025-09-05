@@ -1,7 +1,13 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+
 package extstatefulset
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
@@ -12,8 +18,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 func TestPrepareCheckExtractsState(t *testing.T) {
@@ -32,27 +36,22 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		}),
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		AppsV1().
-		StatefulSets("shop").
-		Create(context.Background(), &appsv1.StatefulSet{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "StatefulSet",
-				APIVersion: "apps/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "xyz",
-				Namespace: "shop",
-			},
-			Spec: appsv1.StatefulSetSpec{
-				Replicas: extutil.Ptr(int32(3)),
-			},
-			Status: appsv1.StatefulSetStatus{
-				ReadyReplicas: 3,
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+	clientset := testclient.NewClientset(&appsv1.StatefulSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "StatefulSet",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "xyz",
+			Namespace: "shop",
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: extutil.Ptr(int32(3)),
+		},
+		Status: appsv1.StatefulSetStatus{
+			ReadyReplicas: 3,
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -86,17 +85,12 @@ func TestStatusCheckStatefulSetNotFound(t *testing.T) {
 		Target:            "xyz",
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		AppsV1().
-		StatefulSets("shop").
-		Create(context.Background(), &appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "123",
-				Namespace: "shop",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+	clientset := testclient.NewClientset(&appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "123",
+			Namespace: "shop",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)

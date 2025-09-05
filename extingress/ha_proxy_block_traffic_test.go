@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+
 package extingress
 
 import (
@@ -14,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // TestHAProxyBlockTrafficAction_Prepare tests the Prepare method of HAProxyBlockTrafficAction
@@ -171,11 +174,15 @@ type testEnvironment struct {
 func setupTestEnvironment(t *testing.T) *testEnvironment {
 	// Create test environment
 	stopCh := make(chan struct{})
-	testClient, clientset := getTestClient(stopCh)
-	client.K8S = testClient
 
 	// Create test ingresses
-	createTestIngresses(t, clientset)
+	var objects []runtime.Object
+	for _, obj := range createTestIngresses() {
+		objects = append(objects, obj)
+	}
+
+	testClient := getTestClient(stopCh, objects...)
+	client.K8S = testClient
 
 	// Wait for ingresses to be registered
 	assert.Eventually(t, func() bool {
@@ -194,30 +201,28 @@ func setupTestEnvironment(t *testing.T) *testEnvironment {
 }
 
 // createTestIngresses creates test ingress resources
-func createTestIngresses(t *testing.T, clientset kubernetes.Interface) {
-	// Regular ingress for most test cases
-	createIngress(t, clientset, "test-ingress", "# Some config\nacl some_rule path_reg /someOtherPath\n")
+func createTestIngresses() []*networkingv1.Ingress {
+	return []*networkingv1.Ingress{
+		// Regular ingress for most test cases
+		createIngress("test-ingress", "# Some config\nacl some_rule path_reg /someOtherPath\n"),
 
-	// Ingress with existing path rule for testing conflicts
-	createIngress(t, clientset, "conflict-ingress", "acl sb_path_abcd path_reg /alreadyBlocked\nhttp-request return status 503 if { sb_path_abcd }\n")
+		// Ingress with existing path rule for testing conflicts
+		createIngress("conflict-ingress", "acl sb_path_abcd path_reg /alreadyBlocked\nhttp-request return status 503 if { sb_path_abcd }\n"),
+	}
 }
 
 // createIngress creates a test ingress with the given name and config
-func createIngress(t *testing.T, clientset kubernetes.Interface, name, configSnippet string) {
-	_, err := clientset.
-		NetworkingV1().
-		Ingresses("demo").
-		Create(context.Background(), &networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: "demo",
-				Annotations: map[string]string{
-					"kubernetes.io/ingress.class": "haproxy",
-					AnnotationKey:                 configSnippet,
-				},
+func createIngress(name, configSnippet string) *networkingv1.Ingress {
+	return &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "demo",
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class": "haproxy",
+				AnnotationKey:                 configSnippet,
 			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+	}
 }
 
 // createTestRequest creates a test request with the given ingress name and config

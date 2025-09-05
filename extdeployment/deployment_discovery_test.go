@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extdeployment
 
@@ -20,8 +20,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -357,9 +357,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Given
-			stopCh := make(chan struct{})
-			defer close(stopCh)
-			client, clientset := getTestClient(stopCh)
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
 			extconfig.Config.DiscoveryMaxPodCount = 50
@@ -368,40 +365,24 @@ func Test_deploymentDiscovery(t *testing.T) {
 				tt.configModifier(&extconfig.Config)
 			}
 
+			var objects = []runtime.Object{}
 			for _, pod := range tt.pods {
-				_, err := clientset.CoreV1().
-					Pods("default").
-					Create(context.Background(), pod, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, pod)
 			}
-
 			for _, node := range tt.nodes {
-				_, err := clientset.CoreV1().
-					Nodes().
-					Create(context.Background(), node, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, node)
 			}
-
-			_, err := clientset.
-				AppsV1().
-				Deployments("default").
-				Create(context.Background(), tt.deployment, metav1.CreateOptions{})
-			require.NoError(t, err)
-
+			objects = append(objects, tt.deployment)
 			if tt.hpa != nil {
-				_, err = clientset.
-					AutoscalingV2().
-					HorizontalPodAutoscalers("default").
-					Create(context.Background(), tt.hpa, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, tt.hpa)
+			}
+			if tt.service != nil {
+				objects = append(objects, tt.service)
 			}
 
-			if tt.service != nil {
-				_, err := clientset.CoreV1().
-					Services("default").
-					Create(context.Background(), tt.service, metav1.CreateOptions{})
-				require.NoError(t, err)
-			}
+			stopCh := make(chan struct{})
+			defer close(stopCh)
+			client := getTestClient(stopCh, objects...)
 
 			d := &deploymentDiscovery{k8s: client}
 			// When
@@ -634,23 +615,12 @@ func Test_getDiscoveredDeploymentsShouldIgnoreLabeledDeployments(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
+	client := getTestClient(stopCh, testDeployment(nil), testDeployment(func(deployment *appsv1.Deployment) {
+		deployment.ObjectMeta.Name = "shop-ignore"
+		deployment.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
+	}))
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.DiscoveryMaxPodCount = 50
-
-	_, err := clientset.
-		AppsV1().
-		Deployments("default").
-		Create(context.Background(), testDeployment(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		AppsV1().
-		Deployments("default").
-		Create(context.Background(), testDeployment(func(deployment *appsv1.Deployment) {
-			deployment.ObjectMeta.Name = "shop-ignore"
-			deployment.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
 
 	d := &deploymentDiscovery{k8s: client}
 	// When
@@ -664,24 +634,13 @@ func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDis
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
+	client := getTestClient(stopCh, testDeployment(nil), testDeployment(func(deployment *appsv1.Deployment) {
+		deployment.ObjectMeta.Name = "shop-ignore"
+		deployment.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
+	}))
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.DisableDiscoveryExcludes = true
 	extconfig.Config.DiscoveryMaxPodCount = 50
-
-	_, err := clientset.
-		AppsV1().
-		Deployments("default").
-		Create(context.Background(), testDeployment(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		AppsV1().
-		Deployments("default").
-		Create(context.Background(), testDeployment(func(deployment *appsv1.Deployment) {
-			deployment.ObjectMeta.Name = "shop-ignore"
-			deployment.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
 
 	d := &deploymentDiscovery{k8s: client}
 	// When
@@ -691,8 +650,6 @@ func Test_getDiscoveredDeploymentsShouldNotIgnoreLabeledDeploymentsIfExcludesDis
 	}, 5*time.Second, 100*time.Millisecond)
 }
 
-func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewClientset()
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
-	return client, clientset
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
+	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted())
 }
