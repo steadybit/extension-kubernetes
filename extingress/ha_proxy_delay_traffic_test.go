@@ -1,8 +1,14 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+
 package extingress
 
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
@@ -11,23 +17,17 @@ import (
 	"github.com/stretchr/testify/require"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	testClient, clientset := getTestClient(stopCh)
-	client.K8S = testClient
 
-	// Create a simple ingress without delay rules for regular test cases
-	_, err := clientset.
-		NetworkingV1().
-		Ingresses("demo").
-		Create(context.Background(), &networkingv1.Ingress{
+	objects := []runtime.Object{
+		// Create a simple ingress without delay rules for regular test cases
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "simple-ingress",
 				Namespace: "demo",
@@ -36,14 +36,9 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					AnnotationKey:                 "# Some other config\nacl some_rule path_reg /anotherPath\n",
 				},
 			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	// Create an ingress with a path conflict for path collision test
-	_, err = clientset.
-		NetworkingV1().
-		Ingresses("demo").
-		Create(context.Background(), &networkingv1.Ingress{
+		},
+		// Create an ingress with a path conflict for path collision test
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "path-conflict-ingress",
 				Namespace: "demo",
@@ -52,14 +47,9 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					AnnotationKey:                 "acl path_conflict path_reg /alreadyDelayed\n",
 				},
 			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	// Create an ingress with an existing delay rule for duplicate delay test
-	_, err = clientset.
-		NetworkingV1().
-		Ingresses("demo").
-		Create(context.Background(), &networkingv1.Ingress{
+		},
+		// Create an ingress with an existing delay rule for duplicate delay test
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "delay-conflict-ingress",
 				Namespace: "demo",
@@ -68,8 +58,11 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					AnnotationKey:                 "tcp-request inspect-delay 1000ms\ntcp-request content accept if WAIT_END\n",
 				},
 			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+	}
+
+	testClient := getTestClient(stopCh, objects...)
+	client.K8S = testClient
 
 	assert.Eventually(t, func() bool {
 		ingress, _ := testClient.IngressByNamespaceAndName("demo", "simple-ingress")
@@ -402,8 +395,6 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 	}
 }
 
-func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewClientset()
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
-	return client, clientset
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
+	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted())
 }

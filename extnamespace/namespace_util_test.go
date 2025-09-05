@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2024 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extnamespace
 
 import (
-	"context"
 	"sort"
 	"testing"
 	"time"
@@ -15,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -43,14 +42,9 @@ func Test_namespaceDiscovery(t *testing.T) {
 			// Given
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			client, clientset := getTestClient(stopCh)
+			client := getTestClient(stopCh, tt.namespace)
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
-
-			_, err := clientset.CoreV1().
-				Namespaces().
-				Create(context.Background(), tt.namespace, metav1.CreateOptions{})
-			require.NoError(t, err)
 
 			// When
 			var attributes map[string][]string
@@ -104,8 +98,6 @@ func testNamespace(modifier func(namespace *v1.Namespace)) *v1.Namespace {
 	return namespace
 }
 
-func getTestClient(stopCh <-chan struct{}) (*kclient.Client, kubernetes.Interface) {
-	clientset := testclient.NewClientset()
-	client := kclient.CreateClient(clientset, stopCh, "/oapi", kclient.MockAllPermitted())
-	return client, clientset
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *kclient.Client {
+	return kclient.CreateClient(testclient.NewClientset(objects...), stopCh, "/oapi", kclient.MockAllPermitted())
 }

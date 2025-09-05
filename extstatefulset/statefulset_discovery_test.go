@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extstatefulset
 
 import (
 	"context"
 	"fmt"
+	"sort"
+	"testing"
+	"time"
+
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -15,12 +19,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"sort"
-	"testing"
-	"time"
 )
 
 func Test_statefulSetDiscovery(t *testing.T) {
@@ -221,9 +222,6 @@ func Test_statefulSetDiscovery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Given
-			stopCh := make(chan struct{})
-			defer close(stopCh)
-			client, clientset := getTestClient(stopCh)
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
 			extconfig.Config.DiscoveryMaxPodCount = 50
@@ -231,31 +229,21 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				tt.configModifier(&extconfig.Config)
 			}
 
+			var objects []runtime.Object
 			for _, pod := range tt.pods {
-				_, err := clientset.CoreV1().
-					Pods("default").
-					Create(context.Background(), pod, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, pod)
 			}
 			for _, node := range tt.nodes {
-				_, err := clientset.CoreV1().
-					Nodes().
-					Create(context.Background(), node, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, node)
 			}
-
-			_, err := clientset.
-				AppsV1().
-				StatefulSets("default").
-				Create(context.Background(), tt.statefulSet, metav1.CreateOptions{})
-			require.NoError(t, err)
-
 			if tt.service != nil {
-				_, err := clientset.CoreV1().
-					Services("default").
-					Create(context.Background(), tt.service, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, tt.service)
 			}
+			objects = append(objects, tt.statefulSet)
+
+			stopCh := make(chan struct{})
+			defer close(stopCh)
+			client := getTestClient(stopCh, objects...)
 
 			d := &statefulSetDiscovery{k8s: client}
 			// When
@@ -454,8 +442,6 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 	return service
 }
 
-func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewClientset()
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
-	return client, clientset
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
+	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted())
 }

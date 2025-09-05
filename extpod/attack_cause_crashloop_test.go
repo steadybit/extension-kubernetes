@@ -1,16 +1,19 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+
 package extpod
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-	"time"
 )
 
 func Test_Prepare(t *testing.T) {
@@ -62,8 +65,7 @@ func Test_Prepare(t *testing.T) {
 			// Given
 			stopCh := make(chan struct{})
 			defer close(stopCh)
-			testClient, clientset := getTestClient(stopCh)
-			pod := &corev1.Pod{
+			testClient := getTestClient(stopCh, &corev1.Pod{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Pod",
 					APIVersion: "v1",
@@ -78,13 +80,7 @@ func Test_Prepare(t *testing.T) {
 						{Name: tt.podSpecContainerName},
 					},
 				},
-			}
-
-			_, err := clientset.
-				CoreV1().
-				Pods("shop").
-				Create(context.Background(), pod, metav1.CreateOptions{})
-			require.NoError(t, err)
+			})
 
 			assert.Eventually(t, func() bool {
 				return testClient.PodByNamespaceAndName("shop", "checkout-xyz1234") != nil
@@ -106,7 +102,7 @@ func Test_Prepare(t *testing.T) {
 			state := action.NewEmptyState()
 
 			// When
-			_, err = action.Prepare(context.Background(), &state, request)
+			_, err := action.Prepare(context.Background(), &state, request)
 
 			// Then
 			if tt.wantErr == "" {

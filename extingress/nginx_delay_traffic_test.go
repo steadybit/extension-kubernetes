@@ -1,6 +1,5 @@
-/*
- * Copyright 2025 steadybit GmbH. All rights reserved.
- */
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extingress
 
@@ -19,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // TestNginxDelayTrafficAction_Prepare tests the Prepare method of NginxDelayTrafficAction
@@ -246,18 +245,22 @@ var myTestUUID = uuid.MustParse("00000000-0000-0000-0000-000000000000")
 func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 	// Create test environment
 	stopCh := make(chan struct{})
-	testClient, clientset := getTestClient(stopCh)
+
+	var objects []runtime.Object
+	// Create test IngressClass for NGINX
+	objects = append(objects, createTestNginxIngressClass())
+
+	// Create test ingresses
+	for _, ingress := range createTestDelayNginxIngresses() {
+		objects = append(objects, ingress)
+	}
+
+	testClient := getTestClient(stopCh, objects...)
 	client.K8S = testClient
 
 	// Use no-op validator for tests
 	originalValidator := nginxModuleValidator
 	nginxModuleValidator = &NoOpNginxModuleValidator{}
-
-	// Create test IngressClass for NGINX
-	createTestNginxIngressClass(t, clientset)
-
-	// Create test ingresses
-	createTestDelayNginxIngresses(t, clientset)
 
 	// Wait for IngressClass and ingresses to be registered
 	assert.Eventually(t, func() bool {
@@ -282,8 +285,8 @@ func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 }
 
 // createTestNginxIngressClass creates a test NGINX IngressClass
-func createTestNginxIngressClass(t *testing.T, clientset kubernetes.Interface) {
-	ingressClass := &networkingv1.IngressClass{
+func createTestNginxIngressClass() *networkingv1.IngressClass {
+	return &networkingv1.IngressClass{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "nginx",
 		},
@@ -291,21 +294,20 @@ func createTestNginxIngressClass(t *testing.T, clientset kubernetes.Interface) {
 			Controller: "k8s.io/ingress-nginx",
 		},
 	}
-
-	_, err := clientset.NetworkingV1().IngressClasses().Create(context.Background(), ingressClass, metav1.CreateOptions{})
-	require.NoError(t, err)
 }
 
 // createTestDelayNginxIngresses creates test ingress resources for NGINX
-func createTestDelayNginxIngresses(t *testing.T, clientset kubernetes.Interface) {
-	// Regular ingress for most test cases
-	createNginxIngress(t, clientset, "test-nginx-ingress", "# Some config\nif ($request_uri ~* /someOtherPath) {\n  return 404;\n}\n")
+func createTestDelayNginxIngresses() []*networkingv1.Ingress {
+	return []*networkingv1.Ingress{
+		// Regular ingress for most test cases
+		createNginxIngress("test-nginx-ingress", "# Some config\nif ($request_uri ~* /someOtherPath) {\n  return 404;\n}\n"),
 
-	// Ingress with existing path rule for testing conflicts
-	createNginxIngress(t, clientset, "conflict-nginx-ingress", "location ~ /alreadyDelayed {\n  return 503;\n}\n")
+		// Ingress with existing path rule for testing conflicts
+		createNginxIngress("conflict-nginx-ingress", "location ~ /alreadyDelayed {\n  return 503;\n}\n"),
 
-	// Ingress with existing delay rule for testing conflicts
-	createNginxIngress(t, clientset, "delay-conflict-nginx-ingress", "if ($request_uri ~* /existingPath) {\n  sb_sleep_ms 0.200;\n}\n")
+		// Ingress with existing delay rule for testing conflicts
+		createNginxIngress("delay-conflict-nginx-ingress", "if ($request_uri ~* /existingPath) {\n  sb_sleep_ms 0.200;\n}\n"),
+	}
 }
 
 // createDelayNginxTestRequest creates a test request with the given ingress name and config

@@ -5,6 +5,9 @@ package extreplicaset
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
@@ -15,8 +18,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 func TestPrepareCheckExtractsState(t *testing.T) {
@@ -35,27 +36,22 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		}),
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		AppsV1().
-		ReplicaSets("shop").
-		Create(context.Background(), &appsv1.ReplicaSet{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "ReplicaSet",
-				APIVersion: "apps/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "checkout",
-				Namespace: "shop",
-			},
-			Spec: appsv1.ReplicaSetSpec{
-				Replicas: extutil.Ptr(int32(3)),
-			},
-			Status: appsv1.ReplicaSetStatus{
-				ReadyReplicas: 3,
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+	clientset := testclient.NewClientset(&appsv1.ReplicaSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ReplicaSet",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "checkout",
+			Namespace: "shop",
+		},
+		Spec: appsv1.ReplicaSetSpec{
+			Replicas: extutil.Ptr(int32(3)),
+		},
+		Status: appsv1.ReplicaSetStatus{
+			ReadyReplicas: 3,
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -89,17 +85,12 @@ func TestStatusCheckReplicaSetNotFound(t *testing.T) {
 		Target:            "checkout",
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		AppsV1().
-		ReplicaSets("shop").
-		Create(context.Background(), &appsv1.ReplicaSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "xyz",
-				Namespace: "shop",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+	clientset := testclient.NewClientset(&appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "xyz",
+			Namespace: "shop",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)

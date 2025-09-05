@@ -19,7 +19,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -94,9 +94,6 @@ func Test_replicasetDiscovery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Given
-			stopCh := make(chan struct{})
-			defer close(stopCh)
-			client, clientset := getTestClient(stopCh)
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
 			extconfig.Config.DiscoveryMaxPodCount = 50
@@ -105,63 +102,44 @@ func Test_replicasetDiscovery(t *testing.T) {
 				tt.configModifier(&extconfig.Config)
 			}
 
+			var objects []runtime.Object
 			for _, pod := range tt.pods {
-				_, err := clientset.CoreV1().
-					Pods("default").
-					Create(context.Background(), pod, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, pod)
 			}
-
 			for _, node := range tt.nodes {
-				_, err := clientset.CoreV1().
-					Nodes().
-					Create(context.Background(), node, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, node)
 			}
 
-			_, err := clientset.
-				AppsV1().
-				ReplicaSets("default").
-				Create(context.Background(), tt.replicaset, metav1.CreateOptions{})
-			require.NoError(t, err)
+			objects = append(objects, tt.replicaset)
 
-			tt.replicaset.Name = "shop-1"
-			tt.replicaset.Annotations["deployment.kubernetes.io/revision"] = "13"
-			_, err = clientset.
-				AppsV1().
-				ReplicaSets("default").
-				Create(context.Background(), tt.replicaset, metav1.CreateOptions{})
-			require.NoError(t, err)
+			replicaset := tt.replicaset.DeepCopy()
+			replicaset.Name = "shop-1"
+			replicaset.Annotations["deployment.kubernetes.io/revision"] = "13"
+			objects = append(objects, replicaset)
 
-			tt.replicaset.Name = "shop-2"
-			tt.replicaset.Annotations["deployment.kubernetes.io/revision"] = "14"
-			_, err = clientset.
-				AppsV1().
-				ReplicaSets("default").
-				Create(context.Background(), tt.replicaset, metav1.CreateOptions{})
-			require.NoError(t, err)
+			replicaset = tt.replicaset.DeepCopy()
+			replicaset.Name = "shop-2"
+			replicaset.Annotations["deployment.kubernetes.io/revision"] = "14"
+			objects = append(objects, replicaset)
 
-			_, err = clientset.
-				AppsV1().
-				Deployments("default").
-				Create(context.Background(), &appsv1.Deployment{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "Deployment",
-						APIVersion: "apps/v1",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "shop",
-						Namespace: "default",
-					},
-				}, metav1.CreateOptions{})
-			require.NoError(t, err)
+			objects = append(objects, &appsv1.Deployment{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Deployment",
+					APIVersion: "apps/v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "shop",
+					Namespace: "default",
+				},
+			})
 
 			if tt.service != nil {
-				_, err := clientset.CoreV1().
-					Services("default").
-					Create(context.Background(), tt.service, metav1.CreateOptions{})
-				require.NoError(t, err)
+				objects = append(objects, tt.service)
 			}
+
+			stopCh := make(chan struct{})
+			defer close(stopCh)
+			client := getTestClient(stopCh, objects...)
 
 			d := &replicasetDiscovery{k8s: client}
 			// When
@@ -373,23 +351,12 @@ func Test_getDiscoveredReplicaSetsShouldIgnoreLabeledReplicaSets(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
+	client := getTestClient(stopCh, testReplicaSet(nil), testReplicaSet(func(replicaset *appsv1.ReplicaSet) {
+		replicaset.ObjectMeta.Name = "shop-ignore"
+		replicaset.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
+	}))
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.DiscoveryMaxPodCount = 50
-
-	_, err := clientset.
-		AppsV1().
-		ReplicaSets("default").
-		Create(context.Background(), testReplicaSet(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		AppsV1().
-		ReplicaSets("default").
-		Create(context.Background(), testReplicaSet(func(replicaset *appsv1.ReplicaSet) {
-			replicaset.ObjectMeta.Name = "shop-ignore"
-			replicaset.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
 
 	d := &replicasetDiscovery{k8s: client}
 	// When
@@ -403,24 +370,13 @@ func Test_getDiscoveredReplicaSetsShouldNotIgnoreLabeledReplicaSetsIfExcludesDis
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client, clientset := getTestClient(stopCh)
+	client := getTestClient(stopCh, testReplicaSet(nil), testReplicaSet(func(replicaset *appsv1.ReplicaSet) {
+		replicaset.ObjectMeta.Name = "shop-ignore"
+		replicaset.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
+	}))
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.DisableDiscoveryExcludes = true
 	extconfig.Config.DiscoveryMaxPodCount = 50
-
-	_, err := clientset.
-		AppsV1().
-		ReplicaSets("default").
-		Create(context.Background(), testReplicaSet(nil), metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		AppsV1().
-		ReplicaSets("default").
-		Create(context.Background(), testReplicaSet(func(replicaset *appsv1.ReplicaSet) {
-			replicaset.ObjectMeta.Name = "shop-ignore"
-			replicaset.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
-		}), metav1.CreateOptions{})
-	require.NoError(t, err)
 
 	d := &replicasetDiscovery{k8s: client}
 	// When
@@ -430,8 +386,6 @@ func Test_getDiscoveredReplicaSetsShouldNotIgnoreLabeledReplicaSetsIfExcludesDis
 	}, 5*time.Second, 100*time.Millisecond)
 }
 
-func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface) {
-	clientset := testclient.NewClientset()
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
-	return client, clientset
+func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
+	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted())
 }

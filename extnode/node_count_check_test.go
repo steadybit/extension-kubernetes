@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2022 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extnode
 
 import (
-	"context"
+	"testing"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
@@ -12,8 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 func TestPrepareCheckExtractsState(t *testing.T) {
@@ -31,29 +31,24 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		}),
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+	clientset := testclient.NewClientset(&corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node1",
-				GenerateName: "node1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node1",
+			GenerateName: "node1",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -62,7 +57,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 	state := action.NewEmptyState()
 
 	// When
-	_, err = prepareNodeCountCheckInternal(k8sclient, &state, request)
+	_, err := prepareNodeCountCheckInternal(k8sclient, &state, request)
 	require.NoError(t, err)
 
 	// Then
@@ -83,51 +78,41 @@ func TestStatusCheckNodeCountAtLeastSuccess(t *testing.T) {
 		InitialNodeCount:   1,
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+	clientset := testclient.NewClientset(&corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node1",
-				GenerateName: "node1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node1",
+			GenerateName: "node1",
+		},
+	}, &corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node2",
-				GenerateName: "node2",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node2",
+			GenerateName: "node2",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -151,29 +136,24 @@ func TestStatusCheckNodeCountAtFail(t *testing.T) {
 		InitialNodeCount:   1,
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+	clientset := testclient.NewClientset(&corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node1",
-				GenerateName: "node1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node1",
+			GenerateName: "node1",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -197,29 +177,24 @@ func TestStatusCheckNodeCountDecreasedBySuccess(t *testing.T) {
 		InitialNodeCount:   3,
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+	clientset := testclient.NewClientset(&corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node1",
-				GenerateName: "node1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node1",
+			GenerateName: "node1",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -243,51 +218,41 @@ func TestStatusCheckNodeCountDecreasedByFail(t *testing.T) {
 		InitialNodeCount:   3,
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+	clientset := testclient.NewClientset(&corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node1",
-				GenerateName: "node1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node1",
+			GenerateName: "node1",
+		},
+	}, &corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node2",
-				GenerateName: "node2",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node2",
+			GenerateName: "node2",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -311,51 +276,41 @@ func TestStatusCheckNodeCountIncreasedBySuccess(t *testing.T) {
 		InitialNodeCount:   0,
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+	clientset := testclient.NewClientset(&corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node1",
-				GenerateName: "node1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
-	_, err = clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node1",
+			GenerateName: "node1",
+		},
+	}, &corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node2",
-				GenerateName: "node2",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node2",
+			GenerateName: "node2",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -379,29 +334,24 @@ func TestStatusCheckNodeCountIncreasedByFail(t *testing.T) {
 		InitialNodeCount:   0,
 	}
 
-	clientset := testclient.NewClientset()
-	_, err := clientset.
-		CoreV1().
-		Nodes().
-		Create(context.Background(), &corev1.Node{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Node",
-				APIVersion: "v1",
-			},
-			Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
-					},
+	clientset := testclient.NewClientset(&corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		Status: corev1.NodeStatus{
+			Conditions: []corev1.NodeCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
 				},
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:         "node1",
-				GenerateName: "node1",
-			},
-		}, metav1.CreateOptions{})
-	require.NoError(t, err)
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "node1",
+			GenerateName: "node1",
+		},
+	})
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
