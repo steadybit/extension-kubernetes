@@ -35,7 +35,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 		}),
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		AppsV1().
 		ReplicaSets("shop").
@@ -89,7 +89,7 @@ func TestStatusCheckReplicaSetNotFound(t *testing.T) {
 		Target:            "checkout",
 	}
 
-	clientset := testclient.NewSimpleClientset()
+	clientset := testclient.NewClientset()
 	_, err := clientset.
 		AppsV1().
 		ReplicaSets("shop").
