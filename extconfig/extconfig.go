@@ -41,6 +41,7 @@ type Specification struct {
 	DiscoveryInformerResync                int      `json:"DiscoveryInformerResync" required:"false" split_words:"true" default:"600"`
 	Namespace                              string   `json:"namespace" split_words:"true" required:"false" default:""`
 	NginxDelaySkipImageCheck               bool     `json:"nginxDelaySkipImageCheck" split_words:"true" required:"false" default:"false"`
+	PrintMemoryStatsInterval               int64    `json:"printMemoryStatsInterval" split_words:"true" required:"false" default:"0"`
 }
 
 var (

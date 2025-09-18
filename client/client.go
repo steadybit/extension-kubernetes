@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"sync"
@@ -112,6 +113,40 @@ type Client struct {
 	resourceEventHandler cache.ResourceEventHandlerFuncs
 	networkingV1         networkingv1client.NetworkingV1Interface
 	clientset            kubernetes.Interface
+}
+
+func (c *Client) PrintMemoryUsage() {
+	stats := []string{}
+	stats = append(stats, getInformerStats(c.daemonSet.informer, "DaemonSet"))
+	stats = append(stats, getInformerStats(c.deployment.informer, "Deployment"))
+	stats = append(stats, getInformerStats(c.pod.informer, "Pod"))
+	stats = append(stats, getInformerStats(c.namespace.informer, "Namespace"))
+	stats = append(stats, getInformerStats(c.replicaSet.informer, "ReplicaSet"))
+	stats = append(stats, getInformerStats(c.service.informer, "Service"))
+	stats = append(stats, getInformerStats(c.statefulSet.informer, "StatefulSet"))
+	stats = append(stats, getInformerStats(c.event.informer, "Event"))
+	stats = append(stats, getInformerStats(c.node.informer, "Node"))
+	stats = append(stats, getInformerStats(c.hpa.informer, "HPA"))
+	stats = append(stats, getInformerStats(c.ingress.informer, "Ingress"))
+	stats = append(stats, getInformerStats(c.ingressClass.informer, "IngressClass"))
+	log.Info().Msg("Kubernetes client cache stats:\n" + strings.Join(stats, "\n"))
+}
+
+func getInformerStats(informer cache.SharedIndexInformer, name string) string {
+	store := informer.GetStore()
+	objects := store.List()
+	var totalSize uintptr
+	for _, obj := range objects {
+		totalSize += reflect.TypeOf(obj).Size()
+		if reflect.TypeOf(obj).Kind() == reflect.Ptr {
+			elem := reflect.ValueOf(obj).Elem()
+			if elem.IsValid() {
+				totalSize += elem.Type().Size()
+			}
+		}
+	}
+
+	return fmt.Sprintf("%s: %d objects, estimated memory usage: %d kb", name, len(objects), totalSize/1024)
 }
 
 func (c *Client) Permissions() *PermissionCheckResult {

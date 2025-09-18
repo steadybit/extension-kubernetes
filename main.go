@@ -5,7 +5,10 @@ package main
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extingress"
+	"runtime"
+	"time"
 
 	_ "github.com/KimMachineGun/automemlimit" // By default, it sets `GOMEMLIMIT` to 90% of cgroup's memory limit.
 	"github.com/rs/zerolog"
@@ -167,6 +170,19 @@ func main() {
 	action_kit_sdk.RegisterCoverageEndpoints()
 
 	exthealth.SetReady(true)
+
+	if extconfig.Config.PrintMemoryStatsInterval > 0 {
+		ticker := time.NewTicker(time.Duration(extconfig.Config.PrintMemoryStatsInterval) * time.Second)
+		go func() {
+			for range ticker.C {
+				client.K8S.PrintMemoryUsage()
+				var m runtime.MemStats
+				runtime.ReadMemStats(&m)
+
+				log.Info().Msgf("Extension memory usage:\nAlloc=%v kb, TotalAlloc=%v kb, HeapAlloc=%v kb, HeapInUse=%v kb, Sys=%v kb, NumGC=%v", m.Alloc/102, m.TotalAlloc/1024, m.HeapAlloc/1024, m.HeapInuse/1024, m.Sys/1024, m.NumGC)
+			}
+		}()
+	}
 
 	exthttp.Listen(exthttp.ListenOpts{
 		Port: 8088,
