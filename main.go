@@ -179,7 +179,14 @@ func main() {
 				var m runtime.MemStats
 				runtime.ReadMemStats(&m)
 
-				log.Info().Msgf("Extension memory usage:\nAlloc=%v kb, TotalAlloc=%v kb, HeapAlloc=%v kb, HeapInUse=%v kb, Sys=%v kb, NumGC=%v", m.Alloc/102, m.TotalAlloc/1024, m.HeapAlloc/1024, m.HeapInuse/1024, m.Sys/1024, m.NumGC)
+				log.Info().
+					Uint64("Alloc_kb", m.Alloc/1024).
+					Uint64("TotalAlloc_kb", m.TotalAlloc/1024).
+					Uint64("HeapAlloc_kb", m.HeapAlloc/1024).
+					Uint64("HeapInUse_kb", m.HeapInuse/1024).
+					Uint64("Sys_kb", m.Sys/1024).
+					Uint32("NumGC", m.NumGC).
+					Msg("Extension memory usage")
 			}
 		}()
 	}

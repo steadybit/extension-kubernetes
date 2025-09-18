@@ -129,7 +129,7 @@ func (c *Client) PrintMemoryUsage() {
 	stats = append(stats, getInformerStats(c.hpa.informer, "HPA"))
 	stats = append(stats, getInformerStats(c.ingress.informer, "Ingress"))
 	stats = append(stats, getInformerStats(c.ingressClass.informer, "IngressClass"))
-	log.Info().Msg("Kubernetes client cache stats:\n" + strings.Join(stats, "\n"))
+	log.Info().Strs("stats", stats).Msg("Kubernetes client cache stats (name, objects, estimated memory usage in kb)")
 }
 
 func getInformerStats(informer cache.SharedIndexInformer, name string) string {
@@ -146,7 +146,7 @@ func getInformerStats(informer cache.SharedIndexInformer, name string) string {
 		}
 	}
 
-	return fmt.Sprintf("%s: %d objects, estimated memory usage: %d kb", name, len(objects), totalSize/1024)
+	return fmt.Sprintf("%s, %d, %d", name, len(objects), totalSize/1024)
 }
 
 func (c *Client) Permissions() *PermissionCheckResult {
