@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2023 Steadybit GmbH
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extconfig
 
 import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog/log"
+	"github.com/steadybit/advice-kit/go/advice_kit_sdk"
 )
 
 // Specification is the configuration specification for the extension. Configuration values can be applied
 // through environment variables. Learn more through the documentation of the envconfig package.
 // https://github.com/kelseyhightower/envconfig
 type Specification struct {
+	advice_kit_sdk.AdviceConfig
 	ClusterName                            string   `required:"true" split_words:"true"`
 	LabelFilter                            []string `required:"false" split_words:"true" default:"controller-revision-hash,pod-template-generation,pod-template-hash"`
-	DisableAdvice                          bool     `json:"disableAdvice" required:"false" split_words:"true" default:"false"`
-	ActiveAdviceList                       []string `required:"false" split_words:"true" default:"*"`
 	AdviceSingleReplicaMinReplicas         int      `json:"adviceSingleReplicaMinReplicas" split_words:"true" required:"false" default:"2"`
 	DisableDiscoveryExcludes               bool     `required:"false" split_words:"true" default:"false"`
 	LogKubernetesHttpRequests              bool     `required:"false" split_words:"true" default:"false"`
