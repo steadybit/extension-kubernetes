@@ -82,7 +82,7 @@
           "parameters": {
             "duration": "60s"
           },
-          "customLabel": "TODO VALIDATION: THEN: ${target.attr('steadybit.label')} recovers from high CPU and runs smoothly again"
+          "customLabel": "TODO VALIDATION: THEN: ${target.attr('steadybit.label')} recovers from high memory and runs smoothly again"
         }
       ]
     },
