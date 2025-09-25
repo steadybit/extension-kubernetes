@@ -152,4 +152,33 @@ tests:
           statefulSet: true
     asserts:
       - matchSnapshot: {}
+  - it: should disable advice with old settings
+    set:
+      kubernetes:
+        clusterName: test
+      discovery:
+        disableAdvice: true
+    asserts:
+      - matchSnapshot: {}
 
+  - it: should disable advice
+    set:
+      kubernetes:
+        clusterName: test
+      advice:
+        enabled: []
+    asserts:
+      - matchSnapshot: {}
+
+  - it: should enable specific advice with exlude
+    set:
+      kubernetes:
+        clusterName: test
+      advice:
+        enabled:
+          - id1
+          - id2
+          - id3
+        excludeTargetQuery: 'k8s.namespace != "kube-system"'
+    asserts:
+      - matchSnapshot: {}
