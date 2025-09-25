@@ -90,7 +90,7 @@ helm upgrade steadybit-extension-kubernetes \
 
 ### enabling/disabling advice
 
-You can disable any advice by setting the helm chart value `--set advice.enabled=[]` or a list of advice ids you want to enable (e.g `--set advice.enabled={com.steadybit.extension_kubernetes.advice.k8s-single-replica,com.steadybit.extension_kubernetes.advice.single-zone}`).
+You can disable any advice by setting the helm chart value `--set advice.enabled={}` or a list of advice ids you want to enable (e.g `--set advice.enabled={com.steadybit.extension_kubernetes.advice.k8s-single-replica,com.steadybit.extension_kubernetes.advice.single-zone}`).
 
 ### excluding targets from advice generation
 
