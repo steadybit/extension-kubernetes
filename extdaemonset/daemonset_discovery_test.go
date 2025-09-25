@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,10 +27,10 @@ import (
 func Test_daemonSetDiscovery(t *testing.T) {
 	tests := []struct {
 		name                      string
-		pods                      []*v1.Pod
-		nodes                     []*v1.Node
+		pods                      []*corev1.Pod
+		nodes                     []*corev1.Node
 		daemonSet                 *appsv1.DaemonSet
-		service                   *v1.Service
+		service                   *corev1.Service
 		configModifier            func(*extconfig.Specification)
 		expectedAttributesExactly map[string][]string
 		expectedAttributes        map[string][]string
@@ -38,30 +38,33 @@ func Test_daemonSetDiscovery(t *testing.T) {
 	}{
 		{
 			name: "should discover basic attributes",
-			pods: []*v1.Pod{testPod("aaaaa", nil), testPod("bbbbb", func(pod *v1.Pod) {
+			pods: []*corev1.Pod{testPod("aaaaa", nil), testPod("bbbbb", func(pod *corev1.Pod) {
 				pod.Spec.NodeName = "worker-2"
 			})},
-			nodes:     []*v1.Node{testNode("worker-1"), testNode("worker-2")},
+			nodes:     []*corev1.Node{testNode("worker-1"), testNode("worker-2")},
 			daemonSet: testDaemonSet(nil),
 			expectedAttributesExactly: map[string][]string{
-				"host.hostname":             {"worker-1", "worker-2"},
-				"host.domainname":           {"worker-1.internal", "worker-2.internal"},
-				"k8s.namespace":             {"default"},
-				"k8s.daemonset":             {"shop"},
-				"k8s.workload-type":         {"daemonset"},
-				"k8s.workload-owner":        {"shop"},
-				"k8s.label.best-city":       {"Kevelaer"},
-				"k8s.cluster-name":          {"development"},
-				"k8s.pod.name":              {"shop-pod-aaaaa", "shop-pod-bbbbb"},
-				"k8s.container.id":          {"crio://abcdef-aaaaa", "crio://abcdef-bbbbb"},
-				"k8s.container.id.stripped": {"abcdef-aaaaa", "abcdef-bbbbb"},
-				"k8s.distribution":          {"kubernetes"},
+				"host.hostname":                 {"worker-1", "worker-2"},
+				"host.domainname":               {"worker-1.internal", "worker-2.internal"},
+				"k8s.namespace":                 {"default"},
+				"k8s.daemonset":                 {"shop"},
+				"k8s.workload-type":             {"daemonset"},
+				"k8s.workload-owner":            {"shop"},
+				"k8s.label.best-city":           {"Kevelaer"},
+				"k8s.label":                     {"best-city"},
+				"k8s.daemonset.label.best-city": {"Kevelaer"},
+				"k8s.daemonset.label":           {"best-city"},
+				"k8s.cluster-name":              {"development"},
+				"k8s.pod.name":                  {"shop-pod-aaaaa", "shop-pod-bbbbb"},
+				"k8s.container.id":              {"crio://abcdef-aaaaa", "crio://abcdef-bbbbb"},
+				"k8s.container.id.stripped":     {"abcdef-aaaaa", "abcdef-bbbbb"},
+				"k8s.distribution":              {"kubernetes"},
 			},
 		},
 		{
 			name:      "hostnames should be unique and not duplicated",
-			pods:      []*v1.Pod{testPod("aaaaa", nil), testPod("bbbbb", nil)},
-			nodes:     []*v1.Node{testNode("worker-1")},
+			pods:      []*corev1.Pod{testPod("aaaaa", nil), testPod("bbbbb", nil)},
+			nodes:     []*corev1.Node{testNode("worker-1")},
 			daemonSet: testDaemonSet(nil),
 			expectedAttributes: map[string][]string{
 				"host.hostname": {"worker-1"},
@@ -69,7 +72,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name:      "should add service name",
-			pods:      []*v1.Pod{testPod("aaaaa", nil)},
+			pods:      []*corev1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(nil),
 			service:   testService(nil),
 			expectedAttributes: map[string][]string{
@@ -78,7 +81,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name:      "should ignore empty container ids",
-			pods:      []*v1.Pod{testPod("aaaaa", func(pod *v1.Pod) { pod.Status.ContainerStatuses[0].ContainerID = "" })},
+			pods:      []*corev1.Pod{testPod("aaaaa", func(pod *corev1.Pod) { pod.Status.ContainerStatuses[0].ContainerID = "" })},
 			daemonSet: testDaemonSet(nil),
 			expectedAttributesAbsence: []string{
 				"k8s.container.id",
@@ -87,7 +90,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name: "should not add probe summary if no service is defined",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
 				daemonSet.Spec.Template.Spec.Containers[0].LivenessProbe = nil
 				daemonSet.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
@@ -100,19 +103,19 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report equal probes",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
-				daemonSet.Spec.Template.Spec.Containers[0].LivenessProbe = &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						HTTPGet: &v1.HTTPGetAction{
+				daemonSet.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/",
 							Port: intstr.FromInt32(80),
 						},
 					},
 				}
-				daemonSet.Spec.Template.Spec.Containers[0].ReadinessProbe = &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						HTTPGet: &v1.HTTPGetAction{
+				daemonSet.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/",
 							Port: intstr.FromInt32(80),
 						},
@@ -128,7 +131,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report missing readiness probe",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
 				daemonSet.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
 				daemonSet.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
@@ -140,7 +143,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report missing liveness probe",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
 				daemonSet.Spec.Template.Spec.Containers[0].LivenessProbe = nil
 				daemonSet.Spec.Template.Spec.Containers[1].LivenessProbe = nil
@@ -152,17 +155,17 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report missing limits and requests",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
-				daemonSet.Spec.Template.Spec.Containers[0].Resources = v1.ResourceRequirements{
+				daemonSet.Spec.Template.Spec.Containers[0].Resources = corev1.ResourceRequirements{
 					Limits:   nil,
 					Requests: nil,
 				}
-				daemonSet.Spec.Template.Spec.Containers[1].Resources = v1.ResourceRequirements{
-					Limits: v1.ResourceList{
-						v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-						v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
-						v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
+				daemonSet.Spec.Template.Spec.Containers[1].Resources = corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+						corev1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+						corev1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 					},
 					Requests: nil,
 				}
@@ -178,7 +181,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report image pull policy and image tag",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			daemonSet: testDaemonSet(func(daemonSet *appsv1.DaemonSet) {
 				daemonSet.Spec.Template.Spec.Containers[0].Image = "nginx"
 				daemonSet.Spec.Template.Spec.Containers[0].ImagePullPolicy = "Never"
@@ -253,8 +256,8 @@ func Test_daemonSetDiscovery(t *testing.T) {
 	}
 }
 
-func testNode(name string) *v1.Node {
-	return &v1.Node{
+func testNode(name string) *corev1.Node {
+	return &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -262,10 +265,10 @@ func testNode(name string) *v1.Node {
 			Kind:       "Node",
 			APIVersion: "v1",
 		},
-		Status: v1.NodeStatus{
-			Addresses: []v1.NodeAddress{
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
 				{
-					Type:    v1.NodeInternalDNS,
+					Type:    corev1.NodeInternalDNS,
 					Address: fmt.Sprintf("%s.internal", name),
 				},
 			},
@@ -273,8 +276,8 @@ func testNode(name string) *v1.Node {
 	}
 }
 
-func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
-	pod := &v1.Pod{
+func testPod(nameSuffix string, modifier func(*corev1.Pod)) *corev1.Pod {
+	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -286,9 +289,9 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 				"best-city": "kevelaer",
 			},
 		},
-		Status: v1.PodStatus{
-			Phase: v1.PodRunning,
-			ContainerStatuses: []v1.ContainerStatus{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					ContainerID: fmt.Sprintf("crio://abcdef-%s", nameSuffix),
 					Name:        "MrFancyPants",
@@ -296,7 +299,7 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 				},
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "worker-1",
 		},
 	}
@@ -326,58 +329,58 @@ func testDaemonSet(modifier func(*appsv1.DaemonSet)) *appsv1.DaemonSet {
 					"best-city": "kevelaer",
 				},
 			}),
-			Template: v1.PodTemplateSpec{
+			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"best-city": "Kevelaer",
 					},
 				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:            "nginx",
-							Image:           "nginx:v1.2.3",
+							Image:           "nginx:corev1.2.3",
 							ImagePullPolicy: "Always",
-							Resources: v1.ResourceRequirements{
-								Limits: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 								},
-								Requests: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
 								},
 							},
-							LivenessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
-							ReadinessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
 						},
 						{
 							Name:            "shop",
 							Image:           "shop-container:v5",
 							ImagePullPolicy: "Always",
-							Resources: v1.ResourceRequirements{
-								Limits: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 								},
-								Requests: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
 								},
 							},
-							LivenessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
-							ReadinessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
 						},
 					},
@@ -391,8 +394,8 @@ func testDaemonSet(modifier func(*appsv1.DaemonSet)) *appsv1.DaemonSet {
 	return ds
 }
 
-func testService(modifier func(service *v1.Service)) *v1.Service {
-	service := &v1.Service{
+func testService(modifier func(service *corev1.Service)) *corev1.Service {
+	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -401,7 +404,7 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 			Name:      "shop-kevelaer",
 			Namespace: "default",
 		},
-		Spec: v1.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
 				"best-city": "Kevelaer",
 			},

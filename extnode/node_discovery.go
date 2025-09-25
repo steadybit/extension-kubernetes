@@ -5,7 +5,10 @@ package extnode
 
 import (
 	"context"
-	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -14,12 +17,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
-	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
-	"strings"
-	"time"
 )
 
 type nodeDiscovery struct {
@@ -156,12 +154,8 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 			"k8s.distribution": {d.k8s.Distribution},
 		}
 
-		for key, value := range node.ObjectMeta.Labels {
-			if !slices.Contains(extconfig.Config.LabelFilter, key) {
-				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
-			}
-		}
-		extnamespace.AddNamespaceLabels(d.k8s, node.Namespace, attributes)
+		extcommon.AddLabels(node.ObjectMeta.Labels, attributes, "k8s.node.label", "k8s.label")
+		extcommon.AddNamespaceLabels(d.k8s, node.Namespace, attributes)
 
 		pods := d.k8s.Pods()
 		if len(pods) > 0 {

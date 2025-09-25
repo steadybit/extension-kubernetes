@@ -13,7 +13,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,8 +23,8 @@ import (
 func Test_containerDiscovery(t *testing.T) {
 	tests := []struct {
 		name                      string
-		pod                       *v1.Pod
-		services                  []*v1.Service
+		pod                       *corev1.Pod
+		services                  []*corev1.Service
 		expectedAttributesExactly map[string][]string
 		expectedAttributes        map[string][]string
 		expectedAttributesAbsence []string
@@ -42,19 +42,21 @@ func Test_containerDiscovery(t *testing.T) {
 				"k8s.node.name":             {"worker-1"},
 				"k8s.pod.name":              {"shop"},
 				"k8s.pod.label.best-city":   {"Kevelaer"},
+				"k8s.pod.label":             {"best-city"},
 				"k8s.label.best-city":       {"Kevelaer"},
+				"k8s.label":                 {"best-city"},
 				"k8s.distribution":          {"openshift"},
 			},
 		},
 		{
 			name: "should add service names",
 			pod:  testPod(nil),
-			services: []*v1.Service{
+			services: []*corev1.Service{
 				testService(nil),
-				testService(func(service *v1.Service) {
+				testService(func(service *corev1.Service) {
 					service.ObjectMeta.Name = "shop-kevelaer-v2"
 				}),
-				testService(func(service *v1.Service) {
+				testService(func(service *corev1.Service) {
 					service.ObjectMeta.Name = "shop-solingen"
 					service.Spec.Selector["best-city"] = "Solingen"
 				}),
@@ -119,7 +121,7 @@ func Test_getDiscoveredContainerShouldIgnoreLabeledPods(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := getTestClient(stopCh, testPod(nil), testPod(func(pod *v1.Pod) {
+	client := getTestClient(stopCh, testPod(nil), testPod(func(pod *corev1.Pod) {
 		pod.ObjectMeta.Name = "shop-ignored"
 		pod.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
 	}))
@@ -138,7 +140,7 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := getTestClient(stopCh, testPod(nil), testPod(func(pod *v1.Pod) {
+	client := getTestClient(stopCh, testPod(nil), testPod(func(pod *corev1.Pod) {
 		pod.ObjectMeta.Name = "shop-ignored"
 		pod.ObjectMeta.Labels["steadybit.com/discovery-disabled"] = "true"
 	}))
@@ -154,8 +156,8 @@ func Test_getDiscoveredContainerShouldNotIgnoreLabeledPodsIfExcludesDisabled(t *
 	}, 5*time.Second, 100*time.Millisecond)
 }
 
-func testService(modifier func(service *v1.Service)) *v1.Service {
-	service := &v1.Service{
+func testService(modifier func(service *corev1.Service)) *corev1.Service {
+	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -164,7 +166,7 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 			Name:      "shop-kevelaer",
 			Namespace: "default",
 		},
-		Spec: v1.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
 				"best-city": "Kevelaer",
 			},
@@ -176,8 +178,8 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 	return service
 }
 
-func testPod(modifier func(pod *v1.Pod)) *v1.Pod {
-	pod := &v1.Pod{
+func testPod(modifier func(pod *corev1.Pod)) *corev1.Pod {
+	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -190,9 +192,9 @@ func testPod(modifier func(pod *v1.Pod)) *v1.Pod {
 				"secret-label": "secret-value",
 			},
 		},
-		Status: v1.PodStatus{
-			Phase: v1.PodRunning,
-			ContainerStatuses: []v1.ContainerStatus{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					ContainerID: "crio://abcdef",
 					Name:        "MrFancyPants",
@@ -200,23 +202,23 @@ func testPod(modifier func(pod *v1.Pod)) *v1.Pod {
 				},
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "worker-1",
-			Containers: []v1.Container{
+			Containers: []corev1.Container{
 				{
 					Name:            "MrFancyPants",
 					Image:           "nginx",
 					ImagePullPolicy: "Always",
-					Resources: v1.ResourceRequirements{
-						Limits: v1.ResourceList{
+					Resources: corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
 							"cpu":    resource.MustParse("1"),
 							"memory": resource.MustParse("2"),
 						},
 					},
-					LivenessProbe: &v1.Probe{
+					LivenessProbe: &corev1.Probe{
 						PeriodSeconds: 5,
 					},
-					ReadinessProbe: &v1.Probe{
+					ReadinessProbe: &corev1.Probe{
 						PeriodSeconds: 5,
 					},
 				},

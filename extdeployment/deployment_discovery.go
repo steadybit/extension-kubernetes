@@ -17,11 +17,9 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/strings/slices"
 )
 
 type deploymentDiscovery struct {
@@ -108,13 +106,8 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		if deployment.Spec.Replicas != nil {
 			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *deployment.Spec.Replicas)}
 		}
-		for key, value := range deployment.ObjectMeta.Labels {
-			if !slices.Contains(extconfig.Config.LabelFilter, key) {
-				attributes[fmt.Sprintf("k8s.deployment.label.%v", key)] = []string{value}
-				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
-			}
-		}
-		extnamespace.AddNamespaceLabels(d.k8s, deployment.Namespace, attributes)
+		extcommon.AddLabels(deployment.ObjectMeta.Labels, attributes, "k8s.deployment.label", "k8s.label")
+		extcommon.AddNamespaceLabels(d.k8s, deployment.Namespace, attributes)
 
 		for key, value := range extcommon.GetPodBasedAttributes("deployment", deployment.ObjectMeta, d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace), nodes) {
 			attributes[key] = value

@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,21 +29,21 @@ func Test_deploymentDiscovery(t *testing.T) {
 	tests := []struct {
 		name                      string
 		configModifier            func(*extconfig.Specification)
-		pods                      []*v1.Pod
-		nodes                     []*v1.Node
+		pods                      []*corev1.Pod
+		nodes                     []*corev1.Node
 		deployment                *appsv1.Deployment
 		hpa                       *autoscalingv2.HorizontalPodAutoscaler
-		service                   *v1.Service
+		service                   *corev1.Service
 		expectedAttributesExactly map[string][]string
 		expectedAttributes        map[string][]string
 		expectedAttributesAbsence []string
 	}{
 		{
 			name: "should discover basic attributes",
-			pods: []*v1.Pod{testPod("aaaaa", nil), testPod("bbbbb", func(pod *v1.Pod) {
+			pods: []*corev1.Pod{testPod("aaaaa", nil), testPod("bbbbb", func(pod *corev1.Pod) {
 				pod.Spec.NodeName = "worker-2"
 			})},
-			nodes:      []*v1.Node{testNode("worker-1"), testNode("worker-2")},
+			nodes:      []*corev1.Node{testNode("worker-1"), testNode("worker-2")},
 			deployment: testDeployment(nil),
 			expectedAttributesExactly: map[string][]string{
 				"host.hostname":                              {"worker-1", "worker-2"},
@@ -53,7 +53,9 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.workload-type":                          {"deployment"},
 				"k8s.workload-owner":                         {"shop"},
 				"k8s.deployment.label.best-city":             {"Kevelaer"},
+				"k8s.deployment.label":                       {"best-city"},
 				"k8s.label.best-city":                        {"Kevelaer"},
+				"k8s.label":                                  {"best-city"},
 				"k8s.deployment.min-ready-seconds":           {"10"},
 				"k8s.specification.replicas":                 {"3"},
 				"k8s.cluster-name":                           {"development"},
@@ -67,8 +69,8 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "hostnames should be unique and not duplicated",
-			nodes:      []*v1.Node{testNode("worker-1")},
-			pods:       []*v1.Pod{testPod("aaaaa", nil), testPod("bbbbb", nil)},
+			nodes:      []*corev1.Node{testNode("worker-1")},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil), testPod("bbbbb", nil)},
 			deployment: testDeployment(nil),
 			expectedAttributes: map[string][]string{
 				"host.hostname":   {"worker-1"},
@@ -77,7 +79,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should add service name",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			expectedAttributes: map[string][]string{
@@ -86,14 +88,14 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should detect host-podantiaffinity",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Template.ObjectMeta.Labels = map[string]string{
 					"app": "foo",
 				}
-				deployment.Spec.Template.Spec.Affinity = &v1.Affinity{
-					PodAntiAffinity: &v1.PodAntiAffinity{
-						RequiredDuringSchedulingIgnoredDuringExecution: []v1.PodAffinityTerm{
+				deployment.Spec.Template.Spec.Affinity = &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 							{
 								TopologyKey: "kubernetes.io/hostname",
 								LabelSelector: &metav1.LabelSelector{
@@ -112,7 +114,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should ignore empty container ids",
-			pods:       []*v1.Pod{testPod("aaaaa", func(pod *v1.Pod) { pod.Status.ContainerStatuses[0].ContainerID = "" })},
+			pods:       []*corev1.Pod{testPod("aaaaa", func(pod *corev1.Pod) { pod.Status.ContainerStatuses[0].ContainerID = "" })},
 			deployment: testDeployment(nil),
 			expectedAttributesAbsence: []string{
 				"k8s.container.id",
@@ -121,7 +123,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should not add probe summary if no service is defined",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
 				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
@@ -134,19 +136,19 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report probes ok",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
-				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						HTTPGet: &v1.HTTPGetAction{
+				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/live",
 							Port: intstr.FromInt32(80),
 						},
 					},
 				}
-				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						HTTPGet: &v1.HTTPGetAction{
+				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/ready",
 							Port: intstr.FromInt32(80),
 						},
@@ -162,19 +164,19 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report equal probes",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
-				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						HTTPGet: &v1.HTTPGetAction{
+				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/",
 							Port: intstr.FromInt32(80),
 						},
 					},
 				}
-				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &v1.Probe{
-					ProbeHandler: v1.ProbeHandler{
-						HTTPGet: &v1.HTTPGetAction{
+				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = &corev1.Probe{
+					ProbeHandler: corev1.ProbeHandler{
+						HTTPGet: &corev1.HTTPGetAction{
 							Path: "/",
 							Port: intstr.FromInt32(80),
 						},
@@ -190,7 +192,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report missing readiness probe",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Template.Spec.Containers[0].ReadinessProbe = nil
 				deployment.Spec.Template.Spec.Containers[1].ReadinessProbe = nil
@@ -202,7 +204,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report missing liveness probe",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Template.Spec.Containers[0].LivenessProbe = nil
 				deployment.Spec.Template.Spec.Containers[1].LivenessProbe = nil
@@ -214,17 +216,17 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report missing limits and requests",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
-				deployment.Spec.Template.Spec.Containers[0].Resources = v1.ResourceRequirements{
+				deployment.Spec.Template.Spec.Containers[0].Resources = corev1.ResourceRequirements{
 					Limits:   nil,
 					Requests: nil,
 				}
-				deployment.Spec.Template.Spec.Containers[1].Resources = v1.ResourceRequirements{
-					Limits: v1.ResourceList{
-						v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-						v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
-						v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
+				deployment.Spec.Template.Spec.Containers[1].Resources = corev1.ResourceRequirements{
+					Limits: corev1.ResourceList{
+						corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+						corev1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+						corev1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 					},
 					Requests: nil,
 				}
@@ -240,7 +242,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report image pull policy and image tag",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Template.Spec.Containers[0].Image = "nginx"
 				deployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = "Never"
@@ -254,7 +256,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report wrong rollout strategy",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Strategy.Type = appsv1.RecreateDeploymentStrategyType
 			}),
@@ -265,7 +267,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should not report wrong rollout strategy if no service is defined",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Strategy.Type = appsv1.RecreateDeploymentStrategyType
 			}),
@@ -273,7 +275,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should report good rollout strategy",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			expectedAttributes: map[string][]string{
@@ -282,7 +284,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name: "should report deployment redundancy false",
-			pods: []*v1.Pod{testPod("aaaaa", nil)},
+			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
 				deployment.Spec.Replicas = extutil.Ptr(int32(1))
 			}),
@@ -293,7 +295,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should report deployment redundancy true",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			expectedAttributes: map[string][]string{
@@ -302,7 +304,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should report deployment redundancy true and consider config",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			configModifier: func(specification *extconfig.Specification) {
@@ -314,7 +316,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should report hpa redundancy false",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			hpa: testHPA(func(hpa *autoscalingv2.HorizontalPodAutoscaler) {
@@ -326,7 +328,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should report hpa redundancy true",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			hpa:        testHPA(nil),
@@ -336,7 +338,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:       "should report hpa redundancy true and consider config",
-			pods:       []*v1.Pod{testPod("aaaaa", nil)},
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			hpa:        testHPA(nil),
@@ -349,7 +351,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 		},
 		{
 			name:                      "should not report multiple replicas if no service is defined",
-			pods:                      []*v1.Pod{testPod("aaaaa", nil)},
+			pods:                      []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment:                testDeployment(nil),
 			expectedAttributesAbsence: []string{"k8s.specification.is-redundant"},
 		},
@@ -365,7 +367,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 				tt.configModifier(&extconfig.Config)
 			}
 
-			var objects = []runtime.Object{}
+			var objects []runtime.Object
 			for _, pod := range tt.pods {
 				objects = append(objects, pod)
 			}
@@ -420,8 +422,8 @@ func Test_deploymentDiscovery(t *testing.T) {
 	}
 }
 
-func testNode(name string) *v1.Node {
-	return &v1.Node{
+func testNode(name string) *corev1.Node {
+	return &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -429,10 +431,10 @@ func testNode(name string) *v1.Node {
 			Kind:       "Node",
 			APIVersion: "v1",
 		},
-		Status: v1.NodeStatus{
-			Addresses: []v1.NodeAddress{
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
 				{
-					Type:    v1.NodeInternalDNS,
+					Type:    corev1.NodeInternalDNS,
 					Address: fmt.Sprintf("%s.internal", name),
 				},
 			},
@@ -491,58 +493,58 @@ func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {
 			},
 			MinReadySeconds: 10,
 			Replicas:        extutil.Ptr(int32(3)),
-			Template: v1.PodTemplateSpec{
+			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"best-city": "Kevelaer",
 					},
 				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
 						{
 							Name:            "nginx",
 							Image:           "nginx:v1.2.3",
 							ImagePullPolicy: "Always",
-							Resources: v1.ResourceRequirements{
-								Limits: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 								},
-								Requests: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
 								},
 							},
-							LivenessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
-							ReadinessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
 						},
 						{
 							Name:            "shop",
 							Image:           "shop-container:v5",
 							ImagePullPolicy: "Always",
-							Resources: v1.ResourceRequirements{
-								Limits: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
+							Resources: corev1.ResourceRequirements{
+								Limits: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(500, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(1000, resource.DecimalSI),
 								},
-								Requests: v1.ResourceList{
-									v1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
-									v1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
-									v1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:              *resource.NewQuantity(1, resource.BinarySI),
+									corev1.ResourceMemory:           *resource.NewQuantity(250, resource.DecimalSI),
+									corev1.ResourceEphemeralStorage: *resource.NewQuantity(500, resource.DecimalSI),
 								},
 							},
-							LivenessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							LivenessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
-							ReadinessProbe: &v1.Probe{
-								ProbeHandler: v1.ProbeHandler{},
+							ReadinessProbe: &corev1.Probe{
+								ProbeHandler: corev1.ProbeHandler{},
 							},
 						},
 					},
@@ -556,8 +558,8 @@ func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {
 	return deployment
 }
 
-func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
-	pod := &v1.Pod{
+func testPod(nameSuffix string, modifier func(*corev1.Pod)) *corev1.Pod {
+	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -569,9 +571,9 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 				"best-city": "kevelaer",
 			},
 		},
-		Status: v1.PodStatus{
-			Phase: v1.PodRunning,
-			ContainerStatuses: []v1.ContainerStatus{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					ContainerID: fmt.Sprintf("crio://abcdef-%s", nameSuffix),
 					Name:        "MrFancyPants",
@@ -579,7 +581,7 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 				},
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "worker-1",
 		},
 	}
@@ -589,8 +591,8 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 	return pod
 }
 
-func testService(modifier func(service *v1.Service)) *v1.Service {
-	service := &v1.Service{
+func testService(modifier func(service *corev1.Service)) *corev1.Service {
+	service := &corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -599,7 +601,7 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 			Name:      "shop-kevelaer",
 			Namespace: "default",
 		},
-		Spec: v1.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
 				"best-city": "Kevelaer",
 			},

@@ -145,6 +145,10 @@ func Test_nodeDiscovery(t *testing.T) {
 		"k8s.pod.name":              {"shop-pod-11"},
 		"k8s.label.label1":          {"value1"},
 		"k8s.label.label2":          {"value2"},
+		"k8s.label":                 {"label1", "label2"},
+		"k8s.node.label.label1":     {"value1"},
+		"k8s.node.label.label2":     {"value2"},
+		"k8s.node.label":            {"label1", "label2"},
 	}, target.Attributes)
 }
 
