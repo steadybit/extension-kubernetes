@@ -6,6 +6,9 @@ package extdaemonset
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -14,12 +17,8 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/strings/slices"
-	"reflect"
-	"time"
 )
 
 type daemonSetDiscovery struct {
@@ -96,12 +95,8 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 			"k8s.cluster-name":   {extconfig.Config.ClusterName},
 			"k8s.distribution":   {d.k8s.Distribution},
 		}
-		for key, value := range ds.ObjectMeta.Labels {
-			if !slices.Contains(extconfig.Config.LabelFilter, key) {
-				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
-			}
-		}
-		extnamespace.AddNamespaceLabels(d.k8s, ds.Namespace, attributes)
+		extcommon.AddLabels(ds.ObjectMeta.Labels, attributes, "k8s.daemonset.label", "k8s.label")
+		extcommon.AddNamespaceLabels(d.k8s, ds.Namespace, attributes)
 		for key, value := range extcommon.GetPodBasedAttributes("daemonset", ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes) {
 			attributes[key] = value
 		}

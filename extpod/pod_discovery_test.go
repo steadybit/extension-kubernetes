@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -23,7 +23,7 @@ func Test_getDiscoveredPods(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := getTestClient(stopCh, &v1.Pod{
+	client := getTestClient(stopCh, &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -41,9 +41,9 @@ func Test_getDiscoveredPods(t *testing.T) {
 				"best-city": "kevelaer",
 			},
 		},
-		Status: v1.PodStatus{
-			Phase: v1.PodRunning,
-			ContainerStatuses: []v1.ContainerStatus{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					ContainerID: "crio://abcdef",
 					Name:        "MrFancyPants",
@@ -51,10 +51,10 @@ func Test_getDiscoveredPods(t *testing.T) {
 				},
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "worker-1",
 		},
-	}, &v1.Node{
+	}, &corev1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -62,10 +62,10 @@ func Test_getDiscoveredPods(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "worker-1",
 		},
-		Status: v1.NodeStatus{
-			Addresses: []v1.NodeAddress{
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
 				{
-					Type:    v1.NodeInternalDNS,
+					Type:    corev1.NodeInternalDNS,
 					Address: "worker-1.internal",
 				},
 			},
@@ -107,6 +107,9 @@ func Test_getDiscoveredPods(t *testing.T) {
 		"k8s.workload-type":         {"deployment"},
 		"k8s.workload-owner":        {"shop"},
 		"k8s.label.best-city":       {"kevelaer"},
+		"k8s.label":                 {"best-city"},
+		"k8s.pod.label.best-city":   {"kevelaer"},
+		"k8s.pod.label":             {"best-city"},
 		"k8s.namespace":             {"default"},
 		"k8s.node.name":             {"worker-1"},
 		"k8s.pod.name":              {"shop-pod"},
@@ -117,7 +120,7 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := getTestClient(stopCh, &v1.Pod{
+	client := getTestClient(stopCh, &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -126,19 +129,19 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 			Name:      "shop-pod",
 			Namespace: "default",
 		},
-		Status: v1.PodStatus{
-			Phase: v1.PodRunning,
-			ContainerStatuses: []v1.ContainerStatus{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					Name:  "MrFancyPants",
 					Image: "nginx",
 				},
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "worker-1",
 		},
-	}, &v1.Node{
+	}, &corev1.Node{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Node",
 			APIVersion: "v1",
@@ -146,10 +149,10 @@ func Test_getDiscoveredPods_ignore_empty_container_ids(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "worker-1",
 		},
-		Status: v1.NodeStatus{
-			Addresses: []v1.NodeAddress{
+		Status: corev1.NodeStatus{
+			Addresses: []corev1.NodeAddress{
 				{
-					Type:    v1.NodeInternalDNS,
+					Type:    corev1.NodeInternalDNS,
 					Address: "worker-1.internal",
 				},
 			},
@@ -187,7 +190,7 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := getTestClient(stopCh, &v1.Pod{
+	client := getTestClient(stopCh, &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -205,9 +208,9 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 				"best-city": "kevelaer",
 			},
 		},
-		Status: v1.PodStatus{
-			Phase: v1.PodRunning,
-			ContainerStatuses: []v1.ContainerStatus{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					ContainerID: "crio://abcdef",
 					Name:        "MrFancyPants",
@@ -215,10 +218,10 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 				},
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "worker-1",
 		},
-	}, &v1.Pod{
+	}, &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
@@ -237,9 +240,9 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 				"steadybit.com/discovery-disabled": "true",
 			},
 		},
-		Status: v1.PodStatus{
-			Phase: v1.PodRunning,
-			ContainerStatuses: []v1.ContainerStatus{
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{
 				{
 					ContainerID: "crio://abcdef",
 					Name:        "MrFancyPants",
@@ -247,7 +250,7 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 				},
 			},
 		},
-		Spec: v1.PodSpec{
+		Spec: corev1.PodSpec{
 			NodeName: "worker-1",
 		},
 	})

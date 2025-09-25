@@ -18,10 +18,8 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/strings/slices"
 )
 
 type replicasetDiscovery struct {
@@ -111,18 +109,13 @@ func (d *replicasetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		if replicaset.Spec.Replicas != nil {
 			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *replicaset.Spec.Replicas)}
 		}
-		for key, value := range replicaset.ObjectMeta.Labels {
-			if !slices.Contains(extconfig.Config.LabelFilter, key) {
-				attributes[fmt.Sprintf("k8s.replicaset.label.%v", key)] = []string{value}
-				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
-			}
-		}
 		if replicaset.ObjectMeta.Annotations != nil {
 			if value, ok := replicaset.ObjectMeta.Annotations["deployment.kubernetes.io/revision"]; ok {
 				attributes["k8s.replicaset.revision"] = []string{value}
 			}
 		}
-		extnamespace.AddNamespaceLabels(d.k8s, replicaset.Namespace, attributes)
+		extcommon.AddLabels(replicaset.ObjectMeta.Labels, attributes, "k8s.replicaset.label", "k8s.label")
+		extcommon.AddNamespaceLabels(d.k8s, replicaset.Namespace, attributes)
 
 		for key, value := range extcommon.GetPodBasedAttributes("replicaset", replicaset.ObjectMeta, d.k8s.PodsByLabelSelector(replicaset.Spec.Selector, replicaset.Namespace), nodes) {
 			attributes[key] = value

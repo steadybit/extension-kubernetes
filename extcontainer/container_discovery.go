@@ -6,6 +6,10 @@ package extcontainer
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -14,12 +18,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
-	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"reflect"
-	"strings"
-	"time"
 )
 
 type containerDiscovery struct {
@@ -174,13 +173,8 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 				"k8s.distribution":          {c.k8s.Distribution},
 			}
 
-			for key, value := range podMetadata.Labels {
-				if !slices.Contains(extconfig.Config.LabelFilter, key) {
-					attributes[fmt.Sprintf("k8s.pod.label.%v", key)] = []string{value}
-					attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
-				}
-			}
-			extnamespace.AddNamespaceLabels(c.k8s, pod.Namespace, attributes)
+			extcommon.AddLabels(pod.Labels, attributes, "k8s.pod.label", "k8s.label")
+			extcommon.AddNamespaceLabels(c.k8s, pod.Namespace, attributes)
 			extcommon.AddNodeLabels(c.k8s.Nodes(), pod.Spec.NodeName, attributes)
 
 			if len(services) > 0 {

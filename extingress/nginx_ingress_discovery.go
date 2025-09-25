@@ -1,6 +1,4 @@
-/*
- * Copyright 2025 steadybit GmbH. All rights reserved.
- */
+// Copyright 2025 steadybit GmbH. All rights reserved.
 
 package extingress
 
@@ -19,9 +17,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/utils/strings/slices"
 )
 
 type nginxIngressDiscovery struct {
@@ -132,14 +128,8 @@ func (d *nginxIngressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_
 			attributes["k8s.ingress.hosts"] = hosts
 		}
 
-		for key, value := range ingress.ObjectMeta.Labels {
-			if !slices.Contains(extconfig.Config.LabelFilter, key) {
-				attributes[fmt.Sprintf("k8s.ingress.label.%v", key)] = []string{value}
-				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
-			}
-		}
-
-		extnamespace.AddNamespaceLabels(d.k8s, ingress.Namespace, attributes)
+		extcommon.AddLabels(ingress.ObjectMeta.Labels, attributes, "k8s.ingress.label", "k8s.label")
+		extcommon.AddNamespaceLabels(d.k8s, ingress.Namespace, attributes)
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,

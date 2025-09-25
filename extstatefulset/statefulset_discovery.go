@@ -6,6 +6,9 @@ package extstatefulset
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
@@ -14,12 +17,8 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"github.com/steadybit/extension-kubernetes/v2/extnamespace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/strings/slices"
-	"reflect"
-	"time"
 )
 
 type statefulSetDiscovery struct {
@@ -100,14 +99,9 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *sts.Spec.Replicas)}
 		}
 
-		for key, value := range sts.ObjectMeta.Labels {
-			if !slices.Contains(extconfig.Config.LabelFilter, key) {
-				attributes[fmt.Sprintf("k8s.label.%v", key)] = []string{value}
-			}
-		}
-		extnamespace.AddNamespaceLabels(d.k8s, sts.Namespace, attributes)
+		extcommon.AddLabels(sts.ObjectMeta.Labels, attributes, "k8s.statefulset.label", "k8s.label")
+		extcommon.AddNamespaceLabels(d.k8s, sts.Namespace, attributes)
 		for key, value := range extcommon.GetPodBasedAttributes("statefulset", sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes) {
-
 			attributes[key] = value
 		}
 		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {
