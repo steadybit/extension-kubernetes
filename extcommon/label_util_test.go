@@ -161,8 +161,8 @@ func TestAddNodeLabels(t *testing.T) {
 			},
 
 			want: map[string][]string{
-				"k8s.label.topology.kubernetes.io/region":      {"us-central-1", "eu-central-1"},
-				"k8s.node.label.topology.kubernetes.io/region": {"us-central-1", "eu-central-1"},
+				"k8s.label.topology.kubernetes.io/region":      {"eu-central-1", "us-central-1"},
+				"k8s.node.label.topology.kubernetes.io/region": {"eu-central-1", "us-central-1"},
 				"k8s.label":      {"topology.kubernetes.io/region"},
 				"k8s.node.label": {"topology.kubernetes.io/region"},
 			},
