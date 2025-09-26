@@ -17,7 +17,7 @@ func AddFilteredLabels(filter func(key string) bool, labels map[string]string, a
 
 		for key, value := range labels {
 			if filter(key) {
-				allKeys = appendIfNotPresent(allKeys, key)
+				allKeys = append(allKeys, key)
 				attributeKey := fmt.Sprintf("%s.%s", prefix, key)
 				attributes[attributeKey] = appendIfNotPresent(attributes[attributeKey], value)
 			}
@@ -29,7 +29,6 @@ func AddFilteredLabels(filter func(key string) bool, labels map[string]string, a
 	}
 
 	return attributes
-
 }
 
 func AddLabels(labels map[string]string, attributes map[string][]string, prefixes ...string) map[string][]string {
@@ -72,8 +71,8 @@ func appendIfNotPresent(slice []string, elements ...string) []string {
 	for _, e := range elements {
 		if !slices.Contains(slice, e) {
 			slice = append(slice, e)
-			slices.Sort(append(slice, e))
 		}
 	}
+	slices.Sort(slice)
 	return slice
 }
