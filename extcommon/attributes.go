@@ -87,10 +87,10 @@ func MergeAttributes(dst map[string][]string, maps ...map[string][]string) {
 }
 
 func mergeAttributeValues(dst map[string][]string, key string, elements ...string) {
-	for _, e := range elements {
-		if !slices.Contains(dst[key], e) {
-			dst[key] = append(dst[key], e)
-		}
+	if len(elements) == 0 {
+		return
 	}
+	dst[key] = append(dst[key], elements...)
 	slices.Sort(dst[key])
+	slices.Compact(dst[key])
 }
