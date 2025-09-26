@@ -4,6 +4,8 @@
 package extcommon
 
 import (
+	"slices"
+
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 )
@@ -74,4 +76,21 @@ func (a *attributeDescriber) DescribeAttributes() []discovery_kit_api.AttributeD
 			},
 		},
 	}
+}
+
+func MergeAttributes(dst map[string][]string, maps ...map[string][]string) {
+	for _, m := range maps {
+		for key, values := range m {
+			mergeAttributeValues(dst, key, values...)
+		}
+	}
+}
+
+func mergeAttributeValues(dst map[string][]string, key string, elements ...string) {
+	for _, e := range elements {
+		if !slices.Contains(dst[key], e) {
+			dst[key] = append(dst[key], e)
+		}
+	}
+	slices.Sort(dst[key])
 }

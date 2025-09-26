@@ -88,11 +88,9 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		filteredDeployments = append(filteredDeployments, deployment)
 	}
 
-	targets := make([]discovery_kit_api.Target, len(filteredDeployments))
-
 	nodes := d.k8s.Nodes()
+	targets := make([]discovery_kit_api.Target, len(filteredDeployments))
 	for i, deployment := range filteredDeployments {
-		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, deployment.Namespace, deployment.Name)
 		attributes := map[string][]string{
 			"k8s.namespace":                    {deployment.Namespace},
 			"k8s.deployment":                   {deployment.Name},
@@ -106,15 +104,15 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		if deployment.Spec.Replicas != nil {
 			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *deployment.Spec.Replicas)}
 		}
-		extcommon.AddLabels(deployment.ObjectMeta.Labels, attributes, "k8s.deployment.label", "k8s.label")
-		extcommon.AddNamespaceLabels(d.k8s, deployment.Namespace, attributes)
 
-		for key, value := range extcommon.GetPodBasedAttributes("deployment", deployment.ObjectMeta, d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace), nodes) {
-			attributes[key] = value
-		}
-		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels)) {
-			attributes[key] = value
-		}
+		extcommon.AddLabels(attributes, deployment.ObjectMeta.Labels, "k8s.deployment.label", "k8s.label")
+		extcommon.AddNamespaceLabels(attributes, d.k8s, deployment.Namespace)
+
+		extcommon.MergeAttributes(
+			attributes,
+			extcommon.GetPodBasedAttributes("deployment", deployment.ObjectMeta, d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace), nodes),
+			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels)),
+		)
 
 		var hpa *autoscalingv2.HorizontalPodAutoscaler
 		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
@@ -122,20 +120,15 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		}
 
 		if !extconfig.Config.DisableAdvice {
-			for key, value := range extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa) {
-				attributes[key] = value
-			}
+			extcommon.MergeAttributes(attributes, extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa))
 		}
 
 		for container := range deployment.Spec.Template.Spec.Containers {
-			attributes["k8s.container.name"] = append(
-				attributes["k8s.container.name"],
-				deployment.Spec.Template.Spec.Containers[container].Name,
-			)
+			attributes["k8s.container.name"] = append(attributes["k8s.container.name"], deployment.Spec.Template.Spec.Containers[container].Name)
 		}
 
 		targets[i] = discovery_kit_api.Target{
-			Id:         targetName,
+			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, deployment.Namespace, deployment.Name),
 			TargetType: DeploymentTargetType,
 			Label:      deployment.Name,
 			Attributes: attributes,
@@ -169,7 +162,7 @@ func getDeploymentToContainerEnrichmentRule() discovery_kit_api.TargetEnrichment
 		Attributes: []discovery_kit_api.Attribute{
 			{
 				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.deployment.label.",
+				Name:    "k8s.deployment.label",
 			},
 			{
 				Matcher: discovery_kit_api.Regex,

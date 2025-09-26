@@ -95,8 +95,8 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 			"host.domainname":  fqdn,
 		}
 
-		extcommon.AddLabels(pod.ObjectMeta.Labels, attributes, "k8s.pod.label", "k8s.label")
-		extcommon.AddNamespaceLabels(p.k8s, pod.Namespace, attributes)
+		extcommon.AddLabels(attributes, pod.ObjectMeta.Labels, "k8s.pod.label", "k8s.label")
+		extcommon.AddNamespaceLabels(attributes, p.k8s, pod.Namespace)
 		extcommon.AddNodeLabels(p.k8s.Nodes(), pod.Spec.NodeName, attributes)
 
 		var containerIds []string

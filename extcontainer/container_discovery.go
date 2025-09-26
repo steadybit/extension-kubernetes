@@ -100,15 +100,15 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			},
 			{
 				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.pod.label.",
+				Name:    "k8s.pod.label",
 			},
 			{
 				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.namespace.label.",
+				Name:    "k8s.namespace.label",
 			},
 			{
 				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.label.",
+				Name:    "k8s.label",
 			},
 			{
 				Matcher: discovery_kit_api.Equals,
@@ -173,8 +173,8 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 				"k8s.distribution":          {c.k8s.Distribution},
 			}
 
-			extcommon.AddLabels(pod.Labels, attributes, "k8s.pod.label", "k8s.label")
-			extcommon.AddNamespaceLabels(c.k8s, pod.Namespace, attributes)
+			extcommon.AddLabels(attributes, pod.Labels, "k8s.pod.label", "k8s.label")
+			extcommon.AddNamespaceLabels(attributes, c.k8s, pod.Namespace)
 			extcommon.AddNodeLabels(c.k8s.Nodes(), pod.Spec.NodeName, attributes)
 
 			if len(services) > 0 {

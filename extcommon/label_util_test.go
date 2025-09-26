@@ -52,7 +52,7 @@ func Test_namespaceDiscovery(t *testing.T) {
 			// When
 			var attributes map[string][]string
 			assert.EventuallyWithT(t, func(c *assert.CollectT) {
-				attributes = AddNamespaceLabels(client, tt.namespace.Name, map[string][]string{})
+				attributes = AddNamespaceLabels(map[string][]string{}, client, tt.namespace.Name)
 				require.Len(t, attributes, len(tt.expectedAttributesExactly))
 			}, 5*time.Second, 100*time.Millisecond)
 
@@ -277,7 +277,7 @@ func TestAddFilteredLabels(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.wantedAttributes, AddFilteredLabels(filter, tt.labels, tt.attributes, tt.prefixes...), "AddFilteredLabels(%v, %v, %v, %v)", filter, tt.labels, tt.attributes, tt.prefixes)
+			assert.Equalf(t, tt.wantedAttributes, AddFilteredLabels(tt.attributes, filter, tt.labels, tt.prefixes...), "AddFilteredLabels(%v, %v, %v, %v)", filter, tt.labels, tt.attributes, tt.prefixes)
 		})
 	}
 }

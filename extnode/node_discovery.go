@@ -127,7 +127,7 @@ func getNodeToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 			},
 			{
 				Matcher: discovery_kit_api.StartsWith,
-				Name:    "k8s.label.",
+				Name:    "k8s.label",
 			},
 		},
 	}
@@ -154,8 +154,8 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 			"k8s.distribution": {d.k8s.Distribution},
 		}
 
-		extcommon.AddLabels(node.ObjectMeta.Labels, attributes, "k8s.node.label", "k8s.label")
-		extcommon.AddNamespaceLabels(d.k8s, node.Namespace, attributes)
+		extcommon.AddLabels(attributes, node.ObjectMeta.Labels, "k8s.node.label", "k8s.label")
+		extcommon.AddNamespaceLabels(attributes, d.k8s, node.Namespace)
 
 		pods := d.k8s.Pods()
 		if len(pods) > 0 {

@@ -86,7 +86,6 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 	nodes := d.k8s.Nodes()
 	targets := make([]discovery_kit_api.Target, len(filteredDaemonSets))
 	for i, ds := range filteredDaemonSets {
-		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ds.Namespace, ds.Name)
 		attributes := map[string][]string{
 			"k8s.namespace":      {ds.Namespace},
 			"k8s.daemonset":      {ds.Name},
@@ -95,23 +94,22 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 			"k8s.cluster-name":   {extconfig.Config.ClusterName},
 			"k8s.distribution":   {d.k8s.Distribution},
 		}
-		extcommon.AddLabels(ds.ObjectMeta.Labels, attributes, "k8s.daemonset.label", "k8s.label")
-		extcommon.AddNamespaceLabels(d.k8s, ds.Namespace, attributes)
-		for key, value := range extcommon.GetPodBasedAttributes("daemonset", ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes) {
-			attributes[key] = value
-		}
-		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {
-			attributes[key] = value
-		}
+
+		extcommon.AddLabels(attributes, ds.ObjectMeta.Labels, "k8s.daemonset.label", "k8s.label")
+		extcommon.AddNamespaceLabels(attributes, d.k8s, ds.Namespace)
+
+		extcommon.MergeAttributes(
+			attributes,
+			extcommon.GetPodBasedAttributes("daemonset", ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes),
+			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)),
+		)
 
 		if !extconfig.Config.DisableAdvice {
-			for key, value := range extcommon.GetKubeScoreForDaemonSet(ds, d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)) {
-				attributes[key] = value
-			}
+			extcommon.MergeAttributes(attributes, extcommon.GetKubeScoreForDaemonSet(ds, d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)))
 		}
 
 		targets[i] = discovery_kit_api.Target{
-			Id:         targetName,
+			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ds.Namespace, ds.Name),
 			TargetType: DaemonSetTargetType,
 			Label:      ds.Name,
 			Attributes: attributes,

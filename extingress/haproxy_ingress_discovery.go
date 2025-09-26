@@ -89,19 +89,13 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 		if client.IsExcludedFromDiscovery(ingress.ObjectMeta) {
 			continue
 		}
-
-		ingressClassName := d.getIngressClassName(ingress)
-		usesHAProxyClass := d.isUsingHAProxyClass(ingressClassName, haproxyClasses, hasDefaultClass)
-
-		if usesHAProxyClass {
+		if d.isUsingHAProxyClass(d.getIngressClassName(ingress), haproxyClasses, hasDefaultClass) {
 			filteredIngresses = append(filteredIngresses, ingress)
 		}
 	}
 
 	targets := make([]discovery_kit_api.Target, len(filteredIngresses))
-
 	for i, ingress := range filteredIngresses {
-		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ingress.Namespace, ingress.Name)
 		attributes := map[string][]string{
 			"k8s.namespace":    {ingress.Namespace},
 			"k8s.ingress":      {ingress.Name},
@@ -109,8 +103,7 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			"k8s.distribution": {d.k8s.Distribution},
 		}
 
-		ingressClassName := d.getIngressClassName(ingress)
-		if ingressClassName != "" {
+		if ingressClassName := d.getIngressClassName(ingress); ingressClassName != "" {
 			attributes["k8s.ingress.class"] = []string{ingressClassName}
 			controller := d.k8s.GetIngressControllerByClassName(ingressClassName)
 			if controller != "" {
@@ -128,11 +121,11 @@ func (d *ingressDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			attributes["k8s.ingress.hosts"] = hosts
 		}
 
-		extcommon.AddLabels(ingress.ObjectMeta.Labels, attributes, "k8s.ingress.label", "k8s.label")
-		extcommon.AddNamespaceLabels(d.k8s, ingress.Namespace, attributes)
+		extcommon.AddLabels(attributes, ingress.ObjectMeta.Labels, "k8s.ingress.label", "k8s.label")
+		extcommon.AddNamespaceLabels(attributes, d.k8s, ingress.Namespace)
 
 		targets[i] = discovery_kit_api.Target{
-			Id:         targetName,
+			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ingress.Namespace, ingress.Name),
 			TargetType: HAProxyIngressTargetType,
 			Label:      ingress.Name,
 			Attributes: attributes,

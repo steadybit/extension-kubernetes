@@ -85,7 +85,6 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 	nodes := d.k8s.Nodes()
 	targets := make([]discovery_kit_api.Target, len(filteredStatefulSets))
 	for i, sts := range filteredStatefulSets {
-		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, sts.Namespace, sts.Name)
 		attributes := map[string][]string{
 			"k8s.namespace":      {sts.Namespace},
 			"k8s.statefulset":    {sts.Name},
@@ -99,23 +98,20 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 			attributes["k8s.specification.replicas"] = []string{fmt.Sprintf("%d", *sts.Spec.Replicas)}
 		}
 
-		extcommon.AddLabels(sts.ObjectMeta.Labels, attributes, "k8s.statefulset.label", "k8s.label")
-		extcommon.AddNamespaceLabels(d.k8s, sts.Namespace, attributes)
-		for key, value := range extcommon.GetPodBasedAttributes("statefulset", sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes) {
-			attributes[key] = value
-		}
-		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {
-			attributes[key] = value
-		}
+		extcommon.AddLabels(attributes, sts.ObjectMeta.Labels, "k8s.statefulset.label", "k8s.label")
+		extcommon.AddNamespaceLabels(attributes, d.k8s, sts.Namespace)
+		extcommon.MergeAttributes(
+			attributes,
+			extcommon.GetPodBasedAttributes("statefulset", sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes),
+			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)),
+		)
 
 		if !extconfig.Config.DisableAdvice {
-			for key, value := range extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)) {
-				attributes[key] = value
-			}
+			extcommon.MergeAttributes(attributes, extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)))
 		}
 
 		targets[i] = discovery_kit_api.Target{
-			Id:         targetName,
+			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, sts.Namespace, sts.Name),
 			TargetType: StatefulSetTargetType,
 			Label:      sts.Name,
 			Attributes: attributes,

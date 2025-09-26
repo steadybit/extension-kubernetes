@@ -86,11 +86,9 @@ func (d *replicasetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		filteredReplicaSets = append(filteredReplicaSets, replicaset)
 	}
 
-	targets := make([]discovery_kit_api.Target, len(filteredReplicaSets))
-
 	nodes := d.k8s.Nodes()
+	targets := make([]discovery_kit_api.Target, len(filteredReplicaSets))
 	for i, replicaset := range filteredReplicaSets {
-		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, replicaset.Namespace, replicaset.Name)
 		attributes := map[string][]string{
 			"k8s.namespace":      {replicaset.Namespace},
 			"k8s.replicaset":     {replicaset.Name},
@@ -114,25 +112,21 @@ func (d *replicasetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 				attributes["k8s.replicaset.revision"] = []string{value}
 			}
 		}
-		extcommon.AddLabels(replicaset.ObjectMeta.Labels, attributes, "k8s.replicaset.label", "k8s.label")
-		extcommon.AddNamespaceLabels(d.k8s, replicaset.Namespace, attributes)
+		extcommon.AddLabels(attributes, replicaset.ObjectMeta.Labels, "k8s.replicaset.label", "k8s.label")
+		extcommon.AddNamespaceLabels(attributes, d.k8s, replicaset.Namespace)
 
-		for key, value := range extcommon.GetPodBasedAttributes("replicaset", replicaset.ObjectMeta, d.k8s.PodsByLabelSelector(replicaset.Spec.Selector, replicaset.Namespace), nodes) {
-			attributes[key] = value
-		}
-		for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(replicaset.Namespace, replicaset.Spec.Template.Labels)) {
-			attributes[key] = value
-		}
+		extcommon.MergeAttributes(
+			attributes,
+			extcommon.GetPodBasedAttributes("replicaset", replicaset.ObjectMeta, d.k8s.PodsByLabelSelector(replicaset.Spec.Selector, replicaset.Namespace), nodes),
+			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(replicaset.Namespace, replicaset.Spec.Template.Labels)),
+		)
 
 		for container := range replicaset.Spec.Template.Spec.Containers {
-			attributes["k8s.container.name"] = append(
-				attributes["k8s.container.name"],
-				replicaset.Spec.Template.Spec.Containers[container].Name,
-			)
+			attributes["k8s.container.name"] = append(attributes["k8s.container.name"], replicaset.Spec.Template.Spec.Containers[container].Name)
 		}
 
 		targets[i] = discovery_kit_api.Target{
-			Id:         targetName,
+			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, replicaset.Namespace, replicaset.Name),
 			TargetType: ReplicaSetTargetType,
 			Label:      replicaset.Name,
 			Attributes: attributes,

@@ -1,58 +1,74 @@
+// Copyright 2025 steadybit GmbH. All rights reserved.
+
 package extcommon
 
 import (
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
+const tooManyPods = "too-many-pods"
+
+var tooManyPodsAttributes = map[string][]string{
+	"k8s.pod.name":              {tooManyPods},
+	"k8s.container.id":          {tooManyPods},
+	"k8s.container.id.stripped": {tooManyPods},
+	"host.hostname":             {tooManyPods},
+	"host.domainname":           {tooManyPods},
+}
+
 func GetPodBasedAttributes(ownerType string, owner metav1.ObjectMeta, pods []*v1.Pod, nodes []*v1.Node) map[string][]string {
-	attributes := map[string][]string{}
 	if len(pods) > extconfig.Config.DiscoveryMaxPodCount {
 		log.Warn().Msgf("%s %s/%s has more than %d pods. Not listing pods, containers and hosts for this %s", ownerType, owner.Namespace, owner.Name, extconfig.Config.DiscoveryMaxPodCount, ownerType)
-		attributes["k8s.pod.name"] = []string{"too-many-pods"}
-		attributes["k8s.container.id"] = []string{"too-many-pods"}
-		attributes["k8s.container.id.stripped"] = []string{"too-many-pods"}
-		attributes["host.hostname"] = []string{"too-many-pods"}
-		attributes["host.domainname"] = []string{"too-many-pods"}
-	} else if len(pods) > 0 {
-		podNames := make([]string, 0, len(pods))
-		var containerIds []string
-		var containerIdsWithoutPrefix []string
-		hostnames := make(map[string]bool)
-		hostFQDNs := make(map[string]bool)
-		for _, pod := range pods {
-			podNames = append(podNames, pod.Name)
-			for _, container := range pod.Status.ContainerStatuses {
-				if container.ContainerID == "" {
-					continue
-				}
-				containerIds = append(containerIds, container.ContainerID)
-				containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
+		return tooManyPodsAttributes
+	}
+
+	if len(pods) == 0 {
+		return nil
+	}
+
+	attributes := map[string][]string{}
+	podNames := make([]string, 0, len(pods))
+	containerIds := make([]string, 0, len(pods))
+	containerIdsWithoutPrefix := make([]string, 0, len(pods))
+	hostnames := make(map[string]bool)
+	hostFQDNs := make(map[string]bool)
+
+	for _, pod := range pods {
+		podNames = append(podNames, pod.Name)
+		for _, container := range pod.Status.ContainerStatuses {
+			if container.ContainerID == "" {
+				continue
 			}
-			hostname, fqdns := GetNodeHostnameAndFQDNs(nodes, pod.Spec.NodeName)
-			hostnames[hostname] = true
-			for _, fqdn := range fqdns {
-				hostFQDNs[fqdn] = true
-			}
-			AddNodeLabels(nodes, pod.Spec.NodeName, attributes)
+			containerIds = append(containerIds, container.ContainerID)
+			containerIdsWithoutPrefix = append(containerIdsWithoutPrefix, strings.SplitAfter(container.ContainerID, "://")[1])
 		}
-		attributes["k8s.pod.name"] = podNames
-		if len(containerIds) > 0 {
-			attributes["k8s.container.id"] = containerIds
+		hostname, fqdns := GetNodeHostnameAndFQDNs(nodes, pod.Spec.NodeName)
+		hostnames[hostname] = true
+		for _, fqdn := range fqdns {
+			hostFQDNs[fqdn] = true
 		}
-		if len(containerIdsWithoutPrefix) > 0 {
-			attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
-		}
-		if len(hostnames) > 0 {
-			attributes["host.hostname"] = maps.Keys(hostnames)
-		}
-		if len(hostnames) > 0 {
-			attributes["host.domainname"] = maps.Keys(hostFQDNs)
-		}
+		AddNodeLabels(nodes, pod.Spec.NodeName, attributes)
+	}
+
+	attributes["k8s.pod.name"] = podNames
+
+	if len(containerIds) > 0 {
+		attributes["k8s.container.id"] = containerIds
+	}
+	if len(containerIdsWithoutPrefix) > 0 {
+		attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
+	}
+	if len(hostnames) > 0 {
+		attributes["host.hostname"] = maps.Keys(hostnames)
+	}
+	if len(hostFQDNs) > 0 {
+		attributes["host.domainname"] = maps.Keys(hostFQDNs)
 	}
 	return attributes
 }
