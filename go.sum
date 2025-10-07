@@ -23,8 +23,8 @@ github.com/getkin/kin-openapi v0.133.0 h1:pJdmNohVIJ97r4AUFtEXRXwESr8b0bD721u/Tz
 github.com/getkin/kin-openapi v0.133.0/go.mod h1:boAciF6cXk5FhPqe/NQeBTeenbjqU4LhWBf09ILVvWE=
 github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
 github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
-github.com/go-openapi/jsonpointer v0.22.0 h1:TmMhghgNef9YXxTu1tOopo+0BGEytxA+okbry0HjZsM=
-github.com/go-openapi/jsonpointer v0.22.0/go.mod h1:xt3jV88UtExdIkkL7NloURjRQjbeUgcxFblMjq2iaiU=
+github.com/go-openapi/jsonpointer v0.22.1 h1:sHYI1He3b9NqJ4wXLoJDKmUmHkWy/L7rtEo92JUxBNk=
+github.com/go-openapi/jsonpointer v0.22.1/go.mod h1:pQT9OsLkfz1yWoMgYFy4x3U5GY5nUlsOn1qSBH5MkCM=
 github.com/go-openapi/jsonreference v0.21.1 h1:bSKrcl8819zKiOgxkbVNRUBIr6Wwj9KYrDbMjRs0cDA=
 github.com/go-openapi/jsonreference v0.21.1/go.mod h1:PWs8rO4xxTUqKGu+lEvvCxD5k2X7QYkKAepJyCmSTT8=
 github.com/go-openapi/swag v0.24.1 h1:DPdYTZKo6AQCRqzwr/kGkxJzHhpKxZ9i/oX0zag+MF8=
@@ -35,8 +35,8 @@ github.com/go-openapi/swag/conv v0.24.0 h1:ejB9+7yogkWly6pnruRX45D1/6J+ZxRu92YFi
 github.com/go-openapi/swag/conv v0.24.0/go.mod h1:jbn140mZd7EW2g8a8Y5bwm8/Wy1slLySQQ0ND6DPc2c=
 github.com/go-openapi/swag/fileutils v0.24.0 h1:U9pCpqp4RUytnD689Ek/N1d2N/a//XCeqoH508H5oak=
 github.com/go-openapi/swag/fileutils v0.24.0/go.mod h1:3SCrCSBHyP1/N+3oErQ1gP+OX1GV2QYFSnrTbzwli90=
-github.com/go-openapi/swag/jsonname v0.24.0 h1:2wKS9bgRV/xB8c62Qg16w4AUiIrqqiniJFtZGi3dg5k=
-github.com/go-openapi/swag/jsonname v0.24.0/go.mod h1:GXqrPzGJe611P7LG4QB9JKPtUZ7flE4DOVechNaDd7Q=
+github.com/go-openapi/swag/jsonname v0.25.1 h1:Sgx+qbwa4ej6AomWC6pEfXrA6uP2RkaNjA9BR8a1RJU=
+github.com/go-openapi/swag/jsonname v0.25.1/go.mod h1:71Tekow6UOLBD3wS7XhdT98g5J5GR13NOTQ9/6Q11Zo=
 github.com/go-openapi/swag/jsonutils v0.24.0 h1:F1vE1q4pg1xtO3HTyJYRmEuJ4jmIp2iZ30bzW5XgZts=
 github.com/go-openapi/swag/jsonutils v0.24.0/go.mod h1:vBowZtF5Z4DDApIoxcIVfR8v0l9oq5PpYRUuteVu6f0=
 github.com/go-openapi/swag/loading v0.24.0 h1:ln/fWTwJp2Zkj5DdaX4JPiddFC5CHQpvaBKycOlceYc=
@@ -132,7 +132,6 @@ github.com/perimeterx/marshmallow v1.1.5 h1:a2LALqQ1BlHM8PZblsDdidgv1mWi1DgC2UmX
 github.com/perimeterx/marshmallow v1.1.5/go.mod h1:dsXbUu8CRzfYP5a87xpp0xq9S3u0Vchtcl8we9tYaXw=
 github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5 h1:Ii+DKncOVM8Cu1Hc+ETb5K+23HdAMvESYE3ZJ5b5cMI=
 github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5/go.mod h1:iIss55rKnNBTvrwdmkUpLnDpZoAHvWaiq5+iMmen4AE=
-github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
@@ -156,8 +155,8 @@ github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spkg/bom v0.0.0-20160624110644-59b7046e48ad/go.mod h1:qLr4V1qq6nMqFKkMo8ZTx3f+BZEkzsRUY10Xsm2mwU0=
 github.com/steadybit/action-kit/go/action_kit_api/v2 v2.10.0 h1:XIEeNvyXacUn52nONt7rMQDTvWUht+sX2RyrGxzcmts=
 github.com/steadybit/action-kit/go/action_kit_api/v2 v2.10.0/go.mod h1:kc36KasHIY867fB7rBJtxg2orPaCU7xbezsAA05qcA8=
-github.com/steadybit/action-kit/go/action_kit_sdk v1.2.0 h1:Jr/RVP4rrE5bDYPzPMxGI038qEUjxFY51BCGvvrk3uk=
-github.com/steadybit/action-kit/go/action_kit_sdk v1.2.0/go.mod h1:vFcl8fQMFbD+xw8CqtvixmITLToYDT4RRMqRwlVC3Zc=
+github.com/steadybit/action-kit/go/action_kit_sdk v1.3.0 h1:Ql3rJ9m407gZPGZK93jmf7FSTNzir31y2Hi/hP+g0+4=
+github.com/steadybit/action-kit/go/action_kit_sdk v1.3.0/go.mod h1:fQm+I4UT7GSr5mzNuJ6MxE/iHl1xwesYXN5NM8l8N1A=
 github.com/steadybit/action-kit/go/action_kit_test v1.4.2 h1:jCjnVMvJO1hzYKZgn4ivwzJNSWId2rRNhKvo9uGCKmk=
 github.com/steadybit/action-kit/go/action_kit_test v1.4.2/go.mod h1:7vqpIZI0kasNi50I29fe7QybNZ3AaJpbap24j6w8Ujw=
 github.com/steadybit/advice-kit/go/advice_kit_api v1.2.1 h1:fVZScd0xVSuGIn/+2BjJ/Uj4tCzY7s2E3AJcd1KfxpY=
