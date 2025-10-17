@@ -88,14 +88,14 @@ helm upgrade steadybit-extension-kubernetes \
 
 ## Advanced Configuration
 
-### enabling/disabling advice
+### Enabling/disabling advice
 
 You can disable any advice by setting the helm chart value `--set advice.enabled={}` or a list of advice ids you want to enable (e.g `--set advice.enabled={com.steadybit.extension_kubernetes.advice.k8s-single-replica,com.steadybit.extension_kubernetes.advice.single-zone}`).
 
-### excluding targets from advice generation
+### Excluding targets from advice generation
 
 You can exclude targets from advice generation by specifying a target query in the chart value `advice.excludeTargetQuery`.
-For example, to exclude all targets in the "kube-system" namespace you can set the value to `k8s.namespace = "kube-system"`.
+For example, to exclude all targets in the "kube-system" namespace you can set the value to `"k8s.namespace = \"kube-system\""`.
 
 ## Extension registration
 
@@ -103,7 +103,7 @@ Make sure that the extension is registered with the agent. In most cases this is
 the [documentation](https://docs.steadybit.com/install-and-configure/install-agent/extension-registration) for more
 information about extension registration and how to verify.
 
-## mark resources as "do not discover"
+## Mark resources as "do not discover"
 
 to exclude a deployment / namespace / pod from discovery you can add the label `"steadybit.com/discovery-disabled": "true"` to the resource labels
 
