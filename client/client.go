@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"golang.org/x/exp/slices"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -35,6 +34,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 	"path/filepath"
 	"reflect"
+	slices "slices"
 	"sort"
 	"strings"
 	"sync"
@@ -208,7 +208,7 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 }
 
 // ExecInPod executes a command in a pod container and returns the output
-func (c *Client) ExecInPod(ctx context.Context, namespace, podName, containerName string, command []string) (string, error) {
+func (c *Client) ExecInPod(_ context.Context, namespace, podName, containerName string, command []string) (string, error) {
 	config := c.GetConfig()
 
 	// Check if we have a valid REST config

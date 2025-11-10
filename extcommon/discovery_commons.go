@@ -3,11 +3,12 @@
 package extcommon
 
 import (
+	"maps"
+	"slices"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -65,10 +66,10 @@ func GetPodBasedAttributes(ownerType string, owner metav1.ObjectMeta, pods []*v1
 		attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
 	}
 	if len(hostnames) > 0 {
-		attributes["host.hostname"] = maps.Keys(hostnames)
+		attributes["host.hostname"] = slices.Collect(maps.Keys(hostnames))
 	}
 	if len(hostFQDNs) > 0 {
-		attributes["host.domainname"] = maps.Keys(hostFQDNs)
+		attributes["host.domainname"] = slices.Collect(maps.Keys(hostFQDNs))
 	}
 	return attributes
 }

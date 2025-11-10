@@ -13,7 +13,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.34.0
-	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.10.0
+	github.com/steadybit/action-kit/go/action_kit_api/v2 v2.10.2
 	github.com/steadybit/action-kit/go/action_kit_sdk v1.3.0
 	github.com/steadybit/action-kit/go/action_kit_test v1.4.2
 	github.com/steadybit/advice-kit/go/advice_kit_api v1.2.1
@@ -27,7 +27,6 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/zegl/kube-score v1.20.0
 	go.uber.org/automaxprocs v1.6.0
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b
 	golang.org/x/text v0.30.0
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
