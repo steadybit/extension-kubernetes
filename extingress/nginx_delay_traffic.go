@@ -7,9 +7,10 @@ package extingress
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	"strings"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
@@ -19,12 +20,10 @@ import (
 // NginxDelayTrafficState contains state data for the NGINX delay traffic action
 type NginxDelayTrafficState struct {
 	NginxBaseState
-	ResponseDelay        int
-	ConditionPathPattern string
-	ConditionHttpMethod  string
-	ConditionHttpHeader  map[string]string
-	AnnotationConfig     string
-	IsEnterpriseNginx    bool
+	ResponseDelay     int
+	Matcher           NginxRequestMatcher
+	AnnotationConfig  string
+	IsEnterpriseNginx bool
 }
 
 // NewNginxDelayTrafficAction creates a new delay traffic action
@@ -130,20 +129,9 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 		}
 	}
 
-	// Parse condition parameters
-	state.ConditionPathPattern = extutil.ToString(request.Config["conditionPathPattern"])
-	state.ConditionHttpMethod = extutil.ToString(request.Config["conditionHttpMethod"])
-
-	if request.Config["conditionHttpHeader"] != nil {
-		state.ConditionHttpHeader, err = extutil.ToKeyValue(request.Config, "conditionHttpHeader")
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse HTTP header condition: %w", err)
-		}
-	}
-
-	// Validate that at least one condition is specified
-	if state.ConditionPathPattern == "" && state.ConditionHttpMethod == "" && len(state.ConditionHttpHeader) == 0 {
-		return nil, fmt.Errorf("at least one condition (path, method, or header) is required")
+	state.Matcher, err = buildNginxRequestMatcherFromConfig(request.Config)
+	if err != nil {
+		return nil, err
 	}
 
 	// Check for conflicts with existing rules
@@ -164,18 +152,17 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 			}
 
 			// Check for location block with same path
-			if state.ConditionPathPattern != "" {
+			if state.Matcher.PathPattern != "" {
 				for _, line := range existingLines {
-					if strings.Contains(line, fmt.Sprintf("location ~ %s", state.ConditionPathPattern)) ||
-						strings.Contains(line, fmt.Sprintf("location = %s", state.ConditionPathPattern)) {
-						return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
+					if strings.Contains(line, fmt.Sprintf("location ~ %s", state.Matcher.PathPattern)) ||
+						strings.Contains(line, fmt.Sprintf("location = %s", state.Matcher.PathPattern)) {
+						return nil, fmt.Errorf("a rule for path %s already exists", state.Matcher.PathPattern)
 					}
 				}
 			}
 		}
 	}
 
-	// Build NGINX configuration
 	state.AnnotationConfig = buildNginxDelayConfig(state)
 
 	return nil, nil
@@ -184,82 +171,30 @@ func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTr
 // buildNginxDelayConfig creates the NGINX configuration for traffic delay
 func buildNginxDelayConfig(state *NginxDelayTrafficState) string {
 	var configBuilder strings.Builder
-	configBuilder.WriteString(GetNginxStartMarker(state.ExecutionId, NginxActionSubTypeDelay) + "\n")
-
+	configBuilder.WriteString(getNginxStartMarker(state.ExecutionId, NginxActionSubTypeDelay))
 	configBuilder.WriteString(buildNginxDelayConfigContent(state))
-
-	configBuilder.WriteString(GetNginxEndMarker(state.ExecutionId, NginxActionSubTypeDelay) + "\n")
+	configBuilder.WriteString(getNginxEndMarker(state.ExecutionId, NginxActionSubTypeDelay))
 	return configBuilder.String()
 }
 
 // buildNginxDelayConfigContent creates configuration for NGINX Ingress Controller (both open source and enterprise)
 func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
-	var configBuilder strings.Builder
+	var config strings.Builder
 
-	// Generate unique variable names based on execution ID
 	shouldDelayVar := getNginxUniqueVariableName(state.ExecutionId, "should_delay")
-	sleepDurationVar := getNginxUniqueVariableName(state.ExecutionId, "sleep_ms_duration")
-
-	// Initialize the delay flag
-	configBuilder.WriteString(fmt.Sprintf("set %s 0;\n", shouldDelayVar))
-
-	// Add path pattern condition if provided
-	if state.ConditionPathPattern != "" {
-		configBuilder.WriteString(fmt.Sprintf("if ($request_uri ~* %s) {\n", state.ConditionPathPattern))
-		configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldDelayVar))
-		configBuilder.WriteString("}\n")
-	}
-
-	// Add HTTP method condition if provided
-	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-		if state.ConditionPathPattern == "" {
-			// If no path specified, simply set should_delay based on method
-			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldDelayVar))
-			configBuilder.WriteString("}\n")
-		} else {
-			// When path is also specified, we need to check if the method matches too
-			// This ensures we only delay when both path AND method match
-			configBuilder.WriteString(fmt.Sprintf("if ($request_method != %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if method doesn't match\n", shouldDelayVar))
-			configBuilder.WriteString("}\n")
-		}
-	}
-
-	// Add HTTP header conditions if provided
-	if len(state.ConditionHttpHeader) > 0 {
-		if state.ConditionPathPattern == "" && (state.ConditionHttpMethod == "" || state.ConditionHttpMethod == "*") {
-			// If no path or method specified, set should_delay based only on headers
-			for headerName, headerValue := range state.ConditionHttpHeader {
-				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
-				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldDelayVar))
-				configBuilder.WriteString("}\n")
-			}
-		} else {
-			// If other conditions are specified, we need to check headers too
-			// This ensures that headers must also match when combined with other conditions
-			for headerName, headerValue := range state.ConditionHttpHeader {
-				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
-				configBuilder.WriteString(fmt.Sprintf("if ($http_%s !~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if header doesn't match\n", shouldDelayVar))
-				configBuilder.WriteString("}\n")
-			}
-		}
-	}
+	config.WriteString(buildConfigForMatcher(state.Matcher, shouldDelayVar))
 
 	// Set up a variable for the delay and then apply it conditionally
-	configBuilder.WriteString(fmt.Sprintf("set %s 0;\n", sleepDurationVar))
-	configBuilder.WriteString(fmt.Sprintf("if (%s = 1) {\n", shouldDelayVar))
-	configBuilder.WriteString(fmt.Sprintf("  set %s %d;\n", sleepDurationVar, state.ResponseDelay))
-	configBuilder.WriteString("}\n")
-	configBuilder.WriteString(fmt.Sprintf("sb_sleep_ms %s;\n", sleepDurationVar))
+	sleepDurationVar := getNginxUniqueVariableName(state.ExecutionId, "sleep_ms_duration")
+	config.WriteString(fmt.Sprintf("set %s 0;\n", sleepDurationVar))
+	config.WriteString(fmt.Sprintf("if (%s = 1) { set %s %d; }\n", shouldDelayVar, sleepDurationVar, state.ResponseDelay))
+	config.WriteString(fmt.Sprintf("sb_sleep_ms %s;\n", sleepDurationVar))
 
-	return configBuilder.String()
+	return config.String()
 }
 
 // Start applies the NGINX configuration to begin delaying traffic
-func (a *NginxDelayTrafficAction) Start(ctx context.Context, state *NginxDelayTrafficState) (*action_kit_api.StartResult, error) {
+func (a *NginxDelayTrafficAction) Start(_ context.Context, state *NginxDelayTrafficState) (*action_kit_api.StartResult, error) {
 	if err := startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
 		return nil, fmt.Errorf("failed to start NGINX delay traffic action: %w", err)
 	}
@@ -267,7 +202,7 @@ func (a *NginxDelayTrafficAction) Start(ctx context.Context, state *NginxDelayTr
 }
 
 // Stop removes the NGINX configuration to stop delaying traffic
-func (a *NginxDelayTrafficAction) Stop(ctx context.Context, state *NginxDelayTrafficState) (*action_kit_api.StopResult, error) {
+func (a *NginxDelayTrafficAction) Stop(_ context.Context, state *NginxDelayTrafficState) (*action_kit_api.StopResult, error) {
 	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx, NginxActionSubTypeDelay); err != nil {
 		return nil, fmt.Errorf("failed to stop NGINX delay traffic action: %w", err)
 	}

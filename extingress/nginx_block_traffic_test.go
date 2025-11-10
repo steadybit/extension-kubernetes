@@ -49,9 +49,9 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
-				ResponseStatusCode:   503,
-				ConditionPathPattern: "/api/.*",
-				IsEnterpriseNginx:    false,
+				ResponseStatusCode: 503,
+				Matcher:            NginxRequestMatcher{PathPattern: "/api/.*"},
+				IsEnterpriseNginx:  false,
 			},
 		},
 		{
@@ -67,8 +67,8 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
-				ResponseStatusCode:  503,
-				ConditionHttpMethod: "POST",
+				ResponseStatusCode: 503,
+				Matcher:            NginxRequestMatcher{HttpMethod: "POST"},
 			},
 		},
 		{
@@ -87,9 +87,9 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 					IngressName: "test-nginx-ingress",
 				},
 				ResponseStatusCode: 503,
-				ConditionHttpHeader: map[string]string{
+				Matcher: NginxRequestMatcher{HttpHeader: map[string]string{
 					"User-Agent": "Mozilla.*",
-				},
+				}},
 			},
 		},
 		{
@@ -109,11 +109,12 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
-				ResponseStatusCode:   503,
-				ConditionPathPattern: "/api/users",
-				ConditionHttpMethod:  "POST",
-				ConditionHttpHeader: map[string]string{
-					"Content-Type": "application/json",
+				ResponseStatusCode: 503,
+				Matcher: NginxRequestMatcher{PathPattern: "/api/users",
+					HttpMethod: "POST",
+					HttpHeader: map[string]string{
+						"Content-Type": "application/json",
+					},
 				},
 			},
 		},
@@ -235,9 +236,9 @@ func createNginxTestRequest(ingressName string, config map[string]interface{}) a
 func assertNginxBlockStateMatches(t *testing.T, expected, actual NginxBlockTrafficState) {
 	// Check basic properties
 	assert.Equal(t, expected.ResponseStatusCode, actual.ResponseStatusCode)
-	assert.Equal(t, expected.ConditionPathPattern, actual.ConditionPathPattern)
-	assert.Equal(t, expected.ConditionHttpMethod, actual.ConditionHttpMethod)
-	assert.Equal(t, expected.ConditionHttpHeader, actual.ConditionHttpHeader)
+	assert.Equal(t, expected.Matcher.PathPattern, actual.Matcher.PathPattern)
+	assert.Equal(t, expected.Matcher.HttpMethod, actual.Matcher.HttpMethod)
+	assert.Equal(t, expected.Matcher.HttpHeader, actual.Matcher.HttpHeader)
 	assert.Equal(t, expected.Namespace, actual.Namespace)
 	assert.Equal(t, expected.IngressName, actual.IngressName)
 	assert.Equal(t, expected.IsEnterpriseNginx, actual.IsEnterpriseNginx)
@@ -252,20 +253,20 @@ func assertNginxBlockStateMatches(t *testing.T, expected, actual NginxBlockTraff
 	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("set %s", expectedShouldBlockVar))
 	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("if (%s = 1)", expectedShouldBlockVar))
 
-	if actual.ConditionPathPattern != "" {
+	if actual.Matcher.PathPattern != "" {
 		if actual.IsEnterpriseNginx {
-			assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("location ~ %s", actual.ConditionPathPattern))
+			assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("location ~ %s", actual.Matcher.PathPattern))
 		} else {
-			assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("$request_uri ~* %s", actual.ConditionPathPattern))
+			assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("$request_uri !~* %s", actual.Matcher.PathPattern))
 		}
 	}
 
-	if actual.ConditionHttpMethod != "" {
+	if actual.Matcher.HttpMethod != "" {
 		assert.Contains(t, actual.AnnotationConfig, "$request_method")
-		assert.Contains(t, actual.AnnotationConfig, actual.ConditionHttpMethod)
+		assert.Contains(t, actual.AnnotationConfig, actual.Matcher.HttpMethod)
 	}
 
-	for headerName, headerValue := range actual.ConditionHttpHeader {
+	for headerName, headerValue := range actual.Matcher.HttpHeader {
 		normalizedHeaderName := fmt.Sprintf("$http_%s", strings.Replace(strings.ToLower(headerName), "-", "_", -1))
 		assert.Contains(t, actual.AnnotationConfig, normalizedHeaderName)
 		assert.Contains(t, actual.AnnotationConfig, headerValue)

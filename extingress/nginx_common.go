@@ -7,6 +7,8 @@ package extingress
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -16,7 +18,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 // Action IDs and constants for NGINX actions
@@ -35,6 +36,12 @@ type NginxBaseState struct {
 	ExecutionId uuid.UUID
 	Namespace   string
 	IngressName string
+}
+
+type NginxRequestMatcher struct {
+	PathPattern string
+	HttpMethod  string
+	HttpHeader  map[string]string
 }
 
 // prepareNginxAction contains common preparation logic for NGINX actions
@@ -103,8 +110,8 @@ func stopNginxAction(state *NginxBaseState, isEnterprise bool, subtype string) e
 		state.IngressName,
 		annotationKey,
 		state.ExecutionId,
-		GetNginxStartMarker(state.ExecutionId, subtype),
-		GetNginxEndMarker(state.ExecutionId, subtype),
+		getNginxStartMarker(state.ExecutionId, subtype),
+		getNginxEndMarker(state.ExecutionId, subtype),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to remove NGINX configuration: %w", err)
@@ -147,13 +154,35 @@ func getNginxActionDescription(id string, label string, description string, icon
 	}
 }
 
-// GetNginxStartMarker Helper functions similar to HAProxy implementation
-func GetNginxStartMarker(executionId uuid.UUID, subtype string) string {
-	return fmt.Sprintf("# BEGIN STEADYBIT - %s - %s", subtype, executionId)
+func buildNginxRequestMatcherFromConfig(config map[string]interface{}) (NginxRequestMatcher, error) {
+	var matcher NginxRequestMatcher
+	var err error
+
+	matcher.PathPattern = extutil.ToString(config["conditionPathPattern"])
+	matcher.HttpMethod = extutil.ToString(config["conditionHttpMethod"])
+
+	if config["conditionHttpHeader"] != nil {
+		matcher.HttpHeader, err = extutil.ToKeyValue(config, "conditionHttpHeader")
+		if err != nil {
+			return matcher, fmt.Errorf("failed to parse HTTP header condition: %w", err)
+		}
+	}
+
+	// Validate that at least one condition is specified
+	if matcher.PathPattern == "" && matcher.HttpMethod == "" && len(matcher.HttpHeader) == 0 {
+		return matcher, fmt.Errorf("at least one condition (path, method, or header) is required")
+	}
+
+	return matcher, nil
 }
 
-func GetNginxEndMarker(executionId uuid.UUID, subtype string) string {
-	return fmt.Sprintf("# END STEADYBIT - %s - %s", subtype, executionId)
+// getNginxStartMarker Helper functions similar to HAProxy implementation
+func getNginxStartMarker(executionId uuid.UUID, subtype string) string {
+	return fmt.Sprintf("# BEGIN STEADYBIT - %s - %s\n", subtype, executionId)
+}
+
+func getNginxEndMarker(executionId uuid.UUID, subtype string) string {
+	return fmt.Sprintf("# END STEADYBIT - %s - %s\n", subtype, executionId)
 }
 
 // getNginxVariablePrefix generates a unique variable prefix based on execution ID
@@ -165,6 +194,27 @@ func getNginxVariablePrefix(executionId uuid.UUID) string {
 // getNginxUniqueVariableName generates a unique NGINX variable name
 func getNginxUniqueVariableName(executionId uuid.UUID, baseName string) string {
 	return fmt.Sprintf("$sb_%s_%s", baseName, getNginxVariablePrefix(executionId))
+}
+
+func buildConfigForMatcher(matcher NginxRequestMatcher, varName string) string {
+	var config strings.Builder
+
+	config.WriteString(fmt.Sprintf("set %s 1;\n", varName))
+
+	if matcher.PathPattern != "" {
+		config.WriteString(fmt.Sprintf("if ($request_uri !~* %s) { set %s 0; }\n", matcher.PathPattern, varName))
+	}
+
+	if matcher.HttpMethod != "" && matcher.HttpMethod != "*" {
+		config.WriteString(fmt.Sprintf("if ($request_method != %s) { set %s 0; }\n", matcher.HttpMethod, varName))
+	}
+
+	for headerName, headerValue := range matcher.HttpHeader {
+		normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
+		config.WriteString(fmt.Sprintf("if ($http_%s !~* %s) { set %s 0; }\n", normalizedHeaderName, headerValue, varName))
+	}
+
+	return config.String()
 }
 
 // validateNginxSteadybitModule checks if the ngx_steadybit_sleep_module.so is loaded by directly searching for NGINX controller pods

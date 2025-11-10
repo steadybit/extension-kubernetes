@@ -17,12 +17,10 @@ import (
 // NginxBlockTrafficState contains state data for the NGINX block traffic action
 type NginxBlockTrafficState struct {
 	NginxBaseState
-	ResponseStatusCode   int
-	ConditionPathPattern string
-	ConditionHttpMethod  string
-	ConditionHttpHeader  map[string]string
-	AnnotationConfig     string
-	IsEnterpriseNginx    bool
+	ResponseStatusCode int
+	Matcher            NginxRequestMatcher
+	AnnotationConfig   string
+	IsEnterpriseNginx  bool
 }
 
 // NewNginxBlockTrafficAction creates a new block traffic action
@@ -90,8 +88,6 @@ func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTr
 
 	// Extract parameters from request
 	state.ResponseStatusCode = extutil.ToInt(request.Config["responseStatusCode"])
-	state.ConditionPathPattern = extutil.ToString(request.Config["conditionPathPattern"])
-	state.ConditionHttpMethod = extutil.ToString(request.Config["conditionHttpMethod"])
 	state.IsEnterpriseNginx = extutil.ToBool(request.Config["isEnterpriseNginx"])
 
 	// Check for Enterprise NGINX based on ingress controller
@@ -104,16 +100,9 @@ func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTr
 		}
 	}
 
-	if request.Config["conditionHttpHeader"] != nil {
-		state.ConditionHttpHeader, err = extutil.ToKeyValue(request.Config, "conditionHttpHeader")
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse HTTP header condition: %w", err)
-		}
-	}
-
-	// Validate conditions
-	if state.ConditionPathPattern == "" && state.ConditionHttpMethod == "" && len(state.ConditionHttpHeader) == 0 {
-		return nil, fmt.Errorf("at least one condition (path, method, or header) is required")
+	state.Matcher, err = buildNginxRequestMatcherFromConfig(request.Config)
+	if err != nil {
+		return nil, err
 	}
 
 	// Check for conflicts with existing rules
@@ -122,20 +111,19 @@ func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTr
 		annotationKey = NginxEnterpriseAnnotationKey
 	}
 
-	if state.ConditionPathPattern != "" && ingress.Annotations != nil {
+	if state.Matcher.PathPattern != "" && ingress.Annotations != nil {
 		if existingConfig, exists := ingress.Annotations[annotationKey]; exists && existingConfig != "" {
 			existingLines := strings.Split(existingConfig, "\n")
 			for _, line := range existingLines {
 				// Check for location block with same path
-				if strings.Contains(line, fmt.Sprintf("location ~ %s", state.ConditionPathPattern)) ||
-					strings.Contains(line, fmt.Sprintf("location = %s", state.ConditionPathPattern)) {
-					return nil, fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
+				if strings.Contains(line, fmt.Sprintf("location ~ %s", state.Matcher.PathPattern)) ||
+					strings.Contains(line, fmt.Sprintf("location = %s", state.Matcher.PathPattern)) {
+					return nil, fmt.Errorf("a rule for path %s already exists", state.Matcher.PathPattern)
 				}
 			}
 		}
 	}
 
-	// Build NGINX configuration
 	state.AnnotationConfig = buildNginxBlockConfig(state)
 
 	return nil, nil
@@ -144,79 +132,26 @@ func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTr
 // buildNginxBlockConfig creates the NGINX configuration for blocking traffic
 func buildNginxBlockConfig(state *NginxBlockTrafficState) string {
 	var configBuilder strings.Builder
-	configBuilder.WriteString(GetNginxStartMarker(state.ExecutionId, NginxActionSubTypeBlock) + "\n")
-
+	configBuilder.WriteString(getNginxStartMarker(state.ExecutionId, NginxActionSubTypeBlock))
 	configBuilder.WriteString(buildNginxConfig(state))
-
-	configBuilder.WriteString(GetNginxEndMarker(state.ExecutionId, NginxActionSubTypeBlock) + "\n")
+	configBuilder.WriteString(getNginxEndMarker(state.ExecutionId, NginxActionSubTypeBlock))
 	return configBuilder.String()
 }
 
 // buildNginxConfig creates configuration for NGINX Ingress Controller (both open source and enterprise)
 func buildNginxConfig(state *NginxBlockTrafficState) string {
-	var configBuilder strings.Builder
-
-	// Generate unique variable names based on execution ID
+	var config strings.Builder
 	shouldBlockVar := getNginxUniqueVariableName(state.ExecutionId, "should_block")
 
-	// Initialize the blocking flag
-	configBuilder.WriteString(fmt.Sprintf("set %s 0;\n", shouldBlockVar))
+	config.WriteString(buildConfigForMatcher(state.Matcher, shouldBlockVar))
 
-	// Add path pattern condition if provided
-	if state.ConditionPathPattern != "" {
-		configBuilder.WriteString(fmt.Sprintf("if ($request_uri ~* %s) {\n", state.ConditionPathPattern))
-		configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldBlockVar))
-		configBuilder.WriteString("}\n")
-	}
+	config.WriteString(fmt.Sprintf("if (%s = 1) { return %d; }\n", shouldBlockVar, state.ResponseStatusCode))
 
-	// Add HTTP method condition if provided
-	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
-		if state.ConditionPathPattern == "" {
-			// If no path specified, simply set should_block based on method
-			configBuilder.WriteString(fmt.Sprintf("if ($request_method = %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldBlockVar))
-			configBuilder.WriteString("}\n")
-		} else {
-			// When path is also specified, we need to check if the method matches too
-			// This ensures we only block when both path AND method match
-			configBuilder.WriteString(fmt.Sprintf("if ($request_method != %s) {\n", state.ConditionHttpMethod))
-			configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if method doesn't match\n", shouldBlockVar))
-			configBuilder.WriteString("}\n")
-		}
-	}
-
-	// Add HTTP header conditions if provided
-	if len(state.ConditionHttpHeader) > 0 {
-		if state.ConditionPathPattern == "" && (state.ConditionHttpMethod == "" || state.ConditionHttpMethod == "*") {
-			// If no path or method specified, set should_block based only on headers
-			for headerName, headerValue := range state.ConditionHttpHeader {
-				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
-				configBuilder.WriteString(fmt.Sprintf("if ($http_%s ~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString(fmt.Sprintf("  set %s 1;\n", shouldBlockVar))
-				configBuilder.WriteString("}\n")
-			}
-		} else {
-			// If other conditions are specified, we need to check headers too
-			// This ensures that headers must also match when combined with other conditions
-			for headerName, headerValue := range state.ConditionHttpHeader {
-				normalizedHeaderName := strings.Replace(strings.ToLower(headerName), "-", "_", -1)
-				configBuilder.WriteString(fmt.Sprintf("if ($http_%s !~* %s) {\n", normalizedHeaderName, headerValue))
-				configBuilder.WriteString(fmt.Sprintf("  set %s 0; # Reset if header doesn't match\n", shouldBlockVar))
-				configBuilder.WriteString("}\n")
-			}
-		}
-	}
-
-	// Apply the block if conditions matched
-	configBuilder.WriteString(fmt.Sprintf("if (%s = 1) {\n", shouldBlockVar))
-	configBuilder.WriteString(fmt.Sprintf("  return %d;\n", state.ResponseStatusCode))
-	configBuilder.WriteString("}\n")
-
-	return configBuilder.String()
+	return config.String()
 }
 
 // Start applies the NGINX configuration to begin blocking traffic
-func (a *NginxBlockTrafficAction) Start(ctx context.Context, state *NginxBlockTrafficState) (*action_kit_api.StartResult, error) {
+func (a *NginxBlockTrafficAction) Start(_ context.Context, state *NginxBlockTrafficState) (*action_kit_api.StartResult, error) {
 	if err := startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
 		return nil, fmt.Errorf("failed to start NGINX block traffic action: %w", err)
 	}
@@ -224,7 +159,7 @@ func (a *NginxBlockTrafficAction) Start(ctx context.Context, state *NginxBlockTr
 }
 
 // Stop removes the NGINX configuration to stop blocking traffic
-func (a *NginxBlockTrafficAction) Stop(ctx context.Context, state *NginxBlockTrafficState) (*action_kit_api.StopResult, error) {
+func (a *NginxBlockTrafficAction) Stop(_ context.Context, state *NginxBlockTrafficState) (*action_kit_api.StopResult, error) {
 	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx, NginxActionSubTypeBlock); err != nil {
 		return nil, fmt.Errorf("failed to stop NGINX block traffic action: %w", err)
 	}
