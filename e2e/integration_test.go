@@ -6,13 +6,14 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"github.com/go-resty/resty/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/go-resty/resty/v2"
+	"github.com/steadybit/extension-kit/extutil"
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -192,16 +193,16 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.wantedCompleted {
-				exec, err := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "restart", "deployment/nginx-check-rollout-ready")
+				sout, err := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "restart", "deployment/nginx-check-rollout-ready")
 				require.NoError(t, err)
-				log.Info().Msgf("kubectl rollout restart deployment/nginx-check-rollout-ready: %s", exec)
+				log.Info().Msgf("kubectl rollout restart deployment/nginx-check-rollout-ready: %s", sout)
 			} else {
-				exec, err := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "restart", "deployment/nginx-check-rollout-ready")
+				sout, err := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "restart", "deployment/nginx-check-rollout-ready")
 				require.NoError(t, err)
-				log.Info().Msgf("kubectl rollout restart deployment/nginx-check-rollout-ready: %s", exec)
-				exec, err = m.PodExec(e.Pod, "extension", "kubectl", "rollout", "pause", "deployment/nginx-check-rollout-ready")
+				log.Info().Msgf("kubectl rollout restart deployment/nginx-check-rollout-ready: %s", sout)
+				sout, err = m.PodExec(e.Pod, "extension", "kubectl", "rollout", "pause", "deployment/nginx-check-rollout-ready")
 				require.NoError(t, err)
-				log.Info().Msgf("kubectl rollout pause deployment/nginx-check-rollout-ready: %s", exec)
+				log.Info().Msgf("kubectl rollout pause deployment/nginx-check-rollout-ready: %s", sout)
 			}
 
 			target := action_kit_api.Target{
