@@ -5,10 +5,11 @@ package extcluster
 
 import (
 	"context"
+	"testing"
+
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_getDiscoveredCluster(t *testing.T) {

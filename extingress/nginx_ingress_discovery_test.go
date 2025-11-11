@@ -6,10 +6,11 @@ package extingress
 
 import (
 	"context"
-	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"

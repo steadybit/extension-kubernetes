@@ -277,7 +277,7 @@ func TestAddFilteredLabels(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.wantedAttributes, AddFilteredLabels(tt.attributes, filter, tt.labels, tt.prefixes...), "AddFilteredLabels(%v, %v, %v, %v)", filter, tt.labels, tt.attributes, tt.prefixes)
+			assert.Equalf(t, tt.wantedAttributes, AddFilteredLabels(tt.attributes, filter, tt.labels, tt.prefixes...), "AddFilteredLabels(%v, filter, %v, %v)", tt.labels, tt.attributes, tt.prefixes)
 		})
 	}
 }

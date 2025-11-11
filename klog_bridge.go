@@ -2,16 +2,17 @@ package main
 
 import (
 	"flag"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"k8s.io/klog/v2"
-	"strings"
 )
 
 func initKlogBridge(logKubernetesHttpRequests bool) {
 	klog.InitFlags(nil)
-	flag.Set("logtostderr", "false")
+	_ = flag.Set("logtostderr", "false")
 	if logKubernetesHttpRequests {
-		flag.Set("vmodule", "round_trippers=6")
+		_ = flag.Set("vmodule", "round_trippers=6")
 	}
 	flag.Parse()
 	klog.SetOutput(zeroLogWriter{})

@@ -9,6 +9,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"path/filepath"
+	"reflect"
+	"slices"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -32,13 +40,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
-	"path/filepath"
-	"reflect"
-	slices "slices"
-	"sort"
-	"strings"
-	"sync"
-	"time"
 )
 
 var K8S *Client
@@ -116,7 +117,7 @@ type Client struct {
 }
 
 func (c *Client) PrintMemoryUsage() {
-	stats := []string{}
+	var stats []string
 	stats = append(stats, getInformerStats(c.daemonSet.informer, "DaemonSet"))
 	stats = append(stats, getInformerStats(c.deployment.informer, "Deployment"))
 	stats = append(stats, getInformerStats(c.pod.informer, "Pod"))
@@ -437,7 +438,7 @@ func (c *Client) Nodes() []*corev1.Node {
 }
 
 func (c *Client) Events(since time.Time) *[]corev1.Event {
-	// Check if event informer is initialized (may be nil in tests)
+	// Check if event informer is initialized (maybe nil in tests)
 	if c.event.informer == nil {
 		return &[]corev1.Event{}
 	}

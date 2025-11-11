@@ -2,6 +2,7 @@ package deployment_strategy
 
 import (
 	"embed"
+
 	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kubernetes/v2/extadvice/advice_common"

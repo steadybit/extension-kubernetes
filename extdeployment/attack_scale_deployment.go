@@ -6,6 +6,7 @@ package extdeployment
 import (
 	"context"
 	"fmt"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"

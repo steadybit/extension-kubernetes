@@ -158,7 +158,7 @@ func buildHAProxyBlockConfig(state *HAProxyBlockTrafficState) string {
 }
 
 // Start applies the HAProxy configuration to begin blocking traffic
-func (a *HAProxyBlockTrafficAction) Start(ctx context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StartResult, error) {
+func (a *HAProxyBlockTrafficAction) Start(_ context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StartResult, error) {
 	if err := startHAProxyAction(&state.HAProxyBaseState, state.AnnotationConfig); err != nil {
 		return nil, fmt.Errorf("failed to start HAProxy block traffic action: %w", err)
 	}
@@ -167,7 +167,7 @@ func (a *HAProxyBlockTrafficAction) Start(ctx context.Context, state *HAProxyBlo
 }
 
 // Stop removes the HAProxy configuration to stop blocking traffic
-func (a *HAProxyBlockTrafficAction) Stop(ctx context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StopResult, error) {
+func (a *HAProxyBlockTrafficAction) Stop(_ context.Context, state *HAProxyBlockTrafficState) (*action_kit_api.StopResult, error) {
 	if err := stopHAProxyAction(&state.HAProxyBaseState); err != nil {
 		return nil, fmt.Errorf("failed to stop HAProxy block traffic action: %w", err)
 	}

@@ -3,8 +3,9 @@
 package extcommon
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestExtractErrorFromStdOut(t *testing.T) {

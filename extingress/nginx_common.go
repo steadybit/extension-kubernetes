@@ -439,7 +439,7 @@ func (v *DefaultNginxModuleValidator) ValidateNginxSteadybitModule(targetAttribu
 type NoOpNginxModuleValidator struct{}
 
 // ValidateNginxSteadybitModule does nothing (for testing)
-func (v *NoOpNginxModuleValidator) ValidateNginxSteadybitModule(targetAttributes map[string][]string) error {
+func (v *NoOpNginxModuleValidator) ValidateNginxSteadybitModule(_ map[string][]string) error {
 	return nil
 }
 

@@ -2,6 +2,7 @@ package probes
 
 import (
 	"embed"
+
 	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"

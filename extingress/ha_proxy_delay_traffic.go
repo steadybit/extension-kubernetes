@@ -3,8 +3,9 @@ package extingress
 import (
 	"context"
 	"fmt"
-	networkingv1 "k8s.io/api/networking/v1"
 	"strings"
+
+	networkingv1 "k8s.io/api/networking/v1"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"

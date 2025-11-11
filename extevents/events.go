@@ -5,6 +5,10 @@ package extevents
 
 import (
 	"context"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
@@ -15,9 +19,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	corev1 "k8s.io/api/core/v1"
-	"os"
-	"strings"
-	"time"
 )
 
 const LogType = "KUBERNETES_EVENTS"

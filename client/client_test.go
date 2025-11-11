@@ -8,6 +8,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
 	k8sTesting "k8s.io/client-go/testing"
-	"testing"
 )
 
 func TestRemoveAnnotationBlock(t *testing.T) {
@@ -285,7 +286,7 @@ func TestRemoveAnnotationBlockMethod(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a fake clientset
-			clientset := fake.NewSimpleClientset()
+			clientset := fake.NewClientset()
 
 			// Create the client
 			client := &Client{

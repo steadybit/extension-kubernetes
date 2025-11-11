@@ -24,7 +24,7 @@ func strPtr(s string) *string {
 
 // newTestClient creates a fake client with provided initial objects.
 func newTestClient(stopCh <-chan struct{}, initObjs ...runtime.Object) (*client.Client, kubernetes.Interface) {
-	cs := testclient.NewSimpleClientset(initObjs...)
+	cs := testclient.NewClientset(initObjs...)
 	cli := client.CreateClient(cs, stopCh, "", client.MockAllPermitted())
 	return cli, cs
 }

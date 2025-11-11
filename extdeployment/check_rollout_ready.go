@@ -6,15 +6,16 @@ package extdeployment
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"strings"
+	"time"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
-	"os/exec"
-	"strings"
-	"time"
 )
 
 type CheckDeploymentRolloutStatusAction struct {

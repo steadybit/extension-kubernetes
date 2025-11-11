@@ -4,7 +4,13 @@ package extcommon
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"regexp"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
@@ -13,10 +19,6 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"os"
-	"os/exec"
-	"regexp"
-	"strings"
 )
 
 // Base for actions executing a kubectl-command in the background, checking the state periodically and stopping the command and optionally rolling it back with another command.
@@ -61,8 +63,8 @@ func (a KubectlAction) Describe() action_kit_api.ActionDescription {
 func (a KubectlAction) Prepare(ctx context.Context, state *KubectlActionState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	opts, err := a.OptsProvider(ctx, request)
 	if err != nil {
-		extensionError, isExtensionError := err.(extension_kit.ExtensionError)
-		if isExtensionError {
+		var extensionError extension_kit.ExtensionError
+		if errors.As(err, &extensionError) {
 			return nil, extensionError
 		} else {
 			return nil, extension_kit.ToError("Failed to prepare settings.", err)

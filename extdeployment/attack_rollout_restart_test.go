@@ -5,10 +5,11 @@ package extdeployment
 
 import (
 	"context"
+	"testing"
+
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestRolloutRestartPrepareCheckExtractsState(t *testing.T) {

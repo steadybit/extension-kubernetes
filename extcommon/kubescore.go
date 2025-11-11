@@ -4,6 +4,10 @@
 package extcommon
 
 import (
+	"runtime/debug"
+	"strconv"
+	"time"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/zegl/kube-score/config"
@@ -15,22 +19,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sJson "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/utils/ptr"
-	"runtime/debug"
-	"strconv"
-	"time"
-)
-
-var (
-	serializer = k8sJson.NewSerializerWithOptions(
-		k8sJson.DefaultMetaFactory, nil, nil,
-		k8sJson.SerializerOptions{
-			Yaml:   true,
-			Pretty: true,
-			Strict: true,
-		},
-	)
 )
 
 type kubeScoreInput interface {

@@ -2,6 +2,7 @@ package advice_common
 
 import (
 	"embed"
+
 	"github.com/rs/zerolog/log"
 )
 

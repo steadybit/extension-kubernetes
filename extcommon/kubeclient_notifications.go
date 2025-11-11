@@ -1,10 +1,11 @@
 package extcommon
 
 import (
-	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-kubernetes/v2/client"
 	"reflect"
 	"slices"
+
+	"github.com/rs/zerolog/log"
+	"github.com/steadybit/extension-kubernetes/v2/client"
 )
 
 func TriggerOnKubernetesResourceChange(k8s *client.Client, t ...reflect.Type) chan struct{} {

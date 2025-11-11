@@ -6,6 +6,9 @@ package extdeployment
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"strings"
+
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
@@ -13,8 +16,6 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kit/extutil"
-	"os/exec"
-	"strings"
 )
 
 type DeploymentRolloutRestartAction struct {
