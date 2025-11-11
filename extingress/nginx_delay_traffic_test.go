@@ -48,9 +48,9 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
-				ResponseDelay:        500,
-				ConditionPathPattern: "/api/.*",
-				IsEnterpriseNginx:    false,
+				ResponseDelay:     500,
+				Matcher:           NginxRequestMatcher{PathPattern: "/api/.*"},
+				IsEnterpriseNginx: false,
 			},
 		},
 		{
@@ -67,9 +67,9 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
-				ResponseDelay:        500,
-				ConditionPathPattern: "/api/.*",
-				IsEnterpriseNginx:    true,
+				ResponseDelay:     500,
+				Matcher:           NginxRequestMatcher{PathPattern: "/api/.*"},
+				IsEnterpriseNginx: true,
 			},
 		},
 		{
@@ -85,8 +85,8 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
-				ResponseDelay:       500,
-				ConditionHttpMethod: "POST",
+				ResponseDelay: 500,
+				Matcher:       NginxRequestMatcher{HttpMethod: "POST"},
 			},
 		},
 		{
@@ -105,8 +105,9 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 					IngressName: "test-nginx-ingress",
 				},
 				ResponseDelay: 500,
-				ConditionHttpHeader: map[string]string{
+				Matcher: NginxRequestMatcher{HttpHeader: map[string]string{
 					"User-Agent": "Mozilla.*",
+				},
 				},
 			},
 		},
@@ -127,11 +128,12 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 					Namespace:   "demo",
 					IngressName: "test-nginx-ingress",
 				},
-				ResponseDelay:        1000,
-				ConditionPathPattern: "/api/users",
-				ConditionHttpMethod:  "POST",
-				ConditionHttpHeader: map[string]string{
-					"Content-Type": "application/json",
+				ResponseDelay: 1000,
+				Matcher: NginxRequestMatcher{PathPattern: "/api/users",
+					HttpMethod: "POST",
+					HttpHeader: map[string]string{
+						"Content-Type": "application/json",
+					},
 				},
 			},
 		},
@@ -220,7 +222,7 @@ func TestNginxDelayTrafficAction_PrepareFluentChaining(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify the configuration contains all conditions correctly chained
-	assert.Contains(t, state.AnnotationConfig, "if ($request_uri ~* /api/users)")
+	assert.Contains(t, state.AnnotationConfig, "if ($request_uri !~* /api/users)")
 	assert.Contains(t, state.AnnotationConfig, "if ($request_method != POST)")
 	assert.Contains(t, state.AnnotationConfig, "if ($http_content_type !~* application/json)")
 
@@ -329,9 +331,9 @@ func createDelayNginxTestRequest(ingressName string, config map[string]interface
 func assertNginxDelayStateMatches(t *testing.T, expected, actual NginxDelayTrafficState) {
 	// Check basic properties
 	assert.Equal(t, expected.ResponseDelay, actual.ResponseDelay)
-	assert.Equal(t, expected.ConditionPathPattern, actual.ConditionPathPattern)
-	assert.Equal(t, expected.ConditionHttpMethod, actual.ConditionHttpMethod)
-	assert.Equal(t, expected.ConditionHttpHeader, actual.ConditionHttpHeader)
+	assert.Equal(t, expected.Matcher.PathPattern, actual.Matcher.PathPattern)
+	assert.Equal(t, expected.Matcher.HttpMethod, actual.Matcher.HttpMethod)
+	assert.Equal(t, expected.Matcher.HttpHeader, actual.Matcher.HttpHeader)
 	assert.Equal(t, expected.Namespace, actual.Namespace)
 	assert.Equal(t, expected.IngressName, actual.IngressName)
 	assert.Equal(t, expected.IsEnterpriseNginx, actual.IsEnterpriseNginx)
@@ -350,16 +352,16 @@ func assertNginxDelayStateMatches(t *testing.T, expected, actual NginxDelayTraff
 	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("if (%s = 1)", expectedShouldDelayVar))
 	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("sb_sleep_ms %s", expectedSleepDurationVar))
 
-	if actual.ConditionPathPattern != "" {
-		assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("$request_uri ~* %s", actual.ConditionPathPattern))
+	if actual.Matcher.PathPattern != "" {
+		assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("$request_uri !~* %s", actual.Matcher.PathPattern))
 	}
 
-	if actual.ConditionHttpMethod != "" {
+	if actual.Matcher.HttpMethod != "" {
 		assert.Contains(t, actual.AnnotationConfig, "$request_method")
-		assert.Contains(t, actual.AnnotationConfig, actual.ConditionHttpMethod)
+		assert.Contains(t, actual.AnnotationConfig, actual.Matcher.HttpMethod)
 	}
 
-	for headerName, headerValue := range actual.ConditionHttpHeader {
+	for headerName, headerValue := range actual.Matcher.HttpHeader {
 		normalizedHeaderName := fmt.Sprintf("$http_%s", strings.Replace(strings.ToLower(headerName), "-", "_", -1))
 		assert.Contains(t, actual.AnnotationConfig, normalizedHeaderName)
 		assert.Contains(t, actual.AnnotationConfig, headerValue)

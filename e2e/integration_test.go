@@ -816,10 +816,11 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 	// Initialize HAProxy and test resources
 	haProxyService, testAppName, ingressTarget, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, haProxyControllerNamespace)
-	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
-	defer func() { _ = m.DeleteService(appService) }()
-	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
+		_ = m.DeleteDeployment(nginxDeployment)
+		_ = m.DeleteService(appService)
+		_ = m.DeleteIngress(appIngress)
+
 		cleanupHAProxy(m, haProxyControllerNamespace)
 	}()
 
@@ -1009,10 +1010,6 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 func cleanupHAProxy(m *e2e.Minikube, haProxyControllerNamespace string) {
 	_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
-	// check if clusterrole is still present
-	if checkClusterRole(m, "haproxy-ingress-kubernetes-ingress") {
-		deleteClusterRole(m, "haproxy-ingress-kubernetes-ingress")
-	}
 }
 
 func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
@@ -1027,10 +1024,11 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 	// Initialize HAProxy and test resources
 	haProxyService, _, ingressTarget, nginxDeployment, appService, appIngress := initHAProxy(t, m, e, ctx, haProxyControllerNamespace)
-	defer func() { _ = m.DeleteDeployment(nginxDeployment) }()
-	defer func() { _ = m.DeleteService(appService) }()
-	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
+		_ = m.DeleteDeployment(nginxDeployment)
+		_ = m.DeleteService(appService)
+		_ = m.DeleteIngress(appIngress)
+
 		cleanupHAProxy(m, haProxyControllerNamespace)
 	}()
 
@@ -1188,19 +1186,19 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 }
 
-func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, haProxyControllerNamespace string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
+func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, namsspace string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
 	// Step 1: Deploy HAProxy Ingress Controller
 	log.Info().Msg("Deploying HAProxy Ingress Controller")
 	out, err := exec.Command("helm", "repo", "add", "haproxytech", "https://haproxytech.github.io/helm-charts").CombinedOutput()
 	require.NoError(t, err, "Failed to add HAProxy Helm repo: %s", out)
 	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
 	require.NoError(t, err, "Failed to update Helm repos: %s", out)
-	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", haProxyControllerNamespace, "--kube-context", m.Profile, "--set", "controller.service.type=NodePort").CombinedOutput()
+	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", namsspace, "--kube-context", m.Profile, "--set", "controller.service.type=NodePort").CombinedOutput()
 	require.NoError(t, err, "Failed to deploy HAProxy Ingress Controller: %s", out)
 
 	// Wait for HAProxy ingress controller to be ready
 	log.Info().Msg("Waiting for HAProxy Ingress Controller to be ready")
-	err = waitForHAProxyIngressController(m, ctx, haProxyControllerNamespace)
+	err = waitForHAProxyIngressController(m, ctx, namsspace)
 	require.NoError(t, err)
 
 	// Step 2: Create a test deployment with service
@@ -1313,14 +1311,14 @@ func initHAProxy(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Co
 
 	// Find HAProxy Service
 	log.Info().Msg("Finding HAProxy Service")
-	haProxyServiceName, err := findServiceNameInNamespace(m, haProxyControllerNamespace)
+	haProxyServiceName, err := findServiceNameInNamespace(m, namsspace)
 	require.NoError(t, err, "Failed to find HAProxy service")
 	// Measure baseline latency
 	log.Info().Msg("Measuring baseline latency")
 	haProxyService := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      haProxyServiceName,
-			Namespace: haProxyControllerNamespace,
+			Namespace: namsspace,
 		},
 	}
 
@@ -1362,30 +1360,6 @@ func findServiceNameInNamespace(m *e2e.Minikube, namespace string) (string, erro
 		return "", fmt.Errorf("no services found in namespace %s", namespace)
 	}
 	return services.Items[0].Name, nil
-}
-
-func checkClusterRole(m *e2e.Minikube, name string) bool {
-	list, err := m.GetClient().RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to list cluster roles")
-		return false
-	}
-	for _, role := range list.Items {
-		if role.Name == name {
-			log.Info().Msgf("Cluster role %s found", role.Name)
-			return true
-		}
-	}
-	return false
-}
-
-func deleteClusterRole(m *e2e.Minikube, name string) {
-	err := m.GetClient().RbacV1().ClusterRoles().Delete(context.Background(), name, metav1.DeleteOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to delete cluster role %s", name)
-	} else {
-		log.Info().Msgf("Cluster role %s deleted", name)
-	}
 }
 
 // Helper function to measure request latency with optional HTTP method and headers
@@ -1572,10 +1546,10 @@ func testNginxIngressDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) 
 
 	// Initialize NGINX Ingress Controller and test resources
 	nginxService, testAppName, _, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxControllerNamespace, "", "")
-	defer func() { _ = m.DeleteDeployment(appDeployment) }()
-	defer func() { _ = m.DeleteService(appService) }()
-	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
+		_ = m.DeleteDeployment(appDeployment)
+		_ = m.DeleteService(appService)
+		_ = m.DeleteIngress(appIngress)
 		cleanupNginxIngress(m, nginxControllerNamespace)
 	}()
 
@@ -1607,13 +1581,12 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 	// Initialize NGINX Ingress Controller and test resources
 	nginxService, _, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxControllerNamespace, "", "")
-	defer func() { _ = m.DeleteDeployment(appDeployment) }()
-	defer func() { _ = m.DeleteService(appService) }()
-	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
+		_ = m.DeleteDeployment(appDeployment)
+		_ = m.DeleteService(appService)
+		_ = m.DeleteIngress(appIngress)
 		cleanupNginxIngress(m, nginxControllerNamespace)
 	}()
-
 	// Verify the application is accessible before starting tests
 	err := checkStatusCode(t, m, nginxService, "/", 200)
 	require.NoError(t, err)
@@ -1992,10 +1965,10 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 	// Initialize Ingress NGINX  Controller and test resources
 	nginxService, testAppName, ingressTarget, appDeployment, appService, appIngress := initNginxIngress(t, m, e, ctx, nginxNamespace, "ghcr.io/steadybit/ingress-nginx-controller-with-steadybit-module", "main-community-v1.13.0")
-	defer func() { _ = m.DeleteDeployment(appDeployment) }()
-	defer func() { _ = m.DeleteService(appService) }()
-	defer func() { _ = m.DeleteIngress(appIngress) }()
 	defer func() {
+		_ = m.DeleteDeployment(appDeployment)
+		_ = m.DeleteService(appService)
+		_ = m.DeleteIngress(appIngress)
 		cleanupNginxIngress(m, nginxNamespace)
 	}()
 
