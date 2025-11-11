@@ -5,7 +5,6 @@ package extingress
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -33,7 +32,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				Namespace: "demo",
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "haproxy",
-					AnnotationKey:                 "# Some other config\nacl some_rule path_reg /anotherPath\n",
+					haProxyAnnotationKey:          "# Some other config\nacl some_rule path_reg /anotherPath\n",
 				},
 			},
 		},
@@ -44,7 +43,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				Namespace: "demo",
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "haproxy",
-					AnnotationKey:                 "acl path_conflict path_reg /alreadyDelayed\n",
+					haProxyAnnotationKey:          "acl path_conflict path_reg /alreadyDelayed\n",
 				},
 			},
 		},
@@ -55,7 +54,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				Namespace: "demo",
 				Annotations: map[string]string{
 					"kubernetes.io/ingress.class": "haproxy",
-					AnnotationKey:                 "tcp-request inspect-delay 1000ms\ntcp-request content accept if WAIT_END\n",
+					haProxyAnnotationKey:          "tcp-request inspect-delay 1000ms\ntcp-request content accept if WAIT_END\n",
 				},
 			},
 		},
@@ -71,13 +70,13 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 
 	type args struct {
 		in0     context.Context
-		state   *HAProxyDelayTrafficState
+		state   *HAProxyState
 		request action_kit_api.PrepareActionRequestBody
 	}
 	tests := []struct {
 		name        string
 		args        args
-		want        HAProxyDelayTrafficState
+		want        HAProxyState
 		wantErr     *string
 		ingressName string // The ingress to use for this test
 	}{
@@ -86,10 +85,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 			ingressName: "simple-ingress",
 			args: args{
 				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
+				state: &HAProxyState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
@@ -105,15 +102,12 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want: HAProxyDelayTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Namespace:   "demo",
-					IngressName: "simple-ingress",
-				},
-				ResponseDelay:        500,
-				ConditionPathPattern: "/api/*",
-				AnnotationConfig:     "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 500ms\nacl sb_path_00000000 path_reg /api/*\ntcp-request content accept if WAIT_END || !sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+			want: HAProxyState{
+				ExecutionId:      uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+				Namespace:        "demo",
+				IngressName:      "simple-ingress",
+				Matcher:          RequestMatcher{PathPattern: "/api/*"},
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 500ms\nacl sb_path_00000000_0000_0000_0000_000000000000 path_reg /api/*\ntcp-request content accept if WAIT_END || !sb_path_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 			wantErr: nil,
 		},
@@ -122,10 +116,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 			ingressName: "simple-ingress",
 			args: args{
 				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
+				state: &HAProxyState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
@@ -141,15 +133,12 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want: HAProxyDelayTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Namespace:   "demo",
-					IngressName: "simple-ingress",
-				},
-				ResponseDelay:       500,
-				ConditionHttpMethod: "POST",
-				AnnotationConfig:    "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 500ms\nacl sb_method_00000000 method POST\ntcp-request content accept if WAIT_END || !sb_method_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+			want: HAProxyState{
+				ExecutionId:      uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+				Namespace:        "demo",
+				IngressName:      "simple-ingress",
+				Matcher:          RequestMatcher{HttpMethod: "POST"},
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 500ms\nacl sb_method_00000000_0000_0000_0000_000000000000 method POST\ntcp-request content accept if WAIT_END || !sb_method_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 			wantErr: nil,
 		},
@@ -158,10 +147,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 			ingressName: "simple-ingress",
 			args: args{
 				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
+				state: &HAProxyState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
@@ -179,17 +166,15 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want: HAProxyDelayTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Namespace:   "demo",
-					IngressName: "simple-ingress",
-				},
-				ResponseDelay: 500,
-				ConditionHttpHeader: map[string]string{
+			want: HAProxyState{
+				ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+				Namespace:   "demo",
+				IngressName: "simple-ingress",
+				Matcher: RequestMatcher{HttpHeader: map[string]string{
 					"User-Agent": "Mozilla.*",
 				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 500ms\nacl sb_hdr_User_Agent_00000000 hdr(User-Agent) -m reg Mozilla.*\ntcp-request content accept if WAIT_END || !sb_hdr_User_Agent_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				},
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 500ms\nacl sb_hdr_User_Agent_00000000_0000_0000_0000_000000000000 hdr(User-Agent) -m reg Mozilla.*\ntcp-request content accept if WAIT_END || !sb_hdr_User_Agent_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 			wantErr: nil,
 		},
@@ -198,10 +183,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 			ingressName: "simple-ingress",
 			args: args{
 				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
+				state: &HAProxyState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
@@ -221,58 +204,27 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want: HAProxyDelayTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Namespace:   "demo",
-					IngressName: "simple-ingress",
+			want: HAProxyState{
+				ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
+				Namespace:   "demo",
+				IngressName: "simple-ingress",
+				Matcher: RequestMatcher{PathPattern: "/api/users",
+					HttpMethod: "POST",
+					HttpHeader: map[string]string{
+						"Content-Type": "application/json",
+					},
 				},
-				ResponseDelay:        1000,
-				ConditionPathPattern: "/api/users",
-				ConditionHttpMethod:  "POST",
-				ConditionHttpHeader: map[string]string{
-					"Content-Type": "application/json",
-				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 1000ms\nacl sb_method_00000000 method POST\nacl sb_hdr_Content_Type_00000000 hdr(Content-Type) -m reg application/json\nacl sb_path_00000000 path_reg /api/users\ntcp-request content accept if WAIT_END || !sb_method_00000000 || !sb_hdr_Content_Type_00000000 || !sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\ntcp-request inspect-delay 1000ms\nacl sb_method_00000000_0000_0000_0000_000000000000 method POST\nacl sb_hdr_Content_Type_00000000_0000_0000_0000_000000000000 hdr(Content-Type) -m reg application/json\nacl sb_path_00000000_0000_0000_0000_000000000000 path_reg /api/users\ntcp-request content accept if WAIT_END || !sb_method_00000000_0000_0000_0000_000000000000 || !sb_hdr_Content_Type_00000000_0000_0000_0000_000000000000 || !sb_path_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 			wantErr: nil,
-		},
-		{
-			name:        "invalid delay value",
-			ingressName: "simple-ingress",
-			args: args{
-				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
-				},
-				request: action_kit_api.PrepareActionRequestBody{
-					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
-						"responseDelay":        "abc",
-						"conditionPathPattern": "/api/*",
-					},
-					Target: extutil.Ptr(action_kit_api.Target{
-						Attributes: map[string][]string{
-							"k8s.namespace": {"demo"},
-							"k8s.ingress":   {"simple-ingress"},
-						},
-					}),
-				},
-			},
-			want:    HAProxyDelayTrafficState{},
-			wantErr: extutil.Ptr("delay must be a number, got string: abc"),
 		},
 		{
 			name:        "no conditions provided",
 			ingressName: "simple-ingress",
 			args: args{
 				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
+				state: &HAProxyState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
@@ -287,7 +239,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want:    HAProxyDelayTrafficState{},
+			want:    HAProxyState{},
 			wantErr: extutil.Ptr("at least one condition (path, method, or header) is required"),
 		},
 		{
@@ -295,10 +247,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 			ingressName: "path-conflict-ingress",
 			args: args{
 				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
+				state: &HAProxyState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
@@ -314,7 +264,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want:    HAProxyDelayTrafficState{},
+			want:    HAProxyState{},
 			wantErr: extutil.Ptr("a rule for path /alreadyDelayed already exists"),
 		},
 		{
@@ -322,10 +272,8 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 			ingressName: "delay-conflict-ingress",
 			args: args{
 				in0: context.Background(),
-				state: &HAProxyDelayTrafficState{
-					HAProxyBaseState: HAProxyBaseState{
-						ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					},
+				state: &HAProxyState{
+					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
@@ -341,7 +289,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 					}),
 				},
 			},
-			want:    HAProxyDelayTrafficState{},
+			want:    HAProxyState{},
 			wantErr: extutil.Ptr("a delay rule already exists - cannot add another one"),
 		},
 	}
@@ -353,7 +301,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				tt.args.request.Target.Attributes["k8s.ingress"] = []string{tt.ingressName}
 			}
 
-			a := &HAProxyDelayTrafficAction{}
+			a := NewHAProxyDelayTrafficAction()
 			state := a.NewEmptyState()
 			_, err := a.Prepare(tt.args.in0, &state, tt.args.request)
 			if tt.wantErr != nil {
@@ -363,34 +311,12 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			assert.Equal(t, tt.want.ResponseDelay, state.ResponseDelay)
-			assert.Equal(t, tt.want.ConditionPathPattern, state.ConditionPathPattern)
-			assert.Equal(t, tt.want.ConditionHttpMethod, state.ConditionHttpMethod)
-			assert.Equal(t, tt.want.ConditionHttpHeader, state.ConditionHttpHeader)
+			assert.Equal(t, tt.want.Matcher.PathPattern, state.Matcher.PathPattern)
+			assert.Equal(t, tt.want.Matcher.HttpMethod, state.Matcher.HttpMethod)
+			assert.Equal(t, tt.want.Matcher.HttpHeader, state.Matcher.HttpHeader)
 			assert.Equal(t, tt.want.Namespace, state.Namespace)
 			assert.Equal(t, tt.want.IngressName, state.IngressName)
-
-			// We won't compare the exact annotation config string since the ACL names contain
-			// random elements from the UUID, but we can verify it contains the essential parts
-			if tt.want.AnnotationConfig != "" {
-				assert.Contains(t, state.AnnotationConfig, "# BEGIN STEADYBIT")
-				assert.Contains(t, state.AnnotationConfig, "# END STEADYBIT")
-				assert.Contains(t, state.AnnotationConfig, fmt.Sprintf("tcp-request inspect-delay %dms", state.ResponseDelay))
-				assert.Contains(t, state.AnnotationConfig, "tcp-request content accept if WAIT_END ||")
-
-				if state.ConditionPathPattern != "" {
-					assert.Contains(t, state.AnnotationConfig, "path_reg")
-					assert.Contains(t, state.AnnotationConfig, state.ConditionPathPattern)
-				}
-				if state.ConditionHttpMethod != "" {
-					assert.Contains(t, state.AnnotationConfig, "method")
-					assert.Contains(t, state.AnnotationConfig, state.ConditionHttpMethod)
-				}
-				for headerName, headerValue := range state.ConditionHttpHeader {
-					assert.Contains(t, state.AnnotationConfig, headerName)
-					assert.Contains(t, state.AnnotationConfig, headerValue)
-				}
-			}
+			assert.Equal(t, tt.want.AnnotationConfig, state.AnnotationConfig)
 		})
 	}
 }

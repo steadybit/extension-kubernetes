@@ -14,6 +14,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -32,7 +33,7 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		name        string
 		ingressName string
 		config      map[string]interface{}
-		want        NginxDelayTrafficState
+		want        NginxState
 		wantErr     string
 	}{
 		{
@@ -42,15 +43,13 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 				"responseDelay":        500,
 				"conditionPathPattern": "/api/.*",
 			},
-			want: NginxDelayTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: myTestUUID,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseDelay:     500,
-				Matcher:           NginxRequestMatcher{PathPattern: "/api/.*"},
-				IsEnterpriseNginx: false,
+			want: NginxState{
+				ExecutionId:      myTestUUID,
+				Namespace:        "demo",
+				IngressName:      "test-nginx-ingress",
+				Matcher:          RequestMatcher{PathPattern: "/api/.*"},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\nset $sb_should_delay_00000000000000000000000000000000 1;\nif ($request_uri !~* /api/.*) { set $sb_should_delay_00000000000000000000000000000000 0; }\nset $sb_sleep_ms_duration_00000000000000000000000000000000 0;\nif ($sb_should_delay_00000000000000000000000000000000 = 1) { set $sb_sleep_ms_duration_00000000000000000000000000000000 500; }\nsb_sleep_ms $sb_sleep_ms_duration_00000000000000000000000000000000;\n# END STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -61,15 +60,13 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 				"conditionPathPattern": "/api/.*",
 				"isEnterpriseNginx":    true,
 			},
-			want: NginxDelayTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: myTestUUID,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseDelay:     500,
-				Matcher:           NginxRequestMatcher{PathPattern: "/api/.*"},
-				IsEnterpriseNginx: true,
+			want: NginxState{
+				ExecutionId:      myTestUUID,
+				Namespace:        "demo",
+				IngressName:      "test-nginx-ingress",
+				Matcher:          RequestMatcher{PathPattern: "/api/.*"},
+				AnnotationKey:    nginxEnterpriseAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\nset $sb_should_delay_00000000000000000000000000000000 1;\nif ($request_uri !~* /api/.*) { set $sb_should_delay_00000000000000000000000000000000 0; }\nset $sb_sleep_ms_duration_00000000000000000000000000000000 0;\nif ($sb_should_delay_00000000000000000000000000000000 = 1) { set $sb_sleep_ms_duration_00000000000000000000000000000000 500; }\nsb_sleep_ms $sb_sleep_ms_duration_00000000000000000000000000000000;\n# END STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -79,14 +76,13 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 				"responseDelay":       500,
 				"conditionHttpMethod": "POST",
 			},
-			want: NginxDelayTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: myTestUUID,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseDelay: 500,
-				Matcher:       NginxRequestMatcher{HttpMethod: "POST"},
+			want: NginxState{
+				ExecutionId:      myTestUUID,
+				Namespace:        "demo",
+				IngressName:      "test-nginx-ingress",
+				Matcher:          RequestMatcher{HttpMethod: "POST"},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\nset $sb_should_delay_00000000000000000000000000000000 1;\nif ($request_method != POST) { set $sb_should_delay_00000000000000000000000000000000 0; }\nset $sb_sleep_ms_duration_00000000000000000000000000000000 0;\nif ($sb_should_delay_00000000000000000000000000000000 = 1) { set $sb_sleep_ms_duration_00000000000000000000000000000000 500; }\nsb_sleep_ms $sb_sleep_ms_duration_00000000000000000000000000000000;\n# END STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -98,17 +94,16 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 					map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
 				},
 			},
-			want: NginxDelayTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: myTestUUID,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseDelay: 500,
-				Matcher: NginxRequestMatcher{HttpHeader: map[string]string{
+			want: NginxState{
+				ExecutionId: myTestUUID,
+				Namespace:   "demo",
+				IngressName: "test-nginx-ingress",
+				Matcher: RequestMatcher{HttpHeader: map[string]string{
 					"User-Agent": "Mozilla.*",
 				},
 				},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\nset $sb_should_delay_00000000000000000000000000000000 1;\nif ($http_user_agent !~* Mozilla.*) { set $sb_should_delay_00000000000000000000000000000000 0; }\nset $sb_sleep_ms_duration_00000000000000000000000000000000 0;\nif ($sb_should_delay_00000000000000000000000000000000 = 1) { set $sb_sleep_ms_duration_00000000000000000000000000000000 500; }\nsb_sleep_ms $sb_sleep_ms_duration_00000000000000000000000000000000;\n# END STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -122,29 +117,19 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 					map[string]interface{}{"key": "Content-Type", "value": "application/json"},
 				},
 			},
-			want: NginxDelayTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: myTestUUID,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseDelay: 1000,
-				Matcher: NginxRequestMatcher{PathPattern: "/api/users",
+			want: NginxState{
+				ExecutionId: myTestUUID,
+				Namespace:   "demo",
+				IngressName: "test-nginx-ingress",
+				Matcher: RequestMatcher{PathPattern: "/api/users",
 					HttpMethod: "POST",
 					HttpHeader: map[string]string{
 						"Content-Type": "application/json",
 					},
 				},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\nset $sb_should_delay_00000000000000000000000000000000 1;\nif ($request_uri !~* /api/users) { set $sb_should_delay_00000000000000000000000000000000 0; }\nif ($request_method != POST) { set $sb_should_delay_00000000000000000000000000000000 0; }\nif ($http_content_type !~* application/json) { set $sb_should_delay_00000000000000000000000000000000 0; }\nset $sb_sleep_ms_duration_00000000000000000000000000000000 0;\nif ($sb_should_delay_00000000000000000000000000000000 = 1) { set $sb_sleep_ms_duration_00000000000000000000000000000000 1000; }\nsb_sleep_ms $sb_sleep_ms_duration_00000000000000000000000000000000;\n# END STEADYBIT - Delay - 00000000-0000-0000-0000-000000000000\n",
 			},
-		},
-		{
-			name:        "invalid delay value",
-			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
-				"responseDelay":        "abc",
-				"conditionPathPattern": "/api/.*",
-			},
-			wantErr: "delay must be a number, got string: abc",
 		},
 		{
 			name:        "no conditions provided",
@@ -181,7 +166,7 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 			request := createDelayNginxTestRequest(tt.ingressName, tt.config)
 
 			// Run the Prepare method
-			action := &NginxDelayTrafficAction{}
+			action := NewNginxDelayTrafficAction()
 			state := action.NewEmptyState()
 			_, err := action.Prepare(context.Background(), &state, request)
 
@@ -216,7 +201,7 @@ func TestNginxDelayTrafficAction_PrepareFluentChaining(t *testing.T) {
 	request := createDelayNginxTestRequest("test-nginx-ingress", config)
 
 	// Run the Prepare method
-	action := &NginxDelayTrafficAction{}
+	action := NewNginxDelayTrafficAction()
 	state := action.NewEmptyState()
 	_, err := action.Prepare(context.Background(), &state, request)
 	require.NoError(t, err)
@@ -261,8 +246,7 @@ func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 	client.K8S = testClient
 
 	// Use no-op validator for tests
-	originalValidator := nginxModuleValidator
-	nginxModuleValidator = &NoOpNginxModuleValidator{}
+	extconfig.Config.NginxDelaySkipImageCheck = true
 
 	// Wait for IngressClass and ingresses to be registered
 	assert.Eventually(t, func() bool {
@@ -281,7 +265,7 @@ func setupNginxtestDelayEnvironment(t *testing.T) *testDelayEnvironment {
 		client: testClient,
 		cleanup: func() {
 			close(stopCh)
-			nginxModuleValidator = originalValidator // Restore original validator
+			extconfig.Config.NginxDelaySkipImageCheck = false
 		},
 	}
 }
@@ -328,15 +312,15 @@ func createDelayNginxTestRequest(ingressName string, config map[string]interface
 }
 
 // assertNginxDelayStateMatches verifies that the actual state matches the expected state
-func assertNginxDelayStateMatches(t *testing.T, expected, actual NginxDelayTrafficState) {
+func assertNginxDelayStateMatches(t *testing.T, expected, actual NginxState) {
 	// Check basic properties
-	assert.Equal(t, expected.ResponseDelay, actual.ResponseDelay)
 	assert.Equal(t, expected.Matcher.PathPattern, actual.Matcher.PathPattern)
 	assert.Equal(t, expected.Matcher.HttpMethod, actual.Matcher.HttpMethod)
 	assert.Equal(t, expected.Matcher.HttpHeader, actual.Matcher.HttpHeader)
 	assert.Equal(t, expected.Namespace, actual.Namespace)
 	assert.Equal(t, expected.IngressName, actual.IngressName)
-	assert.Equal(t, expected.IsEnterpriseNginx, actual.IsEnterpriseNginx)
+	assert.Equal(t, expected.AnnotationKey, actual.AnnotationKey)
+	assert.Equal(t, expected.AnnotationConfig, actual.AnnotationConfig)
 
 	// Check annotation config contains expected elements
 	assert.Contains(t, actual.AnnotationConfig, "# BEGIN STEADYBIT")

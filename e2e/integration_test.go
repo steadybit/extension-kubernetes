@@ -13,15 +13,14 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	actValidate "github.com/steadybit/action-kit/go/action_kit_test/validate"
-	"github.com/steadybit/extension-kit/extutil"
-
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
+	actValidate "github.com/steadybit/action-kit/go/action_kit_test/validate"
 	advValidate "github.com/steadybit/advice-kit/go/advice_kit_test/validate"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_test/validate"
+	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"

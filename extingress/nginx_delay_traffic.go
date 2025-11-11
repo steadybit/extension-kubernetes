@@ -5,42 +5,26 @@
 package extingress
 
 import (
-	"context"
 	"fmt"
 	"strings"
-
-	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
 )
 
-// NginxDelayTrafficState contains state data for the NGINX delay traffic action
-type NginxDelayTrafficState struct {
-	NginxBaseState
-	ResponseDelay     int
-	Matcher           NginxRequestMatcher
-	AnnotationConfig  string
-	IsEnterpriseNginx bool
-}
-
 // NewNginxDelayTrafficAction creates a new delay traffic action
-func NewNginxDelayTrafficAction() action_kit_sdk.Action[NginxDelayTrafficState] {
-	return &NginxDelayTrafficAction{}
+func NewNginxDelayTrafficAction() action_kit_sdk.Action[NginxState] {
+	return &nginxAction{
+		description:             getNginxDelayTrafficDescription(),
+		subtype:                 nginxActionSubTypeDelay,
+		annotationConfigFn:      buildNginxDelayConfig,
+		checkExistingFn:         checkNginxExistingDelay,
+		requiresSteadybitModule: true,
+	}
 }
 
-// NginxDelayTrafficAction implements the delay traffic action
-type NginxDelayTrafficAction struct{}
-
-// NewEmptyState creates an empty state object
-func (a *NginxDelayTrafficAction) NewEmptyState() NginxDelayTrafficState {
-	return NginxDelayTrafficState{}
-}
-
-// Describe returns the action description for the NGINX delay traffic action
-func (a *NginxDelayTrafficAction) Describe() action_kit_api.ActionDescription {
+func getNginxDelayTrafficDescription() action_kit_api.ActionDescription {
 	desc := getNginxActionDescription(
 		NginxDelayTrafficActionId,
 		"NGINX Delay Traffic",
@@ -80,132 +64,30 @@ func (a *NginxDelayTrafficAction) Describe() action_kit_api.ActionDescription {
 	return desc
 }
 
-// Prepare validates input parameters and prepares the state for execution
-func (a *NginxDelayTrafficAction) Prepare(_ context.Context, state *NginxDelayTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	ingress, err := prepareNginxAction(&state.NginxBaseState, request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare NGINX delay action: %w", err)
-	}
-
-	if !extconfig.Config.NginxDelaySkipImageCheck {
-		// Validate that the NGINX steadybit sleep module is loaded by directly searching for NGINX controller pods
-		if ingressClass, exists := request.Target.Attributes["k8s.ingress.class"]; exists && len(ingressClass) > 0 {
-			if err := nginxModuleValidator.ValidateNginxSteadybitModule(map[string][]string{
-				"k8s.ingress.class": {ingressClass[0]},
-			}); err != nil {
-				return nil, fmt.Errorf("NGINX steadybit sleep module validation failed: %w", err)
-			}
-		} else {
-			return nil, fmt.Errorf("no ingress class found in target attributes")
-		}
-	} else {
-		log.Info().Msg("Skipping NGINX module validation as per configuration")
-	}
-
-	// Extract and validate delay parameter
-	if delay, ok := request.Config["responseDelay"]; ok {
-		switch v := delay.(type) {
-		case float64:
-			state.ResponseDelay = int(v)
-		case int:
-			state.ResponseDelay = v
-		case string:
-			return nil, fmt.Errorf("delay must be a number, got string: %s", v)
-		default:
-			return nil, fmt.Errorf("delay must be a number, got %T", v)
-		}
-	} else {
-		return nil, fmt.Errorf("responseDelay parameter is required")
-	}
-
-	// Check for Enterprise NGINX based on ingress controller
-	state.IsEnterpriseNginx = extutil.ToBool(request.Config["isEnterpriseNginx"])
-	if ingressClass, ok := request.Target.Attributes["k8s.ingress.class"]; ok && len(ingressClass) > 0 {
-		if controller, ok := request.Target.Attributes["k8s.ingress.controller"]; ok && len(controller) > 0 {
-			if controller[0] == "nginx.org/ingress-controller" {
-				// Override with detected Enterprise NGINX
-				state.IsEnterpriseNginx = true
-			}
+func checkNginxExistingDelay(lines []string) error {
+	for _, line := range lines {
+		if strings.Contains(line, "sb_sleep_ms") {
+			return fmt.Errorf("a delay rule already exists - cannot add another one")
 		}
 	}
-
-	state.Matcher, err = buildNginxRequestMatcherFromConfig(request.Config)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check for conflicts with existing rules
-	annotationKey := NginxAnnotationKey
-	if state.IsEnterpriseNginx {
-		annotationKey = NginxEnterpriseAnnotationKey
-	}
-
-	if ingress.Annotations != nil {
-		if existingConfig, exists := ingress.Annotations[annotationKey]; exists && existingConfig != "" {
-			existingLines := strings.Split(existingConfig, "\n")
-
-			// Check for existing delay actions
-			for _, line := range existingLines {
-				if strings.Contains(line, "sb_sleep_ms") {
-					return nil, fmt.Errorf("a delay rule already exists - cannot add another one")
-				}
-			}
-
-			// Check for location block with same path
-			if state.Matcher.PathPattern != "" {
-				for _, line := range existingLines {
-					if strings.Contains(line, fmt.Sprintf("location ~ %s", state.Matcher.PathPattern)) ||
-						strings.Contains(line, fmt.Sprintf("location = %s", state.Matcher.PathPattern)) {
-						return nil, fmt.Errorf("a rule for path %s already exists", state.Matcher.PathPattern)
-					}
-				}
-			}
-		}
-	}
-
-	state.AnnotationConfig = buildNginxDelayConfig(state)
-
-	return nil, nil
+	return nil
 }
 
-// buildNginxDelayConfig creates the NGINX configuration for traffic delay
-func buildNginxDelayConfig(state *NginxDelayTrafficState) string {
-	var configBuilder strings.Builder
-	configBuilder.WriteString(getNginxStartMarker(state.ExecutionId, NginxActionSubTypeDelay))
-	configBuilder.WriteString(buildNginxDelayConfigContent(state))
-	configBuilder.WriteString(getNginxEndMarker(state.ExecutionId, NginxActionSubTypeDelay))
-	return configBuilder.String()
-}
-
-// buildNginxDelayConfigContent creates configuration for NGINX Ingress Controller (both open source and enterprise)
-func buildNginxDelayConfigContent(state *NginxDelayTrafficState) string {
-	var config strings.Builder
+func buildNginxDelayConfig(state *NginxState, config map[string]interface{}) string {
+	responseDelay := extutil.ToInt(config["responseDelay"])
 
 	shouldDelayVar := getNginxUniqueVariableName(state.ExecutionId, "should_delay")
-	config.WriteString(buildConfigForMatcher(state.Matcher, shouldDelayVar))
 
-	// Set up a variable for the delay and then apply it conditionally
+	var s strings.Builder
+	s.WriteString(getNginxStartMarker(state.ExecutionId, nginxActionSubTypeDelay))
+
+	s.WriteString(buildConfigForMatcher(state.Matcher, shouldDelayVar))
+
 	sleepDurationVar := getNginxUniqueVariableName(state.ExecutionId, "sleep_ms_duration")
-	config.WriteString(fmt.Sprintf("set %s 0;\n", sleepDurationVar))
-	config.WriteString(fmt.Sprintf("if (%s = 1) { set %s %d; }\n", shouldDelayVar, sleepDurationVar, state.ResponseDelay))
-	config.WriteString(fmt.Sprintf("sb_sleep_ms %s;\n", sleepDurationVar))
+	s.WriteString(fmt.Sprintf("set %s 0;\n", sleepDurationVar))
+	s.WriteString(fmt.Sprintf("if (%s = 1) { set %s %d; }\n", shouldDelayVar, sleepDurationVar, responseDelay))
+	s.WriteString(fmt.Sprintf("sb_sleep_ms %s;\n", sleepDurationVar))
 
-	return config.String()
-}
-
-// Start applies the NGINX configuration to begin delaying traffic
-func (a *NginxDelayTrafficAction) Start(_ context.Context, state *NginxDelayTrafficState) (*action_kit_api.StartResult, error) {
-	if err := startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
-		return nil, fmt.Errorf("failed to start NGINX delay traffic action: %w", err)
-	}
-	return nil, nil
-}
-
-// Stop removes the NGINX configuration to stop delaying traffic
-func (a *NginxDelayTrafficAction) Stop(_ context.Context, state *NginxDelayTrafficState) (*action_kit_api.StopResult, error) {
-	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx, NginxActionSubTypeDelay); err != nil {
-		return nil, fmt.Errorf("failed to stop NGINX delay traffic action: %w", err)
-	}
-
-	return nil, nil
+	s.WriteString(getNginxEndMarker(state.ExecutionId, nginxActionSubTypeDelay))
+	return s.String()
 }

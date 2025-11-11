@@ -1,42 +1,24 @@
 package extingress
 
 import (
-	"context"
 	"fmt"
 	"strings"
-
-	networkingv1 "k8s.io/api/networking/v1"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kit/extutil"
 )
 
-// HAProxyDelayTrafficState contains state data for the HAProxy delay traffic action
-type HAProxyDelayTrafficState struct {
-	HAProxyBaseState
-	ResponseDelay        int
-	ConditionPathPattern string
-	ConditionHttpMethod  string
-	ConditionHttpHeader  map[string]string
-	AnnotationConfig     string
-}
-
 // NewHAProxyDelayTrafficAction creates a new delay traffic action
-func NewHAProxyDelayTrafficAction() action_kit_sdk.Action[HAProxyDelayTrafficState] {
-	return &HAProxyDelayTrafficAction{}
+func NewHAProxyDelayTrafficAction() action_kit_sdk.Action[HAProxyState] {
+	return &haProxyAction{
+		description:        getHAProxyDelayTrafficDescription(),
+		annotationConfigFn: buildHAProxyDelayConfig,
+		checkExistingFn:    checkHAProxyExistingDelay,
+	}
 }
 
-// HAProxyDelayTrafficAction implements the delay traffic action
-type HAProxyDelayTrafficAction struct{}
-
-// NewEmptyState creates an empty state object
-func (a *HAProxyDelayTrafficAction) NewEmptyState() HAProxyDelayTrafficState {
-	return HAProxyDelayTrafficState{}
-}
-
-// Describe returns the action description for the HAProxy delay traffic action
-func (a *HAProxyDelayTrafficAction) Describe() action_kit_api.ActionDescription {
+func getHAProxyDelayTrafficDescription() action_kit_api.ActionDescription {
 	desc := getCommonActionDescription(
 		HAProxyDelayTrafficActionId,
 		"HAProxy Delay Traffic",
@@ -68,86 +50,24 @@ func (a *HAProxyDelayTrafficAction) Describe() action_kit_api.ActionDescription 
 	return desc
 }
 
-// Prepare validates input parameters and prepares the state for execution
-func (a *HAProxyDelayTrafficAction) Prepare(ctx context.Context, state *HAProxyDelayTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	ingress, err := prepareHAProxyAction(&state.HAProxyBaseState, request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare HAProxy delay action: %w", err)
-	}
-
-	// Extract and validate delay parameter
-	if delay, ok := request.Config["responseDelay"]; ok {
-		switch v := delay.(type) {
-		case float64:
-			state.ResponseDelay = int(v)
-		case int:
-			state.ResponseDelay = v
-		case string:
-			return nil, fmt.Errorf("delay must be a number, got string: %s", v)
-		default:
-			return nil, fmt.Errorf("delay must be a number, got %T", v)
-		}
-	} else {
-		return nil, fmt.Errorf("responseDelay parameter is required")
-	}
-
-	// Parse condition parameters
-	state.ConditionPathPattern = extutil.ToString(request.Config["conditionPathPattern"])
-	state.ConditionHttpMethod = extutil.ToString(request.Config["conditionHttpMethod"])
-
-	if request.Config["conditionHttpHeader"] != nil {
-		state.ConditionHttpHeader, err = extutil.ToKeyValue(request.Config, "conditionHttpHeader")
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse HTTP header condition: %w", err)
-		}
-	}
-
-	// Validate that at least one condition is specified
-	if state.ConditionPathPattern == "" && state.ConditionHttpMethod == "" && len(state.ConditionHttpHeader) == 0 {
-		return nil, fmt.Errorf("at least one condition (path, method, or header) is required")
-	}
-
-	// Check for conflicts with existing rules
-	if err := checkForRuleConflicts(ingress, state); err != nil {
-		return nil, err
-	}
-
-	// Build HAProxy configuration
-	state.AnnotationConfig = buildDelayConfiguration(state)
-
-	return nil, nil
-}
-
-// checkForRuleConflicts checks if the new rules would conflict with existing ones
-func checkForRuleConflicts(ingress *networkingv1.Ingress, state *HAProxyDelayTrafficState) error {
-	existingLines := strings.Split(ingress.Annotations[AnnotationKey], "\n")
-
-	// Check path pattern conflicts
-	if state.ConditionPathPattern != "" {
-		for _, line := range existingLines {
-			if strings.Contains(line, fmt.Sprintf("path_reg %s", state.ConditionPathPattern)) {
-				return fmt.Errorf("a rule for path %s already exists", state.ConditionPathPattern)
-			}
-		}
-	}
-
-	// Check for existing delay rules
-	for _, line := range existingLines {
+func checkHAProxyExistingDelay(lines []string) error {
+	for _, line := range lines {
 		if strings.Contains(line, "tcp-request inspect-delay") {
 			return fmt.Errorf("a delay rule already exists - cannot add another one")
 		}
 	}
-
 	return nil
 }
 
 // buildDelayConfiguration creates the HAProxy configuration for traffic delay
-func buildDelayConfiguration(state *HAProxyDelayTrafficState) string {
-	var configBuilder strings.Builder
-	configBuilder.WriteString(getStartMarker(state.ExecutionId) + "\n")
+func buildHAProxyDelayConfig(state *HAProxyState, config map[string]interface{}) string {
+	responseDelay := extutil.ToInt(config["responseDelay"])
+
+	var s strings.Builder
+	s.WriteString(getHAProxyStartMarker(state.ExecutionId))
 
 	// Add the delay inspection directive
-	configBuilder.WriteString(fmt.Sprintf("tcp-request inspect-delay %dms\n", state.ResponseDelay))
+	s.WriteString(fmt.Sprintf("tcp-request inspect-delay %dms\n", responseDelay))
 
 	// Generate a unique ACL ID prefix based on the execution ID
 	aclIdPrefix := strings.Replace(state.ExecutionId.String(), "-", "_", -1)
@@ -157,15 +77,15 @@ func buildDelayConfiguration(state *HAProxyDelayTrafficState) string {
 	var invertedAclRefs []string
 
 	// Add method condition if specified
-	if state.ConditionHttpMethod != "" && state.ConditionHttpMethod != "*" {
+	if state.Matcher.HttpMethod != "" && state.Matcher.HttpMethod != "*" {
 		aclName := fmt.Sprintf("sb_method_%s", aclIdPrefix)
-		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s method %s", aclName, state.ConditionHttpMethod))
+		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s method %s", aclName, state.Matcher.HttpMethod))
 		invertedAclRefs = append(invertedAclRefs, fmt.Sprintf("!%s", aclName))
 	}
 
 	// Add header conditions if specified
-	if state.ConditionHttpHeader != nil {
-		for headerName, headerValue := range state.ConditionHttpHeader {
+	if state.Matcher.HttpHeader != nil {
+		for headerName, headerValue := range state.Matcher.HttpHeader {
 			aclName := fmt.Sprintf("sb_hdr_%s_%s", strings.Replace(headerName, "-", "_", -1), aclIdPrefix)
 			aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s hdr(%s) -m reg %s", aclName, headerName, headerValue))
 			invertedAclRefs = append(invertedAclRefs, fmt.Sprintf("!%s", aclName))
@@ -173,43 +93,27 @@ func buildDelayConfiguration(state *HAProxyDelayTrafficState) string {
 	}
 
 	// Add path pattern condition if specified
-	if state.ConditionPathPattern != "" {
+	if state.Matcher.PathPattern != "" {
 		aclName := fmt.Sprintf("sb_path_%s", aclIdPrefix)
-		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s path_reg %s", aclName, state.ConditionPathPattern))
+		aclDefinitions = append(aclDefinitions, fmt.Sprintf("acl %s path_reg %s", aclName, state.Matcher.PathPattern))
 		invertedAclRefs = append(invertedAclRefs, fmt.Sprintf("!%s", aclName))
 	}
 
 	// Add all ACL definitions to the configuration
 	for _, aclDef := range aclDefinitions {
-		configBuilder.WriteString(aclDef + "\n")
+		s.WriteString(aclDef + "\n")
 	}
 
 	// For delay, we need to accept packets that don't match our conditions immediately
 	// HAProxy delays the request if it doesn't accept it immediately
 	if len(invertedAclRefs) > 0 {
 		invertedCondition := strings.Join(invertedAclRefs, " || ")
-		configBuilder.WriteString(fmt.Sprintf("tcp-request content accept if WAIT_END || %s\n", invertedCondition))
+		s.WriteString(fmt.Sprintf("tcp-request content accept if WAIT_END || %s\n", invertedCondition))
 	} else {
 		// This should never happen due to the earlier check, but as a failsafe
-		configBuilder.WriteString("tcp-request content accept if WAIT_END\n")
+		s.WriteString("tcp-request content accept if WAIT_END\n")
 	}
 
-	configBuilder.WriteString(getEndMarker(state.ExecutionId) + "\n")
-	return configBuilder.String()
-}
-
-// Start applies the HAProxy configuration to begin delaying traffic
-func (a *HAProxyDelayTrafficAction) Start(ctx context.Context, state *HAProxyDelayTrafficState) (*action_kit_api.StartResult, error) {
-	if err := startHAProxyAction(&state.HAProxyBaseState, state.AnnotationConfig); err != nil {
-		return nil, fmt.Errorf("failed to start HAProxy delay traffic action: %w", err)
-	}
-	return nil, nil
-}
-
-// Stop removes the HAProxy configuration to stop delaying traffic
-func (a *HAProxyDelayTrafficAction) Stop(ctx context.Context, state *HAProxyDelayTrafficState) (*action_kit_api.StopResult, error) {
-	if err := stopHAProxyAction(&state.HAProxyBaseState); err != nil {
-		return nil, fmt.Errorf("failed to stop HAProxy delay traffic action: %w", err)
-	}
-	return nil, nil
+	s.WriteString(getHAProxyEndMarker(state.ExecutionId))
+	return s.String()
 }

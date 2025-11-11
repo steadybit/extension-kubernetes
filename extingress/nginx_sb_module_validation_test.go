@@ -1,6 +1,5 @@
-/*
- * Copyright 2025 steadybit GmbH. All rights reserved.
- */
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
 
 package extingress
 
@@ -9,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -17,8 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
-
-	"github.com/steadybit/extension-kubernetes/v2/client"
 )
 
 // newNginxTestClient creates a fake client with provided initial objects.
@@ -26,6 +24,60 @@ func newNginxTestClient(stopCh <-chan struct{}, initObjs ...runtime.Object) (*cl
 	cs := testclient.NewClientset(initObjs...)
 	cli := client.CreateClient(cs, stopCh, "", client.MockAllPermitted())
 	return cli, cs
+}
+
+func Test_findNginxControllerNamespace_WithAnnotations(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	cli, cs := newNginxTestClient(stopCh)
+
+	// Override the global client for testing
+	originalClient := client.K8S
+	client.K8S = cli
+	defer func() { client.K8S = originalClient }()
+
+	// Test UBI NGINX with operator-sdk/primary-resource annotation
+	ubiNginxClass := &networkingv1.IngressClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ubi-nginx",
+			Annotations: map[string]string{
+				"operator-sdk/primary-resource": "nginx-ingress-steadybit/nginxingress-controller",
+			},
+		},
+		Spec: networkingv1.IngressClassSpec{Controller: "nginx.org/ingress-controller"},
+	}
+	_, err := cs.NetworkingV1().IngressClasses().Create(context.Background(), ubiNginxClass, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	// Test community NGINX with meta.helm.sh/release-namespace annotation
+	communityNginxClass := &networkingv1.IngressClass{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "community-nginx",
+			Annotations: map[string]string{
+				"meta.helm.sh/release-namespace": "ingress-nginx",
+			},
+		},
+		Spec: networkingv1.IngressClassSpec{Controller: "k8s.io/ingress-nginx"},
+	}
+	_, err = cs.NetworkingV1().IngressClasses().Create(context.Background(), communityNginxClass, metav1.CreateOptions{})
+	require.NoError(t, err)
+
+	// Wait for IngressClasses to be available in cache
+	assert.Eventually(t, func() bool {
+		classes := client.K8S.IngressClasses()
+		return len(classes) >= 2
+	}, time.Second*3, 100*time.Millisecond)
+
+	// Test UBI NGINX - should try to look in nginx-ingress-steadybit namespace
+	result := findNginxControllerNamespace("ubi-nginx")
+	// Will return empty since no pods exist, but that's expected in test environment
+	assert.Equal(t, "", result, "UBI NGINX controller without pods should return empty")
+
+	// Test community NGINX - should try to look in ingress-nginx namespace
+	result = findNginxControllerNamespace("community-nginx")
+	// Will return empty since no pods exist, but that's expected in test environment
+	assert.Equal(t, "", result, "Community NGINX controller without pods should return empty")
 }
 
 func Test_findNginxControllerNamespace_Basic(t *testing.T) {
@@ -113,60 +165,6 @@ func Test_hasNginxControllerPods(t *testing.T) {
 	// Test with existing namespace but no pods
 	result = hasNginxControllerPods("default")
 	assert.False(t, result, "Namespace without NGINX pods should return false")
-}
-
-func Test_findNginxControllerNamespace_WithAnnotations(t *testing.T) {
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	cli, cs := newNginxTestClient(stopCh)
-
-	// Override the global client for testing
-	originalClient := client.K8S
-	client.K8S = cli
-	defer func() { client.K8S = originalClient }()
-
-	// Test UBI NGINX with operator-sdk/primary-resource annotation
-	ubiNginxClass := &networkingv1.IngressClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ubi-nginx",
-			Annotations: map[string]string{
-				"operator-sdk/primary-resource": "nginx-ingress-steadybit/nginxingress-controller",
-			},
-		},
-		Spec: networkingv1.IngressClassSpec{Controller: "nginx.org/ingress-controller"},
-	}
-	_, err := cs.NetworkingV1().IngressClasses().Create(context.Background(), ubiNginxClass, metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	// Test community NGINX with meta.helm.sh/release-namespace annotation
-	communityNginxClass := &networkingv1.IngressClass{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "community-nginx",
-			Annotations: map[string]string{
-				"meta.helm.sh/release-namespace": "ingress-nginx",
-			},
-		},
-		Spec: networkingv1.IngressClassSpec{Controller: "k8s.io/ingress-nginx"},
-	}
-	_, err = cs.NetworkingV1().IngressClasses().Create(context.Background(), communityNginxClass, metav1.CreateOptions{})
-	require.NoError(t, err)
-
-	// Wait for IngressClasses to be available in cache
-	assert.Eventually(t, func() bool {
-		classes := client.K8S.IngressClasses()
-		return len(classes) >= 2
-	}, time.Second*3, 100*time.Millisecond)
-
-	// Test UBI NGINX - should try to look in nginx-ingress-steadybit namespace
-	result := findNginxControllerNamespace("ubi-nginx")
-	// Will return empty since no pods exist, but that's expected in test environment
-	assert.Equal(t, "", result, "UBI NGINX controller without pods should return empty")
-
-	// Test community NGINX - should try to look in ingress-nginx namespace
-	result = findNginxControllerNamespace("community-nginx")
-	// Will return empty since no pods exist, but that's expected in test environment
-	assert.Equal(t, "", result, "Community NGINX controller without pods should return empty")
 }
 
 func Test_podServesIngressClass(t *testing.T) {

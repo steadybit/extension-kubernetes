@@ -33,7 +33,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 		name        string
 		ingressName string
 		config      map[string]interface{}
-		want        NginxBlockTrafficState
+		want        NginxState
 		wantErr     string
 	}{
 		{
@@ -43,15 +43,13 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/api/.*",
 			},
-			want: NginxBlockTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUIDBlock,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseStatusCode: 503,
-				Matcher:            NginxRequestMatcher{PathPattern: "/api/.*"},
-				IsEnterpriseNginx:  false,
+			want: NginxState{
+				ExecutionId:      testUUIDBlock,
+				Namespace:        "demo",
+				IngressName:      "test-nginx-ingress",
+				Matcher:          RequestMatcher{PathPattern: "/api/.*"},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\nset $sb_should_block_00000000000000000000000000000000 1;\nif ($request_uri !~* /api/.*) { set $sb_should_block_00000000000000000000000000000000 0; }\nif ($sb_should_block_00000000000000000000000000000000 = 1) { return 503; }\n# END STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -61,14 +59,13 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 				"responseStatusCode":  503,
 				"conditionHttpMethod": "POST",
 			},
-			want: NginxBlockTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUIDBlock,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseStatusCode: 503,
-				Matcher:            NginxRequestMatcher{HttpMethod: "POST"},
+			want: NginxState{
+				ExecutionId:      testUUIDBlock,
+				Namespace:        "demo",
+				IngressName:      "test-nginx-ingress",
+				Matcher:          RequestMatcher{HttpMethod: "POST"},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\nset $sb_should_block_00000000000000000000000000000000 1;\nif ($request_method != POST) { set $sb_should_block_00000000000000000000000000000000 0; }\nif ($sb_should_block_00000000000000000000000000000000 = 1) { return 503; }\n# END STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -80,16 +77,15 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 					map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
 				},
 			},
-			want: NginxBlockTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUIDBlock,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseStatusCode: 503,
-				Matcher: NginxRequestMatcher{HttpHeader: map[string]string{
+			want: NginxState{
+				ExecutionId: testUUIDBlock,
+				Namespace:   "demo",
+				IngressName: "test-nginx-ingress",
+				Matcher: RequestMatcher{HttpHeader: map[string]string{
 					"User-Agent": "Mozilla.*",
 				}},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\nset $sb_should_block_00000000000000000000000000000000 1;\nif ($http_user_agent !~* Mozilla.*) { set $sb_should_block_00000000000000000000000000000000 0; }\nif ($sb_should_block_00000000000000000000000000000000 = 1) { return 503; }\n# END STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -103,19 +99,18 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 					map[string]interface{}{"key": "Content-Type", "value": "application/json"},
 				},
 			},
-			want: NginxBlockTrafficState{
-				NginxBaseState: NginxBaseState{
-					ExecutionId: testUUIDBlock,
-					Namespace:   "demo",
-					IngressName: "test-nginx-ingress",
-				},
-				ResponseStatusCode: 503,
-				Matcher: NginxRequestMatcher{PathPattern: "/api/users",
+			want: NginxState{
+				ExecutionId: testUUIDBlock,
+				Namespace:   "demo",
+				IngressName: "test-nginx-ingress",
+				Matcher: RequestMatcher{PathPattern: "/api/users",
 					HttpMethod: "POST",
 					HttpHeader: map[string]string{
 						"Content-Type": "application/json",
 					},
 				},
+				AnnotationKey:    nginxAnnotationKey,
+				AnnotationConfig: "# BEGIN STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\nset $sb_should_block_00000000000000000000000000000000 1;\nif ($request_uri !~* /api/users) { set $sb_should_block_00000000000000000000000000000000 0; }\nif ($request_method != POST) { set $sb_should_block_00000000000000000000000000000000 0; }\nif ($http_content_type !~* application/json) { set $sb_should_block_00000000000000000000000000000000 0; }\nif ($sb_should_block_00000000000000000000000000000000 = 1) { return 503; }\n# END STEADYBIT - Block - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -144,7 +139,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 			request := createNginxTestRequest(tt.ingressName, tt.config)
 
 			// Run the Prepare method
-			action := &NginxBlockTrafficAction{}
+			action := NewNginxBlockTrafficAction()
 			state := action.NewEmptyState()
 			_, err := action.Prepare(context.Background(), &state, request)
 
@@ -212,7 +207,7 @@ func createNginxIngress(name, configSnippet string) *networkingv1.Ingress {
 			Namespace: "demo",
 			Annotations: map[string]string{
 				"kubernetes.io/ingress.class": "nginx",
-				NginxAnnotationKey:            configSnippet,
+				nginxAnnotationKey:            configSnippet,
 			},
 		},
 	}
@@ -233,20 +228,15 @@ func createNginxTestRequest(ingressName string, config map[string]interface{}) a
 }
 
 // assertNginxBlockStateMatches verifies that the actual state matches the expected state
-func assertNginxBlockStateMatches(t *testing.T, expected, actual NginxBlockTrafficState) {
+func assertNginxBlockStateMatches(t *testing.T, expected, actual NginxState) {
 	// Check basic properties
-	assert.Equal(t, expected.ResponseStatusCode, actual.ResponseStatusCode)
 	assert.Equal(t, expected.Matcher.PathPattern, actual.Matcher.PathPattern)
 	assert.Equal(t, expected.Matcher.HttpMethod, actual.Matcher.HttpMethod)
 	assert.Equal(t, expected.Matcher.HttpHeader, actual.Matcher.HttpHeader)
 	assert.Equal(t, expected.Namespace, actual.Namespace)
 	assert.Equal(t, expected.IngressName, actual.IngressName)
-	assert.Equal(t, expected.IsEnterpriseNginx, actual.IsEnterpriseNginx)
-
-	// Check annotation config contains expected elements
-	assert.Contains(t, actual.AnnotationConfig, "# BEGIN STEADYBIT")
-	assert.Contains(t, actual.AnnotationConfig, "# END STEADYBIT")
-	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("return %d", actual.ResponseStatusCode))
+	assert.Equal(t, expected.AnnotationKey, actual.AnnotationKey)
+	assert.Equal(t, expected.AnnotationConfig, actual.AnnotationConfig)
 
 	// Generate expected unique variable name for this execution
 	expectedShouldBlockVar := getNginxUniqueVariableName(actual.ExecutionId, "should_block")
@@ -254,7 +244,7 @@ func assertNginxBlockStateMatches(t *testing.T, expected, actual NginxBlockTraff
 	assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("if (%s = 1)", expectedShouldBlockVar))
 
 	if actual.Matcher.PathPattern != "" {
-		if actual.IsEnterpriseNginx {
+		if actual.AnnotationKey == nginxEnterpriseAnnotationKey {
 			assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("location ~ %s", actual.Matcher.PathPattern))
 		} else {
 			assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("$request_uri !~* %s", actual.Matcher.PathPattern))
