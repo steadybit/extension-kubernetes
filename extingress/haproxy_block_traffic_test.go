@@ -5,7 +5,6 @@ package extingress
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -31,7 +30,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 		name        string
 		ingressName string
 		config      map[string]interface{}
-		want        HAProxyBlockTrafficState
+		want        HAProxyState
 		wantErr     string
 	}{
 		{
@@ -41,15 +40,12 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/api/*",
 			},
-			want: HAProxyBlockTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: testUUID,
-					Namespace:   "demo",
-					IngressName: "test-ingress",
-				},
-				ResponseStatusCode:   503,
-				ConditionPathPattern: "/api/*",
-				AnnotationConfig:     "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_path_00000000-0000-0000-0000-000000000000 path_reg /api/*\nhttp-request return status 503 if sb_path_00000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+			want: HAProxyState{
+				ExecutionId:      testUUID,
+				Namespace:        "demo",
+				IngressName:      "test-ingress",
+				Matcher:          RequestMatcher{PathPattern: "/api/*"},
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_path_00000000_0000_0000_0000_000000000000 path_reg /api/*\nhttp-request return status 503 if sb_path_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -59,15 +55,12 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 				"responseStatusCode":  503,
 				"conditionHttpMethod": "POST",
 			},
-			want: HAProxyBlockTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: testUUID,
-					Namespace:   "demo",
-					IngressName: "test-ingress",
-				},
-				ResponseStatusCode:  503,
-				ConditionHttpMethod: "POST",
-				AnnotationConfig:    "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000-0000-0000-0000-000000000000 method POST\nhttp-request return status 503 if sb_method_00000000-0000-0000-0000-000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+			want: HAProxyState{
+				ExecutionId:      testUUID,
+				Namespace:        "demo",
+				IngressName:      "test-ingress",
+				Matcher:          RequestMatcher{HttpMethod: "POST"},
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000_0000_0000_0000_000000000000 method POST\nhttp-request return status 503 if sb_method_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -79,17 +72,15 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 					map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
 				},
 			},
-			want: HAProxyBlockTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: testUUID,
-					Namespace:   "demo",
-					IngressName: "test-ingress",
-				},
-				ResponseStatusCode: 503,
-				ConditionHttpHeader: map[string]string{
+			want: HAProxyState{
+				ExecutionId: testUUID,
+				Namespace:   "demo",
+				IngressName: "test-ingress",
+				Matcher: RequestMatcher{HttpHeader: map[string]string{
 					"User-Agent": "Mozilla.*",
 				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_hdr_User_Agent_00000000-0000-0000-0000-000000000000 hdr(User-Agent) -m reg Mozilla.*\nhttp-request return status 503 if sb_hdr_User_Agent_00000000-0000-0000-0000-000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				},
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_hdr_User_Agent_00000000_0000_0000_0000_000000000000 hdr(User-Agent) -m reg Mozilla.*\nhttp-request return status 503 if sb_hdr_User_Agent_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -103,19 +94,17 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 					map[string]interface{}{"key": "Content-Type", "value": "application/json"},
 				},
 			},
-			want: HAProxyBlockTrafficState{
-				HAProxyBaseState: HAProxyBaseState{
-					ExecutionId: testUUID,
-					Namespace:   "demo",
-					IngressName: "test-ingress",
+			want: HAProxyState{
+				ExecutionId: testUUID,
+				Namespace:   "demo",
+				IngressName: "test-ingress",
+				Matcher: RequestMatcher{PathPattern: "/api/users",
+					HttpMethod: "POST",
+					HttpHeader: map[string]string{
+						"Content-Type": "application/json",
+					},
 				},
-				ResponseStatusCode:   503,
-				ConditionPathPattern: "/api/users",
-				ConditionHttpMethod:  "POST",
-				ConditionHttpHeader: map[string]string{
-					"Content-Type": "application/json",
-				},
-				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000-0000-0000-0000-000000000000 method POST\nacl sb_hdr_Content_Type_00000000-0000-0000-0000-000000000000 hdr(Content-Type) -m reg application/json\nacl sb_path_00000000-0000-0000-0000-000000000000 path_reg /api/users\nhttp-request return status 503 if sb_method_00000000-0000-0000-0000-000000000000 sb_hdr_Content_Type_00000000-0000-0000-0000-000000000000 sb_path_00000000-0000-0000-0000-000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
+				AnnotationConfig: "# BEGIN STEADYBIT - 00000000-0000-0000-0000-000000000000\nacl sb_method_00000000_0000_0000_0000_000000000000 method POST\nacl sb_hdr_Content_Type_00000000_0000_0000_0000_000000000000 hdr(Content-Type) -m reg application/json\nacl sb_path_00000000_0000_0000_0000_000000000000 path_reg /api/users\nhttp-request return status 503 if sb_method_00000000_0000_0000_0000_000000000000 sb_hdr_Content_Type_00000000_0000_0000_0000_000000000000 sb_path_00000000_0000_0000_0000_000000000000\n# END STEADYBIT - 00000000-0000-0000-0000-000000000000\n",
 			},
 		},
 		{
@@ -144,7 +133,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 			request := createTestRequest(tt.ingressName, tt.config)
 
 			// Run the Prepare method
-			action := &HAProxyBlockTrafficAction{}
+			action := NewHAProxyBlockTrafficAction()
 			state := action.NewEmptyState()
 			_, err := action.Prepare(context.Background(), &state, request)
 
@@ -155,7 +144,13 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			assertBlockStateMatches(t, tt.want, state)
+			// Check basic properties
+			assert.Equal(t, tt.want.Matcher.PathPattern, state.Matcher.PathPattern)
+			assert.Equal(t, tt.want.Matcher.HttpMethod, state.Matcher.HttpMethod)
+			assert.Equal(t, tt.want.Matcher.HttpHeader, state.Matcher.HttpHeader)
+			assert.Equal(t, tt.want.Namespace, state.Namespace)
+			assert.Equal(t, tt.want.IngressName, state.IngressName)
+			assert.Equal(t, tt.want.AnnotationConfig, state.AnnotationConfig)
 		})
 	}
 }
@@ -219,7 +214,7 @@ func createIngress(name, configSnippet string) *networkingv1.Ingress {
 			Namespace: "demo",
 			Annotations: map[string]string{
 				"kubernetes.io/ingress.class": "haproxy",
-				AnnotationKey:                 configSnippet,
+				haProxyAnnotationKey:          configSnippet,
 			},
 		},
 	}
@@ -236,38 +231,5 @@ func createTestRequest(ingressName string, config map[string]interface{}) action
 				"k8s.ingress":   {ingressName},
 			},
 		}),
-	}
-}
-
-// assertBlockStateMatches verifies that the actual state matches the expected state
-func assertBlockStateMatches(t *testing.T, expected, actual HAProxyBlockTrafficState) {
-	// Check basic properties
-	assert.Equal(t, expected.ResponseStatusCode, actual.ResponseStatusCode)
-	assert.Equal(t, expected.ConditionPathPattern, actual.ConditionPathPattern)
-	assert.Equal(t, expected.ConditionHttpMethod, actual.ConditionHttpMethod)
-	assert.Equal(t, expected.ConditionHttpHeader, actual.ConditionHttpHeader)
-	assert.Equal(t, expected.Namespace, actual.Namespace)
-	assert.Equal(t, expected.IngressName, actual.IngressName)
-
-	// Check annotation config contains expected elements
-	if expected.AnnotationConfig != "" {
-		assert.Contains(t, actual.AnnotationConfig, "# BEGIN STEADYBIT")
-		assert.Contains(t, actual.AnnotationConfig, "# END STEADYBIT")
-		assert.Contains(t, actual.AnnotationConfig, fmt.Sprintf("http-request return status %d", actual.ResponseStatusCode))
-
-		if actual.ConditionPathPattern != "" {
-			assert.Contains(t, actual.AnnotationConfig, "path_reg")
-			assert.Contains(t, actual.AnnotationConfig, actual.ConditionPathPattern)
-		}
-
-		if actual.ConditionHttpMethod != "" {
-			assert.Contains(t, actual.AnnotationConfig, "method")
-			assert.Contains(t, actual.AnnotationConfig, actual.ConditionHttpMethod)
-		}
-
-		for headerName, headerValue := range actual.ConditionHttpHeader {
-			assert.Contains(t, actual.AnnotationConfig, headerName)
-			assert.Contains(t, actual.AnnotationConfig, headerValue)
-		}
 	}
 }

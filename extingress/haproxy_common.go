@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+
 package extingress
 
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
@@ -10,69 +14,100 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
-	networkingv1 "k8s.io/api/networking/v1"
 )
 
 // Action IDs for HAProxy actions
 const (
 	HAProxyIngressTargetType    = "com.steadybit.extension_kubernetes.kubernetes-haproxy-ingress"
-	AnnotationKey               = "haproxy-ingress.github.io/backend-config-snippet"
 	HAProxyBlockTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-block-traffic"
 	HAProxyDelayTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-delay-traffic"
+	haProxyAnnotationKey        = "haproxy-ingress.github.io/backend-config-snippet"
 )
 
-// HAProxyBaseState contains common state for HAProxy-related actions
-type HAProxyBaseState struct {
-	ExecutionId uuid.UUID
-	Namespace   string
-	IngressName string
+// HAProxyState contains common state for HAProxy-related actions
+type HAProxyState struct {
+	ExecutionId      uuid.UUID
+	Namespace        string
+	IngressName      string
+	Matcher          RequestMatcher
+	AnnotationConfig string
 }
 
-// prepareHAProxyAction contains common preparation logic for HAProxy actions
-func prepareHAProxyAction(state *HAProxyBaseState, request action_kit_api.PrepareActionRequestBody) (*networkingv1.Ingress, error) {
+type haProxyAction struct {
+	description        action_kit_api.ActionDescription
+	annotationConfigFn func(state *HAProxyState, config map[string]interface{}) string
+	checkExistingFn    func(lines []string) error
+}
+
+// NewEmptyState creates an empty state object
+func (a *haProxyAction) NewEmptyState() HAProxyState {
+	return HAProxyState{}
+}
+
+func (a *haProxyAction) Describe() action_kit_api.ActionDescription {
+	return a.description
+}
+
+// Prepare validates input parameters and prepares the state for execution
+func (a *haProxyAction) Prepare(_ context.Context, state *HAProxyState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+	var err error
 	state.ExecutionId = request.ExecutionId
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.IngressName = request.Target.Attributes["k8s.ingress"][0]
+	state.Matcher, err = parseRequestMatcher(request.Config)
+	if err != nil {
+		return nil, err
+	}
 
-	// Check ingress availability
 	ingress, err := client.K8S.IngressByNamespaceAndName(state.Namespace, state.IngressName, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch ingress: %w", err)
 	}
-	return ingress, nil
-}
 
-// startHAProxyAction contains common start logic for HAProxy actions
-func startHAProxyAction(state *HAProxyBaseState, annotationConfig string) error {
-	log.Debug().Msgf("Adding new HAProxy configuration: %s", annotationConfig)
-	// Prepend the new configuration
-	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, AnnotationKey, annotationConfig)
-	if err != nil {
-		return err
+	existingSnippet := strings.Split(ingress.Annotations[haProxyAnnotationKey], "\n")
+	if err = checkHAProxyRuleConflicts(existingSnippet, state.Matcher); err != nil {
+		return nil, err
 	}
 
-	return nil
+	if a.checkExistingFn != nil {
+		if err = a.checkExistingFn(existingSnippet); err != nil {
+			return nil, err
+		}
+	}
+
+	state.AnnotationConfig = a.annotationConfigFn(state, request.Config)
+	return nil, nil
 }
 
-// stopHAProxyAction contains common stop logic for HAProxy actions
-func stopHAProxyAction(state *HAProxyBaseState) error {
+// Start applies the HAProxy configuration to begin blocking traffic
+func (a *haProxyAction) Start(_ context.Context, state *HAProxyState) (*action_kit_api.StartResult, error) {
+	log.Debug().Msgf("Adding new %s configuration: %s", a.description.Label, state.AnnotationConfig)
+
+	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, haProxyAnnotationKey, state.AnnotationConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start %s action: %w", a.description.Label, err)
+	}
+	return nil, nil
+}
+
+// Stop removes the HAProxy configuration to stop blocking traffic
+func (a *haProxyAction) Stop(_ context.Context, state *HAProxyState) (*action_kit_api.StopResult, error) {
 	err := client.K8S.RemoveAnnotationBlock(
 		context.Background(),
 		state.Namespace,
 		state.IngressName,
-		AnnotationKey,
+		haProxyAnnotationKey,
 		state.ExecutionId,
-		getStartMarker(state.ExecutionId),
-		getEndMarker(state.ExecutionId),
+		getHAProxyStartMarker(state.ExecutionId),
+		getHAProxyEndMarker(state.ExecutionId),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to remove HAProxy configuration: %w", err)
+		return nil, fmt.Errorf("failed to stop %s action: %w", a.description.Label, err)
 	}
 
-	return nil
+	return nil, nil
 }
 
-// getCommonActionDescription returns common action description elements
 func getCommonActionDescription(id string, label string, description string, icon string) action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          id,
@@ -173,10 +208,24 @@ func getConditionsParameters() []action_kit_api.ActionParameter {
 	}
 }
 
-func getStartMarker(executionId uuid.UUID) string {
-	return fmt.Sprintf("# BEGIN STEADYBIT - %s", executionId)
+func getHAProxyStartMarker(executionId uuid.UUID) string {
+	return fmt.Sprintf("# BEGIN STEADYBIT - %s\n", executionId)
 }
 
-func getEndMarker(executionId uuid.UUID) string {
-	return fmt.Sprintf("# END STEADYBIT - %s", executionId)
+func getHAProxyEndMarker(executionId uuid.UUID) string {
+	return fmt.Sprintf("# END STEADYBIT - %s\n", executionId)
+}
+
+// checkHAProxyRuleConflicts checks if the new rules would conflict with existing ones
+func checkHAProxyRuleConflicts(lines []string, matcher RequestMatcher) error {
+	if matcher.PathPattern == "" {
+		return nil
+	}
+
+	for _, line := range lines {
+		if strings.Contains(line, fmt.Sprintf("path_reg %s", matcher.PathPattern)) {
+			return fmt.Errorf("a rule for path %s already exists", matcher.PathPattern)
+		}
+	}
+	return nil
 }

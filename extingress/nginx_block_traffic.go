@@ -5,7 +5,6 @@
 package extingress
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -14,30 +13,16 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 )
 
-// NginxBlockTrafficState contains state data for the NGINX block traffic action
-type NginxBlockTrafficState struct {
-	NginxBaseState
-	ResponseStatusCode int
-	Matcher            NginxRequestMatcher
-	AnnotationConfig   string
-	IsEnterpriseNginx  bool
-}
-
 // NewNginxBlockTrafficAction creates a new block traffic action
-func NewNginxBlockTrafficAction() action_kit_sdk.Action[NginxBlockTrafficState] {
-	return &NginxBlockTrafficAction{}
+func NewNginxBlockTrafficAction() action_kit_sdk.Action[NginxState] {
+	return &nginxAction{
+		description:        getNginxBlockTrafficDescription(),
+		subtype:            nginxActionSubTypeBlock,
+		annotationConfigFn: buildNginxBlockConfig,
+	}
 }
 
-// NginxBlockTrafficAction implements the block traffic action
-type NginxBlockTrafficAction struct{}
-
-// NewEmptyState creates an empty state object
-func (a *NginxBlockTrafficAction) NewEmptyState() NginxBlockTrafficState {
-	return NginxBlockTrafficState{}
-}
-
-// Describe returns the action description for the NGINX block traffic action
-func (a *NginxBlockTrafficAction) Describe() action_kit_api.ActionDescription {
+func getNginxBlockTrafficDescription() action_kit_api.ActionDescription {
 	desc := getNginxActionDescription(
 		NginxBlockTrafficActionId,
 		"NGINX Block Traffic",
@@ -79,90 +64,16 @@ func (a *NginxBlockTrafficAction) Describe() action_kit_api.ActionDescription {
 	return desc
 }
 
-// Prepare validates input parameters and prepares the state for execution
-func (a *NginxBlockTrafficAction) Prepare(_ context.Context, state *NginxBlockTrafficState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	ingress, err := prepareNginxAction(&state.NginxBaseState, request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare NGINX block action: %w", err)
-	}
-
-	// Extract parameters from request
-	state.ResponseStatusCode = extutil.ToInt(request.Config["responseStatusCode"])
-	state.IsEnterpriseNginx = extutil.ToBool(request.Config["isEnterpriseNginx"])
-
-	// Check for Enterprise NGINX based on ingress controller
-	if ingressClass, ok := request.Target.Attributes["k8s.ingress.class"]; ok && len(ingressClass) > 0 {
-		if controller, ok := request.Target.Attributes["k8s.ingress.controller"]; ok && len(controller) > 0 {
-			if controller[0] == "nginx.org/ingress-controller" {
-				// Override with detected Enterprise NGINX
-				state.IsEnterpriseNginx = true
-			}
-		}
-	}
-
-	state.Matcher, err = buildNginxRequestMatcherFromConfig(request.Config)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check for conflicts with existing rules
-	annotationKey := NginxAnnotationKey
-	if state.IsEnterpriseNginx {
-		annotationKey = NginxEnterpriseAnnotationKey
-	}
-
-	if state.Matcher.PathPattern != "" && ingress.Annotations != nil {
-		if existingConfig, exists := ingress.Annotations[annotationKey]; exists && existingConfig != "" {
-			existingLines := strings.Split(existingConfig, "\n")
-			for _, line := range existingLines {
-				// Check for location block with same path
-				if strings.Contains(line, fmt.Sprintf("location ~ %s", state.Matcher.PathPattern)) ||
-					strings.Contains(line, fmt.Sprintf("location = %s", state.Matcher.PathPattern)) {
-					return nil, fmt.Errorf("a rule for path %s already exists", state.Matcher.PathPattern)
-				}
-			}
-		}
-	}
-
-	state.AnnotationConfig = buildNginxBlockConfig(state)
-
-	return nil, nil
-}
-
-// buildNginxBlockConfig creates the NGINX configuration for blocking traffic
-func buildNginxBlockConfig(state *NginxBlockTrafficState) string {
-	var configBuilder strings.Builder
-	configBuilder.WriteString(getNginxStartMarker(state.ExecutionId, NginxActionSubTypeBlock))
-	configBuilder.WriteString(buildNginxConfig(state))
-	configBuilder.WriteString(getNginxEndMarker(state.ExecutionId, NginxActionSubTypeBlock))
-	return configBuilder.String()
-}
-
-// buildNginxConfig creates configuration for NGINX Ingress Controller (both open source and enterprise)
-func buildNginxConfig(state *NginxBlockTrafficState) string {
-	var config strings.Builder
+func buildNginxBlockConfig(state *NginxState, config map[string]interface{}) string {
+	responseStatusCode := extutil.ToInt(config["responseStatusCode"])
 	shouldBlockVar := getNginxUniqueVariableName(state.ExecutionId, "should_block")
 
-	config.WriteString(buildConfigForMatcher(state.Matcher, shouldBlockVar))
+	var s strings.Builder
+	s.WriteString(getNginxStartMarker(state.ExecutionId, nginxActionSubTypeBlock))
 
-	config.WriteString(fmt.Sprintf("if (%s = 1) { return %d; }\n", shouldBlockVar, state.ResponseStatusCode))
+	s.WriteString(buildConfigForMatcher(state.Matcher, shouldBlockVar))
+	s.WriteString(fmt.Sprintf("if (%s = 1) { return %d; }\n", shouldBlockVar, responseStatusCode))
 
-	return config.String()
-}
-
-// Start applies the NGINX configuration to begin blocking traffic
-func (a *NginxBlockTrafficAction) Start(_ context.Context, state *NginxBlockTrafficState) (*action_kit_api.StartResult, error) {
-	if err := startNginxAction(&state.NginxBaseState, state.AnnotationConfig, state.IsEnterpriseNginx); err != nil {
-		return nil, fmt.Errorf("failed to start NGINX block traffic action: %w", err)
-	}
-	return nil, nil
-}
-
-// Stop removes the NGINX configuration to stop blocking traffic
-func (a *NginxBlockTrafficAction) Stop(_ context.Context, state *NginxBlockTrafficState) (*action_kit_api.StopResult, error) {
-	if err := stopNginxAction(&state.NginxBaseState, state.IsEnterpriseNginx, NginxActionSubTypeBlock); err != nil {
-		return nil, fmt.Errorf("failed to stop NGINX block traffic action: %w", err)
-	}
-
-	return nil, nil
+	s.WriteString(getNginxEndMarker(state.ExecutionId, nginxActionSubTypeBlock))
+	return s.String()
 }
