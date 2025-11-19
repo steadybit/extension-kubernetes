@@ -1,9 +1,15 @@
 # Changelog
 
+## v2.6.12
+
+- Update dependencies
+
 ## v2.6.11
+
 - add attributes containing all label keys
 
 ## v2.6.10
+
 - Changing Advice's experiment templates
   - Schedule Pods Across Zones: attack 100% of the containers in one zone
   - Limit CPU/memory resources: attack 1 random container
