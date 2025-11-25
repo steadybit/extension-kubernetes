@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"github.com/steadybit/extension-kubernetes/v2/ai"
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/advice-kit/go/advice_kit_sdk"
@@ -61,7 +62,7 @@ func main() {
 
 	extconfig.ParseConfiguration()
 	extconfig.ValidateConfiguration()
-	initKlogBridge(extconfig.Config.LogKubernetesHttpRequests)
+	//initKlogBridge(extconfig.Config.LogKubernetesHttpRequests)
 
 	extbuild.PrintBuildInformation()
 	extruntime.LogRuntimeInformation(zerolog.DebugLevel)
@@ -149,6 +150,15 @@ func main() {
 		discovery_kit_sdk.Register(extcluster.NewClusterDiscovery())
 		action_kit_sdk.RegisterAction(extdeployment.NewPodCountMetricsAction())
 		action_kit_sdk.RegisterAction(extevents.NewK8sEventsAction())
+	}
+
+	if extconfig.Config.EnableAIActions {
+		bedrockClient, err := ai.NewAIClient(context.Background())
+		if err != nil {
+			panic(err)
+		}
+		action_kit_sdk.RegisterAction(ai.NewReliabilityCheckAction(ai.ConverseWrapper{BedrockRuntimeClient: bedrockClient.BR}))
+		discovery_kit_sdk.Register(ai.NewReliabilityIssueDiscovery())
 	}
 
 	discovery_kit_sdk.Register(extcommon.NewAttributeDescriber())

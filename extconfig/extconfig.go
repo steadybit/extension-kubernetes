@@ -6,6 +6,7 @@ package extconfig
 import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog/log"
+	_ "github.com/rs/zerolog/log"
 	"github.com/steadybit/advice-kit/go/advice_kit_sdk"
 )
 
@@ -42,6 +43,7 @@ type Specification struct {
 	Namespace                              string   `json:"namespace" split_words:"true" required:"false" default:""`
 	NginxDelaySkipImageCheck               bool     `json:"nginxDelaySkipImageCheck" split_words:"true" required:"false" default:"false"`
 	PrintMemoryStatsInterval               int64    `json:"printMemoryStatsInterval" split_words:"true" required:"false" default:"0"`
+	EnableAIActions                        bool     `json:"enableAIActions" split_words:"true" required:"false" default:"true"`
 }
 
 var (
