@@ -155,7 +155,6 @@ func (a *reliabilityCheckAction) Describe() action_kit_api.ActionDescription {
 		Technology: extutil.Ptr("AI"),
 		Category:   extutil.Ptr("Reliability"),
 
-		// This is a Check action, executed once (no status/stop).
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
 		Widgets: extutil.Ptr([]action_kit_api.Widget{
