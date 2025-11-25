@@ -148,7 +148,7 @@ func (a *reliabilityCheckAction) Describe() action_kit_api.ActionDescription {
 		Label:       "Check Issues with AI",
 		Description: "Uses an AI model to analyze a manifest for reliability issues.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr(""),
+		Icon:        extutil.Ptr(targetIcon),
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
 			TargetType: DeploymentTargetType,
 		}),

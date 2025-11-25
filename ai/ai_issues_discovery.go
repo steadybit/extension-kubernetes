@@ -20,11 +20,10 @@ import (
 
 const (
 	ReliabilityIssueTargetType = "com.steadybit.extension_kubernetes.ai.reliability-issues"
-	clusterAttribute           = "k8s.ai.reliability_issues.cluster"
-	namespaceAttribute         = "k8s.ai.reliability_issues.namespace"
-	kindAttribute              = "k8s.ai.reliability_issues.kind"
-	nameAttribute              = "k8s.ai.reliability_issues.name"
-	titleAttribute             = "k8s.ai.reliability_issues.title"
+	clusterAttribute           = "k8s.ai.reliability_issues_issues.cluster"
+	namespaceAttribute         = "k8s.ai.reliability_issues_issues.namespace"
+	nameAttribute              = "k8s.ai.reliability_issues_issues.name"
+	titleAttribute             = "k8s.ai.reliability_issues_issues.title"
 )
 
 type reliabilityIssueDiscovery struct {
@@ -60,12 +59,11 @@ func (d *reliabilityIssueDiscovery) DescribeTarget() discovery_kit_api.TargetDes
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
 		// Category and Icon are optional; adjust to your liking.
 		Category: extutil.Ptr("AI"),
-		Icon:     extutil.Ptr(""),
+		Icon:     extutil.Ptr(targetIcon),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: clusterAttribute},
 				{Attribute: namespaceAttribute},
-				{Attribute: kindAttribute},
 				{Attribute: nameAttribute},
 				{Attribute: titleAttribute},
 			},
@@ -76,10 +74,6 @@ func (d *reliabilityIssueDiscovery) DescribeTarget() discovery_kit_api.TargetDes
 				},
 				{
 					Attribute: namespaceAttribute,
-					Direction: "ASC",
-				},
-				{
-					Attribute: kindAttribute,
 					Direction: "ASC",
 				},
 				{
@@ -98,87 +92,73 @@ func (d *reliabilityIssueDiscovery) DescribeTarget() discovery_kit_api.TargetDes
 func (d *reliabilityIssueDiscovery) DescribeAttributes() []discovery_kit_api.AttributeDescription {
 	return []discovery_kit_api.AttributeDescription{
 		{
-			Attribute: "k8s.ai.reliability.key",
+			Attribute: "k8s.ai.reliability_issues.key",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "AI Reliability Key",
-				Other: "AI Reliability Keys",
-			},
-		},
-		{
-			Attribute: "k8s.ai.reliability.issue.key",
-			Label: discovery_kit_api.PluralLabel{
-				One:   "AI Reliability Issue Key",
-				Other: "AI Reliability Issue Keys",
+				One:   "AI Local Store Key",
+				Other: "AI Local Store Keys",
 			},
 		},
 		{
 			Attribute: clusterAttribute,
 			Label: discovery_kit_api.PluralLabel{
-				One:   "Kubernetes cluster (AI reliability)",
-				Other: "Kubernetes clusters (AI reliability)",
+				One:   "cluster",
+				Other: "clusters",
 			},
 		},
 		{
 			Attribute: namespaceAttribute,
 			Label: discovery_kit_api.PluralLabel{
-				One:   "Kubernetes namespace (AI reliability)",
-				Other: "Kubernetes namespaces (AI reliability)",
-			},
-		},
-		{
-			Attribute: kindAttribute,
-			Label: discovery_kit_api.PluralLabel{
-				One:   "Kubernetes kind (AI reliability)",
-				Other: "Kubernetes kind (AI reliability)",
+				One:   "namespace",
+				Other: "namespaces",
 			},
 		},
 		{
 			Attribute: nameAttribute,
 			Label: discovery_kit_api.PluralLabel{
-				One:   "Kubernetes workload (AI reliability)",
-				Other: "Kubernetes workloads (AI reliability)",
+				One:   "name",
+				Other: "names",
 			},
 		},
 		{
 			Attribute: titleAttribute,
 			Label: discovery_kit_api.PluralLabel{
-				One:   "AI reliability issue title",
-				Other: "AI reliability issue titles",
+				One:   "title",
+				Other: "titles",
 			},
 		},
 		{
-			Attribute: "k8s.ai.reliability.category",
+			Attribute: "k8s.ai.reliability_issues.category",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "AI reliability issue category",
-				Other: "AI reliability issue categories",
+				One:   "category",
+				Other: "categories",
 			},
 		},
 		{
-			Attribute: "k8s.ai.reliability.severity",
+			Attribute: "k8s.ai.reliability_issues.severity",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "AI reliability issue severity",
-				Other: "AI reliability issue severities",
+				One:   "severity",
+				Other: "severities",
 			},
 		},
 		{
-			Attribute: "k8s.ai.reliability.priority",
+			Attribute: "k8s.ai.reliability_issues.priority",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "AI reliability issue priority",
-				Other: "AI reliability issue priorities",
+				One:   "priority",
+				Other: "priorities",
 			},
 		},
 		{
-			Attribute: "k8s.ai.reliability.last-analysis",
+			Attribute: "k8s.ai.reliability_issues.last-analysis",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "Last AI reliability analysis",
-				Other: "Last AI reliability analyses",
+				One:   "last analysis",
+				Other: "last analyses",
 			},
 		},
 		{
-			Attribute: "k8s.ai.reliability.raw",
+			Attribute: "k8s.ai.reliability_issues.raw",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "Raw AI reliability JSON",
-				Other: "Raw AI reliability JSONs",
+				One:   "Raw JSON",
+				Other: "Raw JSONs",
 			},
 		},
 	}
@@ -201,18 +181,17 @@ func (d *reliabilityIssueDiscovery) DiscoverTargets(ctx context.Context) ([]disc
 		id := rec.Key // workload key with issue index as unique ID
 
 		attrs := map[string][]string{
-			"k8s.ai.reliability.key":           {rec.WorkloadKey},
-			"k8s.ai.reliability.issue.key":     {rec.Key},
-			clusterAttribute:                   {cluster},
-			namespaceAttribute:                 {namespace},
-			kindAttribute:                      {kind},
-			nameAttribute:                      {name},
-			"k8s.ai.reliability.title":         {rec.Title},
-			"k8s.ai.reliability.category":      {rec.Category},
-			"k8s.ai.reliability.severity":      {rec.Severity},
-			"k8s.ai.reliability.priority":      {rec.Priority},
-			"k8s.ai.reliability.last-analysis": {rec.Timestamp.UTC().Format(time.RFC3339)},
-			"k8s.ai.reliability.raw":           {rec.Raw},
+			"k8s.ai.reliability_issues.key":           {rec.WorkloadKey},
+			"k8s.ai.reliability_issues.issue.key":     {rec.Key},
+			clusterAttribute:                          {cluster},
+			namespaceAttribute:                        {namespace},
+			nameAttribute:                             {kind + "." + name},
+			titleAttribute:                            {rec.Title},
+			"k8s.ai.reliability_issues.category":      {rec.Category},
+			"k8s.ai.reliability_issues.severity":      {rec.Severity},
+			"k8s.ai.reliability_issues.priority":      {rec.Priority},
+			"k8s.ai.reliability_issues.last-analysis": {rec.Timestamp.UTC().Format(time.RFC3339)},
+			"k8s.ai.reliability_issues.raw":           {rec.Raw},
 			// Optionally mirror core k8s attributes to link this back to the
 			// deployment targets in the UI:
 			"k8s.cluster-name": {cluster},
