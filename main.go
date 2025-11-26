@@ -157,7 +157,8 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		action_kit_sdk.RegisterAction(ai.NewReliabilityCheckAction(ai.ConverseWrapper{BedrockRuntimeClient: bedrockClient.BR}))
+		action_kit_sdk.RegisterAction(ai.NewReliabilityCheckDeploymentAction(ai.ConverseWrapper{BedrockRuntimeClient: bedrockClient.BR}))
+		action_kit_sdk.RegisterAction(ai.NewReliabilityCheckStatefulSetAction(ai.ConverseWrapper{BedrockRuntimeClient: bedrockClient.BR}))
 		discovery_kit_sdk.Register(ai.NewReliabilityIssueDiscovery())
 	}
 

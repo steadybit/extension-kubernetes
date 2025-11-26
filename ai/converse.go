@@ -21,7 +21,6 @@ type BedrockConverseClient interface {
 
 // FindReliabilityIssues is the updated Go equivalent of your Java method.
 func (w ConverseWrapper) FindReliabilityIssues(
-	ctx context.Context,
 	technology string,
 	targetType string,
 	resourceJSON string,
