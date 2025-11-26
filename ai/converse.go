@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime/document"
@@ -123,13 +121,21 @@ func (w ConverseWrapper) FindReliabilityIssues(
 
 	response, _ := resp.Output.(*types.ConverseOutputMemberMessage)
 
-	contentBlock := response.Value.Content[1]
-	toolUseOutput, _ := contentBlock.(*types.ContentBlockMemberToolUse)
-	toolUseOutputJson, err := toolUseOutput.Value.Input.MarshalSmithyDocument()
-	if err != nil {
-		log.Fatalf("unable to marshal tool use output, %v", err)
+	var toolUseOutputJson []byte
+	if len(response.Value.Content) > 0 {
+		contentBlock := response.Value.Content[1]
+		toolUseOutput, _ := contentBlock.(*types.ContentBlockMemberToolUse)
+		if toolUseOutput.Value.Input != nil {
+			toolUseOutputJson, err = toolUseOutput.Value.Input.MarshalSmithyDocument()
+			if err != nil {
+				return "", fmt.Errorf("unable to marshal tool use output, %v", err)
+			}
+		} else {
+			return "", fmt.Errorf("AI Response is not containing content to parse")
+		}
+	} else {
+		return "", fmt.Errorf("AI Response is not containing content to parse")
 	}
-	fmt.Printf("Tool Use Output: %s\n", toolUseOutputJson)
 
 	// Pretty-print JSON if possible (same behavior as Java)
 	var prettyObj any
