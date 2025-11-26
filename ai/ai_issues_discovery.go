@@ -55,7 +55,7 @@ func (d *reliabilityIssueDiscovery) Describe() discovery_kit_api.DiscoveryDescri
 func (d *reliabilityIssueDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:      ReliabilityIssueTargetType,
-		Label:   discovery_kit_api.PluralLabel{One: "Kubernetes AI reliability issue", Other: "Kubernetes AI reliability issues"},
+		Label:   discovery_kit_api.PluralLabel{One: "Kubernetes issues", Other: "Kubernetes AI reliability issues"},
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
 		// Category and Icon are optional; adjust to your liking.
 		Category: extutil.Ptr("AI"),
