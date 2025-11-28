@@ -36,7 +36,7 @@ func (a *templateRecommendationAction) NewEmptyState() AnalysisState {
 func (a *templateRecommendationAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          "com.steadybit.extension_kubernetes.ai.templates.recommend",
-		Label:       "Recommend Templates (AI)",
+		Label:       "Recommend Templates From Target",
 		Description: "Uses an AI model to recommend chaos templates for a given AI-found reliability issue.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(targetIcon),

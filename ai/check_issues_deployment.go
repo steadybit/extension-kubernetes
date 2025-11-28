@@ -31,7 +31,7 @@ func (a *reliabilityCheckDeploymentAction) NewEmptyState() AnalysisState {
 func (a *reliabilityCheckDeploymentAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          "com.steadybit.extension_kubernetes.ai.issues.check-deployment",
-		Label:       "Check Deployment (AI)",
+		Label:       "Check Deployment",
 		Description: "Uses an AI model to analyze a manifest for reliability issues.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(targetIcon),

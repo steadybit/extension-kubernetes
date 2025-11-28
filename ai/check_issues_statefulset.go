@@ -31,7 +31,7 @@ func (a *reliabilityCheckStatefulSetAction) NewEmptyState() AnalysisState {
 func (a *reliabilityCheckStatefulSetAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          "com.steadybit.extension_kubernetes.ai.issues.check-statefulset",
-		Label:       "Check StatefulSet (AI)",
+		Label:       "Check StatefulSet",
 		Description: "Uses an AI model to analyze a manifest for reliability issues.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(targetIcon),
