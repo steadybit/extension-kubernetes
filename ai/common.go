@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
@@ -651,6 +652,46 @@ func status(state *AnalysisState, messageType string, convertToMarkdown func(str
 	t := job.Timestamp
 
 	md := convertToMarkdown(job.Result)
+
+	// Build artifacts: markdown summary + raw JSON from the AI
+	artifacts := make([]action_kit_api.Artifact, 0, 2)
+	if md != "" {
+		artifacts = append(artifacts, action_kit_api.Artifact{
+			Label: "$(experimentKey)_$(executionId)_ai_result.md",
+			Data:  base64.StdEncoding.EncodeToString([]byte(md)),
+		})
+	}
+	if job.Result != "" {
+		var root map[string]interface{}
+		if err := json.Unmarshal([]byte(job.Result), &root); err == nil {
+			if issuesVal, ok := root["issues"]; ok {
+				if issues, ok := issuesVal.([]interface{}); ok {
+					for idx, it := range issues {
+						b, err := json.Marshal(it)
+						if err != nil {
+							continue
+						}
+
+						// Try to extract a human-readable title for the artifact filename
+						title := ""
+						if m, ok := it.(map[string]interface{}); ok {
+							title = getString(m, "title")
+						}
+						safeTitle := fileSafeIssueTitle(title)
+						if safeTitle == "" {
+							safeTitle = fmt.Sprintf("issue_%d", idx)
+						}
+
+						artifacts = append(artifacts, action_kit_api.Artifact{
+							Label: fmt.Sprintf("$(experimentKey)_$(executionId)_ai_issue_%s.json", safeTitle),
+							Data:  base64.StdEncoding.EncodeToString(b),
+						})
+					}
+				}
+			}
+		}
+	}
+
 	// Cleanup completed job from the map
 	reliabilityJobs.mu.Lock()
 	delete(reliabilityJobs.m, state.JobID)
@@ -658,6 +699,7 @@ func status(state *AnalysisState, messageType string, convertToMarkdown func(str
 
 	return &action_kit_api.StatusResult{
 		Completed: true,
+		Artifacts: extutil.Ptr(artifacts),
 		Messages: extutil.Ptr([]action_kit_api.Message{
 			{
 				Message:   "\n",
@@ -676,6 +718,23 @@ func status(state *AnalysisState, messageType string, convertToMarkdown func(str
 			},
 		}),
 	}, nil
+}
+
+// fileSafeIssueTitle converts an issue title into a filesystem-safe, compact slug
+// to be used in artifact filenames.
+func fileSafeIssueTitle(title string) string {
+	title = strings.ToLower(strings.TrimSpace(title))
+	if title == "" {
+		return ""
+	}
+	// Replace any sequence of non-alphanumeric characters with a single dash
+	re := regexp.MustCompile(`[^a-z0-9]+`)
+	title = re.ReplaceAllString(title, "-")
+	title = strings.Trim(title, "-")
+	if len(title) > 60 {
+		title = title[:60]
+	}
+	return title
 }
 
 type TemplateAPIClient struct {
