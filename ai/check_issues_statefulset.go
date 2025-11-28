@@ -17,15 +17,15 @@ import (
 )
 
 var (
-	_ action_kit_sdk.Action[ReliabilityCheckState] = (*reliabilityCheckStatefulSetAction)(nil)
+	_ action_kit_sdk.Action[AnalysisState] = (*reliabilityCheckStatefulSetAction)(nil)
 )
 
-func NewReliabilityCheckStatefulSetAction(converse ConverseWrapper) action_kit_sdk.Action[ReliabilityCheckState] {
+func NewReliabilityCheckStatefulSetAction(converse ConverseWrapper) action_kit_sdk.Action[AnalysisState] {
 	return &reliabilityCheckStatefulSetAction{converse: converse}
 }
 
-func (a *reliabilityCheckStatefulSetAction) NewEmptyState() ReliabilityCheckState {
-	return ReliabilityCheckState{}
+func (a *reliabilityCheckStatefulSetAction) NewEmptyState() AnalysisState {
+	return AnalysisState{}
 }
 
 func (a *reliabilityCheckStatefulSetAction) Describe() action_kit_api.ActionDescription {
@@ -59,7 +59,7 @@ func (a *reliabilityCheckStatefulSetAction) Describe() action_kit_api.ActionDesc
 
 // Prepare is called before the action is started.
 // It validates and copies the config into the state.
-func (a *reliabilityCheckStatefulSetAction) Prepare(ctx context.Context, state *ReliabilityCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+func (a *reliabilityCheckStatefulSetAction) Prepare(ctx context.Context, state *AnalysisState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	state.Kind = "statefulset"
 
 	err := prepare(ctx, state, request)
@@ -88,7 +88,7 @@ func (a *reliabilityCheckStatefulSetAction) Prepare(ctx context.Context, state *
 	}, nil
 }
 
-func (a *reliabilityCheckStatefulSetAction) Start(ctx context.Context, state *ReliabilityCheckState) (*action_kit_api.StartResult, error) {
+func (a *reliabilityCheckStatefulSetAction) Start(ctx context.Context, state *AnalysisState) (*action_kit_api.StartResult, error) {
 	jobID := fmt.Sprintf("job-%d", time.Now().UnixNano())
 	state.JobID = jobID
 
@@ -111,6 +111,7 @@ func (a *reliabilityCheckStatefulSetAction) Start(ctx context.Context, state *Re
 		job.Result = result
 		job.Err = err
 		job.Timestamp = time.Now()
+		storeSingleReliabilityIssues(state.Key, job.Result, job.Timestamp)
 	}()
 
 	return &action_kit_api.StartResult{
@@ -129,6 +130,6 @@ func (a *reliabilityCheckStatefulSetAction) Start(ctx context.Context, state *Re
 	}, nil
 }
 
-func (a *reliabilityCheckStatefulSetAction) Status(ctx context.Context, state *ReliabilityCheckState) (*action_kit_api.StatusResult, error) {
-	return status(state)
+func (a *reliabilityCheckStatefulSetAction) Status(ctx context.Context, state *AnalysisState) (*action_kit_api.StatusResult, error) {
+	return status(state, "ReliabilityIssues", ReliabilityIssuesToMarkdown)
 }

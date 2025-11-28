@@ -159,6 +159,8 @@ func main() {
 		}
 		action_kit_sdk.RegisterAction(ai.NewReliabilityCheckDeploymentAction(ai.ConverseWrapper{BedrockRuntimeClient: bedrockClient.BR}))
 		action_kit_sdk.RegisterAction(ai.NewReliabilityCheckStatefulSetAction(ai.ConverseWrapper{BedrockRuntimeClient: bedrockClient.BR}))
+		tmplClient := ai.NewTemplateAPIClient(extconfig.Config.PlatformBaseURL, extconfig.Config.PlatformApiToken)
+		action_kit_sdk.RegisterAction(ai.NewTemplateRecommendationAction(ai.ConverseWrapper{BedrockRuntimeClient: bedrockClient.BR}, tmplClient))
 		discovery_kit_sdk.Register(ai.NewReliabilityIssueDiscovery())
 	}
 

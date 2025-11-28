@@ -44,6 +44,8 @@ type Specification struct {
 	NginxDelaySkipImageCheck               bool     `json:"nginxDelaySkipImageCheck" split_words:"true" required:"false" default:"false"`
 	PrintMemoryStatsInterval               int64    `json:"printMemoryStatsInterval" split_words:"true" required:"false" default:"0"`
 	EnableAIActions                        bool     `json:"enableAIActions" split_words:"true" required:"false" default:"true"`
+	PlatformBaseURL                        string   `json:"PlatformBaseURL" split_words:"true" required:"false"`
+	PlatformApiToken                       string   `json:"PlatformApiToken" split_words:"true" required:"false"`
 }
 
 var (

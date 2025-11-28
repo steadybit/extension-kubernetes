@@ -24,6 +24,7 @@ const (
 	namespaceAttribute         = "k8s.ai.reliability_issues_issues.namespace"
 	nameAttribute              = "k8s.ai.reliability_issues_issues.name"
 	titleAttribute             = "k8s.ai.reliability_issues_issues.title"
+	descriptionAttribute       = "k8s.ai.reliability_issues_issues.description"
 )
 
 type reliabilityIssueDiscovery struct {
@@ -127,6 +128,13 @@ func (d *reliabilityIssueDiscovery) DescribeAttributes() []discovery_kit_api.Att
 			},
 		},
 		{
+			Attribute: descriptionAttribute,
+			Label: discovery_kit_api.PluralLabel{
+				One:   "description",
+				Other: "descriptions",
+			},
+		},
+		{
 			Attribute: "k8s.ai.reliability_issues.category",
 			Label: discovery_kit_api.PluralLabel{
 				One:   "category",
@@ -155,10 +163,24 @@ func (d *reliabilityIssueDiscovery) DescribeAttributes() []discovery_kit_api.Att
 			},
 		},
 		{
-			Attribute: "k8s.ai.reliability_issues.raw",
+			Attribute: "k8s.ai.reliability_issues.signals",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "Raw JSON",
-				Other: "Raw JSONs",
+				One:   "signal",
+				Other: "signals",
+			},
+		},
+		{
+			Attribute: "k8s.ai.reliability_issues.experiments",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "experiment",
+				Other: "experiments",
+			},
+		},
+		{
+			Attribute: "k8s.ai.reliability_issues.fixes",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "fix",
+				Other: "fixes",
 			},
 		},
 	}
@@ -187,11 +209,14 @@ func (d *reliabilityIssueDiscovery) DiscoverTargets(ctx context.Context) ([]disc
 			namespaceAttribute:                        {namespace},
 			nameAttribute:                             {kind + "." + name},
 			titleAttribute:                            {rec.Title},
+			descriptionAttribute:                      {rec.Description},
 			"k8s.ai.reliability_issues.category":      {rec.Category},
 			"k8s.ai.reliability_issues.severity":      {rec.Severity},
 			"k8s.ai.reliability_issues.priority":      {rec.Priority},
 			"k8s.ai.reliability_issues.last-analysis": {rec.Timestamp.UTC().Format(time.RFC3339)},
-			"k8s.ai.reliability_issues.raw":           {rec.Raw},
+			"k8s.ai.reliability_issues.signals":       rec.Signals,
+			"k8s.ai.reliability_issues.experiments":   rec.Experiments,
+			"k8s.ai.reliability_issues.fixes":         rec.Fixes,
 			// Optionally mirror core k8s attributes to link this back to the
 			// deployment targets in the UI:
 			"k8s.cluster-name": {cluster},
