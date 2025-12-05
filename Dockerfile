@@ -17,7 +17,7 @@ ARG REVISION=unknown
 
 WORKDIR /app
 
-RUN apk add build-base
+RUN apk add --no-cache build-base curl ca-certificates && update-ca-certificates
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
