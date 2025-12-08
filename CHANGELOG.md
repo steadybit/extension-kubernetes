@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.6.13
+
+- Update dependencies
+
 ## v2.6.12
 
 - Update dependencies
