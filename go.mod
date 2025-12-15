@@ -7,7 +7,7 @@ go 1.25.3
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
-	github.com/go-resty/resty/v2 v2.16.5
+	github.com/go-resty/resty/v2 v2.17.1
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/rs/zerolog v1.34.0
