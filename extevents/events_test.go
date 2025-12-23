@@ -42,7 +42,7 @@ func TestPrepareExtractsState(t *testing.T) {
 func TestStatusEventsFound(t *testing.T) {
 	// Given
 	stopCh := make(chan struct{})
-	t.Cleanup(func() { close(stopCh) })
+	defer close(stopCh)
 
 	state, k8sClient := prepareTest(stopCh)
 
