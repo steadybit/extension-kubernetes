@@ -11,6 +11,7 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,7 +73,8 @@ func TestStatusReturnsMetrics(t *testing.T) {
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	client := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), dynamicClient)
 
 	// When
 	result := statusPodCountMetricsInternal(client, &state)
