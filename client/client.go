@@ -714,7 +714,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	var informerSyncList []cache.InformerSynced
-	var argoRolloutInformer informers.GenericInformer
+	var dynamicFactory dynamicinformer.DynamicSharedInformerFactory
 
 	// Initialize Argo Rollouts informer if enabled
 	if !extconfig.Config.DiscoveryDisabledArgoRollout {
@@ -723,19 +723,25 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 			Version:  "v1alpha1",
 			Resource: "rollouts",
 		}
-		argoRolloutInformer = dynamicinformer.NewFilteredDynamicInformer(
-			dynamicClient,
-			argoRolloutGVR,
-			extconfig.Config.Namespace,
-			0,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
-			nil,
-		)
+		if extconfig.HasNamespaceFilter() {
+			dynamicFactory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
+				dynamicClient,
+				informerResyncDuration,
+				extconfig.Config.Namespace,
+				nil,
+			)
+		} else {
+			dynamicFactory = dynamicinformer.NewDynamicSharedInformerFactory(
+				dynamicClient,
+				informerResyncDuration,
+			)
+		}
+		argoRolloutInformer := dynamicFactory.ForResource(argoRolloutGVR)
 		client.argoRollout.informer = argoRolloutInformer.Informer()
 		client.argoRollout.lister = &rolloutLister{indexer: argoRolloutInformer.Informer().GetIndexer()}
 		informerSyncList = append(informerSyncList, client.argoRollout.informer.HasSynced)
 		if _, err := client.argoRollout.informer.AddEventHandler(client.resourceEventHandler); err != nil {
-			log.Fatal().Msg("failed to add argo rollout event handler")
+			log.Fatal().Err(err).Msg("failed to add argo rollout event handler")
 		}
 	}
 
@@ -882,8 +888,8 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 
 	defer runtime.HandleCrash()
 	go factory.Start(stopCh)
-	if argoRolloutInformer != nil {
-		go argoRolloutInformer.Informer().Run(stopCh)
+	if dynamicFactory != nil {
+		go dynamicFactory.Start(stopCh)
 	}
 
 	log.Info().Msgf("Start Kubernetes cache sync.")
