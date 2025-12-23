@@ -157,17 +157,6 @@ func (d *rolloutDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			}
 		}
 
-		// TODO: Get HPA if exists
-		// var hpa *autoscalingv2.HorizontalPodAutoscaler
-		// if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
-		// 	hpa = d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(rollout.GetNamespace(), rollout.GetName())
-		// }
-
-		// TODO: Add kube-score attributes
-		// for key, value := range extcommon.GetKubeScoreForDeployment(nil, d.k8s.ServicesMatchingToPodLabels(rollout.GetNamespace(), rollout.GetLabels()), hpa) {
-		// 	attributes[key] = value
-		// }
-
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
 			TargetType: RolloutTargetType,
