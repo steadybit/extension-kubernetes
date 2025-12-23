@@ -180,7 +180,9 @@ func (l *rolloutLister) List(selector labels.Selector) ([]*unstructured.Unstruct
 	result := make([]*unstructured.Unstructured, 0, len(items))
 	for _, item := range items {
 		if obj, ok := item.(*unstructured.Unstructured); ok {
-			result = append(result, obj)
+			if selector.Matches(labels.Set(obj.GetLabels())) {
+				result = append(result, obj)
+			}
 		}
 	}
 	return result, nil
@@ -206,7 +208,9 @@ func (l *rolloutNamespaceLister) List(selector labels.Selector) ([]*unstructured
 	result := make([]*unstructured.Unstructured, 0, len(items))
 	for _, item := range items {
 		if obj, ok := item.(*unstructured.Unstructured); ok {
-			result = append(result, obj)
+			if selector.Matches(labels.Set(obj.GetLabels())) {
+				result = append(result, obj)
+			}
 		}
 	}
 	return result, nil
