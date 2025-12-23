@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -63,22 +64,32 @@ var requiredPermissions = []requiredPermission{
 	{group: "", resource: "pods", subresource: "eviction", verbs: []string{"create"}, allowGracefulFailure: true},
 	{group: "", resource: "nodes", verbs: []string{"patch"}, allowGracefulFailure: true},
 	{group: "", resource: "pods", subresource: "exec", verbs: []string{"create"}, allowGracefulFailure: true},
-	{group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 	{group: "networking.k8s.io", resource: "ingresses", verbs: []string{"get", "list", "watch", "update", "patch"}, allowGracefulFailure: true},
 	{group: "networking.k8s.io", resource: "ingressclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 }
 
+var (
+	argoRolloutPermissionOnce sync.Once
+)
+
+// ensureArgoRolloutPermission adds the Argo Rollout permission to requiredPermissions if needed.
+// This is safe to call multiple times - it will only add the permission once.
+func ensureArgoRolloutPermission() {
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		argoRolloutPermissionOnce.Do(func() {
+			requiredPermissions = append(requiredPermissions, requiredPermission{
+				group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true,
+			})
+		})
+	}
+}
+
 func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
+	ensureArgoRolloutPermission()
+
 	result := make(map[string]PermissionCheckOutcome)
 	reviews := client.AuthorizationV1().SelfSubjectAccessReviews()
 	errors := false
-
-	// Conditionally add Argo rollouts permissions
-	if !extconfig.Config.DiscoveryDisabledArgoRollout {
-		requiredPermissions = append(requiredPermissions, requiredPermission{
-			group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true,
-		})
-	}
 
 	for _, p := range requiredPermissions {
 		for _, verb := range p.verbs {
@@ -250,14 +261,9 @@ func (p *PermissionCheckResult) IsSetImageDeploymentPermitted() bool {
 }
 
 func MockAllPermitted() *PermissionCheckResult {
-	result := make(map[string]PermissionCheckOutcome)
+	ensureArgoRolloutPermission()
 
-	// Conditionally add Argo rollouts permissions
-	if !extconfig.Config.DiscoveryDisabledArgoRollout {
-		requiredPermissions = append(requiredPermissions, requiredPermission{
-			group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true,
-		})
-	}
+	result := make(map[string]PermissionCheckOutcome)
 
 	for _, p := range requiredPermissions {
 		for _, verb := range p.verbs {

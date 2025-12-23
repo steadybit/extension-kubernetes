@@ -19,7 +19,6 @@ import (
 
 	"github.com/aymanbagabas/go-udiff"
 	"github.com/google/uuid"
-
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
