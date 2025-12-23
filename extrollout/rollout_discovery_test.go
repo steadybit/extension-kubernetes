@@ -73,7 +73,7 @@ func Test_rolloutDiscovery_DescribeEnrichmentRules(t *testing.T) {
 
 	enrichmentRules := discovery.DescribeEnrichmentRules()
 
-	require.Len(t, enrichmentRules, 1)
+	assert.Len(t, enrichmentRules, 1)
 
 	rule := enrichmentRules[0]
 	assert.Equal(t, "com.steadybit.extension_kubernetes.kubernetes-argo-rollout-to-container", rule.Id)
@@ -173,14 +173,14 @@ func Test_rolloutDiscovery(t *testing.T) {
 					Version:  "v1alpha1",
 					Resource: "rollouts",
 				}).Namespace(tt.rollout.GetNamespace()).Create(context.Background(), tt.rollout, metav1.CreateOptions{})
-				require.NoError(t, err)
+				require.NoError(t, err, "Failed to create rollout")
 			}
 
 			if tt.pods != nil {
 				// Add pods to client
 				for _, pod := range tt.pods {
 					_, err := clientset.CoreV1().Pods(pod.Namespace).Create(context.Background(), pod, metav1.CreateOptions{})
-					require.NoError(t, err)
+					require.NoError(t, err, "Failed to create pod %s", pod.Name)
 				}
 			}
 
@@ -188,43 +188,54 @@ func Test_rolloutDiscovery(t *testing.T) {
 				// Add nodes to client
 				for _, node := range tt.nodes {
 					_, err := clientset.CoreV1().Nodes().Create(context.Background(), node, metav1.CreateOptions{})
-					require.NoError(t, err)
+					require.NoError(t, err, "Failed to create node %s", node.Name)
 				}
 			}
 
 			if tt.service != nil {
 				// Add service to client
 				_, err := clientset.CoreV1().Services(tt.service.Namespace).Create(context.Background(), tt.service, metav1.CreateOptions{})
-				require.NoError(t, err)
+				require.NoError(t, err, "Failed to create service %s", tt.service.Name)
 			}
 
 			// Create discovery
 			discovery := &rolloutDiscovery{k8s: k8sClient}
 
 			// Discover targets and wait for informer to sync
+			// EventuallyWithT will retry if targets are empty or attributes don't match,
+			// allowing the informer cache to catch up with newly created resources
 			assert.EventuallyWithT(t, func(c *assert.CollectT) {
 				targets, err := discovery.DiscoverTargets(context.Background())
-				require.NoError(t, err)
+				assert.NoError(c, err, "DiscoverTargets should not return an error")
+				if err != nil {
+					return // Skip rest of assertions if discovery failed
+				}
 
 				// Assertions
 				if len(tt.expectedAttributesExactly) > 0 {
-					require.Len(t, targets, 1)
+					assert.Len(c, targets, 1, "Should discover exactly one target")
+					if len(targets) != 1 {
+						return // Skip rest if target count is wrong
+					}
 					target := targets[0]
 
 					for _, v := range target.Attributes {
 						sort.Strings(v)
 					}
-					assert.Equal(t, tt.expectedAttributesExactly, target.Attributes)
+					assert.Equal(c, tt.expectedAttributesExactly, target.Attributes, "Target attributes should match exactly")
 				}
 
 				if len(tt.expectedAttributes) > 0 {
-					require.Len(t, targets, 1)
+					assert.Len(c, targets, 1, "Should discover exactly one target")
+					if len(targets) != 1 {
+						return // Skip rest if target count is wrong
+					}
 					target := targets[0]
 
 					for k, v := range tt.expectedAttributes {
 						attributeValues := target.Attributes[k]
 						sort.Strings(attributeValues)
-						assert.Equal(t, v, attributeValues, "Attribute %s should match", k)
+						assert.Equal(c, v, attributeValues, "Attribute %s should match", k)
 					}
 				}
 			}, 1*time.Second, 100*time.Millisecond)
@@ -257,17 +268,21 @@ func Test_getDiscoveredRolloutsShouldIgnoreLabeledRollouts(t *testing.T) {
 		Version:  "v1alpha1",
 		Resource: "rollouts",
 	}).Namespace(rollout.GetNamespace()).Create(context.Background(), rollout, metav1.CreateOptions{})
-	require.NoError(t, err)
+	require.NoError(t, err, "Failed to create rollout")
 
 	// Create discovery
 	discovery := &rolloutDiscovery{k8s: k8sClient}
 
 	// Discover targets and wait for informer to sync
+	// EventuallyWithT will retry if targets are not empty yet, allowing the informer cache to catch up
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		targets, err := discovery.DiscoverTargets(context.Background())
-		require.NoError(t, err)
+		assert.NoError(c, err, "DiscoverTargets should not return an error")
+		if err != nil {
+			return // Skip rest if discovery failed
+		}
 		// Should be empty because rollout is excluded
-		assert.Len(c, targets, 0)
+		assert.Len(c, targets, 0, "Should not discover excluded rollout")
 	}, 1*time.Second, 100*time.Millisecond)
 }
 
@@ -296,17 +311,21 @@ func Test_getDiscoveredRolloutsShouldNotIgnoreLabeledRolloutsIfExcludesDisabled(
 		Version:  "v1alpha1",
 		Resource: "rollouts",
 	}).Namespace(rollout.GetNamespace()).Create(context.Background(), rollout, metav1.CreateOptions{})
-	require.NoError(t, err)
+	require.NoError(t, err, "Failed to create rollout")
 
 	// Create discovery
 	discovery := &rolloutDiscovery{k8s: k8sClient}
 
 	// Discover targets and wait for informer to sync
+	// EventuallyWithT will retry if targets are empty, allowing the informer cache to catch up
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		targets, err := discovery.DiscoverTargets(context.Background())
-		require.NoError(t, err)
+		assert.NoError(c, err, "DiscoverTargets should not return an error")
+		if err != nil {
+			return // Skip rest if discovery failed
+		}
 		// Should not be empty because excludes are disabled
-		assert.Len(c, targets, 1)
+		assert.Len(c, targets, 1, "Should discover rollout when excludes are disabled")
 	}, 1*time.Second, 100*time.Millisecond)
 }
 
@@ -330,22 +349,26 @@ func Test_rolloutDiscovery_Simple(t *testing.T) {
 		Version:  "v1alpha1",
 		Resource: "rollouts",
 	}).Namespace(rollout.GetNamespace()).Create(context.Background(), rollout, metav1.CreateOptions{})
-	require.NoError(t, err)
+	require.NoError(t, err, "Failed to create rollout")
 
 	// Create discovery
 	discovery := &rolloutDiscovery{k8s: k8sClient}
 
 	// Discover targets and wait for informer to sync
+	// EventuallyWithT will retry if targets are empty or attributes don't match, allowing the informer cache to catch up
 	assert.EventuallyWithT(t, func(c *assert.CollectT) {
 		targets, err := discovery.DiscoverTargets(context.Background())
-		require.NoError(t, err)
+		assert.NoError(c, err, "DiscoverTargets should not return an error")
+		if err != nil {
+			return // Skip rest if discovery failed
+		}
 		// Should discover at least one rollout
-		assert.GreaterOrEqual(c, len(targets), 1)
+		assert.GreaterOrEqual(c, len(targets), 1, "Should discover at least one rollout")
 		if len(targets) > 0 {
 			target := targets[0]
-			assert.Equal(c, "development/default/shop", target.Id)
-			assert.Equal(c, "shop", target.Label)
-			assert.Equal(c, RolloutTargetType, target.TargetType)
+			assert.Equal(c, "development/default/shop", target.Id, "Target ID should match")
+			assert.Equal(c, "shop", target.Label, "Target label should match")
+			assert.Equal(c, RolloutTargetType, target.TargetType, "Target type should match")
 		}
 	}, 1*time.Second, 100*time.Millisecond)
 }
