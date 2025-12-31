@@ -1,6 +1,0 @@
-vulnerabilities:
-  - id: CVE-2025-61729
-    paths:
-      - usr/bin/kubectl
-    statement: Wait for a new kubectl release
-    expired_at: 2025-12-31
