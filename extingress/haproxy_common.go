@@ -21,7 +21,7 @@ const (
 	HAProxyIngressTargetType    = "com.steadybit.extension_kubernetes.kubernetes-haproxy-ingress"
 	HAProxyBlockTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-block-traffic"
 	HAProxyDelayTrafficActionId = "com.steadybit.extension_kubernetes.haproxy-delay-traffic"
-	haProxyAnnotationKey        = "haproxy-ingress.github.io/backend-config-snippet"
+	haProxyAnnotationKey        = "haproxy.org/backend-config-snippet"
 )
 
 // HAProxyState contains common state for HAProxy-related actions
@@ -29,6 +29,7 @@ type HAProxyState struct {
 	ExecutionId      uuid.UUID
 	Namespace        string
 	IngressName      string
+	AnnotationKey    string
 	Matcher          RequestMatcher
 	AnnotationConfig string
 }
@@ -54,6 +55,9 @@ func (a *haProxyAction) Prepare(_ context.Context, state *HAProxyState, request 
 	state.ExecutionId = request.ExecutionId
 	state.Namespace = request.Target.Attributes["k8s.namespace"][0]
 	state.IngressName = request.Target.Attributes["k8s.ingress"][0]
+
+	state.AnnotationKey = haProxyAnnotationKey
+
 	state.Matcher, err = parseRequestMatcher(request.Config)
 	if err != nil {
 		return nil, err
@@ -64,7 +68,7 @@ func (a *haProxyAction) Prepare(_ context.Context, state *HAProxyState, request 
 		return nil, fmt.Errorf("failed to fetch ingress: %w", err)
 	}
 
-	existingSnippet := strings.Split(ingress.Annotations[haProxyAnnotationKey], "\n")
+	existingSnippet := strings.Split(ingress.Annotations[state.AnnotationKey], "\n")
 	if err = checkHAProxyRuleConflicts(existingSnippet, state.Matcher); err != nil {
 		return nil, err
 	}
@@ -83,7 +87,7 @@ func (a *haProxyAction) Prepare(_ context.Context, state *HAProxyState, request 
 func (a *haProxyAction) Start(_ context.Context, state *HAProxyState) (*action_kit_api.StartResult, error) {
 	log.Debug().Msgf("Adding new %s configuration: %s", a.description.Label, state.AnnotationConfig)
 
-	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, haProxyAnnotationKey, state.AnnotationConfig)
+	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, state.AnnotationKey, state.AnnotationConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start %s action: %w", a.description.Label, err)
 	}
@@ -96,7 +100,7 @@ func (a *haProxyAction) Stop(_ context.Context, state *HAProxyState) (*action_ki
 		context.Background(),
 		state.Namespace,
 		state.IngressName,
-		haProxyAnnotationKey,
+		state.AnnotationKey,
 		state.ExecutionId,
 		getHAProxyStartMarker(state.ExecutionId),
 		getHAProxyEndMarker(state.ExecutionId),
