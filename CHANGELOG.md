@@ -1,5 +1,12 @@
 # Changelog
 
+## v2.6.14
+
+- fix: haproxy attack using haproxy-ingress.github.io instead of haproxy.org annotation prefix
+
+## v2.6.13
+
+- Update dependencies
 ## v2.6.13
 
 - Update dependencies
