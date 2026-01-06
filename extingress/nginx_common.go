@@ -71,7 +71,7 @@ func (a *nginxAction) Prepare(_ context.Context, state *NginxState, request acti
 		return nil, fmt.Errorf("failed to fetch ingress: %w", err)
 	}
 
-	state.AnnotationKey = getAnnotationKey(request)
+	state.AnnotationKey = getNginxAnnotationKey(request)
 
 	state.Matcher, err = parseRequestMatcher(request.Config)
 	if err != nil {
@@ -215,8 +215,8 @@ func getNginxUniqueVariableName(executionId uuid.UUID, baseName string) string {
 	return fmt.Sprintf("$sb_%s_%s", baseName, getNginxVariablePrefix(executionId))
 }
 
-// getAnnotationKey determines the correct annotation key based on the request and whether Enterprise NGINX is used
-func getAnnotationKey(request action_kit_api.PrepareActionRequestBody) string {
+// getNginxAnnotationKey determines the correct annotation key based on the request and whether Enterprise NGINX is used
+func getNginxAnnotationKey(request action_kit_api.PrepareActionRequestBody) string {
 	annotationKey := nginxAnnotationKey
 
 	if ingressClass, ok := request.Target.Attributes["k8s.ingress.class"]; ok && len(ingressClass) > 0 {
