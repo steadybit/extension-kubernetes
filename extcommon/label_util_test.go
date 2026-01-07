@@ -11,6 +11,7 @@ import (
 
 	kclient "github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -102,7 +103,8 @@ func testNamespace(modifier func(namespace *corev1.Namespace)) *corev1.Namespace
 }
 
 func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *kclient.Client {
-	return kclient.CreateClient(testclient.NewClientset(objects...), stopCh, "/oapi", kclient.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	return kclient.CreateClient(testclient.NewClientset(objects...), stopCh, "/oapi", kclient.MockAllPermitted(), dynamicClient)
 }
 
 func TestAddNodeLabels(t *testing.T) {
