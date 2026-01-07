@@ -739,7 +739,9 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		argoRolloutInformer := dynamicFactory.ForResource(argoRolloutGVR)
 		client.argoRollout.informer = argoRolloutInformer.Informer()
 		client.argoRollout.lister = &rolloutLister{indexer: argoRolloutInformer.Informer().GetIndexer()}
-		informerSyncList = append(informerSyncList, client.argoRollout.informer.HasSynced)
+		// Don't wait for Argo Rollouts informer to sync - the operator won't be installed yet.
+		// The informer will start syncing once the CRD appears, but we don't want to block readiness.
+		log.Info().Msg("Argo Rollouts informer initialized (sync not required for readiness)")
 		if _, err := client.argoRollout.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 			log.Fatal().Err(err).Msg("failed to add argo rollout event handler")
 		}

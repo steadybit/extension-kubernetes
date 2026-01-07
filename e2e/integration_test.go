@@ -27,6 +27,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
+	"github.com/steadybit/extension-kubernetes/v2/extrollout"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -114,6 +115,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "nginxMultipleControllers",
 		Test: testNginxMultipleControllers,
 	},
+	{
+		Name: "argoRolloutDiscovery",
+		Test: testArgoRolloutDiscovery,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -126,6 +131,7 @@ func TestWithMinikube(t *testing.T) {
 				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
 				"--set", "discovery.refreshThrottle=1",
 				"--set", "logging.level=DEBUG",
+				"--set", "discovery.disabled.argoRollout=false",
 			}
 		},
 	}
@@ -148,6 +154,7 @@ func TestWithMinikubeViaRole(t *testing.T) {
 				"--set", "roleBinding.create=true",
 				"--set", "clusterRole.create=false",
 				"--set", "clusterRoleBinding.create=false",
+				"--set", "discovery.disabled.argoRollout=false",
 				"--namespace", "default",
 			}
 		},
@@ -1992,6 +1999,151 @@ func waitForNginxIngressController(m *e2e.Minikube, ctx context.Context, namespa
 func cleanupNginxIngress(m *e2e.Minikube, nginxControllerNamespace string) {
 	_ = exec.Command("helm", "uninstall", "nginx-ingress", "--namespace", nginxControllerNamespace, "--kube-context", m.Profile).Run()
 	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxControllerNamespace, "--ignore-not-found").Run()
+}
+
+func initArgoRollouts(t *testing.T, m *e2e.Minikube, ctx context.Context) {
+	log.Info().Msg("Installing Argo Rollouts")
+	const argoRolloutsNamespace = "argo-rollouts"
+
+	// Create namespace
+	createCmd := exec.Command("kubectl", "--context", m.Profile, "create", "namespace", argoRolloutsNamespace)
+	out, err := createCmd.CombinedOutput()
+	if err != nil && !strings.Contains(string(out), "AlreadyExists") {
+		// Only log if it's not an "already exists" error
+		log.Warn().Msgf("Namespace creation output: %s", out)
+	}
+
+	// Install Argo Rollouts
+	log.Info().Msg("Applying Argo Rollouts manifests")
+	cmdCtx, cmdCancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cmdCancel()
+	cmd := exec.CommandContext(cmdCtx, "kubectl", "--context", m.Profile, "apply", "-n", argoRolloutsNamespace, "-f", "https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml")
+	out, err = cmd.CombinedOutput()
+	require.NoError(t, err, "Failed to install Argo Rollouts: %s", out)
+
+	// Wait for Argo Rollouts controller to be ready
+	log.Info().Msg("Waiting for Argo Rollouts controller to be ready")
+	err = waitForArgoRolloutsController(m, ctx, argoRolloutsNamespace)
+	require.NoError(t, err)
+}
+
+func waitForArgoRolloutsController(m *e2e.Minikube, ctx context.Context, namespace string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+			pods, err := m.GetClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "app.kubernetes.io/name=argo-rollouts",
+			})
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to check Argo Rollouts controller status in namespace %s", namespace)
+				continue
+			}
+
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, "argo-rollouts") {
+					allReady := true
+					for _, containerStatus := range pod.Status.ContainerStatuses {
+						if !containerStatus.Ready || pod.Status.Phase != corev1.PodRunning {
+							allReady = false
+							break
+						}
+					}
+					if allReady {
+						log.Info().Msgf("Argo Rollouts controller is ready in namespace %s", namespace)
+						return nil
+					}
+				}
+			}
+			log.Info().Msgf("Waiting for Argo Rollouts controller in namespace %s to be ready...", namespace)
+		}
+	}
+}
+
+func createRolloutResource(t *testing.T, m *e2e.Minikube, rolloutName string) {
+	log.Info().Msgf("Creating Rollout resource: %s", rolloutName)
+
+	rolloutYAML := fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: %s
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: %s
+  template:
+    metadata:
+      labels:
+        app: %s
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:stable-alpine
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 3
+  strategy:
+    canary:
+      steps:
+      - setWeight: 50
+      - pause: {}
+      - setWeight: 100
+`, rolloutName, rolloutName, rolloutName)
+
+	// Apply the Rollout using kubectl
+	cmd := exec.Command("kubectl", "--context", m.Profile, "apply", "-f", "-")
+	cmd.Stdin = strings.NewReader(rolloutYAML)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "Failed to create Rollout: %s", out)
+
+	log.Info().Msgf("Rollout %s created successfully", rolloutName)
+}
+
+func cleanupArgoRollouts(m *e2e.Minikube, rolloutName string) {
+	// Delete the Rollout
+	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "rollout", rolloutName, "-n", "default", "--ignore-not-found").Run()
+	log.Info().Msgf("Cleaned up Rollout: %s", rolloutName)
+	// Note: We leave the argo-rollouts namespace for potential reuse
+}
+
+func testArgoRolloutDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testArgoRolloutDiscovery because it is using role binding, and is therefore not supported")
+		return
+	}
+
+	log.Info().Msg("Starting testArgoRolloutDiscovery")
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	// Install Argo Rollouts
+	initArgoRollouts(t, m, ctx)
+
+	// Create a Rollout resource
+	rolloutName := "nginx-rollout-test"
+	createRolloutResource(t, m, rolloutName)
+	defer func() { cleanupArgoRollouts(m, rolloutName) }()
+
+	// Wait for Rollout to be discovered
+	target, err := e2e.PollForTarget(ctx, e, extrollout.RolloutTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.argo-rollout", rolloutName)
+	})
+	require.NoError(t, err, "Failed to discover Argo Rollout")
+	assert.Equal(t, target.TargetType, extrollout.RolloutTargetType)
+	assert.Equal(t, target.Attributes["k8s.namespace"][0], "default")
+	assert.Equal(t, target.Attributes["k8s.argo-rollout"][0], rolloutName)
+	assert.Equal(t, target.Attributes["k8s.workload-type"][0], "argo-rollout")
+	assert.Equal(t, target.Attributes["k8s.workload-owner"][0], rolloutName)
+	assert.Equal(t, target.Attributes["k8s.cluster-name"][0], "e2e-cluster")
+	assert.Equal(t, target.Attributes["k8s.distribution"][0], "kubernetes")
 }
 
 func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
