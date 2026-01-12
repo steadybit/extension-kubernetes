@@ -492,20 +492,40 @@ func (c *Client) IngressClasses() []*networkingv1.IngressClass {
 }
 
 func (c *Client) GetHAProxyIngressClasses() ([]string, bool) {
-	haproxyClassNames := make([]string, 0)
+	return c.getIngressClassesForControllers("haproxy.org/ingress-controller/haproxy")
+}
+
+func (c *Client) GetNginxIngressClasses() ([]string, bool) {
+	nginxClassNames, hasDefaultClass := c.getIngressClassesForControllers(
+		"k8s.io/ingress-nginx",         // Open source NGINX Ingress Controller
+		"nginx.org/ingress-controller", // NGINX Enterprise Ingress Controller
+	)
+
+	// Also include the classic "nginx" class name for backward compatibility
+	if !slices.Contains(nginxClassNames, "nginx") {
+		nginxClassNames = append(nginxClassNames, "nginx")
+	}
+
+	return nginxClassNames, hasDefaultClass
+}
+
+func (c *Client) getIngressClassesForControllers(controllers ...string) ([]string, bool) {
+	classNames := make([]string, 0)
 	hasDefaultClass := false
 
 	for _, ic := range c.IngressClasses() {
-		if ic.Spec.Controller == "haproxy.org/ingress-controller/haproxy" {
-			haproxyClassNames = append(haproxyClassNames, ic.Name)
+		for _, controller := range controllers {
+			if ic.Spec.Controller == controller {
+				classNames = append(classNames, ic.Name)
 
-			if isDefaultIngressClass(ic) {
-				hasDefaultClass = true
+				if isDefaultIngressClass(ic) {
+					hasDefaultClass = true
+				}
 			}
 		}
 	}
 
-	return haproxyClassNames, hasDefaultClass
+	return classNames, hasDefaultClass
 }
 
 func isDefaultIngressClass(ic *networkingv1.IngressClass) bool {
@@ -515,37 +535,6 @@ func isDefaultIngressClass(ic *networkingv1.IngressClass) bool {
 		}
 	}
 	return false
-}
-
-func (c *Client) GetNginxIngressClasses() ([]string, bool) {
-	nginxClassNames := make([]string, 0)
-	hasDefaultClass := false
-
-	// Controller names for both open source and enterprise NGINX ingress controllers
-	nginxControllers := []string{
-		"k8s.io/ingress-nginx",         // Open source NGINX Ingress Controller
-		"nginx.org/ingress-controller", // NGINX Enterprise Ingress Controller
-	}
-
-	for _, ic := range c.IngressClasses() {
-		// Check if this IngressClass uses an NGINX controller
-		for _, controller := range nginxControllers {
-			if ic.Spec.Controller == controller {
-				nginxClassNames = append(nginxClassNames, ic.Name)
-
-				if isDefaultIngressClass(ic) {
-					hasDefaultClass = true
-				}
-			}
-		}
-	}
-
-	// Also include the classic "nginx" class name for backward compatibility
-	if !slices.Contains(nginxClassNames, "nginx") {
-		nginxClassNames = append(nginxClassNames, "nginx")
-	}
-
-	return nginxClassNames, hasDefaultClass
 }
 
 func (c *Client) GetIngressControllerByClassName(className string) string {
