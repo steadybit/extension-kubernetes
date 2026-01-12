@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+// SPDX-FileCopyrightText: 2026 Steadybit GmbH
 
 package client
 
@@ -492,19 +492,15 @@ func (c *Client) IngressClasses() []*networkingv1.IngressClass {
 }
 
 func (c *Client) GetHAProxyIngressClasses() ([]string, bool) {
-	ingressClasses := c.IngressClasses()
 	haproxyClassNames := make([]string, 0)
 	hasDefaultClass := false
 
-	for _, ic := range ingressClasses {
+	for _, ic := range c.IngressClasses() {
 		if ic.Spec.Controller == "haproxy.org/ingress-controller/haproxy" {
 			haproxyClassNames = append(haproxyClassNames, ic.Name)
 
-			// Check if this is a default class
-			if ic.Annotations != nil {
-				if value, ok := ic.Annotations["ingressclass.kubernetes.io/is-default-class"]; ok && value == "true" {
-					hasDefaultClass = true
-				}
+			if isDefaultIngressClass(ic) {
+				hasDefaultClass = true
 			}
 		}
 	}
@@ -512,8 +508,16 @@ func (c *Client) GetHAProxyIngressClasses() ([]string, bool) {
 	return haproxyClassNames, hasDefaultClass
 }
 
+func isDefaultIngressClass(ic *networkingv1.IngressClass) bool {
+	if ic.Annotations != nil {
+		if value, ok := ic.Annotations["ingressclass.kubernetes.io/is-default-class"]; ok && value == "true" {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Client) GetNginxIngressClasses() ([]string, bool) {
-	ingressClasses := c.IngressClasses()
 	nginxClassNames := make([]string, 0)
 	hasDefaultClass := false
 
@@ -523,19 +527,15 @@ func (c *Client) GetNginxIngressClasses() ([]string, bool) {
 		"nginx.org/ingress-controller", // NGINX Enterprise Ingress Controller
 	}
 
-	for _, ic := range ingressClasses {
+	for _, ic := range c.IngressClasses() {
 		// Check if this IngressClass uses an NGINX controller
 		for _, controller := range nginxControllers {
 			if ic.Spec.Controller == controller {
 				nginxClassNames = append(nginxClassNames, ic.Name)
 
-				// Check if this is a default class
-				if ic.Annotations != nil {
-					if value, ok := ic.Annotations["ingressclass.kubernetes.io/is-default-class"]; ok && value == "true" {
-						hasDefaultClass = true
-					}
+				if isDefaultIngressClass(ic) {
+					hasDefaultClass = true
 				}
-				break // No need to check other controllers for this class
 			}
 		}
 	}
@@ -791,6 +791,7 @@ func (c *Client) StopNotify(ch chan<- interface{}) {
 		return e == ch
 	})
 }
+
 func (c *Client) IngressByNamespaceAndName(namespace string, name string, forceUpdate ...bool) (*networkingv1.Ingress, error) {
 	// Check if we should bypass the cache
 	if len(forceUpdate) > 0 && forceUpdate[0] {
@@ -832,12 +833,7 @@ func (c *Client) GetConfig() *rest.Config {
 	return config
 }
 
-func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, ingressName string, annotationKey string, newAnnotationSuffix string) error {
-	_, err := c.UpdateIngressAnnotationWithReturn(ctx, namespace, ingressName, annotationKey, newAnnotationSuffix)
-	return err
-}
-
-func (c *Client) UpdateIngressAnnotationWithReturn(ctx context.Context, namespace string, ingressName string, annotationKey string, newAnnotationSuffix string) (string, error) {
+func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, ingressName string, annotationKey string, toPrepend string) (string, error) {
 	maxRetries := 10
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -846,30 +842,23 @@ func (c *Client) UpdateIngressAnnotationWithReturn(ctx context.Context, namespac
 			return "", fmt.Errorf("failed to fetch ingress: %w", err)
 		}
 
-		newConfig := ""
 		if ingress.Annotations == nil {
 			ingress.Annotations = make(map[string]string)
-			newConfig = newAnnotationSuffix
-		} else {
-			// Prepend the new configuration
-			if existingValue := ingress.Annotations[annotationKey]; existingValue == "" {
-				newConfig = newAnnotationSuffix
-			} else {
-				newConfig = newAnnotationSuffix + "\n" + existingValue
-			}
 		}
-		// Update the annotation
-		ingress.Annotations[annotationKey] = newConfig
+
+		newValue := toPrepend
+		if currentValue, ok := ingress.Annotations[annotationKey]; ok {
+			newValue = fmt.Sprintf("%s\n%s", toPrepend, currentValue)
+		}
+		ingress.Annotations[annotationKey] = newValue
 
 		updateTime := time.Now()
-		_, err = c.networkingV1.Ingresses(namespace).Update(
-			ctx,
-			ingress,
-			metav1.UpdateOptions{},
-		)
-
+		_, err = c.networkingV1.Ingresses(namespace).Update(ctx, ingress, metav1.UpdateOptions{})
 		if err == nil {
-			log.Debug().Msgf("Updated ingress %s/%s annotation %s with new config: %s", namespace, ingressName, annotationKey, newConfig)
+			log.Debug().Msgf("Updated ingress %s/%s annotation %s with new config: %s", namespace, ingressName, annotationKey, newValue)
+
+			// Wait a short time for events to be generated
+			time.Sleep(2 * time.Second)
 
 			// Check for ingress events after the annotation update
 			if eventErr := c.checkIngressEvents(namespace, ingressName, updateTime); eventErr != nil {
@@ -877,7 +866,8 @@ func (c *Client) UpdateIngressAnnotationWithReturn(ctx context.Context, namespac
 				return "", fmt.Errorf("ingress annotation rejected: %w", eventErr)
 			}
 
-			return newConfig, nil // Update successful
+			// Update successful
+			return newValue, nil
 		}
 
 		// If it's not a conflict error, return the error immediately
@@ -887,18 +877,15 @@ func (c *Client) UpdateIngressAnnotationWithReturn(ctx context.Context, namespac
 		}
 
 		// If it's a conflict error, we'll retry with the latest version of the resource
-		log.Debug().Msgf("Conflict detected while updating ingress %s/%s, retrying (attempt %d/%d)",
-			namespace, ingressName, attempt+1, maxRetries)
+		log.Debug().Msgf("Conflict detected while updating ingress %s/%s, retrying (attempt %d/%d)", namespace, ingressName, attempt+1, maxRetries)
 	}
+
 	log.Error().Msgf("Failed to update ingress %s/%s annotation %s after %d attempts", namespace, ingressName, annotationKey, maxRetries)
 	return "", fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)
 }
 
 // checkIngressEvents checks for warning events related to the ingress after a specific time
 func (c *Client) checkIngressEvents(namespace, ingressName string, since time.Time) error {
-	// Wait a short time for events to be generated
-	time.Sleep(2 * time.Second)
-
 	events := c.Events(since)
 	if events == nil {
 		return nil
@@ -931,11 +918,9 @@ func (c *Client) checkIngressEvents(namespace, ingressName string, since time.Ti
 	return nil
 }
 
-func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID, startMarker string, endMarker string) error {
+func (c *Client) RemoveIngressAnnotationBlock(ctx context.Context, namespace string, ingressName string, annotationKey string, executionId uuid.UUID, startMarker string, endMarker string) error {
 	log.Debug().Msgf("Removing annotation block from ingress %s/%s with execution ID %s", namespace, ingressName, executionId)
 	maxRetries := 10
-
-	// Use the clientset to update the ingress
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
@@ -948,22 +933,16 @@ func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, in
 		}
 
 		// Remove the configuration block between markers
-		existingConfig := ingress.Annotations[annotationKey]
-		updatedConfig := removeAnnotationBlock(existingConfig, startMarker, endMarker)
+		existingValue := ingress.Annotations[annotationKey]
+		newValue := removeAnnotationBlock(existingValue, startMarker, endMarker)
 
-		// If nothing was removed, no need to update
-		if existingConfig == updatedConfig {
+		if existingValue == newValue {
 			return nil
 		}
 
-		// Update the annotation with the block removed
-		ingress.Annotations[annotationKey] = updatedConfig
+		ingress.Annotations[annotationKey] = newValue
 
-		_, err = c.networkingV1.Ingresses(namespace).Update(
-			ctx,
-			ingress,
-			metav1.UpdateOptions{},
-		)
+		_, err = c.networkingV1.Ingresses(namespace).Update(ctx, ingress, metav1.UpdateOptions{})
 
 		if err == nil {
 			return nil // Update successful
@@ -975,8 +954,7 @@ func (c *Client) RemoveAnnotationBlock(ctx context.Context, namespace string, in
 		}
 
 		// If it's a conflict error, we'll retry with the latest version of the resource
-		log.Debug().Msgf("Conflict detected while removing annotation block in ingress %s/%s, retrying (attempt %d/%d)",
-			namespace, ingressName, attempt+1, maxRetries)
+		log.Debug().Msgf("Conflict detected while removing annotation block in ingress %s/%s, retrying (attempt %d/%d)", namespace, ingressName, attempt+1, maxRetries)
 	}
 
 	return fmt.Errorf("failed to update ingress annotation after %d attempts due to concurrent modifications", maxRetries)

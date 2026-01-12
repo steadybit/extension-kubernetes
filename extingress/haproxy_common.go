@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2025 Steadybit GmbH
+// SPDX-FileCopyrightText: 2026 Steadybit GmbH
 
 package extingress
 
@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 )
@@ -87,7 +86,7 @@ func (a *haProxyAction) Prepare(_ context.Context, state *HAProxyState, request 
 func (a *haProxyAction) Start(_ context.Context, state *HAProxyState) (*action_kit_api.StartResult, error) {
 	log.Debug().Msgf("Adding new %s configuration: %s", a.description.Label, state.AnnotationConfig)
 
-	err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, state.AnnotationKey, state.AnnotationConfig)
+	_, err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, state.AnnotationKey, state.AnnotationConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start %s action: %w", a.description.Label, err)
 	}
@@ -96,7 +95,7 @@ func (a *haProxyAction) Start(_ context.Context, state *HAProxyState) (*action_k
 
 // Stop removes the HAProxy configuration to stop blocking traffic
 func (a *haProxyAction) Stop(_ context.Context, state *HAProxyState) (*action_kit_api.StopResult, error) {
-	err := client.K8S.RemoveAnnotationBlock(
+	err := client.K8S.RemoveIngressAnnotationBlock(
 		context.Background(),
 		state.Namespace,
 		state.IngressName,
@@ -110,39 +109,6 @@ func (a *haProxyAction) Stop(_ context.Context, state *HAProxyState) (*action_ki
 	}
 
 	return nil, nil
-}
-
-func getCommonActionDescription(id string, label string, description string, icon string) action_kit_api.ActionDescription {
-	return action_kit_api.ActionDescription{
-		Id:          id,
-		Label:       label,
-		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Description: description,
-		Technology:  extutil.Ptr("Kubernetes"),
-		Icon:        extutil.Ptr(icon),
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
-			TargetType: HAProxyIngressTargetType,
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
-				{
-					Label:       "ingress",
-					Description: extutil.Ptr("Find ingress by cluster, namespace and ingress"),
-					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.ingress=\"\"",
-				},
-			}),
-		}),
-		TimeControl: action_kit_api.TimeControlExternal,
-		Kind:        action_kit_api.Attack,
-		Parameters: []action_kit_api.ActionParameter{
-			{
-				Label:        "Duration",
-				Description:  extutil.Ptr("The duration of the action. The ingress will be affected for the specified duration."),
-				Name:         "duration",
-				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("30s"),
-				Required:     extutil.Ptr(true),
-			},
-		},
-	}
 }
 
 func getConditionsParameters() []action_kit_api.ActionParameter {

@@ -315,7 +315,7 @@ func TestRemoveAnnotationBlockMethod(t *testing.T) {
 			}
 
 			// Call the method being tested
-			err := client.RemoveAnnotationBlock(
+			err := client.RemoveIngressAnnotationBlock(
 				context.Background(),
 				tt.namespace,
 				tt.ingressName,
@@ -506,7 +506,7 @@ func TestUpdateIngressAnnotation(t *testing.T) {
 			}
 
 			// Call the method being tested
-			err := client.UpdateIngressAnnotation(
+			_, err := client.UpdateIngressAnnotation(
 				context.Background(),
 				tt.namespace,
 				tt.ingressName,

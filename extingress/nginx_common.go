@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 )
@@ -114,7 +113,7 @@ func checkNginxRuleConflicts(existingLines []string, matcher RequestMatcher) err
 func (a *nginxAction) Start(_ context.Context, state *NginxState) (*action_kit_api.StartResult, error) {
 	log.Debug().Msgf("Adding new %s configuration %s:%s", a.description.Label, state.AnnotationKey, state.AnnotationConfig)
 
-	finalAnnotation, err := client.K8S.UpdateIngressAnnotationWithReturn(context.Background(), state.Namespace, state.IngressName, state.AnnotationKey, state.AnnotationConfig)
+	finalAnnotation, err := client.K8S.UpdateIngressAnnotation(context.Background(), state.Namespace, state.IngressName, state.AnnotationKey, state.AnnotationConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start %s action: %w", a.description.Label, err)
 	}
@@ -145,7 +144,7 @@ func (a *nginxAction) Start(_ context.Context, state *NginxState) (*action_kit_a
 
 // Stop removes the NGINX configuration to stop blocking traffic
 func (a *nginxAction) Stop(_ context.Context, state *NginxState) (*action_kit_api.StopResult, error) {
-	err := client.K8S.RemoveAnnotationBlock(
+	err := client.K8S.RemoveIngressAnnotationBlock(
 		context.Background(),
 		state.Namespace,
 		state.IngressName,
@@ -159,40 +158,6 @@ func (a *nginxAction) Stop(_ context.Context, state *NginxState) (*action_kit_ap
 	}
 
 	return nil, nil
-}
-
-// getNginxActionDescription returns common action description elements
-func getNginxActionDescription(id string, label string, description string, icon string) action_kit_api.ActionDescription {
-	return action_kit_api.ActionDescription{
-		Id:          id,
-		Label:       label,
-		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Description: description,
-		Technology:  extutil.Ptr("Kubernetes"),
-		Icon:        extutil.Ptr(icon),
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
-			TargetType: NginxIngressTargetType,
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
-				{
-					Label:       "ingress",
-					Description: extutil.Ptr("Find ingress by cluster, namespace and ingress"),
-					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.ingress=\"\"",
-				},
-			}),
-		}),
-		TimeControl: action_kit_api.TimeControlExternal,
-		Kind:        action_kit_api.Attack,
-		Parameters: []action_kit_api.ActionParameter{
-			{
-				Label:        "Duration",
-				Description:  extutil.Ptr("The duration of the action. The ingress will be affected for the specified duration."),
-				Name:         "duration",
-				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("30s"),
-				Required:     extutil.Ptr(true),
-			},
-		},
-	}
 }
 
 // getNginxStartMarker Helper functions similar to HAProxy implementation
