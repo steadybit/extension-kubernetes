@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aymanbagabas/go-udiff"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -835,14 +836,22 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 			ingress.Annotations = make(map[string]string)
 		}
 
+		currentValue := ingress.Annotations[annotationKey]
 		newValue := toPrepend
-		if currentValue, ok := ingress.Annotations[annotationKey]; ok {
+		if currentValue != "" {
 			newValue = fmt.Sprintf("%s\n%s", toPrepend, currentValue)
 		}
 		ingress.Annotations[annotationKey] = newValue
 
+		log.Trace().
+			Stringer("diff", unifiedDiff{a: currentValue, b: newValue}).
+			Str("namespace", namespace).
+			Str("ingress", ingressName).
+			Msg("Updating ingress annotation")
+
 		updateTime := time.Now()
 		_, err = c.networkingV1.Ingresses(namespace).Update(ctx, ingress, metav1.UpdateOptions{})
+
 		if err == nil {
 			log.Debug().Msgf("Updated ingress %s/%s annotation %s with new config: %s", namespace, ingressName, annotationKey, newValue)
 
@@ -855,7 +864,6 @@ func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, 
 				return "", fmt.Errorf("ingress annotation rejected: %w", eventErr)
 			}
 
-			// Update successful
 			return newValue, nil
 		}
 
@@ -921,15 +929,20 @@ func (c *Client) RemoveIngressAnnotationBlock(ctx context.Context, namespace str
 			return nil // Nothing to remove
 		}
 
-		// Remove the configuration block between markers
-		existingValue := ingress.Annotations[annotationKey]
-		newValue := removeAnnotationBlock(existingValue, startMarker, endMarker)
+		currentValue := ingress.Annotations[annotationKey]
+		newValue := removeAnnotationBlock(currentValue, startMarker, endMarker)
 
-		if existingValue == newValue {
+		if currentValue == newValue {
 			return nil
 		}
 
 		ingress.Annotations[annotationKey] = newValue
+
+		log.Trace().
+			Stringer("diff", unifiedDiff{a: currentValue, b: newValue}).
+			Str("namespace", namespace).
+			Str("ingress", ingressName).
+			Msg("Updating ingress annotation")
 
 		_, err = c.networkingV1.Ingresses(namespace).Update(ctx, ingress, metav1.UpdateOptions{})
 
@@ -1030,4 +1043,12 @@ func IsExcludedFromDiscovery(objectMeta metav1.ObjectMeta) bool {
 		return true
 	}
 	return false
+}
+
+type unifiedDiff struct {
+	a, b string
+}
+
+func (d unifiedDiff) String() string {
+	return udiff.Unified("old", "new", d.a, d.b)
 }
