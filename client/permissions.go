@@ -2,12 +2,14 @@ package client
 
 import (
 	"context"
+	"sync"
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 type PermissionCheckResult struct {
@@ -66,7 +68,25 @@ var requiredPermissions = []requiredPermission{
 	{group: "networking.k8s.io", resource: "ingressclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 }
 
+var (
+	argoRolloutPermissionOnce sync.Once
+)
+
+// ensureArgoRolloutPermission adds the Argo Rollout permission to requiredPermissions if needed.
+// This is safe to call multiple times - it will only add the permission once.
+func ensureArgoRolloutPermission() {
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		argoRolloutPermissionOnce.Do(func() {
+			requiredPermissions = append(requiredPermissions, requiredPermission{
+				group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true,
+			})
+		})
+	}
+}
+
 func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
+	ensureArgoRolloutPermission()
+
 	result := make(map[string]PermissionCheckOutcome)
 	reviews := client.AuthorizationV1().SelfSubjectAccessReviews()
 	errors := false
@@ -241,7 +261,10 @@ func (p *PermissionCheckResult) IsSetImageDeploymentPermitted() bool {
 }
 
 func MockAllPermitted() *PermissionCheckResult {
+	ensureArgoRolloutPermission()
+
 	result := make(map[string]PermissionCheckOutcome)
+
 	for _, p := range requiredPermissions {
 		for _, verb := range p.verbs {
 			result[p.Key(verb)] = OK

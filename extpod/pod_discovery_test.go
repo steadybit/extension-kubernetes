@@ -10,6 +10,7 @@ import (
 
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -267,5 +268,6 @@ func Test_getDiscoveredPodsShouldIgnoreLabeledPods(t *testing.T) {
 }
 
 func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
-	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted())
+	dynamicClient := testutil.NewFakeDynamicClient()
+	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted(), dynamicClient)
 }
