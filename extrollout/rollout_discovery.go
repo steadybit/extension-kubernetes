@@ -165,7 +165,7 @@ func (d *rolloutDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 		}
 	}
 
-	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesDeployment), nil
+	return discovery_kit_commons.ApplyAttributeExcludes(targets, extconfig.Config.DiscoveryAttributesExcludesArgoRollout), nil
 }
 
 func (d *rolloutDiscovery) DescribeEnrichmentRules() []discovery_kit_api.TargetEnrichmentRule {

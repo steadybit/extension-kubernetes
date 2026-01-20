@@ -94,6 +94,10 @@ spec:
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_STATEFUL_SET
               value: {{ (join "," .Values.discovery.attributes.excludes.statefulSet) | quote }}
             {{- end }}
+            {{- if .Values.discovery.attributes.excludes.argoRollout }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ARGO_ROLLOUT
+              value: {{ (join "," .Values.discovery.attributes.excludes.argoRollout) | quote }}
+            {{- end }}
             - name: STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES
               value: {{ .Values.discovery.disableExcludes | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_CLUSTER

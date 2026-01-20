@@ -37,6 +37,7 @@ type Specification struct {
 	DiscoveryAttributesExcludesPod         []string `json:"discoveryAttributesExcludesPod" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesReplicaSet  []string `json:"discoveryAttributesExcludesReplicaSet" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesStatefulSet []string `json:"discoveryAttributesExcludesStatefulSet" split_words:"true" required:"false"`
+	DiscoveryAttributesExcludesArgoRollout []string `json:"discoveryAttributesExcludesArgoRollout" split_words:"true" required:"false"`
 	DiscoveryMaxPodCount                   int      `json:"discoveryMaxPodCount" split_words:"true" required:"false" default:"50"`
 	DiscoveryRefreshThrottle               int      `json:"DiscoveryRefreshThrottle" required:"false" split_words:"true" default:"20"`
 	DiscoveryInformerResync                int      `json:"DiscoveryInformerResync" required:"false" split_words:"true" default:"600"`
