@@ -39,6 +39,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extadvice/probes"
 	"github.com/steadybit/extension-kubernetes/v2/extadvice/single_replica"
 	"github.com/steadybit/extension-kubernetes/v2/extadvice/single_zone"
+	"github.com/steadybit/extension-kubernetes/v2/extargorollout"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -50,7 +51,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
 	"github.com/steadybit/extension-kubernetes/v2/extreplicaset"
-	"github.com/steadybit/extension-kubernetes/v2/extrollout"
 	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
 	_ "go.uber.org/automaxprocs" // Importing automaxprocs automatically adjusts GOMAXPROCS.
 )
@@ -73,7 +73,10 @@ func main() {
 	client.PrepareClient(stopCh)
 
 	if !extconfig.Config.DiscoveryDisabledArgoRollout {
-		discovery_kit_sdk.Register(extrollout.NewRolloutDiscovery(client.K8S))
+		discovery_kit_sdk.Register(extargorollout.NewRolloutDiscovery(client.K8S))
+		if client.K8S.Permissions().IsArgoRolloutRestartPermitted() {
+			action_kit_sdk.RegisterAction(extargorollout.NewArgoRolloutRestartAction(client.K8S))
+		}
 	}
 
 	if !extconfig.Config.DiscoveryDisabledDeployment {

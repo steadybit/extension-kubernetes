@@ -103,4 +103,12 @@ permissions for clusterrole or role
       - list
       - watch
   {{- end }}
+  {{- if not .Values.discovery.disabled.argoRollout }}
+  {{/* Required for Argo Rollout Restart Attack */}}
+  - apiGroups: ["argoproj.io"]
+    resources:
+      - rollouts
+    verbs:
+      - patch
+  {{- end }}
 {{- end -}}

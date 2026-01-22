@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // SPDX-FileCopyrightText: 2023 Steadybit GmbH
 
-package extrollout
+package extargorollout
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func Test_rolloutDiscovery_Describe(t *testing.T) {
 
 	description := discovery.Describe()
 
-	assert.Equal(t, RolloutTargetType, description.Id)
+	assert.Equal(t, ArgoRolloutTargetType, description.Id)
 	assert.NotNil(t, description.Discover)
 
 	// Check that CallInterval is set to 30s
@@ -50,7 +50,7 @@ func Test_rolloutDiscovery_DescribeTarget(t *testing.T) {
 
 	targetDescription := discovery.DescribeTarget()
 
-	assert.Equal(t, RolloutTargetType, targetDescription.Id)
+	assert.Equal(t, ArgoRolloutTargetType, targetDescription.Id)
 	assert.Equal(t, "Kubernetes Argo Rollout", targetDescription.Label.One)
 	assert.Equal(t, "Kubernetes Argo Rollouts", targetDescription.Label.Other)
 	assert.Equal(t, "Kubernetes", *targetDescription.Category)
@@ -79,7 +79,7 @@ func Test_rolloutDiscovery_DescribeEnrichmentRules(t *testing.T) {
 	assert.Equal(t, "com.steadybit.extension_kubernetes.kubernetes-argo-rollout-to-container", rule.Id)
 	assert.NotEmpty(t, rule.Version)
 
-	assert.Equal(t, RolloutTargetType, rule.Src.Type)
+	assert.Equal(t, ArgoRolloutTargetType, rule.Src.Type)
 	assert.Equal(t, "${dest.container.id.stripped}", rule.Src.Selector["k8s.container.id.stripped"])
 
 	assert.Equal(t, "com.steadybit.extension_container.container", rule.Dest.Type)
@@ -368,7 +368,7 @@ func Test_rolloutDiscovery_Simple(t *testing.T) {
 			target := targets[0]
 			assert.Equal(c, "development/default/shop", target.Id, "Target ID should match")
 			assert.Equal(c, "shop", target.Label, "Target label should match")
-			assert.Equal(c, RolloutTargetType, target.TargetType, "Target type should match")
+			assert.Equal(c, ArgoRolloutTargetType, target.TargetType, "Target type should match")
 		}
 	}, 1*time.Second, 100*time.Millisecond)
 }

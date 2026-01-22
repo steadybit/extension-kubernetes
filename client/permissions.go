@@ -78,7 +78,7 @@ func ensureArgoRolloutPermission() {
 	if !extconfig.Config.DiscoveryDisabledArgoRollout {
 		argoRolloutPermissionOnce.Do(func() {
 			requiredPermissions = append(requiredPermissions, requiredPermission{
-				group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true,
+				group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch", "patch"}, allowGracefulFailure: true,
 			})
 		})
 	}
@@ -257,6 +257,12 @@ func (p *PermissionCheckResult) IsSetImageDeploymentPermitted() bool {
 	return p.hasPermissions([]string{
 		"apps/deployments/get",
 		"apps/deployments/patch",
+	})
+}
+
+func (p *PermissionCheckResult) IsArgoRolloutRestartPermitted() bool {
+	return p.hasPermissions([]string{
+		"argoproj.io/rollouts/patch",
 	})
 }
 
