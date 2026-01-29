@@ -375,6 +375,10 @@ func Test_deploymentDiscovery(t *testing.T) {
 				objects = append(objects, node)
 			}
 			objects = append(objects, tt.deployment)
+			// Add ReplicaSet to link Deployment -> ReplicaSet -> Pod ownership chain
+			if len(tt.pods) > 0 {
+				objects = append(objects, testReplicaSet())
+			}
 			if tt.hpa != nil {
 				objects = append(objects, tt.hpa)
 			}
@@ -477,6 +481,7 @@ func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "shop",
 			Namespace: "default",
+			UID:       "deployment-shop-uid",
 			Labels: map[string]string{
 				"best-city":    "Kevelaer",
 				"secret-label": "secret-value",
@@ -570,6 +575,14 @@ func testPod(nameSuffix string, modifier func(*corev1.Pod)) *corev1.Pod {
 			Labels: map[string]string{
 				"best-city": "kevelaer",
 			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "ReplicaSet",
+					Name:       "shop-replicaset",
+					UID:        "replicaset-shop-uid",
+				},
+			},
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
@@ -589,6 +602,28 @@ func testPod(nameSuffix string, modifier func(*corev1.Pod)) *corev1.Pod {
 		modifier(pod)
 	}
 	return pod
+}
+
+func testReplicaSet() *appsv1.ReplicaSet {
+	return &appsv1.ReplicaSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ReplicaSet",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop-replicaset",
+			Namespace: "default",
+			UID:       "replicaset-shop-uid",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+					Name:       "shop",
+					UID:        "deployment-shop-uid",
+				},
+			},
+		},
+	}
 }
 
 func testService(modifier func(service *corev1.Service)) *corev1.Service {
