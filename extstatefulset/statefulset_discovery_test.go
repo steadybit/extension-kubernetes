@@ -316,6 +316,14 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 			Labels: map[string]string{
 				"best-city": "kevelaer",
 			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "StatefulSet",
+					Name:       "shop",
+					UID:        "statefulset-shop-uid",
+				},
+			},
 		},
 		Status: v1.PodStatus{
 			Phase: v1.PodRunning,
@@ -346,6 +354,7 @@ func testStatefulSet(modifier func(set *appsv1.StatefulSet)) *appsv1.StatefulSet
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "shop",
 			Namespace: "default",
+			UID:       "statefulset-shop-uid",
 			Labels: map[string]string{
 				"best-city":    "Kevelaer",
 				"secret-label": "secret-value",

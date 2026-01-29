@@ -117,7 +117,7 @@ func (d *replicasetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 
 		extcommon.MergeAttributes(
 			attributes,
-			extcommon.GetPodBasedAttributes("replicaset", replicaset.ObjectMeta, d.k8s.PodsByLabelSelector(replicaset.Spec.Selector, replicaset.Namespace), nodes),
+			extcommon.GetPodBasedAttributes("replicaset", replicaset.ObjectMeta, d.k8s.PodsByOwnerUid(replicaset.UID, replicaset.Namespace), nodes),
 			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(replicaset.Namespace, replicaset.Spec.Template.Labels)),
 		)
 

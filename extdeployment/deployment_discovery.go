@@ -110,7 +110,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 
 		extcommon.MergeAttributes(
 			attributes,
-			extcommon.GetPodBasedAttributes("deployment", deployment.ObjectMeta, d.k8s.PodsByLabelSelector(deployment.Spec.Selector, deployment.Namespace), nodes),
+			extcommon.GetPodBasedAttributes("deployment", deployment.ObjectMeta, d.k8s.PodsOwnedByDeployment(deployment.UID, deployment.Namespace), nodes),
 			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels)),
 		)
 

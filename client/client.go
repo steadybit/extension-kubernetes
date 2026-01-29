@@ -28,6 +28,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -207,6 +208,66 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 		return nil
 	}
 	return c.onlyRunningPods(list)
+}
+
+// PodsByOwnerUid returns all running pods that have the given owner UID in their OwnerReferences.
+// This is more accurate than PodsByLabelSelector when selectors are misconfigured.
+func (c *Client) PodsByOwnerUid(ownerUid types.UID, namespace string) []*corev1.Pod {
+	allPods, err := c.pod.lister.Pods(namespace).List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching Pods in namespace %s", namespace)
+		return nil
+	}
+
+	var result []*corev1.Pod
+	for _, pod := range allPods {
+		for _, ref := range pod.OwnerReferences {
+			if ref.UID == ownerUid {
+				result = append(result, pod)
+				break
+			}
+		}
+	}
+	return c.onlyRunningPods(result)
+}
+
+// PodsOwnedByDeployment returns all running pods owned by the deployment via its ReplicaSets.
+// Deployment ownership chain: Deployment -> ReplicaSet -> Pod
+func (c *Client) PodsOwnedByDeployment(deploymentUid types.UID, namespace string) []*corev1.Pod {
+	// First, find all ReplicaSets owned by this deployment
+	allReplicaSets, err := c.replicaSet.lister.ReplicaSets(namespace).List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching ReplicaSets in namespace %s", namespace)
+		return nil
+	}
+
+	var replicaSetUids []string
+	for _, rs := range allReplicaSets {
+		for _, ref := range rs.OwnerReferences {
+			if ref.UID == deploymentUid {
+				replicaSetUids = append(replicaSetUids, string(rs.UID))
+				break
+			}
+		}
+	}
+
+	// Then find all pods owned by those ReplicaSets
+	allPods, err := c.pod.lister.Pods(namespace).List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching Pods in namespace %s", namespace)
+		return nil
+	}
+
+	var result []*corev1.Pod
+	for _, pod := range allPods {
+		for _, ref := range pod.OwnerReferences {
+			if slices.Contains(replicaSetUids, string(ref.UID)) {
+				result = append(result, pod)
+				break
+			}
+		}
+	}
+	return c.onlyRunningPods(result)
 }
 
 // ExecInPod executes a command in a pod container and returns the output
