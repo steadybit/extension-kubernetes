@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.15
+
+- Update dependencies
+- Add option to trace log the annotation edits for ingress attacks
+
 ## v2.6.14
 
 - fix: haproxy attack using haproxy-ingress.github.io instead of haproxy.org annotation prefix
@@ -7,6 +12,7 @@
 ## v2.6.13
 
 - Update dependencies
+
 ## v2.6.13
 
 - Update dependencies
