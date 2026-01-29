@@ -1,4 +1,4 @@
-package extrollout
+package extargorollout
 
 import (
 	"context"
@@ -46,7 +46,7 @@ func NewRolloutDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 
 func (d *rolloutDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
-		Id: RolloutTargetType,
+		Id: ArgoRolloutTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
 			CallInterval: extutil.Ptr("30s"),
 		},
@@ -55,7 +55,7 @@ func (d *rolloutDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 
 func (d *rolloutDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
-		Id:       RolloutTargetType,
+		Id:       ArgoRolloutTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Argo Rollout", Other: "Kubernetes Argo Rollouts"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
@@ -159,7 +159,7 @@ func (d *rolloutDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         targetName,
-			TargetType: RolloutTargetType,
+			TargetType: ArgoRolloutTargetType,
 			Label:      rollout.GetName(),
 			Attributes: attributes,
 		}
@@ -179,7 +179,7 @@ func getRolloutToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentRul
 		Id:      "com.steadybit.extension_kubernetes.kubernetes-argo-rollout-to-container",
 		Version: extbuild.GetSemverVersionStringOrUnknown(),
 		Src: discovery_kit_api.SourceOrDestination{
-			Type: RolloutTargetType,
+			Type: ArgoRolloutTargetType,
 			Selector: map[string]string{
 				"k8s.container.id.stripped": "${dest.container.id.stripped}",
 			},

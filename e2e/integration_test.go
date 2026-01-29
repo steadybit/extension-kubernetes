@@ -21,13 +21,13 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_test/validate"
 	"github.com/steadybit/extension-kit/extutil"
+	"github.com/steadybit/extension-kubernetes/v2/extargorollout"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
 	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
-	"github.com/steadybit/extension-kubernetes/v2/extrollout"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -2133,11 +2133,11 @@ func testArgoRolloutDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	defer func() { cleanupArgoRollouts(m, rolloutName) }()
 
 	// Wait for Rollout to be discovered
-	target, err := e2e.PollForTarget(ctx, e, extrollout.RolloutTargetType, func(target discovery_kit_api.Target) bool {
+	target, err := e2e.PollForTarget(ctx, e, extargorollout.ArgoRolloutTargetType, func(target discovery_kit_api.Target) bool {
 		return e2e.HasAttribute(target, "k8s.argo-rollout", rolloutName)
 	})
 	require.NoError(t, err, "Failed to discover Argo Rollout")
-	assert.Equal(t, target.TargetType, extrollout.RolloutTargetType)
+	assert.Equal(t, target.TargetType, extargorollout.ArgoRolloutTargetType)
 	assert.Equal(t, target.Attributes["k8s.namespace"][0], "default")
 	assert.Equal(t, target.Attributes["k8s.argo-rollout"][0], rolloutName)
 	assert.Equal(t, target.Attributes["k8s.workload-type"][0], "argo-rollout")

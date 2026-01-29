@@ -124,6 +124,11 @@ type Client struct {
 	resourceEventHandler cache.ResourceEventHandlerFuncs
 	networkingV1         networkingv1client.NetworkingV1Interface
 	clientset            kubernetes.Interface
+	dynamicClient        dynamic.Interface
+}
+
+func (c *Client) DynamicClient() dynamic.Interface {
+	return c.dynamicClient
 }
 
 func (c *Client) PrintMemoryUsage() {
@@ -685,9 +690,10 @@ func PrepareClient(stopCh <-chan struct{}) {
 // CreateClient is visible for testing
 func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string, permissions *PermissionCheckResult, dynamicClient dynamic.Interface) *Client {
 	client := &Client{
-		Distribution: "kubernetes",
-		permissions:  permissions,
-		clientset:    clientset,
+		Distribution:  "kubernetes",
+		permissions:   permissions,
+		clientset:     clientset,
+		dynamicClient: dynamicClient,
 	}
 	if isOpenShift(rootApiPath) {
 		client.Distribution = "openshift"
