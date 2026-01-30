@@ -289,6 +289,14 @@ func testPod(nameSuffix string, modifier func(*corev1.Pod)) *corev1.Pod {
 			Labels: map[string]string{
 				"best-city": "kevelaer",
 			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "DaemonSet",
+					Name:       "shop",
+					UID:        "daemonset-shop-uid",
+				},
+			},
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
@@ -319,6 +327,7 @@ func testDaemonSet(modifier func(*appsv1.DaemonSet)) *appsv1.DaemonSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "shop",
 			Namespace: "default",
+			UID:       "daemonset-shop-uid",
 			Labels: map[string]string{
 				"best-city":    "Kevelaer",
 				"secret-label": "secret-value",

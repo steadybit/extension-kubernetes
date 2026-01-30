@@ -100,7 +100,7 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 
 		extcommon.MergeAttributes(
 			attributes,
-			extcommon.GetPodBasedAttributes("daemonset", ds.ObjectMeta, d.k8s.PodsByLabelSelector(ds.Spec.Selector, ds.Namespace), nodes),
+			extcommon.GetPodBasedAttributes("daemonset", ds.ObjectMeta, d.k8s.PodsByOwnerUid(ds.UID, ds.Namespace), nodes),
 			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)),
 		)
 

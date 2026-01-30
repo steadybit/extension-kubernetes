@@ -102,7 +102,7 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 		extcommon.AddNamespaceLabels(attributes, d.k8s, sts.Namespace)
 		extcommon.MergeAttributes(
 			attributes,
-			extcommon.GetPodBasedAttributes("statefulset", sts.ObjectMeta, d.k8s.PodsByLabelSelector(sts.Spec.Selector, sts.Namespace), nodes),
+			extcommon.GetPodBasedAttributes("statefulset", sts.ObjectMeta, d.k8s.PodsByOwnerUid(sts.UID, sts.Namespace), nodes),
 			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)),
 		)
 

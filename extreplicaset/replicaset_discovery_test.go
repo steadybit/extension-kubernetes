@@ -209,6 +209,7 @@ func testReplicaSet(modifier func(*appsv1.ReplicaSet)) *appsv1.ReplicaSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "shop",
 			Namespace: "default",
+			UID:       "replicaset-shop-uid",
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Kind: "Deployment",
@@ -306,6 +307,14 @@ func testPod(nameSuffix string, modifier func(*v1.Pod)) *v1.Pod {
 			Namespace: "default",
 			Labels: map[string]string{
 				"best-city": "kevelaer",
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "ReplicaSet",
+					Name:       "shop",
+					UID:        "replicaset-shop-uid",
+				},
 			},
 		},
 		Status: v1.PodStatus{
