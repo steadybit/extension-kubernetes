@@ -194,6 +194,8 @@ discovery:
       replicaSet: []
       # discovery.attributes.excludes.statefulSet -- List of attributes to exclude from statefulSet discovery.
       statefulSet: []
+      # discovery.attributes.excludes.argoRollout -- List of attributes to exclude from Argo Rollout discovery.
+      argoRollout: []
   disabled:
     # discovery.disabled.cluster -- Should the extension skip discovery of cluster targets?
     cluster: false
@@ -211,6 +213,8 @@ discovery:
     pod: false
     # discovery.disabled.replicaSet -- Should the extension skip discovery of replicaSets?
     replicaSet: true
+    # discovery.disabled.argoRollout -- Should the extension skip discovery of Argo rollouts?
+    argoRollout: true
     # discovery.disabled.statefulSet -- Should the extension skip discovery of statefulSets?
     statefulSet: false
 service:

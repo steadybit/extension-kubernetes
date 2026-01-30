@@ -19,6 +19,7 @@ type Specification struct {
 	AdviceSingleReplicaMinReplicas         int      `json:"adviceSingleReplicaMinReplicas" split_words:"true" required:"false" default:"2"`
 	DisableDiscoveryExcludes               bool     `required:"false" split_words:"true" default:"false"`
 	LogKubernetesHttpRequests              bool     `required:"false" split_words:"true" default:"false"`
+	DiscoveryDisabledArgoRollout           bool     `json:"discoveryDisabledArgoRollout" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledCluster               bool     `json:"discoveryDisabledCluster" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledContainer             bool     `json:"discoveryDisabledContainer" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledDaemonSet             bool     `json:"discoveryDisabledDaemonSet" required:"false" split_words:"true" default:"false"`
@@ -36,6 +37,7 @@ type Specification struct {
 	DiscoveryAttributesExcludesPod         []string `json:"discoveryAttributesExcludesPod" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesReplicaSet  []string `json:"discoveryAttributesExcludesReplicaSet" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesStatefulSet []string `json:"discoveryAttributesExcludesStatefulSet" split_words:"true" required:"false"`
+	DiscoveryAttributesExcludesArgoRollout []string `json:"discoveryAttributesExcludesArgoRollout" split_words:"true" required:"false"`
 	DiscoveryMaxPodCount                   int      `json:"discoveryMaxPodCount" split_words:"true" required:"false" default:"50"`
 	DiscoveryRefreshThrottle               int      `json:"DiscoveryRefreshThrottle" required:"false" split_words:"true" default:"20"`
 	DiscoveryInformerResync                int      `json:"DiscoveryInformerResync" required:"false" split_words:"true" default:"600"`
