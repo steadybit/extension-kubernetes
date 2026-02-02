@@ -34,7 +34,17 @@
   "lanes": [
     {
       "steps": [
-        <#if target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
+				<#if target.attr('service.id')?? && target.attr('service.id') != '<unknown>'>
+				{
+					"type": "service-validation",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "140s"
+					},
+					"serviceId": "${target.attr('service.id')}",
+					"customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
+				}
+        <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
         {
           "type": "action",
           "ignoreFailure": false,
@@ -64,7 +74,8 @@
             "file": "[[k6LoadTestFile]]"
           },
           "actionType": "com.steadybit.extension_k6.run",
-          "radius": {}
+          "radius": {},
+					"customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
         }
         <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='jmeter'>
         {
@@ -75,7 +86,8 @@
             "parameter": []
           },
           "actionType": "com.steadybit.extension_jmeter.run",
-          "radius": {}
+          "radius": {},
+					"customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
         }
         <#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='gatling'>
         {
@@ -86,7 +98,8 @@
             "parameter": []
           },
           "actionType": "com.steadybit.extension_gatling.run",
-          "radius": {}
+          "radius": {},
+					"customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
         }
         <#else>
         {

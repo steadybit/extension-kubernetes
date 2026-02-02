@@ -1,6 +1,6 @@
 {
-	"templateTitle": "Ephemeral Storage Overload",
-	"templateDescription": "Check what happens when exceeding ephemeral storage. Are all Kubernetes resources working properly, failing gracefully, or raising a monitor alert?",
+	"templateTitle": "Memory Overload",
+	"templateDescription": "Check what happens when filling memory resources. Are all Kubernetes resources working properly, failing gracefully, scaling up, or raising a monitor alert?",
 	"placeholders": [
 	<#if target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
 		{
@@ -29,38 +29,27 @@
 	</#if>
 	],
 	"tags": ["Advice", "Resources"],
-	"experimentName": "Pod recovers after exceeding ephemeral storage of ${target.attr('steadybit.label')}",
+	"experimentName": "Memory Overload of ${target.attr('steadybit.label')}",
+  "hypothesis": "In case of a memory overload of ${target.attr('steadybit.label')}, all Kubernetes resources work properly, fail gracefully, are restarted, or at least one monitor alert.",
   "lanes": [
     {
-			"steps": [
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "150s"
-					},
-					"customLabel": "TODO: Consider updating the megabytes written to the disk to exceed the configured ephemeral storage of ${target.attr('steadybit.label')}"
-				}
-			]
-		},
-		{
       "steps": [
 				<#if target.attr('service.id')?? && target.attr('service.id') != '<unknown>'>
-					{
-						"type": "service-validation",
-						"ignoreFailure": false,
-						"parameters": {
-							"duration": "150s"
-						},
-						"serviceId": "${target.attr('service.id')}",
-				  	"customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
-					}
+				{
+					"type": "service-validation",
+					"ignoreFailure": false,
+					"parameters": {
+						"duration": "160s"
+					},
+					"serviceId": "${target.attr('service.id')}",
+					"customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
+				}
 				<#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
 					{
 					"type": "action",
 					"ignoreFailure": false,
 					"parameters": {
-					"duration": "150s",
+					"duration": "160s",
 					"headers": [],
 					"method": "GET",
 					"successRate": 100,
@@ -117,71 +106,27 @@
           "type": "wait",
           "ignoreFailure": false,
           "parameters": {
-            "duration": "10s"
+            "duration": "40s"
           },
-					"customLabel": "TODO VALIDATION: GIVEN: ${target.attr('steadybit.label')} works properly"
+					"customLabel": "TODO VALIDATION: Validate that ${target.attr('steadybit.label')} works properly"
         },
-				{
-					"type": "wait",
-					"ignoreFailure": false,
-					"parameters": {
-						"duration": "30s"
-					},
-					"customLabel": "TODO VALIDATION: THEN: ${target.attr('steadybit.label')} e.g., still works, fails gracefully, scales up, or monitors alerts"
-				},
+        {
+          "type": "wait",
+          "ignoreFailure": false,
+          "parameters": {
+            "duration": "60s"
+          },
+          "customLabel": "TODO VALIDATION: THEN: ${target.attr('steadybit.label')} e.g., still works, fails gracefully, scales up, or monitors alerts"
+        },
 				{
 					"type": "wait",
 					"ignoreFailure": false,
 					"parameters": {
 						"duration": "60s"
 					},
-					"customLabel": "TODO VALIDATION: ${target.attr('steadybit.label')} recovers from exceeding ephemeral storage and runs smoothly again"
+					"customLabel": "TODO VALIDATION: THEN: ${target.attr('steadybit.label')} recovers from high memory and runs smoothly again"
 				}
 				</#if>
-      ]
-    },
-    {
-      "steps": [
-        {
-          "type": "action",
-          "ignoreFailure": false,
-          "parameters": {
-            "duration": "10s",
-            "podCountCheckMode": "podCountEqualsDesiredCount"
-          },
-          "customLabel": "GIVEN: All pods are ready",
-          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
-          "radius": {
-            "targetType": "${target.id.type}",
-            "predicate": {
-              "operator": "AND",
-              "predicates": [
-                {
-                  "key": "k8s.cluster-name",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.cluster-name')}"
-                  ]
-                },
-                {
-                  "key": "k8s.namespace",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.namespace')}"
-                  ]
-                },
-                {
-                  "key": "k8s.${target.attr('k8s.workload-type')}",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.workload-owner')}"
-                  ]
-                }
-              ]
-            },
-            "query": null
-          }
-        }
       ]
     },
     {
@@ -190,23 +135,22 @@
           "type": "wait",
           "ignoreFailure": false,
           "parameters": {
-            "duration": "10s"
+            "duration": "40s"
           },
-					"customLabel": "Wait for fill disk"
+					"customLabel": "Wait for Memory fill"
         },
         {
           "type": "action",
           "ignoreFailure": false,
           "parameters": {
-            "mode": "MB_TO_FILL",
-            "path": "/tmp",
-            "size": 2000,
-            "method": "AT_ONCE",
-            "duration": "30s",
-            "blocksize": 5
+            "mode": "absolute",
+            "size": 80,
+            "unit": "%",
+            "duration": "60s",
+            "failOnOomKill": false
           },
-          "customLabel": "WHEN: ${target.attr('steadybit.label')}'s pod exceeds ephemeral storage",
-          "actionType": "com.steadybit.extension_container.fill_disk",
+          "customLabel": "WHEN: Filling Memory of ${target.attr('steadybit.label')}",
+          "actionType": "com.steadybit.extension_container.fill_mem",
           "radius": {
             "targetType": "com.steadybit.extension_container.container",
             "predicate": {
@@ -236,99 +180,7 @@
               ]
             },
             "query": null,
-            "maximum": 1
-          }
-        }
-      ]
-    },
-    {
-      "steps": [
-        {
-          "type": "wait",
-          "ignoreFailure": false,
-          "parameters": {
-            "duration": "10s"
-          },
-          "customLabel": "Wait for fill disk"
-        },
-        {
-          "type": "action",
-          "ignoreFailure": false,
-          "parameters": {
-            "duration": "20s",
-            "podCountCheckMode": "podCountLessThanDesiredCount"
-          },
-          "customLabel": "THEN: Kubernetes restarts one pod due to exceeding ephemeral storage",
-          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
-          "radius": {
-            "targetType": "${target.id.type}",
-            "predicate": {
-              "operator": "AND",
-              "predicates": [
-                {
-                  "key": "k8s.cluster-name",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.cluster-name')}"
-                  ]
-                },
-                {
-                  "key": "k8s.namespace",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.namespace')}"
-                  ]
-                },
-                {
-                  "key": "k8s.${target.attr('k8s.workload-type')}",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.workload-owner')}"
-                  ]
-                }
-              ]
-            },
-            "query": null
-          }
-        },
-        {
-          "type": "action",
-          "ignoreFailure": false,
-          "parameters": {
-            "duration": "60s",
-            "podCountCheckMode": "podCountEqualsDesiredCount"
-          },
-          "customLabel": "THEN: Pod recovers within 60 seconds",
-          "actionType": "<#if target.id.type=='com.steadybit.extension_kubernetes.kubernetes-deployment'>com.steadybit.extension_kubernetes.pod_count_check<#elseif target.id.type=='com.steadybit.extension_kubernetes.kubernetes-statefulset'>com.steadybit.extension_kubernetes.pod_count_check_statefulset<#else>com.steadybit.extension_kubernetes.pod_count_check_daemonset</#if>",
-          "radius": {
-            "targetType": "${target.id.type}",
-            "predicate": {
-              "operator": "AND",
-              "predicates": [
-                {
-                  "key": "k8s.cluster-name",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.cluster-name')}"
-                  ]
-                },
-                {
-                  "key": "k8s.namespace",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.namespace')}"
-                  ]
-                },
-                {
-                  "key": "k8s.${target.attr('k8s.workload-type')}",
-                  "operator": "EQUALS",
-                  "values": [
-                    "${target.attr('k8s.workload-owner')}"
-                  ]
-                }
-              ]
-            },
-            "query": null
+						"maximum": 1
           }
         }
       ]
@@ -339,7 +191,7 @@
           "type": "action",
           "ignoreFailure": false,
           "parameters": {
-            "duration": "150s"
+            "duration": "160s"
           },
           "customLabel": "Show Kubernetes events from the cluster",
           "actionType": "com.steadybit.extension_kubernetes.kubernetes_logs",
@@ -368,7 +220,7 @@
           "type": "action",
           "ignoreFailure": false,
           "parameters": {
-            "duration": "150s"
+            "duration": "160s"
           },
           "customLabel": "Show Pod Count Metrics for the cluster",
           "actionType": "com.steadybit.extension_kubernetes.pod_count_metric",

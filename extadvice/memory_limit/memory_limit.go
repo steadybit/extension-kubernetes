@@ -45,11 +45,11 @@ func GetAdviceDescriptionMemoryLimit() advice_kit_api.AdviceDefinition {
 				},
 				Validation: extutil.Ptr([]advice_kit_api.Validation{
 					{
-						Id:               "com.steadybit.extension_kubernetes.k8s-memory-limit.experiment-1",
-						Type:             "EXPERIMENT",
-						Name:             "Memory Overload",
-						ShortDescription: "Check how ${target.attr('steadybit.label')} behaves when running at the memory limit and whether your remaining Kubernetes resources at the host function properly.",
-						Experiment:       extutil.Ptr(advice_kit_api.Experiment(advice_common.ReadAdviceFile(MemoryLimitContent, "experiment_memory_limit.json"))),
+						Id:                 "com.steadybit.extension_kubernetes.k8s-memory-limit.experiment-1",
+						Type:               "EXPERIMENT",
+						Name:               "Memory Overload",
+						ShortDescription:   "Check how ${target.attr('steadybit.label')} behaves when running at the memory limit and whether your remaining Kubernetes resources at the host function properly.",
+						ExperimentTemplate: extutil.Ptr(advice_kit_api.ExperimentTemplate(advice_common.ReadAdviceFile(MemoryLimitContent, "experiment_memory_limit.json.ftl"))),
 					},
 				}),
 			},
