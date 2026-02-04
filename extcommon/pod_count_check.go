@@ -38,8 +38,10 @@ type PodCountCheckAction struct {
 
 type CheckMode string
 
+var referenceTime = time.Now()
+
 type PodCountCheckState struct {
-	Timeout           time.Time
+	EndOffset         time.Duration
 	PodCountCheckMode CheckMode
 	Namespace         string
 	Target            string
@@ -144,7 +146,8 @@ func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckStat
 		return nil, extension_kit.ToError(fmt.Sprintf("%s/%s has no desired count", namespace, target), nil)
 	}
 
-	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
+	duration := time.Duration(int(time.Millisecond) * config.Duration)
+	state.EndOffset = time.Since(referenceTime) + duration
 	state.PodCountCheckMode = config.PodCountCheckMode
 	state.Namespace = namespace
 	state.Target = target
@@ -157,8 +160,6 @@ func (f PodCountCheckAction) Start(_ context.Context, _ *PodCountCheckState) (*a
 }
 
 func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState) (*action_kit_api.StatusResult, error) {
-	now := time.Now()
-
 	desired, current, err := f.GetDesiredAndCurrentPodCount(f.Client, state.Namespace, state.Target)
 	if err != nil {
 		return nil, err
@@ -170,42 +171,42 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	var checkError *action_kit_api.ActionKitError
 	switch state.PodCountCheckMode {
 	case PodCountMin1:
-		if !(readyCount >= 1) {
+		if readyCount < 0 {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has no ready pods.", state.Namespace, state.Target),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountEqualsDesiredCount:
-		if !(readyCount == desiredCount) {
+		if readyCount != desiredCount {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has %d of desired %d pods ready.", state.Namespace, state.Target, readyCount, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountGreaterEqualsDesiredCount:
-		if !(readyCount >= desiredCount) {
+		if readyCount < desiredCount {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has %d of desired %d pods ready.", state.Namespace, state.Target, readyCount, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountLessThanDesiredCount:
-		if !(readyCount < desiredCount) {
+		if readyCount >= desiredCount {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has all %d desired pods ready.", state.Namespace, state.Target, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountDecreased:
-		if !(readyCount < state.InitialCount) {
+		if readyCount >= state.InitialCount {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s's pod count didn't decrease. Initial count: %d, current count: %d.", state.Namespace, state.Target, state.InitialCount, readyCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountIncreased:
-		if !(readyCount > state.InitialCount) {
+		if readyCount <= state.InitialCount {
 			checkError = extutil.Ptr(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s's pod count didn't increase. Initial count: %d, current count: %d.", state.Namespace, state.Target, state.InitialCount, readyCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
@@ -218,15 +219,14 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 		})
 	}
 
-	if now.After(state.Timeout) {
+	if time.Since(referenceTime) > state.EndOffset {
 		return &action_kit_api.StatusResult{
 			Completed: true,
 			Error:     checkError,
 		}, nil
-	} else {
-		return &action_kit_api.StatusResult{
-			Completed: checkError == nil,
-		}, nil
 	}
 
+	return &action_kit_api.StatusResult{
+		Completed: checkError == nil,
+	}, nil
 }

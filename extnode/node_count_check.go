@@ -24,11 +24,13 @@ const (
 	nodeCountIncreasedBy = "nodeCountIncreasedBy"
 )
 
+var referenceTime = time.Now()
+
 type NodeCountCheckAction struct {
 }
 
 type NodeCountCheckState struct {
-	Timeout            time.Time
+	EndOffset          time.Duration
 	NodeCountCheckMode string
 	Cluster            string
 	NodeCount          int
@@ -134,7 +136,8 @@ func prepareNodeCountCheckInternal(k8s *client.Client, state *NodeCountCheckStat
 	if err := extconversion.Convert(request.Config, &config); err != nil {
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
-	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
+	duration := time.Duration(int(time.Millisecond) * config.Duration)
+	state.EndOffset = time.Since(referenceTime) + duration
 	state.Cluster = request.Target.Attributes["k8s.cluster-name"][0]
 	state.NodeCountCheckMode = config.NodeCountCheckMode
 	state.NodeCount = config.NodeCount
@@ -151,7 +154,6 @@ func (f NodeCountCheckAction) Status(_ context.Context, state *NodeCountCheckSta
 }
 
 func statusNodeCountCheckInternal(k8s *client.Client, state *NodeCountCheckState) *action_kit_api.StatusResult {
-	now := time.Now()
 	readyCount := k8s.NodesReadyCount()
 
 	var checkError *action_kit_api.ActionKitError
@@ -172,15 +174,14 @@ func statusNodeCountCheckInternal(k8s *client.Client, state *NodeCountCheckState
 		})
 	}
 
-	if now.After(state.Timeout) {
+	if time.Since(referenceTime) > state.EndOffset {
 		return &action_kit_api.StatusResult{
 			Completed: true,
 			Error:     checkError,
 		}
-	} else {
-		return &action_kit_api.StatusResult{
-			Completed: checkError == nil,
-		}
 	}
 
+	return &action_kit_api.StatusResult{
+		Completed: checkError == nil,
+	}
 }

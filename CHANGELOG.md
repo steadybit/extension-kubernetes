@@ -1,5 +1,9 @@
 # Changelog
 
+## (next)
+
+- fix: make pod count check resilient to wall clock changes
+
 ## v2.6.16
 
 - Copy the pod attributes by ownership to statefulset/daemonsets/deployments/replicasets instead of the selector
