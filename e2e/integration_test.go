@@ -2017,7 +2017,7 @@ func initArgoRollouts(t *testing.T, m *e2e.Minikube, ctx context.Context) {
 	log.Info().Msg("Applying Argo Rollouts manifests")
 	cmdCtx, cmdCancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cmdCancel()
-	cmd := exec.CommandContext(cmdCtx, "kubectl", "--context", m.Profile, "apply", "-n", argoRolloutsNamespace, "-f", "https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml")
+	cmd := exec.CommandContext(cmdCtx, "kubectl", "--context", m.Profile, "apply", "-n", argoRolloutsNamespace, "-f", "https://github.com/argoproj/argo-rollouts/releases/download/v1.8.3/install.yaml")
 	out, err = cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to install Argo Rollouts: %s", out)
 

@@ -7,7 +7,7 @@ import (
 	"k8s.io/client-go/dynamic/fake"
 )
 
-// registerGVK registers a GroupVersionKind  in the scheme
+// registerGVK registers a GroupVersionKind in the scheme
 func registerGVK(scheme *runtime.Scheme, gvk schema.GroupVersionKind) {
 	scheme.AddKnownTypeWithName(gvk, &unstructured.Unstructured{})
 }
@@ -23,7 +23,7 @@ func registerGVK(scheme *runtime.Scheme, gvk schema.GroupVersionKind) {
 func NewFakeDynamicClient(gvks ...schema.GroupVersionKind) *fake.FakeDynamicClient {
 	scheme := runtime.NewScheme()
 
-	// Default to Argo Rollout  if no GVKs provided
+	// Default to Argo Rollout if no GVKs provided
 	if len(gvks) == 0 {
 		gvks = []schema.GroupVersionKind{
 			{

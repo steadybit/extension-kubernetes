@@ -17,15 +17,8 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-var ArgoRolloutGVR = schema.GroupVersionResource{
-	Group:    "argoproj.io",
-	Version:  "v1alpha1",
-	Resource: "rollouts",
-}
 
 type ArgoRolloutRestartAction struct {
 	k8s *client.Client
@@ -108,7 +101,7 @@ func (a *ArgoRolloutRestartAction) Start(ctx context.Context, state *ArgoRollout
 		return nil, extension_kit.ToError(fmt.Sprintf("Failed to marshal patch data: %v", err), err)
 	}
 
-	_, err = a.k8s.DynamicClient().Resource(ArgoRolloutGVR).Namespace(state.Namespace).Patch(
+	_, err = a.k8s.DynamicClient().Resource(client.ArgoRolloutGVR).Namespace(state.Namespace).Patch(
 		ctx,
 		state.ArgoRollout,
 		types.MergePatchType,

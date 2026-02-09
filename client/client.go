@@ -50,6 +50,12 @@ import (
 
 var K8S *Client
 
+var ArgoRolloutGVR = schema.GroupVersionResource{
+	Group:    "argoproj.io",
+	Version:  "v1alpha1",
+	Resource: "rollouts",
+}
+
 type Client struct {
 	Distribution string
 	permissions  *PermissionCheckResult
@@ -785,11 +791,6 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 
 	// Initialize Argo Rollouts informer if enabled
 	if !extconfig.Config.DiscoveryDisabledArgoRollout {
-		argoRolloutGVR := schema.GroupVersionResource{
-			Group:    "argoproj.io",
-			Version:  "v1alpha1",
-			Resource: "rollouts",
-		}
 		if extconfig.HasNamespaceFilter() {
 			dynamicFactory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
 				dynamicClient,
@@ -803,7 +804,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 				informerResyncDuration,
 			)
 		}
-		argoRolloutInformer := dynamicFactory.ForResource(argoRolloutGVR)
+		argoRolloutInformer := dynamicFactory.ForResource(ArgoRolloutGVR)
 		client.argoRollout.informer = argoRolloutInformer.Informer()
 		client.argoRollout.lister = &rolloutLister{indexer: argoRolloutInformer.Informer().GetIndexer()}
 		// Don't wait for Argo Rollouts informer to sync - the operator won't be installed yet.
