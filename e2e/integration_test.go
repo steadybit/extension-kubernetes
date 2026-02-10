@@ -1000,62 +1000,41 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			// Measure latency during delay
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-
-			// Use the correct method and headers for the test
+			// Poll for expected latency instead of fixed sleep
 			var delayedLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				delayedLatency, err = measureRequestLatencyWithOptions(
-					m,
-					haProxyService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				delayedLatency, err = measureRequestLatency(m, haProxyService, testAppName+".local")
-			}
-			require.NoError(t, err)
-			log.Info().Msgf("Latency during delay test: %v", delayedLatency)
-
-			// Verify delay
 			if tt.wantedDelay {
-				// Check that delay is applied (with some tolerance)
 				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				delayedLatency, err = pollForLatencyCondition(m, haProxyService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d >= minExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
 				assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
 			} else {
-				// Latency shouldn't change significantly
-				maxExpectedLatency := baselineLatency + 100*time.Millisecond // Allow for some small variance
+				maxExpectedLatency := baselineLatency + 100*time.Millisecond
+				delayedLatency, err = pollForLatencyCondition(m, haProxyService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d <= maxExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not increase significantly")
 			}
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
 
-			// Measure latency after cancellation
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-			var afterLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				afterLatency, err = measureRequestLatencyWithOptions(
-					m,
-					haProxyService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				afterLatency, err = measureRequestLatency(m, haProxyService, testAppName+".local")
-			}
+			// Poll for latency to return to normal after cancellation
+			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+			afterLatency, err := pollForLatencyCondition(m, haProxyService, testAppName+".local",
+				tt.requestPath, tt.requestMethod, tt.requestHeaders,
+				func(d time.Duration) bool { return d <= maxExpectedAfterLatency },
+				10*time.Second)
 			require.NoError(t, err)
 			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
-
-			// Verify latency returned to normal
-			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 			assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
 		})
 	}
@@ -1200,8 +1179,6 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-
 			// Verify block
 			expectedStatusCode := tt.responseStatusCode
 			if expectedStatusCode == 0 {
@@ -1229,8 +1206,6 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
-
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
 
 			// Verify service is not blocked anymore
 			err = checkStatusCode(t, m, haProxyService, "/", 200)
@@ -1577,6 +1552,27 @@ func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path 
 	return fmt.Errorf("failed to get expected status code after %d attempts", maxRetries)
 }
 
+// pollForLatencyCondition polls until the measured latency satisfies the given condition or timeout.
+// Returns the last measured latency (even if condition was not met, so callers can assert).
+func pollForLatencyCondition(m *e2e.Minikube, service metav1.Object, hostname, path, method string, headers map[string]string, condition func(time.Duration) bool, timeout time.Duration) (time.Duration, error) {
+	deadline := time.Now().Add(timeout)
+	var lastLatency time.Duration
+	var lastErr error
+	for {
+		lastLatency, lastErr = measureRequestLatencyWithOptions(m, service, hostname, path, method, headers)
+		if lastErr == nil && condition(lastLatency) {
+			return lastLatency, nil
+		}
+		if time.Now().After(deadline) {
+			if lastErr != nil {
+				return 0, fmt.Errorf("timed out waiting for latency condition: %w", lastErr)
+			}
+			return lastLatency, nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
 func int32Ptr(i int32) *int32 {
 	return &i
 }
@@ -1767,8 +1763,6 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-
 			// Verify block
 			expectedStatusCode := tt.responseStatusCode
 			if !tt.wantedBlock {
@@ -1791,8 +1785,6 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
-
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
 
 			// Verify service is not blocked anymore
 			err = checkStatusCode(t, m, nginxService, "/", 200)
@@ -2288,62 +2280,41 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			// Measure latency during delay
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-
-			// Use the correct method and headers for the test
+			// Poll for expected latency
 			var delayedLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				delayedLatency, err = measureRequestLatencyWithOptions(
-					m,
-					nginxService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				delayedLatency, err = measureRequestLatency(m, nginxService, testAppName+".local")
-			}
-			require.NoError(t, err)
-			log.Info().Msgf("Latency during delay test: %v", delayedLatency)
-
-			// Verify delay
 			if tt.wantedDelay {
-				// Check that delay is applied (with some tolerance)
 				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				delayedLatency, err = pollForLatencyCondition(m, nginxService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d >= minExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
 				assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
 			} else {
-				// Latency shouldn't change significantly
-				maxExpectedLatency := baselineLatency + 100*time.Millisecond // Allow for some small variance
+				maxExpectedLatency := baselineLatency + 100*time.Millisecond
+				delayedLatency, err = pollForLatencyCondition(m, nginxService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d <= maxExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not increase significantly")
 			}
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
 
-			// Measure latency after cancellation
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-			var afterLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				afterLatency, err = measureRequestLatencyWithOptions(
-					m,
-					nginxService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				afterLatency, err = measureRequestLatency(m, nginxService, testAppName+".local")
-			}
+			// Poll for latency to return to normal after cancellation
+			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+			afterLatency, err := pollForLatencyCondition(m, nginxService, testAppName+".local",
+				tt.requestPath, tt.requestMethod, tt.requestHeaders,
+				func(d time.Duration) bool { return d <= maxExpectedAfterLatency },
+				10*time.Second)
 			require.NoError(t, err)
 			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
-
-			// Verify latency returned to normal
-			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 			assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
 		})
 	}
@@ -2552,14 +2523,14 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 
 	log.Info().Msg("Successfully validated nginx controller with steadybit module")
 
-	// Measure latency during delay
-	time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-	delayedLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	// Poll for expected delay
+	minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+	delayedLatency, err := pollForLatencyCondition(m, nginxService, testAppName+".local",
+		"/", "", nil,
+		func(d time.Duration) bool { return d >= minExpectedLatency },
+		10*time.Second)
 	require.NoError(t, err)
 	log.Info().Msgf("Latency during delay test: %v", delayedLatency)
-
-	// Verify delay is applied (with tolerance)
-	minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
 	maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
 	assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
 	assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
@@ -2567,13 +2538,13 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 	// Cancel the action
 	require.NoError(t, action.Cancel())
 
-	// Measure latency after cancellation
-	time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-	afterLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	// Poll for latency to return to normal after cancellation
+	maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+	afterLatency, err := pollForLatencyCondition(m, nginxService, testAppName+".local",
+		"/", "", nil,
+		func(d time.Duration) bool { return d <= maxExpectedAfterLatency },
+		10*time.Second)
 	require.NoError(t, err)
 	log.Info().Msgf("Latency after cancellation: %v", afterLatency)
-
-	// Verify latency returned to normal
-	maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 	assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
 }
