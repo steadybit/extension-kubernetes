@@ -10,6 +10,7 @@ import (
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extutil"
+	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -83,7 +84,7 @@ func TestArgoRolloutRestartAction_Start(t *testing.T) {
 
 	// Create rollout
 	rollout := testRollout(nil)
-	_, err := dynamicClient.Resource(ArgoRolloutGVR).Namespace("default").Create(
+	_, err := dynamicClient.Resource(client.ArgoRolloutGVR).Namespace("default").Create(
 		context.Background(), rollout, metav1.CreateOptions{},
 	)
 	require.NoError(t, err)
@@ -101,7 +102,7 @@ func TestArgoRolloutRestartAction_Start(t *testing.T) {
 	require.Len(t, *result.Messages, 1)
 	assert.Contains(t, (*result.Messages)[0].Message, "Restart triggered for Argo Rollout default/shop")
 
-	updatedRollout, err := dynamicClient.Resource(ArgoRolloutGVR).Namespace("default").Get(
+	updatedRollout, err := dynamicClient.Resource(client.ArgoRolloutGVR).Namespace("default").Get(
 		context.Background(), "shop", metav1.GetOptions{},
 	)
 	require.NoError(t, err)
