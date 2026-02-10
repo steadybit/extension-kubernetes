@@ -188,14 +188,17 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	tests := []struct {
 		name            string
 		wantedCompleted bool
+		duration        int
 	}{
 		{
 			name:            "should check status ok",
 			wantedCompleted: true,
+			duration:        15000,
 		},
 		{
 			name:            "should check status not completed",
 			wantedCompleted: false,
+			duration:        5000,
 		},
 	}
 
@@ -206,7 +209,7 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		config := struct {
 			Duration int `json:"duration"`
 		}{
-			Duration: 15000,
+			Duration: tt.duration,
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
@@ -761,7 +764,7 @@ func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		ContainerName string `json:"container_name"`
 	}{
 		Duration:      120000,
-		Image:         "httpd:alpine",
+		Image:         "registry.k8s.io/pause:3.9",
 		ContainerName: "nginx",
 	}
 
@@ -813,7 +816,7 @@ func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		containers := p.Spec.Containers
 
 		for _, container := range containers {
-			if container.Name == "nginx" && container.Image == "httpd:alpine" {
+			if container.Name == "nginx" && container.Image == "registry.k8s.io/pause:3.9" {
 				httpdPodsCount++
 			}
 		}
