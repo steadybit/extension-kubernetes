@@ -93,5 +93,22 @@ permissions for clusterrole or role
     verbs:
       - create
   {{- end }}
+  {{- if not .Values.discovery.disabled.argoRollout }}
+  {{/* Required for Argo Discovery */}}
+  - apiGroups: ["argoproj.io"]
+    resources:
+      - rollouts
+    verbs:
+      - get
+      - list
+      - watch
+  {{- end }}
+  {{- if not .Values.discovery.disabled.argoRollout }}
+  {{/* Required for Argo Rollout Restart Attack */}}
+  - apiGroups: ["argoproj.io"]
+    resources:
+      - rollouts
+    verbs:
+      - patch
+  {{- end }}
 {{- end -}}
-

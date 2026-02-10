@@ -5,9 +5,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
-	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 type PermissionCheckResult struct {
@@ -66,12 +67,24 @@ var requiredPermissions = []requiredPermission{
 	{group: "networking.k8s.io", resource: "ingressclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 }
 
+var argoRolloutPermission = requiredPermission{
+	group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch", "patch"}, allowGracefulFailure: true,
+}
+
+func getRequiredPermissions() []requiredPermission {
+	permissions := requiredPermissions
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		permissions = append(permissions, argoRolloutPermission)
+	}
+	return permissions
+}
+
 func checkPermissions(client *kubernetes.Clientset) *PermissionCheckResult {
 	result := make(map[string]PermissionCheckOutcome)
 	reviews := client.AuthorizationV1().SelfSubjectAccessReviews()
 	errors := false
 
-	for _, p := range requiredPermissions {
+	for _, p := range getRequiredPermissions() {
 		for _, verb := range p.verbs {
 			sar := authorizationv1.SelfSubjectAccessReview{
 				Spec: authorizationv1.SelfSubjectAccessReviewSpec{
@@ -240,9 +253,15 @@ func (p *PermissionCheckResult) IsSetImageDeploymentPermitted() bool {
 	})
 }
 
+func (p *PermissionCheckResult) IsArgoRolloutRestartPermitted() bool {
+	return p.hasPermissions([]string{
+		"argoproj.io/rollouts/patch",
+	})
+}
+
 func MockAllPermitted() *PermissionCheckResult {
 	result := make(map[string]PermissionCheckOutcome)
-	for _, p := range requiredPermissions {
+	for _, p := range getRequiredPermissions() {
 		for _, verb := range p.verbs {
 			result[p.Key(verb)] = OK
 		}

@@ -27,9 +27,13 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	networkingv1client "k8s.io/client-go/kubernetes/typed/networking/v1"
@@ -46,9 +50,20 @@ import (
 
 var K8S *Client
 
+var ArgoRolloutGVR = schema.GroupVersionResource{
+	Group:    "argoproj.io",
+	Version:  "v1alpha1",
+	Resource: "rollouts",
+}
+
 type Client struct {
 	Distribution string
 	permissions  *PermissionCheckResult
+
+	argoRollout struct {
+		lister   RolloutLister
+		informer cache.SharedIndexInformer
+	}
 
 	daemonSet struct {
 		lister   listerAppsv1.DaemonSetLister
@@ -116,6 +131,11 @@ type Client struct {
 	resourceEventHandler cache.ResourceEventHandlerFuncs
 	networkingV1         networkingv1client.NetworkingV1Interface
 	clientset            kubernetes.Interface
+	dynamicClient        dynamic.Interface
+}
+
+func (c *Client) DynamicClient() dynamic.Interface {
+	return c.dynamicClient
 }
 
 func (c *Client) PrintMemoryUsage() {
@@ -150,6 +170,77 @@ func getInformerStats(informer cache.SharedIndexInformer, name string) string {
 	}
 
 	return fmt.Sprintf("%s, %d, %d", name, len(objects), totalSize/1024)
+}
+
+type RolloutLister interface {
+	List(selector labels.Selector) ([]*unstructured.Unstructured, error)
+	Rollouts(namespace string) RolloutNamespaceLister
+}
+
+type RolloutNamespaceLister interface {
+	List(selector labels.Selector) ([]*unstructured.Unstructured, error)
+	Get(name string) (*unstructured.Unstructured, error)
+}
+
+type rolloutLister struct {
+	indexer cache.Indexer
+}
+
+func (l *rolloutLister) List(selector labels.Selector) ([]*unstructured.Unstructured, error) {
+	items := l.indexer.List()
+	result := make([]*unstructured.Unstructured, 0, len(items))
+	for _, item := range items {
+		if obj, ok := item.(*unstructured.Unstructured); ok {
+			if selector.Matches(labels.Set(obj.GetLabels())) {
+				result = append(result, obj)
+			}
+		}
+	}
+	return result, nil
+}
+
+func (l *rolloutLister) Rollouts(namespace string) RolloutNamespaceLister {
+	return &rolloutNamespaceLister{
+		indexer:   l.indexer,
+		namespace: namespace,
+	}
+}
+
+type rolloutNamespaceLister struct {
+	indexer   cache.Indexer
+	namespace string
+}
+
+func (l *rolloutNamespaceLister) List(selector labels.Selector) ([]*unstructured.Unstructured, error) {
+	items, err := l.indexer.ByIndex(cache.NamespaceIndex, l.namespace)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*unstructured.Unstructured, 0, len(items))
+	for _, item := range items {
+		if obj, ok := item.(*unstructured.Unstructured); ok {
+			if selector.Matches(labels.Set(obj.GetLabels())) {
+				result = append(result, obj)
+			}
+		}
+	}
+	return result, nil
+}
+
+func (l *rolloutNamespaceLister) Get(name string) (*unstructured.Unstructured, error) {
+	obj, exists, err := l.indexer.GetByKey(l.namespace + "/" + name)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, k8sErrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "rollouts"}, name)
+	}
+
+	if rolloutObj, ok := obj.(*unstructured.Unstructured); ok {
+		return rolloutObj, nil
+	} else {
+		return nil, fmt.Errorf("expected *unstructured.Unstructured, got %T", obj)
+	}
 }
 
 func (c *Client) Permissions() *PermissionCheckResult {
@@ -355,6 +446,25 @@ func (c *Client) DeploymentByNamespaceAndName(namespace string, name string) *ap
 	item, err := c.deployment.lister.Deployments(namespace).Get(name)
 	logGetError(fmt.Sprintf("deployment %s/%s", namespace, name), err)
 	return item
+}
+
+func (c *Client) ArgoRollouts() []*unstructured.Unstructured {
+	if extconfig.HasNamespaceFilter() {
+		log.Info().Msgf("Fetching Argo Rollouts for namespace %s", extconfig.Config.Namespace)
+		rollouts, err := c.argoRollout.lister.Rollouts(extconfig.Config.Namespace).List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching Argo Rollouts")
+			return []*unstructured.Unstructured{}
+		}
+		return rollouts
+	} else {
+		rollouts, err := c.argoRollout.lister.List(labels.Everything())
+		if err != nil {
+			log.Error().Err(err).Msgf("Error while fetching Argo Rollouts")
+			return []*unstructured.Unstructured{}
+		}
+		return rollouts
+	}
 }
 
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
@@ -629,17 +739,28 @@ func filterEvents(events []interface{}, since time.Time) []corev1.Event {
 }
 
 func PrepareClient(stopCh <-chan struct{}) {
-	clientset, rootApiPath := createClientset()
+	clientset, rootApiPath, config := createClientset()
 	permissions := checkPermissions(clientset)
-	K8S = CreateClient(clientset, stopCh, rootApiPath, permissions)
+
+	var dynamicClient dynamic.Interface
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		var err error
+		dynamicClient, err = dynamic.NewForConfig(config)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create dynamic client")
+		}
+	}
+
+	K8S = CreateClient(clientset, stopCh, rootApiPath, permissions, dynamicClient)
 }
 
 // CreateClient is visible for testing
-func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string, permissions *PermissionCheckResult) *Client {
+func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootApiPath string, permissions *PermissionCheckResult, dynamicClient dynamic.Interface) *Client {
 	client := &Client{
-		Distribution: "kubernetes",
-		permissions:  permissions,
-		clientset:    clientset,
+		Distribution:  "kubernetes",
+		permissions:   permissions,
+		clientset:     clientset,
+		dynamicClient: dynamicClient,
 	}
 	if isOpenShift(rootApiPath) {
 		client.Distribution = "openshift"
@@ -652,6 +773,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	} else {
 		factory = informers.NewSharedInformerFactory(clientset, informerResyncDuration)
 	}
+
 	client.resourceEventHandler = cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			client.doNotify(obj)
@@ -665,6 +787,33 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	var informerSyncList []cache.InformerSynced
+	var dynamicFactory dynamicinformer.DynamicSharedInformerFactory
+
+	// Initialize Argo Rollouts informer if enabled
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		if extconfig.HasNamespaceFilter() {
+			dynamicFactory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
+				dynamicClient,
+				informerResyncDuration,
+				extconfig.Config.Namespace,
+				nil,
+			)
+		} else {
+			dynamicFactory = dynamicinformer.NewDynamicSharedInformerFactory(
+				dynamicClient,
+				informerResyncDuration,
+			)
+		}
+		argoRolloutInformer := dynamicFactory.ForResource(ArgoRolloutGVR)
+		client.argoRollout.informer = argoRolloutInformer.Informer()
+		client.argoRollout.lister = &rolloutLister{indexer: argoRolloutInformer.Informer().GetIndexer()}
+		// Don't wait for Argo Rollouts informer to sync - the operator won't be installed yet.
+		// The informer will start syncing once the CRD appears, but we don't want to block readiness.
+		log.Info().Msg("Argo Rollouts informer initialized (sync not required for readiness)")
+		if _, err := client.argoRollout.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Err(err).Msg("failed to add argo rollout event handler")
+		}
+	}
 
 	daemonSets := factory.Apps().V1().DaemonSets()
 	client.daemonSet.informer = daemonSets.Informer()
@@ -809,6 +958,9 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 
 	defer runtime.HandleCrash()
 	go factory.Start(stopCh)
+	if dynamicFactory != nil {
+		go dynamicFactory.Start(stopCh)
+	}
 
 	log.Info().Msgf("Start Kubernetes cache sync.")
 	if !cache.WaitForCacheSync(stopCh, informerSyncList...) {
@@ -1049,7 +1201,7 @@ func isOpenShift(rootApiPath string) bool {
 	return rootApiPath == "/oapi" || rootApiPath == "oapi"
 }
 
-func createClientset() (*kubernetes.Clientset, string) {
+func createClientset() (*kubernetes.Clientset, string, *rest.Config) {
 	config, err := rest.InClusterConfig()
 	if err == nil {
 		log.Info().Msgf("Extension is running inside a cluster, config found")
@@ -1084,7 +1236,7 @@ func createClientset() (*kubernetes.Clientset, string) {
 
 	log.Info().Msgf("Cluster connected! Kubernetes Server Version %+v", info)
 
-	return clientset, config.APIPath
+	return clientset, config.APIPath, config
 }
 
 func IsExcludedFromDiscovery(objectMeta metav1.ObjectMeta) bool {

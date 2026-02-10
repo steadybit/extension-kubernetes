@@ -39,6 +39,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extadvice/probes"
 	"github.com/steadybit/extension-kubernetes/v2/extadvice/single_replica"
 	"github.com/steadybit/extension-kubernetes/v2/extadvice/single_zone"
+	"github.com/steadybit/extension-kubernetes/v2/extargorollout"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -70,6 +71,13 @@ func main() {
 	exthealth.StartProbes(8089)
 
 	client.PrepareClient(stopCh)
+
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+		discovery_kit_sdk.Register(extargorollout.NewRolloutDiscovery(client.K8S))
+		if client.K8S.Permissions().IsArgoRolloutRestartPermitted() {
+			action_kit_sdk.RegisterAction(extargorollout.NewArgoRolloutRestartAction(client.K8S))
+		}
+	}
 
 	if !extconfig.Config.DiscoveryDisabledDeployment {
 		discovery_kit_sdk.Register(extdeployment.NewDeploymentDiscovery(client.K8S))
