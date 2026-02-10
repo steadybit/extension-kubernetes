@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.6.16
+
+- Copy the pod attributes by ownership to statefulset/daemonsets/deployments/replicasets instead of the selector
+
 ## v2.6.15
 
 - Update dependencies
