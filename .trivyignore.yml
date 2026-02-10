@@ -9,3 +9,13 @@ vulnerabilities:
       - usr/bin/kubectl
     statement: Wait for a new kubectl version
     expired_at: 2026-03-01
+  - id: CVE-2025-61730
+    paths:
+      - usr/bin/kubectl
+    statement: Wait for a new kubectl version
+    expired_at: 2026-03-01
+  - id: CVE-2025-68121
+    paths:
+      - usr/bin/kubectl
+    statement: Wait for a new kubectl version
+    expired_at: 2026-03-01
