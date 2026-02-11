@@ -44,6 +44,7 @@ func (a *ArgoRolloutRestartAction) Describe() action_kit_api.ActionDescription {
 		Id:          ArgoRolloutRestartActionId,
 		Label:       "Restart Argo Rollout",
 		Description: "Trigger a restart of an Argo Rollout by patching spec.restartAt",
+		Icon:        extutil.Ptr(ArgoRolloutIcon),
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Technology:  extutil.Ptr("Kubernetes"),
 		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
