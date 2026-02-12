@@ -467,6 +467,12 @@ func (c *Client) ArgoRollouts() []*unstructured.Unstructured {
 	}
 }
 
+func (c *Client) ArgoRolloutByNamespaceAndName(namespace string, name string) *unstructured.Unstructured {
+	item, err := c.argoRollout.lister.Rollouts(namespace).Get(name)
+	logGetError(fmt.Sprintf("argo-rollout %s/%s", namespace, name), err)
+	return item
+}
+
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 	services, err := c.service.lister.Services(pod.Namespace).List(labels.Everything())
 	if err != nil {
