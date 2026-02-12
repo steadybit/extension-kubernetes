@@ -6,4 +6,4 @@ go.docker.mod
 /licenses
 /snyk.sarif
 /vendor
-
+.env
