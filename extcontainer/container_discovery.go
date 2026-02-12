@@ -112,6 +112,10 @@ func getContainerToContainerEnrichmentRule() discovery_kit_api.TargetEnrichmentR
 			},
 			{
 				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.argo-rollout",
+			},
+			{
+				Matcher: discovery_kit_api.Equals,
 				Name:    "k8s.replicaset",
 			},
 			{
