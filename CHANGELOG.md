@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.17
+
+- Update dependencies
+- Added a discover for Argo Rollouts and added a rollout restart attack
+
 ## v2.6.16
 
 - Copy the pod attributes by ownership to statefulset/daemonsets/deployments/replicasets instead of the selector
