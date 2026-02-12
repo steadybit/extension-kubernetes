@@ -52,7 +52,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
 	"github.com/steadybit/extension-kubernetes/v2/extreplicaset"
 	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
-	_ "go.uber.org/automaxprocs" // Importing automaxprocs automatically adjusts GOMAXPROCS.
 )
 
 func main() {
