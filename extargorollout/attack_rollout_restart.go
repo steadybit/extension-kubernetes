@@ -42,7 +42,7 @@ func (a *ArgoRolloutRestartAction) NewEmptyState() ArgoRolloutRestartState {
 func (a *ArgoRolloutRestartAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          ArgoRolloutRestartActionId,
-		Label:       "Restart Argo Rollout",
+		Label:       "Trigger Restart Argo Rollout",
 		Description: "Trigger a restart of an Argo Rollout by patching spec.restartAt",
 		Icon:        extutil.Ptr(ArgoRolloutIcon),
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
