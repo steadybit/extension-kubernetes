@@ -886,6 +886,113 @@ manifest should match snapshot with extra labels:
               type: RuntimeDefault
           serviceAccountName: steadybit-extension-kubernetes
           volumes: null
+manifest should match snapshot with global priority class:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-disabled: "true"
+        steadybit.com/extension: "true"
+      name: RELEASE-NAME-steadybit-extension-kubernetes
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: steadybit-extension-kubernetes
+      template:
+        metadata:
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: steadybit-extension-kubernetes
+            steadybit.com/discovery-disabled: "true"
+            steadybit.com/extension: "true"
+        spec:
+          automountServiceAccountToken: true
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_CLUSTER_NAME
+                  value: null
+                - name: STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_CLUSTER
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_CONTAINER
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_DAEMON_SET
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_DEPLOYMENT
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_INGRESS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_NODE
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
+                  value: "50"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
+                  value: "20"
+                - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
+                  value: '*'
+                - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
+                  value: null
+              image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /health/liveness
+                  port: 8089
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              name: extension
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /health/readiness
+                  port: 8089
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 256Mi
+                requests:
+                  cpu: 50m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts: null
+          priorityClassName: my-global-priority-class
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: steadybit-extension-kubernetes
+          volumes: null
 manifest should match snapshot with mutual TLS:
   1: |
     apiVersion: apps/v1
