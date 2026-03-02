@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.18
+
+- Update dependencies
+- Added categories to advice (for future use in the UI)
+
 ## v2.6.17
 
 - Update dependencies
