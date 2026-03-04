@@ -8,13 +8,17 @@ kubernetes:
   namespaceFilter: null
 
 image:
+  # image.registry -- The container registry to use. Defaults to global.image.registry or ghcr.io.
+  registry: null
   # image.name -- The container image to use for the steadybit Kubernetes extension.
-  name: ghcr.io/steadybit/extension-kubernetes
+  name: steadybit/extension-kubernetes
   # image.tag -- tag name of the extension-kubernetes container image to use. Defaults to appVersion of this chart.
   # See https://hub.docker.com/r/steadybit/extension-kubernetes for all tags.
   tag: null
   # image.pullPolicy -- Specifies when to pull the image container.
   pullPolicy: IfNotPresent
+  # image.pullSecrets -- List of image pull secret names.
+  pullSecrets: []
 
 tls:
   server:
@@ -194,6 +198,8 @@ discovery:
       replicaSet: []
       # discovery.attributes.excludes.statefulSet -- List of attributes to exclude from statefulSet discovery.
       statefulSet: []
+      # discovery.attributes.excludes.argoRollout -- List of attributes to exclude from Argo Rollout discovery.
+      argoRollout: []
   disabled:
     # discovery.disabled.cluster -- Should the extension skip discovery of cluster targets?
     cluster: false
@@ -211,6 +217,8 @@ discovery:
     pod: false
     # discovery.disabled.replicaSet -- Should the extension skip discovery of replicaSets?
     replicaSet: true
+    # discovery.disabled.argoRollout -- Should the extension skip discovery of Argo rollouts?
+    argoRollout: true
     # discovery.disabled.statefulSet -- Should the extension skip discovery of statefulSets?
     statefulSet: false
 service:

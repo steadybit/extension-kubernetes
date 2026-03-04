@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/steadybit/extension-kit/extutil"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,6 +87,17 @@ func getResource(k8s *Client, kind string, namespace string, name string) (*Owne
 		statefulset := k8s.StatefulSetByNamespaceAndName(namespace, name)
 		if statefulset != nil {
 			return extutil.Ptr(OwnerReference{Name: statefulset.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(statefulset.ObjectMeta), nil, nil
+		}
+	} else if !extconfig.Config.DiscoveryDisabledArgoRollout && strings.EqualFold("rollout", kind) {
+		rollout := k8s.ArgoRolloutByNamespaceAndName(namespace, name)
+		if rollout != nil {
+			meta := metav1.ObjectMeta{
+				Name:        rollout.GetName(),
+				Namespace:   rollout.GetNamespace(),
+				Annotations: rollout.GetAnnotations(),
+				Labels:      rollout.GetLabels(),
+			}
+			return extutil.Ptr(OwnerReference{Name: rollout.GetName(), Kind: strings.ToLower(kind)}), extutil.Ptr(meta), nil, nil
 		}
 	}
 	return nil, nil, nil, nil

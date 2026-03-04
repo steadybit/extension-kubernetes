@@ -17,12 +17,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/steadybit/extension-kubernetes/v2/testutil"
 )
 
 // newNginxTestClient creates a fake client with provided initial objects.
 func newNginxTestClient(stopCh <-chan struct{}, initObjs ...runtime.Object) (*client.Client, kubernetes.Interface) {
-	cs := testclient.NewClientset(initObjs...)
-	cli := client.CreateClient(cs, stopCh, "", client.MockAllPermitted())
+	cs := testclient.NewSimpleClientset(initObjs...)
+	dynamicClient := testutil.NewFakeDynamicClient()
+	cli := client.CreateClient(cs, stopCh, "", client.MockAllPermitted(), dynamicClient)
 	return cli, cs
 }
 

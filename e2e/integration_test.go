@@ -21,6 +21,7 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_test/validate"
 	"github.com/steadybit/extension-kit/extutil"
+	"github.com/steadybit/extension-kubernetes/v2/extargorollout"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
@@ -114,6 +115,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "nginxMultipleControllers",
 		Test: testNginxMultipleControllers,
 	},
+	{
+		Name: "argoRolloutDiscovery",
+		Test: testArgoRolloutDiscovery,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -126,6 +131,7 @@ func TestWithMinikube(t *testing.T) {
 				"--set", "discovery.attributes.excludes.container={k8s.label.*}",
 				"--set", "discovery.refreshThrottle=1",
 				"--set", "logging.level=DEBUG",
+				"--set", "discovery.disabled.argoRollout=false",
 			}
 		},
 	}
@@ -148,6 +154,7 @@ func TestWithMinikubeViaRole(t *testing.T) {
 				"--set", "roleBinding.create=true",
 				"--set", "clusterRole.create=false",
 				"--set", "clusterRoleBinding.create=false",
+				"--set", "discovery.disabled.argoRollout=false",
 				"--namespace", "default",
 			}
 		},
@@ -181,14 +188,17 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	tests := []struct {
 		name            string
 		wantedCompleted bool
+		duration        int
 	}{
 		{
 			name:            "should check status ok",
 			wantedCompleted: true,
+			duration:        15000,
 		},
 		{
 			name:            "should check status not completed",
 			wantedCompleted: false,
+			duration:        5000,
 		},
 	}
 
@@ -199,7 +209,7 @@ func testCheckRolloutReady(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		config := struct {
 			Duration int `json:"duration"`
 		}{
-			Duration: 15000,
+			Duration: tt.duration,
 		}
 
 		t.Run(tt.name, func(t *testing.T) {
@@ -754,7 +764,7 @@ func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		ContainerName string `json:"container_name"`
 	}{
 		Duration:      120000,
-		Image:         "httpd:alpine",
+		Image:         "registry.k8s.io/pause:3.9",
 		ContainerName: "nginx",
 	}
 
@@ -806,7 +816,7 @@ func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		containers := p.Spec.Containers
 
 		for _, container := range containers {
-			if container.Name == "nginx" && container.Image == "httpd:alpine" {
+			if container.Name == "nginx" && container.Image == "registry.k8s.io/pause:3.9" {
 				httpdPodsCount++
 			}
 		}
@@ -993,62 +1003,41 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			// Measure latency during delay
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-
-			// Use the correct method and headers for the test
+			// Poll for expected latency instead of fixed sleep
 			var delayedLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				delayedLatency, err = measureRequestLatencyWithOptions(
-					m,
-					haProxyService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				delayedLatency, err = measureRequestLatency(m, haProxyService, testAppName+".local")
-			}
-			require.NoError(t, err)
-			log.Info().Msgf("Latency during delay test: %v", delayedLatency)
-
-			// Verify delay
 			if tt.wantedDelay {
-				// Check that delay is applied (with some tolerance)
 				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				delayedLatency, err = pollForLatencyCondition(m, haProxyService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d >= minExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
 				assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
 			} else {
-				// Latency shouldn't change significantly
-				maxExpectedLatency := baselineLatency + 100*time.Millisecond // Allow for some small variance
+				maxExpectedLatency := baselineLatency + 100*time.Millisecond
+				delayedLatency, err = pollForLatencyCondition(m, haProxyService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d <= maxExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not increase significantly")
 			}
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
 
-			// Measure latency after cancellation
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-			var afterLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				afterLatency, err = measureRequestLatencyWithOptions(
-					m,
-					haProxyService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				afterLatency, err = measureRequestLatency(m, haProxyService, testAppName+".local")
-			}
+			// Poll for latency to return to normal after cancellation
+			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+			afterLatency, err := pollForLatencyCondition(m, haProxyService, testAppName+".local",
+				tt.requestPath, tt.requestMethod, tt.requestHeaders,
+				func(d time.Duration) bool { return d <= maxExpectedAfterLatency },
+				10*time.Second)
 			require.NoError(t, err)
 			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
-
-			// Verify latency returned to normal
-			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 			assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
 		})
 	}
@@ -1193,8 +1182,6 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
-
 			// Verify block
 			expectedStatusCode := tt.responseStatusCode
 			if expectedStatusCode == 0 {
@@ -1222,8 +1209,6 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
-
-			time.Sleep(5 * time.Second) // Give HAProxy time to reconfigure
 
 			// Verify service is not blocked anymore
 			err = checkStatusCode(t, m, haProxyService, "/", 200)
@@ -1570,6 +1555,27 @@ func checkStatusCode(t *testing.T, m *e2e.Minikube, service metav1.Object, path 
 	return fmt.Errorf("failed to get expected status code after %d attempts", maxRetries)
 }
 
+// pollForLatencyCondition polls until the measured latency satisfies the given condition or timeout.
+// Returns the last measured latency (even if condition was not met, so callers can assert).
+func pollForLatencyCondition(m *e2e.Minikube, service metav1.Object, hostname, path, method string, headers map[string]string, condition func(time.Duration) bool, timeout time.Duration) (time.Duration, error) {
+	deadline := time.Now().Add(timeout)
+	var lastLatency time.Duration
+	var lastErr error
+	for {
+		lastLatency, lastErr = measureRequestLatencyWithOptions(m, service, hostname, path, method, headers)
+		if lastErr == nil && condition(lastLatency) {
+			return lastLatency, nil
+		}
+		if time.Now().After(deadline) {
+			if lastErr != nil {
+				return 0, fmt.Errorf("timed out waiting for latency condition: %w", lastErr)
+			}
+			return lastLatency, nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
 func int32Ptr(i int32) *int32 {
 	return &i
 }
@@ -1760,8 +1766,6 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-
 			// Verify block
 			expectedStatusCode := tt.responseStatusCode
 			if !tt.wantedBlock {
@@ -1784,8 +1788,6 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
-
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
 
 			// Verify service is not blocked anymore
 			err = checkStatusCode(t, m, nginxService, "/", 200)
@@ -1994,6 +1996,151 @@ func cleanupNginxIngress(m *e2e.Minikube, nginxControllerNamespace string) {
 	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxControllerNamespace, "--ignore-not-found").Run()
 }
 
+func initArgoRollouts(t *testing.T, m *e2e.Minikube, ctx context.Context) {
+	log.Info().Msg("Installing Argo Rollouts")
+	const argoRolloutsNamespace = "argo-rollouts"
+
+	// Create namespace
+	createCmd := exec.Command("kubectl", "--context", m.Profile, "create", "namespace", argoRolloutsNamespace)
+	out, err := createCmd.CombinedOutput()
+	if err != nil && !strings.Contains(string(out), "AlreadyExists") {
+		// Only log if it's not an "already exists" error
+		log.Warn().Msgf("Namespace creation output: %s", out)
+	}
+
+	// Install Argo Rollouts
+	log.Info().Msg("Applying Argo Rollouts manifests")
+	cmdCtx, cmdCancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cmdCancel()
+	cmd := exec.CommandContext(cmdCtx, "kubectl", "--context", m.Profile, "apply", "-n", argoRolloutsNamespace, "-f", "https://github.com/argoproj/argo-rollouts/releases/download/v1.8.3/install.yaml")
+	out, err = cmd.CombinedOutput()
+	require.NoError(t, err, "Failed to install Argo Rollouts: %s", out)
+
+	// Wait for Argo Rollouts controller to be ready
+	log.Info().Msg("Waiting for Argo Rollouts controller to be ready")
+	err = waitForArgoRolloutsController(m, ctx, argoRolloutsNamespace)
+	require.NoError(t, err)
+}
+
+func waitForArgoRolloutsController(m *e2e.Minikube, ctx context.Context, namespace string) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(5 * time.Second):
+			pods, err := m.GetClient().CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: "app.kubernetes.io/name=argo-rollouts",
+			})
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to check Argo Rollouts controller status in namespace %s", namespace)
+				continue
+			}
+
+			for _, pod := range pods.Items {
+				if strings.Contains(pod.Name, "argo-rollouts") {
+					allReady := true
+					for _, containerStatus := range pod.Status.ContainerStatuses {
+						if !containerStatus.Ready || pod.Status.Phase != corev1.PodRunning {
+							allReady = false
+							break
+						}
+					}
+					if allReady {
+						log.Info().Msgf("Argo Rollouts controller is ready in namespace %s", namespace)
+						return nil
+					}
+				}
+			}
+			log.Info().Msgf("Waiting for Argo Rollouts controller in namespace %s to be ready...", namespace)
+		}
+	}
+}
+
+func createRolloutResource(t *testing.T, m *e2e.Minikube, rolloutName string) {
+	log.Info().Msgf("Creating Rollout resource: %s", rolloutName)
+
+	rolloutYAML := fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: %s
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: %s
+  template:
+    metadata:
+      labels:
+        app: %s
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:stable-alpine
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 3
+  strategy:
+    canary:
+      steps:
+      - setWeight: 50
+      - pause: {}
+      - setWeight: 100
+`, rolloutName, rolloutName, rolloutName)
+
+	// Apply the Rollout using kubectl
+	cmd := exec.Command("kubectl", "--context", m.Profile, "apply", "-f", "-")
+	cmd.Stdin = strings.NewReader(rolloutYAML)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "Failed to create Rollout: %s", out)
+
+	log.Info().Msgf("Rollout %s created successfully", rolloutName)
+}
+
+func cleanupArgoRollouts(m *e2e.Minikube, rolloutName string) {
+	// Delete the Rollout
+	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "rollout", rolloutName, "-n", "default", "--ignore-not-found").Run()
+	log.Info().Msgf("Cleaned up Rollout: %s", rolloutName)
+	// Note: We leave the argo-rollouts namespace for potential reuse
+}
+
+func testArgoRolloutDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testArgoRolloutDiscovery because it is using role binding, and is therefore not supported")
+		return
+	}
+
+	log.Info().Msg("Starting testArgoRolloutDiscovery")
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	// Install Argo Rollouts
+	initArgoRollouts(t, m, ctx)
+
+	// Create a Rollout resource
+	rolloutName := "nginx-rollout-test"
+	createRolloutResource(t, m, rolloutName)
+	defer func() { cleanupArgoRollouts(m, rolloutName) }()
+
+	// Wait for Rollout to be discovered
+	target, err := e2e.PollForTarget(ctx, e, extargorollout.ArgoRolloutTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.argo-rollout", rolloutName)
+	})
+	require.NoError(t, err, "Failed to discover Argo Rollout")
+	assert.Equal(t, target.TargetType, extargorollout.ArgoRolloutTargetType)
+	assert.Equal(t, target.Attributes["k8s.namespace"][0], "default")
+	assert.Equal(t, target.Attributes["k8s.argo-rollout"][0], rolloutName)
+	assert.Equal(t, target.Attributes["k8s.workload-type"][0], "argo-rollout")
+	assert.Equal(t, target.Attributes["k8s.workload-owner"][0], rolloutName)
+	assert.Equal(t, target.Attributes["k8s.cluster-name"][0], "e2e-cluster")
+	assert.Equal(t, target.Attributes["k8s.distribution"][0], "kubernetes")
+}
+
 func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	if isUsingRoleBinding() {
 		log.Info().Msg("Skipping testNginxDelayTraffic because it is using role binding, and is therefore not supported")
@@ -2136,62 +2283,41 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			require.NoError(t, err)
 			defer func() { _ = action.Cancel() }()
 
-			// Measure latency during delay
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-
-			// Use the correct method and headers for the test
+			// Poll for expected latency
 			var delayedLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				delayedLatency, err = measureRequestLatencyWithOptions(
-					m,
-					nginxService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				delayedLatency, err = measureRequestLatency(m, nginxService, testAppName+".local")
-			}
-			require.NoError(t, err)
-			log.Info().Msgf("Latency during delay test: %v", delayedLatency)
-
-			// Verify delay
 			if tt.wantedDelay {
-				// Check that delay is applied (with some tolerance)
 				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				delayedLatency, err = pollForLatencyCondition(m, nginxService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d >= minExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
 				assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
 			} else {
-				// Latency shouldn't change significantly
-				maxExpectedLatency := baselineLatency + 100*time.Millisecond // Allow for some small variance
+				maxExpectedLatency := baselineLatency + 100*time.Millisecond
+				delayedLatency, err = pollForLatencyCondition(m, nginxService, testAppName+".local",
+					tt.requestPath, tt.requestMethod, tt.requestHeaders,
+					func(d time.Duration) bool { return d <= maxExpectedLatency },
+					10*time.Second)
+				require.NoError(t, err)
+				log.Info().Msgf("Latency during delay test: %v", delayedLatency)
 				assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not increase significantly")
 			}
 
 			// Cancel the action
 			require.NoError(t, action.Cancel())
 
-			// Measure latency after cancellation
-			time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-			var afterLatency time.Duration
-			if tt.requestMethod != "" || len(tt.requestHeaders) > 0 {
-				afterLatency, err = measureRequestLatencyWithOptions(
-					m,
-					nginxService,
-					testAppName+".local",
-					tt.requestPath,
-					tt.requestMethod,
-					tt.requestHeaders,
-				)
-			} else {
-				afterLatency, err = measureRequestLatency(m, nginxService, testAppName+".local")
-			}
+			// Poll for latency to return to normal after cancellation
+			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+			afterLatency, err := pollForLatencyCondition(m, nginxService, testAppName+".local",
+				tt.requestPath, tt.requestMethod, tt.requestHeaders,
+				func(d time.Duration) bool { return d <= maxExpectedAfterLatency },
+				10*time.Second)
 			require.NoError(t, err)
 			log.Info().Msgf("Latency after cancellation: %v", afterLatency)
-
-			// Verify latency returned to normal
-			maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 			assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
 		})
 	}
@@ -2400,14 +2526,14 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 
 	log.Info().Msg("Successfully validated nginx controller with steadybit module")
 
-	// Measure latency during delay
-	time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-	delayedLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	// Poll for expected delay
+	minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+	delayedLatency, err := pollForLatencyCondition(m, nginxService, testAppName+".local",
+		"/", "", nil,
+		func(d time.Duration) bool { return d >= minExpectedLatency },
+		10*time.Second)
 	require.NoError(t, err)
 	log.Info().Msgf("Latency during delay test: %v", delayedLatency)
-
-	// Verify delay is applied (with tolerance)
-	minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
 	maxExpectedLatency := baselineLatency + time.Duration(delayMs+200)*time.Millisecond // +200ms tolerance for overhead
 	assert.GreaterOrEqual(t, delayedLatency, minExpectedLatency, "Latency should increase by approximately the configured delay")
 	assert.LessOrEqual(t, delayedLatency, maxExpectedLatency, "Latency should not be much higher than expected")
@@ -2415,13 +2541,13 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 	// Cancel the action
 	require.NoError(t, action.Cancel())
 
-	// Measure latency after cancellation
-	time.Sleep(5 * time.Second) // Give NGINX time to reconfigure
-	afterLatency, err := measureRequestLatency(m, nginxService, testAppName+".local")
+	// Poll for latency to return to normal after cancellation
+	maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
+	afterLatency, err := pollForLatencyCondition(m, nginxService, testAppName+".local",
+		"/", "", nil,
+		func(d time.Duration) bool { return d <= maxExpectedAfterLatency },
+		10*time.Second)
 	require.NoError(t, err)
 	log.Info().Msgf("Latency after cancellation: %v", afterLatency)
-
-	// Verify latency returned to normal
-	maxExpectedAfterLatency := baselineLatency + 100*time.Millisecond
 	assert.LessOrEqual(t, afterLatency, maxExpectedAfterLatency, "Latency should return to normal after cancellation")
 }

@@ -36,16 +36,17 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
-      {{- with .Values.priorityClassName }}
+      {{- with (.Values.priorityClassName | default (dig "priorityClassName" nil (.Values.global | default dict))) }}
       priorityClassName: {{ . }}
       {{- end }}
       {{- with .Values.podSecurityContext }}
       securityContext:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- include "extensionlib.imagePullSecrets" . | nindent 6 }}
       containers:
-        - image: {{ .Values.image.name }}:{{ default .Chart.AppVersion .Values.image.tag }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+        - image: {{ include "extensionlib.image" . }}
+          imagePullPolicy: {{ include "extensionlib.imagePullPolicy" . }}
           name: extension
           resources:
             requests:
@@ -56,8 +57,10 @@ spec:
               cpu: {{ .Values.resources.limits.cpu }}
           env:
             {{- include "extensionlib.deployment.env" (list .) | nindent 12 }}
+            {{- with (.Values.kubernetes.clusterName | default (dig "clusterName" nil (.Values.global | default dict))) }}
             - name: STEADYBIT_EXTENSION_CLUSTER_NAME
-              value: {{ if and .Values.global .Values.global.clusterName }}{{ .Values.global.clusterName | quote }}{{ else }}{{ .Values.kubernetes.clusterName }}{{ end }}
+              value: {{ . | quote }}
+            {{- end }}
             {{- if .Values.kubernetes.namespaceFilter }}
             - name: STEADYBIT_EXTENSION_NAMESPACE
               value: {{ .Release.Namespace | quote }}
@@ -94,6 +97,10 @@ spec:
             - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_STATEFUL_SET
               value: {{ (join "," .Values.discovery.attributes.excludes.statefulSet) | quote }}
             {{- end }}
+            {{- if .Values.discovery.attributes.excludes.argoRollout }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ARGO_ROLLOUT
+              value: {{ (join "," .Values.discovery.attributes.excludes.argoRollout) | quote }}
+            {{- end }}
             - name: STEADYBIT_EXTENSION_DISABLE_DISCOVERY_EXCLUDES
               value: {{ .Values.discovery.disableExcludes | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_CLUSTER
@@ -110,6 +117,8 @@ spec:
               value: {{ .Values.discovery.disabled.node | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
               value: {{ .Values.discovery.disabled.pod | quote }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+              value: {{ .Values.discovery.disabled.argoRollout | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
               value: {{ .Values.discovery.disabled.replicaSet | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
