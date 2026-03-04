@@ -1,5 +1,10 @@
 # Changelog
 
+
+## (next version)
+
+- Advice support new service validation step to ease experiment creation
+
 ## v2.6.18
 
 - Update dependencies
