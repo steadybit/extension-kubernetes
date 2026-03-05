@@ -2,7 +2,8 @@
 	"templateTitle": "Ephemeral Storage Overload",
 	"templateDescription": "Check what happens when exceeding ephemeral storage. Are all Kubernetes resources working properly, failing gracefully, or raising a monitor alert?",
 	"placeholders": [
-	<#if target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
+		<#if target.attr('service.id')?? && target.attr('service.id') != '<unknown>'>
+		<#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
 		{
 		"key": "httpLoadBalancedEndpoint",
 		"name": "HTTP Load Balanced Endpoint",
@@ -52,7 +53,7 @@
 						"parameters": {
 							"duration": "150s"
 						},
-						"serviceId": "${target.attr('service.id')}",
+						"serviceId": "${target.attr('service.id', 0)}",
 				  	"customLabel": "INVARIANT: ${target.attr('steadybit.label')}'s features work within expected success rates"
 					}
 				<#elseif target.attr('k8s.label.tags.steadybit.com/service-validation')?? && target.attr('k8s.label.tags.steadybit.com/service-validation')=='http'>
