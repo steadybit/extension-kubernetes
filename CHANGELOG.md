@@ -1,9 +1,12 @@
 # Changelog
 
 
-## (next version)
+## v2.6.19
 
 - Advice support new service validation step to ease experiment creation
+- fix: reference to service.id in case it is an array
+- Update alpine packages in Docker image to address CVEs
+- Update dependencies
 
 ## v2.6.18
 
