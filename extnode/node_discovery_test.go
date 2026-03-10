@@ -44,6 +44,9 @@ func Test_nodeDiscovery(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "shop-pod-11",
 			Namespace: "default",
+			Labels: map[string]string{
+				"app": "shop",
+			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Kind: "Deployment",
@@ -115,6 +118,20 @@ func Test_nodeDiscovery(t *testing.T) {
 			Name:      "shop",
 			Namespace: "default",
 		},
+	}, &v1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shop-service",
+			Namespace: "default",
+		},
+		Spec: v1.ServiceSpec{
+			Selector: map[string]string{
+				"app": "shop",
+			},
+		},
 	})
 	extconfig.Config.ClusterName = "development"
 	extconfig.Config.LabelFilter = []string{"secret-label"}
@@ -144,6 +161,7 @@ func Test_nodeDiscovery(t *testing.T) {
 		"k8s.namespace":             {"default"},
 		"k8s.node.name":             {"node-123"},
 		"k8s.pod.name":              {"shop-pod-11"},
+		"k8s.service.name":          {"shop-service"},
 		"k8s.label.label1":          {"value1"},
 		"k8s.label.label2":          {"value2"},
 		"k8s.label":                 {"label1", "label2"},

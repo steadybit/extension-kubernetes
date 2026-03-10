@@ -126,6 +126,10 @@ func getNodeToHostEnrichmentRule() discovery_kit_api.TargetEnrichmentRule {
 				Name:    "k8s.pod.name",
 			},
 			{
+				Matcher: discovery_kit_api.Equals,
+				Name:    "k8s.service.name",
+			},
+			{
 				Matcher: discovery_kit_api.StartsWith,
 				Name:    "k8s.label",
 			},
@@ -167,6 +171,7 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 			daemonSets := make(map[string]bool)
 			replicaSets := make(map[string]bool)
 			namespaces := make(map[string]bool)
+			serviceNames := make(map[string]bool)
 			for _, pod := range pods {
 				if pod.Spec.NodeName == node.Name && !client.IsExcludedFromDiscovery(pod.ObjectMeta) {
 					podNames = append(podNames, pod.Name)
@@ -193,8 +198,15 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 							daemonSets[ownerReference.Name] = true
 						}
 					}
+					services := d.k8s.ServicesMatchingToPodLabels(pod.Namespace, pod.ObjectMeta.Labels)
+					if len(services) > 0 {
+						for _, service := range services {
+							serviceNames[service.Name] = true
+						}
+					}
 				}
 			}
+
 			if len(containerIds) > 0 {
 				attributes["k8s.container.id"] = containerIds
 			}
@@ -218,6 +230,9 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 			}
 			if len(namespaces) > 0 {
 				attributes["k8s.namespace"] = keys(namespaces)
+			}
+			if len(serviceNames) > 0 {
+				attributes["k8s.service.name"] = keys(serviceNames)
 			}
 		}
 
