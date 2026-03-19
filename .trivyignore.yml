@@ -1,1 +1,6 @@
 vulnerabilities:
+  - id: CVE-2026-25679
+    paths:
+      - usr/bin/kubectl
+    statement: Wait for a new kubectl-Release
+    expired_at: 2026-06-01
