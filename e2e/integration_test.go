@@ -1006,7 +1006,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			// Poll for expected latency instead of fixed sleep
 			var delayedLatency time.Duration
 			if tt.wantedDelay {
-				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond // -50ms tolerance
 				delayedLatency, err = pollForLatencyCondition(m, haProxyService, testAppName+".local",
 					tt.requestPath, tt.requestMethod, tt.requestHeaders,
 					func(d time.Duration) bool { return d >= minExpectedLatency },
@@ -1044,7 +1044,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 }
 
 func cleanupHAProxyIngress(m *e2e.Minikube, haProxyControllerNamespace string) {
-	_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run()
+	_ = exec.Command("helm", "uninstall", "haproxy-ingress", "--namespace", "--kube-context", m.Profile, haProxyControllerNamespace).Run() //NOSONAR go:S4036
 }
 
 func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
@@ -1220,11 +1220,11 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 func initHAProxyIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, namespace string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
 	// Step 1: Deploy HAProxy Ingress Controller
 	log.Info().Msg("Deploying HAProxy Ingress Controller")
-	out, err := exec.Command("helm", "repo", "add", "haproxytech", "https://haproxytech.github.io/helm-charts").CombinedOutput()
+	out, err := exec.Command("helm", "repo", "add", "haproxytech", "https://haproxytech.github.io/helm-charts").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to add HAProxy Helm repo: %s", out)
-	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
+	out, err = exec.Command("helm", "repo", "update").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to update Helm repos: %s", out)
-	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", namespace, "--kube-context", m.Profile, "--set", "controller.service.type=NodePort").CombinedOutput()
+	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", namespace, "--kube-context", m.Profile, "--set", "controller.service.type=NodePort").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to deploy HAProxy Ingress Controller: %s", out)
 
 	// Wait for HAProxy ingress controller to be ready
@@ -1799,9 +1799,9 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx context.Context, nginxControllerNamespace string, imageName string, imageTag string) (*corev1.Service, string, *action_kit_api.Target, metav1.Object, metav1.Object, metav1.Object) {
 	// Step 1: Deploy NGINX Ingress Controller
 	log.Info().Msg("Deploying NGINX Ingress Controller")
-	out, err := exec.Command("helm", "repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx").CombinedOutput()
+	out, err := exec.Command("helm", "repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to add NGINX Helm repo: %s", out)
-	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
+	out, err = exec.Command("helm", "repo", "update").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to update Helm repos: %s", out)
 	args := []string{
 		"upgrade", "--install", "nginx-ingress", "ingress-nginx/ingress-nginx",
@@ -1826,7 +1826,7 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 		args = append(args, "--set", "controller.image.tag="+imageTag)
 	}
 
-	out, err = exec.Command("helm", args...).CombinedOutput()
+	out, err = exec.Command("helm", args...).CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to deploy NGINX Ingress Controller: %s", out)
 
 	// Wait for NGINX ingress controller to be ready
@@ -2094,7 +2094,7 @@ spec:
 `, rolloutName, rolloutName, rolloutName)
 
 	// Apply the Rollout using kubectl
-	cmd := exec.Command("kubectl", "--context", m.Profile, "apply", "-f", "-")
+	cmd := exec.Command("kubectl", "--context", m.Profile, "apply", "-f", "-") //NOSONAR go:S4036
 	cmd.Stdin = strings.NewReader(rolloutYAML)
 	out, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to create Rollout: %s", out)
@@ -2104,7 +2104,7 @@ spec:
 
 func cleanupArgoRollouts(m *e2e.Minikube, rolloutName string) {
 	// Delete the Rollout
-	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "rollout", rolloutName, "-n", "default", "--ignore-not-found").Run()
+	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "rollout", rolloutName, "-n", "default", "--ignore-not-found").Run() //NOSONAR go:S4036
 	log.Info().Msgf("Cleaned up Rollout: %s", rolloutName)
 	// Note: We leave the argo-rollouts namespace for potential reuse
 }
@@ -2286,7 +2286,7 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			// Poll for expected latency
 			var delayedLatency time.Duration
 			if tt.wantedDelay {
-				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+				minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond // -50ms tolerance
 				delayedLatency, err = pollForLatencyCondition(m, nginxService, testAppName+".local",
 					tt.requestPath, tt.requestMethod, tt.requestHeaders,
 					func(d time.Duration) bool { return d >= minExpectedLatency },
@@ -2338,9 +2338,9 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 
 	// Deploy nginx controller WITH steadybit module
 	log.Info().Msg("Deploying NGINX Ingress Controller with steadybit module")
-	out, err := exec.Command("helm", "repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx").CombinedOutput()
+	out, err := exec.Command("helm", "repo", "add", "ingress-nginx", "https://kubernetes.github.io/ingress-nginx").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to add NGINX Helm repo: %s", out)
-	out, err = exec.Command("helm", "repo", "update").CombinedOutput()
+	out, err = exec.Command("helm", "repo", "update").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to update Helm repos: %s", out)
 
 	args := []string{
@@ -2361,14 +2361,14 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 		"--timeout=180s",
 	}
 	log.Info().Msgf("Running helm command: helm %s", strings.Join(args, " "))
-	out, err = exec.Command("helm", args...).CombinedOutput()
+	out, err = exec.Command("helm", args...).CombinedOutput() //NOSONAR go:S4036
 	if err != nil {
 		log.Error().Msgf("Helm output: %s", string(out))
 	}
 	require.NoError(t, err, "Failed to deploy NGINX Ingress Controller: %s", out)
 	defer func() {
-		_ = exec.Command("helm", "uninstall", "nginx-steadybit", "--namespace", nginxNamespace, "--kube-context", m.Profile).Run()
-		_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxNamespace, "--ignore-not-found").Run()
+		_ = exec.Command("helm", "uninstall", "nginx-steadybit", "--namespace", nginxNamespace, "--kube-context", m.Profile).Run() //NOSONAR go:S4036
+		_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxNamespace, "--ignore-not-found").Run()     //NOSONAR go:S4036
 	}()
 
 	// Helm --wait should have ensured the controller is ready, but let's double-check
@@ -2527,7 +2527,7 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 	log.Info().Msg("Successfully validated nginx controller with steadybit module")
 
 	// Poll for expected delay
-	minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond  // -50ms tolerance
+	minExpectedLatency := baselineLatency + time.Duration(delayMs-50)*time.Millisecond // -50ms tolerance
 	delayedLatency, err := pollForLatencyCondition(m, nginxService, testAppName+".local",
 		"/", "", nil,
 		func(d time.Duration) bool { return d >= minExpectedLatency },
