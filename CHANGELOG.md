@@ -1,9 +1,11 @@
 # Changelog
 
-## (next)
+## v2.6.20
 
+- Bump Go to 1.25.9
 - Support if-none-match for the extension list endpoint
-
+- Add k8s.service.name to hosts
+- Update dependencies
 
 ## v2.6.19
 
