@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -40,7 +39,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				podCountCheckMode: PodCountMin1,
 			},
 			readyCount:         0,
-			wantedErrorMessage: extutil.Ptr("shop/checkout has no ready pods."),
+			wantedErrorMessage: new("shop/checkout has no ready pods."),
 		},
 		{
 			name: "podCountEqualsDesiredCountSuccess",
@@ -58,7 +57,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			},
 			readyCount:         1,
 			desiredCount:       2,
-			wantedErrorMessage: extutil.Ptr("shop/checkout has 1 of desired 2 pods ready."),
+			wantedErrorMessage: new("shop/checkout has 1 of desired 2 pods ready."),
 		},
 		{
 			name: "podCountGreaterEqualsDesiredCountSuccess",
@@ -76,7 +75,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			},
 			readyCount:         1,
 			desiredCount:       2,
-			wantedErrorMessage: extutil.Ptr("shop/checkout has 1 of desired 2 pods ready."),
+			wantedErrorMessage: new("shop/checkout has 1 of desired 2 pods ready."),
 		},
 		{
 			name: "podCountLessThanDesiredCountSuccess",
@@ -94,7 +93,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			},
 			readyCount:         2,
 			desiredCount:       2,
-			wantedErrorMessage: extutil.Ptr("shop/checkout has all 2 desired pods ready."),
+			wantedErrorMessage: new("shop/checkout has all 2 desired pods ready."),
 		},
 		{
 			name: "podCountIncreasedSuccess",
@@ -112,7 +111,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				initialCount:      2,
 			},
 			readyCount:         2,
-			wantedErrorMessage: extutil.Ptr("shop/checkout's pod count didn't increase. Initial count: 2, current count: 2."),
+			wantedErrorMessage: new("shop/checkout's pod count didn't increase. Initial count: 2, current count: 2."),
 		},
 		{
 			name: "podCountDecreasedSuccess",
@@ -130,7 +129,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				initialCount:      2,
 			},
 			readyCount:         2,
-			wantedErrorMessage: extutil.Ptr("shop/checkout's pod count didn't decrease. Initial count: 2, current count: 2."),
+			wantedErrorMessage: new("shop/checkout's pod count didn't decrease. Initial count: 2, current count: 2."),
 		},
 	}
 	for _, tt := range tests {
@@ -148,7 +147,7 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				ActionId:   "test",
 				TargetType: "testTargetType",
 				GetDesiredAndCurrentPodCount: func(k8s *client.Client, namespace string, target string) (*int32, int32, error) {
-					return extutil.Ptr(int32(tt.desiredCount)), int32(tt.readyCount), nil
+					return new(int32(tt.desiredCount)), int32(tt.readyCount), nil
 				},
 			}
 

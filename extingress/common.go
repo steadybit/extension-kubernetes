@@ -17,7 +17,7 @@ type RequestMatcher struct {
 	HttpHeader  map[string]string
 }
 
-func parseRequestMatcher(config map[string]interface{}) (RequestMatcher, error) {
+func parseRequestMatcher(config map[string]any) (RequestMatcher, error) {
 	var matcher RequestMatcher
 	var err error
 
@@ -45,14 +45,14 @@ func getCommonActionDescription(targetType, id, label, description, icon string)
 		Label:       label,
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Description: description,
-		Technology:  extutil.Ptr("Kubernetes"),
-		Icon:        extutil.Ptr(icon),
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		Technology:  new("Kubernetes"),
+		Icon:        new(icon),
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType: targetType,
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "ingress",
-					Description: extutil.Ptr("Find ingress by cluster, namespace and ingress"),
+					Description: new("Find ingress by cluster, namespace and ingress"),
 					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.ingress=\"\"",
 				},
 			}),
@@ -62,11 +62,11 @@ func getCommonActionDescription(targetType, id, label, description, icon string)
 		Parameters: []action_kit_api.ActionParameter{
 			{
 				Label:        "Duration",
-				Description:  extutil.Ptr("The duration of the action. The ingress will be affected for the specified duration."),
+				Description:  new("The duration of the action. The ingress will be affected for the specified duration."),
 				Name:         "duration",
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("30s"),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("30s"),
+				Required:     new(true),
 			},
 		},
 	}

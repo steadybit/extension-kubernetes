@@ -35,10 +35,10 @@ func getHAProxyDelayTrafficDescription() action_kit_api.ActionDescription {
 			{
 				Name:         "responseDelay",
 				Label:        "Delay",
-				Description:  extutil.Ptr("The delay in milliseconds to add to matching requests"),
+				Description:  new("The delay in milliseconds to add to matching requests"),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("500ms"),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("500ms"),
+				Required:     new(true),
 			},
 		}...,
 	)
@@ -58,7 +58,7 @@ func checkHAProxyExistingDelay(lines []string) error {
 }
 
 // buildDelayConfiguration creates the HAProxy configuration for traffic delay
-func buildHAProxyDelayConfig(state *HAProxyState, config map[string]interface{}) string {
+func buildHAProxyDelayConfig(state *HAProxyState, config map[string]any) string {
 	responseDelay := extutil.ToInt(config["responseDelay"])
 
 	var s strings.Builder

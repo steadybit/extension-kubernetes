@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,14 +28,14 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 	tests := []struct {
 		name        string
 		ingressName string
-		config      map[string]interface{}
+		config      map[string]any
 		want        HAProxyState
 		wantErr     string
 	}{
 		{
 			name:        "block with path regex",
 			ingressName: "test-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/api/*",
 			},
@@ -51,7 +50,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "block with http method",
 			ingressName: "test-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":  503,
 				"conditionHttpMethod": "POST",
 			},
@@ -66,10 +65,10 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "block with http header",
 			ingressName: "test-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode": 503,
-				"conditionHttpHeader": []interface{}{
-					map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+				"conditionHttpHeader": []any{
+					map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 				},
 			},
 			want: HAProxyState{
@@ -86,12 +85,12 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "block with multiple conditions",
 			ingressName: "test-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/api/users",
 				"conditionHttpMethod":  "POST",
-				"conditionHttpHeader": []interface{}{
-					map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+				"conditionHttpHeader": []any{
+					map[string]any{"key": "Content-Type", "value": "application/json"},
 				},
 			},
 			want: HAProxyState{
@@ -110,7 +109,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "no conditions provided",
 			ingressName: "test-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode": 503,
 			},
 			wantErr: "at least one condition (path, method, or header) is required",
@@ -118,7 +117,7 @@ func TestHAProxyBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "path collision with existing rule",
 			ingressName: "conflict-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/alreadyBlocked",
 			},
@@ -221,11 +220,11 @@ func createIngress(name, configSnippet string) *networkingv1.Ingress {
 }
 
 // createTestRequest creates a test request with the given ingress name and config
-func createTestRequest(ingressName string, config map[string]interface{}) action_kit_api.PrepareActionRequestBody {
+func createTestRequest(ingressName string, config map[string]any) action_kit_api.PrepareActionRequestBody {
 	return action_kit_api.PrepareActionRequestBody{
 		ExecutionId: testUUID,
 		Config:      config,
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.namespace": {"demo"},
 				"k8s.ingress":   {ingressName},

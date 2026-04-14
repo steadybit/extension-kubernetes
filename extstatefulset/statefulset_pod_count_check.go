@@ -9,7 +9,6 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 )
@@ -20,10 +19,10 @@ func NewStatefulSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action
 		ActionId:        StatefulSetPodCountCheckActionId,
 		TargetType:      StatefulSetTargetType,
 		TargetTypeLabel: "StatefulSet",
-		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+		SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "statefulSet",
-				Description: extutil.Ptr("Find statefulSet by cluster, namespace and statefulSet"),
+				Description: new("Find statefulSet by cluster, namespace and statefulSet"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.statefulset=\"\"",
 			},
 		}),

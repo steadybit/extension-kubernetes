@@ -21,7 +21,7 @@ import (
 func TestPrepareExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"duration": 1000 * 10,
 		},
 	}

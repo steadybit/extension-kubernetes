@@ -126,7 +126,7 @@ type Client struct {
 
 	handlers struct {
 		sync.Mutex
-		l []chan<- interface{}
+		l []chan<- any
 	}
 	resourceEventHandler cache.ResourceEventHandlerFuncs
 	networkingV1         networkingv1client.NetworkingV1Interface
@@ -161,7 +161,7 @@ func getInformerStats(informer cache.SharedIndexInformer, name string) string {
 	var totalSize uintptr
 	for _, obj := range objects {
 		totalSize += reflect.TypeOf(obj).Size()
-		if reflect.TypeOf(obj).Kind() == reflect.Ptr {
+		if reflect.TypeOf(obj).Kind() == reflect.Pointer {
 			elem := reflect.ValueOf(obj).Elem()
 			if elem.IsValid() {
 				totalSize += elem.Type().Size()
@@ -734,7 +734,7 @@ func logGetError(resource string, err error) {
 	}
 }
 
-func filterEvents(events []interface{}, since time.Time) []corev1.Event {
+func filterEvents(events []any, since time.Time) []corev1.Event {
 	var filtered []corev1.Event
 	for _, event := range events {
 		if event.(*corev1.Event).LastTimestamp.Time.After(since) {
@@ -781,13 +781,13 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	}
 
 	client.resourceEventHandler = cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			client.doNotify(obj)
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
+		UpdateFunc: func(oldObj, newObj any) {
 			client.doNotify(newObj)
 		},
-		DeleteFunc: func(obj interface{}) {
+		DeleteFunc: func(obj any) {
 			client.doNotify(obj)
 		},
 	}
@@ -977,7 +977,7 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	return client
 }
 
-func (c *Client) doNotify(event interface{}) {
+func (c *Client) doNotify(event any) {
 	c.handlers.Lock()
 	defer c.handlers.Unlock()
 	for _, ch := range c.handlers.l {
@@ -985,7 +985,7 @@ func (c *Client) doNotify(event interface{}) {
 	}
 }
 
-func (c *Client) Notify(ch chan<- interface{}) {
+func (c *Client) Notify(ch chan<- any) {
 	c.handlers.Lock()
 	defer c.handlers.Unlock()
 	if !slices.Contains(c.handlers.l, ch) {
@@ -993,10 +993,10 @@ func (c *Client) Notify(ch chan<- interface{}) {
 	}
 }
 
-func (c *Client) StopNotify(ch chan<- interface{}) {
+func (c *Client) StopNotify(ch chan<- any) {
 	c.handlers.Lock()
 	defer c.handlers.Unlock()
-	c.handlers.l = slices.DeleteFunc(c.handlers.l, func(e chan<- interface{}) bool {
+	c.handlers.l = slices.DeleteFunc(c.handlers.l, func(e chan<- any) bool {
 		return e == ch
 	})
 }
@@ -1045,7 +1045,7 @@ func (c *Client) GetConfig() *rest.Config {
 func (c *Client) UpdateIngressAnnotation(ctx context.Context, namespace string, ingressName string, annotationKey string, toPrepend string) (string, error) {
 	maxRetries := 10
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch ingress: %w", err)
@@ -1138,7 +1138,7 @@ func (c *Client) RemoveIngressAnnotationBlock(ctx context.Context, namespace str
 	log.Debug().Msgf("Removing annotation block from ingress %s/%s with execution ID %s", namespace, ingressName, executionId)
 	maxRetries := 10
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		ingress, err := c.IngressByNamespaceAndName(namespace, ingressName, true)
 		if err != nil {
 			return fmt.Errorf("failed to fetch ingress: %w", err)

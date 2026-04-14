@@ -19,8 +19,9 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
 )
 
+//go:fix inline
 func strPtr(s string) *string {
-	return &s
+	return new(s)
 }
 
 // newTestClient creates a fake client with provided initial objects.
@@ -61,7 +62,7 @@ func Test_ingressDiscovery_Basic(t *testing.T) {
 	ing1 := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "ing1", Namespace: "default"},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: strPtr("haproxyClass"),
+			IngressClassName: new("haproxyClass"),
 			Rules:            []networkingv1.IngressRule{{Host: "host1"}},
 		},
 	}
@@ -70,7 +71,7 @@ func Test_ingressDiscovery_Basic(t *testing.T) {
 	ing2 := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "ing2", Namespace: "default"},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: strPtr("nginxClass"), // Non-HAProxy class
+			IngressClassName: new("nginxClass"), // Non-HAProxy class
 			Rules:            []networkingv1.IngressRule{{Host: "host2"}},
 		},
 	}
@@ -115,7 +116,7 @@ func Test_ingressDiscovery_ExcludeDisabled(t *testing.T) {
 	require.NoError(t, err)
 	ing := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "ignored", Namespace: "default", Labels: map[string]string{"steadybit.com/discovery-disabled": "true"}},
-		Spec:       networkingv1.IngressSpec{IngressClassName: strPtr("haproxy")},
+		Spec:       networkingv1.IngressSpec{IngressClassName: new("haproxy")},
 	}
 	_, err = cs.NetworkingV1().Ingresses("default").Create(context.Background(), ing, metav1.CreateOptions{})
 	require.NoError(t, err)
@@ -142,7 +143,7 @@ func Test_ingressDiscovery_IncludeDisabledIfDisableDiscoveryExcludes(t *testing.
 	require.NoError(t, err)
 	ing := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "included", Namespace: "default", Labels: map[string]string{"steadybit.com/discovery-disabled": "true"}},
-		Spec:       networkingv1.IngressSpec{IngressClassName: strPtr("haproxy")},
+		Spec:       networkingv1.IngressSpec{IngressClassName: new("haproxy")},
 	}
 	_, err = cs.NetworkingV1().Ingresses("default").Create(context.Background(), ing, metav1.CreateOptions{})
 	require.NoError(t, err)

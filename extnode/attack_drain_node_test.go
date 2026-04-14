@@ -8,17 +8,16 @@ import (
 	"testing"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDrainNodePrepareCommands(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"duration": 100000,
 		},
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"host.hostname": {"test"},
 			},

@@ -36,21 +36,21 @@ func getNginxBlockTrafficDescription() action_kit_api.ActionDescription {
 			{
 				Name:         "responseStatusCode",
 				Label:        "Status Code",
-				Description:  extutil.Ptr("The status code which should get returned."),
+				Description:  new("The status code which should get returned."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				MinValue:     extutil.Ptr(100),
-				MaxValue:     extutil.Ptr(999),
-				Required:     extutil.Ptr(true),
-				DefaultValue: extutil.Ptr("503"),
+				MinValue:     new(100),
+				MaxValue:     new(999),
+				Required:     new(true),
+				DefaultValue: new("503"),
 			},
 			{
 				Name:         "isEnterpriseNginx",
 				Label:        "Force Enterprise NGINX",
-				Description:  extutil.Ptr("Whether to use Enterprise NGINX configuration (nginx.org/server-snippets) instead of open source (nginx.ingress.kubernetes.io/configuration-snippet)."),
+				Description:  new("Whether to use Enterprise NGINX configuration (nginx.org/server-snippets) instead of open source (nginx.ingress.kubernetes.io/configuration-snippet)."),
 				Type:         action_kit_api.ActionParameterTypeBoolean,
-				DefaultValue: extutil.Ptr("false"),
-				Required:     extutil.Ptr(false),
-				Advanced:     extutil.Ptr(true),
+				DefaultValue: new("false"),
+				Required:     new(false),
+				Advanced:     new(true),
 			},
 		}...,
 	)
@@ -59,7 +59,7 @@ func getNginxBlockTrafficDescription() action_kit_api.ActionDescription {
 	return desc
 }
 
-func buildNginxBlockConfig(state *NginxState, config map[string]interface{}) string {
+func buildNginxBlockConfig(state *NginxState, config map[string]any) string {
 	responseStatusCode := extutil.ToInt(config["responseStatusCode"])
 	shouldBlockVar := getNginxUniqueVariableName(state.ExecutionId, "should_block")
 

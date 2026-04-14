@@ -6,6 +6,7 @@ package extingress
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -306,12 +307,7 @@ func isNginxController(controller string) bool {
 		"nginx.org/ingress-controller", // Enterprise/UBI NGINX
 	}
 
-	for _, nc := range nginxControllers {
-		if controller == nc {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(nginxControllers, controller)
 }
 
 // hasNginxControllerPodsForIngressClass checks if there are NGINX controller pods for the specific ingress class

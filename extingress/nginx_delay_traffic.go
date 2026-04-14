@@ -38,19 +38,19 @@ func getNginxDelayTrafficDescription() action_kit_api.ActionDescription {
 			{
 				Name:         "responseDelay",
 				Label:        "Delay",
-				Description:  extutil.Ptr("The delay in milliseconds to add to matching requests"),
+				Description:  new("The delay in milliseconds to add to matching requests"),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("500ms"),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("500ms"),
+				Required:     new(true),
 			},
 			{
 				Name:         "isEnterpriseNginx",
 				Label:        "Force Enterprise NGINX",
-				Description:  extutil.Ptr("Whether to use Enterprise NGINX configuration (nginx.org/server-snippets) instead of open source (nginx.ingress.kubernetes.io/configuration-snippet)."),
+				Description:  new("Whether to use Enterprise NGINX configuration (nginx.org/server-snippets) instead of open source (nginx.ingress.kubernetes.io/configuration-snippet)."),
 				Type:         action_kit_api.ActionParameterTypeBoolean,
-				DefaultValue: extutil.Ptr("false"),
-				Required:     extutil.Ptr(false),
-				Advanced:     extutil.Ptr(true),
+				DefaultValue: new("false"),
+				Required:     new(false),
+				Advanced:     new(true),
 			},
 		}...,
 	)
@@ -68,7 +68,7 @@ func checkNginxExistingDelay(lines []string) error {
 	return nil
 }
 
-func buildNginxDelayConfig(state *NginxState, config map[string]interface{}) string {
+func buildNginxDelayConfig(state *NginxState, config map[string]any) string {
 	responseDelay := extutil.ToInt(config["responseDelay"])
 
 	shouldDelayVar := getNginxUniqueVariableName(state.ExecutionId, "should_delay")

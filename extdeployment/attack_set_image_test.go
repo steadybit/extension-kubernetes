@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,12 +20,12 @@ import (
 func TestSetImagePreparesCommands(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"duration":       100000,
 			"image":          "nginx:456",
 			"container_name": "cashier",
 		},
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.namespace":      {"demo"},
 				"k8s.deployment":     {"shop"},

@@ -2,7 +2,6 @@ package extpod
 
 import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 )
 
 const (
@@ -14,20 +13,20 @@ const (
 var (
 	targetSelectionTemplates = action_kit_api.TargetSelection{
 		TargetType: PodTargetType,
-		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+		SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "kubernetes deployment",
-				Description: extutil.Ptr("Find pods by cluster, namespace and deployment"),
+				Description: new("Find pods by cluster, namespace and deployment"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 			},
 			{
 				Label:       "kubernetes statefulset",
-				Description: extutil.Ptr("Find pods by cluster, namespace and statefulset."),
+				Description: new("Find pods by cluster, namespace and statefulset."),
 				Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.statefulset=\"\"",
 			},
 			{
 				Label:       "kubernetes daemonset",
-				Description: extutil.Ptr("Find pods by cluster, namespace and daemonset."),
+				Description: new("Find pods by cluster, namespace and daemonset."),
 				Query:       "k8s.cluster-name=\"\" and k8s.namespace=\"\" and k8s.daemonset=\"\"",
 			},
 		}),

@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
@@ -287,7 +286,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			name: "should report deployment redundancy false",
 			pods: []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(func(deployment *appsv1.Deployment) {
-				deployment.Spec.Replicas = extutil.Ptr(int32(1))
+				deployment.Spec.Replicas = new(int32(1))
 			}),
 			service: testService(nil),
 			expectedAttributes: map[string][]string{
@@ -321,7 +320,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			deployment: testDeployment(nil),
 			service:    testService(nil),
 			hpa: testHPA(func(hpa *autoscalingv2.HorizontalPodAutoscaler) {
-				hpa.Spec.MinReplicas = extutil.Ptr(int32(1))
+				hpa.Spec.MinReplicas = new(int32(1))
 			}),
 			expectedAttributes: map[string][]string{
 				"k8s.specification.is-redundant": {"false"},
@@ -458,7 +457,7 @@ func testHPA(modifier func(autoscaler *autoscalingv2.HorizontalPodAutoscaler)) *
 			Namespace: "default",
 		},
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
-			MinReplicas: extutil.Ptr(int32(2)),
+			MinReplicas: new(int32(2)),
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				Kind:       "Deployment",
 				Name:       "shop",
@@ -489,7 +488,7 @@ func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Selector: extutil.Ptr(metav1.LabelSelector{
+			Selector: new(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"best-city": "kevelaer",
 				},
@@ -498,7 +497,7 @@ func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},
 			MinReadySeconds: 10,
-			Replicas:        extutil.Ptr(int32(3)),
+			Replicas:        new(int32(3)),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -88,10 +87,10 @@ func Test_Prepare(t *testing.T) {
 			client.K8S = testClient
 
 			request := action_kit_api.PrepareActionRequestBody{
-				Config: map[string]interface{}{
+				Config: map[string]any{
 					"container": tt.configContainer,
 				},
-				Target: extutil.Ptr(action_kit_api.Target{
+				Target: new(action_kit_api.Target{
 					Attributes: map[string][]string{
 						"k8s.namespace": {"shop"},
 						"k8s.pod.name":  {"checkout-xyz1234"},

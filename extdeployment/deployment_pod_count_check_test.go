@@ -10,7 +10,6 @@ import (
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
@@ -24,11 +23,11 @@ import (
 func TestPrepareCheckExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"duration":          1000 * 10,
 			"podCountCheckMode": extcommon.PodCountEqualsDesiredCount,
 		},
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.cluster-name": {"test"},
 				"k8s.namespace":    {"shop"},
@@ -47,7 +46,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 			Namespace: "shop",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: extutil.Ptr(int32(3)),
+			Replicas: new(int32(3)),
 		},
 		Status: appsv1.DeploymentStatus{
 			ReadyReplicas: 3,

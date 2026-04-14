@@ -39,7 +39,7 @@ type NginxState struct {
 type nginxAction struct {
 	description             action_kit_api.ActionDescription
 	subtype                 string
-	annotationConfigFn      func(state *NginxState, config map[string]interface{}) string
+	annotationConfigFn      func(state *NginxState, config map[string]any) string
 	checkExistingFn         func(lines []string) error
 	requiresSteadybitModule bool
 }

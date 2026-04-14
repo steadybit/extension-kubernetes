@@ -13,7 +13,6 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -32,7 +31,7 @@ var (
 
 func NewDaemonSetDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 	discovery := &daemonSetDiscovery{k8s: k8s}
-	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}), reflect.TypeOf(appsv1.DaemonSet{}))
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeFor[corev1.Pod](), reflect.TypeFor[appsv1.DaemonSet]())
 
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
 		discovery_kit_sdk.WithRefreshTargetsNow(),
@@ -44,7 +43,7 @@ func (d *daemonSetDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id: DaemonSetTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("30s"),
+			CallInterval: new("30s"),
 		},
 	}
 }
@@ -53,9 +52,9 @@ func (d *daemonSetDiscovery) DescribeTarget() discovery_kit_api.TargetDescriptio
 	return discovery_kit_api.TargetDescription{
 		Id:       DaemonSetTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes DaemonSet", Other: "Kubernetes DaemonSets"},
-		Category: extutil.Ptr("Kubernetes"),
+		Category: new("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xOS41NjI1IDExLjc1VjEzLjI1SDIxQzIyLjEwNDYgMTMuMjUgMjMgMTIuMzU0NiAyMyAxMS4yNVY5LjMxMjVIMjEuNVYxMS4yNUMyMS41IDExLjUyNjEgMjEuMjc2MSAxMS43NSAyMSAxMS43NUgxOS41NjI1Wk0yMS41IDUuNDM3NUgyM1YzLjVDMjMgMi4zOTU0MyAyMi4xMDQ2IDEuNSAyMSAxLjVIMTkuNTYyNVYzSDIxQzIxLjI3NjEgMyAyMS41IDMuMjIzODYgMjEuNSAzLjVWNS40Mzc1Wk0xNi42ODc1IDNWMS41SDEzLjgxMjVWM0gxNi42ODc1Wk0xMC45Mzc1IDNWMS41SDkuNUM4LjM5NTQzIDEuNSA3LjUgMi4zOTU0MyA3LjUgMy41VjUuNDM3NUg5VjMuNUM5IDMuMjIzODYgOS4yMjM4NiAzIDkuNSAzSDEwLjkzNzVaTTIgOC42ODc1QzIgOC40MTEzNiAyLjIyMzg2IDguMTg3NSAyLjUgOC4xODc1SDE2LjVDMTYuNzc2MSA4LjE4NzUgMTcgOC40MTEzNiAxNyA4LjY4NzVWMTYuNDM3NUMxNyAxNi43MTM2IDE2Ljc3NjEgMTYuOTM3NSAxNi41IDE2LjkzNzVIMi41QzIuMjIzODYgMTYuOTM3NSAyIDE2LjcxMzYgMiAxNi40Mzc1VjguNjg3NVpNMiAxOS4zMTI1QzIgMTkuMDM2NCAyLjIyMzg2IDE4LjgxMjUgMi41IDE4LjgxMjVIMTYuNUMxNi43NzYxIDE4LjgxMjUgMTcgMTkuMDM2NCAxNyAxOS4zMTI1VjIwLjE4NzVDMTcgMjAuNDYzNiAxNi43NzYxIDIwLjY4NzUgMTYuNSAyMC42ODc1SDIuNUMyLjIyMzg2IDIwLjY4NzUgMiAyMC40NjM2IDIgMjAuMTg3NVYxOS4zMTI1WiIgZmlsbD0iIzFEMjYzMiIvPgo8L3N2Zz4K"),
+		Icon:     new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xOS41NjI1IDExLjc1VjEzLjI1SDIxQzIyLjEwNDYgMTMuMjUgMjMgMTIuMzU0NiAyMyAxMS4yNVY5LjMxMjVIMjEuNVYxMS4yNUMyMS41IDExLjUyNjEgMjEuMjc2MSAxMS43NSAyMSAxMS43NUgxOS41NjI1Wk0yMS41IDUuNDM3NUgyM1YzLjVDMjMgMi4zOTU0MyAyMi4xMDQ2IDEuNSAyMSAxLjVIMTkuNTYyNVYzSDIxQzIxLjI3NjEgMyAyMS41IDMuMjIzODYgMjEuNSAzLjVWNS40Mzc1Wk0xNi42ODc1IDNWMS41SDEzLjgxMjVWM0gxNi42ODc1Wk0xMC45Mzc1IDNWMS41SDkuNUM4LjM5NTQzIDEuNSA3LjUgMi4zOTU0MyA3LjUgMy41VjUuNDM3NUg5VjMuNUM5IDMuMjIzODYgOS4yMjM4NiAzIDkuNSAzSDEwLjkzNzVaTTIgOC42ODc1QzIgOC40MTEzNiAyLjIyMzg2IDguMTg3NSAyLjUgOC4xODc1SDE2LjVDMTYuNzc2MSA4LjE4NzUgMTcgOC40MTEzNiAxNyA4LjY4NzVWMTYuNDM3NUMxNyAxNi43MTM2IDE2Ljc3NjEgMTYuOTM3NSAxNi41IDE2LjkzNzVIMi41QzIuMjIzODYgMTYuOTM3NSAyIDE2LjcxMzYgMiAxNi40Mzc1VjguNjg3NVpNMiAxOS4zMTI1QzIgMTkuMDM2NCAyLjIyMzg2IDE4LjgxMjUgMi41IDE4LjgxMjVIMTYuNUMxNi43NzYxIDE4LjgxMjUgMTcgMTkuMDM2NCAxNyAxOS4zMTI1VjIwLjE4NzVDMTcgMjAuNDYzNiAxNi43NzYxIDIwLjY4NzUgMTYuNSAyMC42ODc1SDIuNUMyLjIyMzg2IDIwLjY4NzUgMiAyMC40NjM2IDIgMjAuMTg3NVYxOS4zMTI1WiIgZmlsbD0iIzFEMjYzMiIvPgo8L3N2Zz4K"),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.daemonset"},

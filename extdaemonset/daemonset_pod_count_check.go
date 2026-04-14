@@ -9,7 +9,6 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 )
@@ -20,10 +19,10 @@ func NewDaemonSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[e
 		ActionId:        DaemonSetPodCountCheckActionId,
 		TargetType:      DaemonSetTargetType,
 		TargetTypeLabel: "DaemonSet",
-		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+		SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "daemonset",
-				Description: extutil.Ptr("Find daemonSet by cluster, namespace and daemonSet"),
+				Description: new("Find daemonSet by cluster, namespace and daemonSet"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.daemonset=\"\"",
 			},
 		}),
@@ -35,7 +34,7 @@ func NewDaemonSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[e
 			if d == nil {
 				return nil, 0, extension_kit.ToError(fmt.Sprintf("DaemonSet %s not found.", target), nil)
 			}
-			return extutil.Ptr(d.Status.DesiredNumberScheduled), d.Status.NumberReady, nil
+			return new(d.Status.DesiredNumberScheduled), d.Status.NumberReady, nil
 		},
 	}
 }

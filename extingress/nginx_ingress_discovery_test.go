@@ -57,7 +57,7 @@ func Test_nginxIngressDiscovery_Basic(t *testing.T) {
 	ing1 := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "ing1", Namespace: "default"},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: strPtr("nginxClass"),
+			IngressClassName: new("nginxClass"),
 			Rules:            []networkingv1.IngressRule{{Host: "host1.example.com"}},
 		},
 	}
@@ -67,7 +67,7 @@ func Test_nginxIngressDiscovery_Basic(t *testing.T) {
 	ing2 := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "ing2", Namespace: "default"},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: strPtr("nginxEnterpriseClass"),
+			IngressClassName: new("nginxEnterpriseClass"),
 			Rules:            []networkingv1.IngressRule{{Host: "host2.example.com"}},
 		},
 	}
@@ -92,7 +92,7 @@ func Test_nginxIngressDiscovery_Basic(t *testing.T) {
 	ing4 := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "ing4", Namespace: "default"},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: strPtr("otherClass"), // Non-NGINX class
+			IngressClassName: new("otherClass"), // Non-NGINX class
 			Rules:            []networkingv1.IngressRule{{Host: "host4.example.com"}},
 		},
 	}
@@ -171,7 +171,7 @@ func Test_nginxIngressDiscovery_ExcludeDisabled(t *testing.T) {
 			Namespace: "default",
 			Labels:    map[string]string{"steadybit.com/discovery-disabled": "true"},
 		},
-		Spec: networkingv1.IngressSpec{IngressClassName: strPtr("nginx")},
+		Spec: networkingv1.IngressSpec{IngressClassName: new("nginx")},
 	}
 	_, err = cs.NetworkingV1().Ingresses("default").Create(context.Background(), ing, metav1.CreateOptions{})
 	require.NoError(t, err)
@@ -206,7 +206,7 @@ func Test_nginxIngressDiscovery_IncludeDisabledIfDisableDiscoveryExcludes(t *tes
 			Namespace: "default",
 			Labels:    map[string]string{"steadybit.com/discovery-disabled": "true"},
 		},
-		Spec: networkingv1.IngressSpec{IngressClassName: strPtr("nginx")},
+		Spec: networkingv1.IngressSpec{IngressClassName: new("nginx")},
 	}
 	_, err = cs.NetworkingV1().Ingresses("default").Create(context.Background(), ing, metav1.CreateOptions{})
 	require.NoError(t, err)

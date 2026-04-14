@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
@@ -362,12 +361,12 @@ func testStatefulSet(modifier func(set *appsv1.StatefulSet)) *appsv1.StatefulSet
 			},
 		},
 		Spec: appsv1.StatefulSetSpec{
-			Selector: extutil.Ptr(metav1.LabelSelector{
+			Selector: new(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"best-city": "kevelaer",
 				},
 			}),
-			Replicas: extutil.Ptr(int32(3)),
+			Replicas: new(int32(3)),
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
