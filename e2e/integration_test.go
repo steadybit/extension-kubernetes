@@ -1992,8 +1992,8 @@ func waitForNginxIngressController(m *e2e.Minikube, ctx context.Context, namespa
 }
 
 func cleanupNginxIngress(m *e2e.Minikube, nginxControllerNamespace string) {
-	_ = exec.Command("helm", "uninstall", "nginx-ingress", "--namespace", nginxControllerNamespace, "--kube-context", m.Profile).Run()
-	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxControllerNamespace, "--ignore-not-found").Run()
+	_ = exec.Command("helm", "uninstall", "nginx-ingress", "--namespace", nginxControllerNamespace, "--kube-context", m.Profile).Run() //NOSONAR go:S4036
+	_ = exec.Command("kubectl", "--context", m.Profile, "delete", "namespace", nginxControllerNamespace, "--ignore-not-found").Run()   //NOSONAR go:S4036
 }
 
 func initArgoRollouts(t *testing.T, m *e2e.Minikube, ctx context.Context) {
@@ -2001,8 +2001,7 @@ func initArgoRollouts(t *testing.T, m *e2e.Minikube, ctx context.Context) {
 	const argoRolloutsNamespace = "argo-rollouts"
 
 	// Create namespace
-	createCmd := exec.Command("kubectl", "--context", m.Profile, "create", "namespace", argoRolloutsNamespace)
-	out, err := createCmd.CombinedOutput()
+	out, err := exec.Command("kubectl", "--context", m.Profile, "create", "namespace", argoRolloutsNamespace).CombinedOutput() //NOSONAR go:S4036
 	if err != nil && !strings.Contains(string(out), "AlreadyExists") {
 		// Only log if it's not an "already exists" error
 		log.Warn().Msgf("Namespace creation output: %s", out)
@@ -2012,8 +2011,7 @@ func initArgoRollouts(t *testing.T, m *e2e.Minikube, ctx context.Context) {
 	log.Info().Msg("Applying Argo Rollouts manifests")
 	cmdCtx, cmdCancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cmdCancel()
-	cmd := exec.CommandContext(cmdCtx, "kubectl", "--context", m.Profile, "apply", "-n", argoRolloutsNamespace, "-f", "https://github.com/argoproj/argo-rollouts/releases/download/v1.8.3/install.yaml")
-	out, err = cmd.CombinedOutput()
+	out, err = exec.CommandContext(cmdCtx, "kubectl", "--context", m.Profile, "apply", "-n", argoRolloutsNamespace, "-f", "https://github.com/argoproj/argo-rollouts/releases/download/v1.8.3/install.yaml").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to install Argo Rollouts: %s", out)
 
 	// Wait for Argo Rollouts controller to be ready
