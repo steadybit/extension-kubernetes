@@ -3,6 +3,7 @@ package extargorollout
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -33,10 +33,10 @@ var (
 func NewRolloutDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 	discovery := &rolloutDiscovery{k8s: k8s}
 	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s,
-		reflect.TypeOf(corev1.Pod{}),
-		reflect.TypeOf(unstructured.Unstructured{}),
-		reflect.TypeOf(autoscalingv2.HorizontalPodAutoscaler{}),
-		reflect.TypeOf(corev1.Service{}),
+		reflect.TypeFor[corev1.Pod](),
+		reflect.TypeFor[unstructured.Unstructured](),
+		reflect.TypeFor[autoscalingv2.HorizontalPodAutoscaler](),
+		reflect.TypeFor[corev1.Service](),
 	)
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
 		discovery_kit_sdk.WithRefreshTargetsNow(),
@@ -48,7 +48,7 @@ func (d *rolloutDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id: ArgoRolloutTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("30s"),
+			CallInterval: new("30s"),
 		},
 	}
 }
@@ -57,9 +57,9 @@ func (d *rolloutDiscovery) DescribeTarget() discovery_kit_api.TargetDescription 
 	return discovery_kit_api.TargetDescription{
 		Id:       ArgoRolloutTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Argo Rollout", Other: "Kubernetes Argo Rollouts"},
-		Category: extutil.Ptr("Kubernetes"),
+		Category: new("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr(ArgoRolloutIcon),
+		Icon:     new(ArgoRolloutIcon),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.argo-rollout"},
@@ -142,19 +142,15 @@ func (d *rolloutDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 			}, rollout.GetNamespace())
 
 			// Add pod-based attributes
-			for key, value := range extcommon.GetPodBasedAttributes("argo-rollout", metav1.ObjectMeta{
+			maps.Copy(attributes, extcommon.GetPodBasedAttributes("argo-rollout", metav1.ObjectMeta{
 				Name:        rollout.GetName(),
 				Namespace:   rollout.GetNamespace(),
 				Annotations: rollout.GetAnnotations(),
 				Labels:      rollout.GetLabels(),
-			}, pods, nodes) {
-				attributes[key] = value
-			}
+			}, pods, nodes))
 
 			// Add service names
-			for key, value := range extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(rollout.GetNamespace(), podTemplateLabels)) {
-				attributes[key] = value
-			}
+			maps.Copy(attributes, extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(rollout.GetNamespace(), podTemplateLabels)))
 		}
 
 		targets[i] = discovery_kit_api.Target{

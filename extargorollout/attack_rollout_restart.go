@@ -44,12 +44,12 @@ func (a *ArgoRolloutRestartAction) Describe() action_kit_api.ActionDescription {
 		Id:          ArgoRolloutRestartActionId,
 		Label:       "Trigger Restart Argo Rollout",
 		Description: "Trigger a restart of an Argo Rollout by patching spec.restartAt",
-		Icon:        extutil.Ptr(ArgoRolloutIcon),
+		Icon:        new(ArgoRolloutIcon),
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Technology:  extutil.Ptr("Kubernetes"),
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		Technology:  new("Kubernetes"),
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType: ArgoRolloutTargetType,
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label: "by cluster, namespace and rollout",
 					Query: "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.argo-rollout=\"\"",
@@ -92,8 +92,8 @@ func (a *ArgoRolloutRestartAction) Start(ctx context.Context, state *ArgoRollout
 
 	// Patch spec.restartAt with current time
 	restartAt := time.Now().UTC().Format(time.RFC3339)
-	patchData := map[string]interface{}{
-		"spec": map[string]interface{}{
+	patchData := map[string]any{
+		"spec": map[string]any{
 			"restartAt": restartAt,
 		},
 	}
@@ -115,7 +115,7 @@ func (a *ArgoRolloutRestartAction) Start(ctx context.Context, state *ArgoRollout
 
 	log.Info().Msgf("Successfully patched Argo Rollout %s/%s", state.Namespace, state.ArgoRollout)
 	return &action_kit_api.StartResult{
-		Messages: extutil.Ptr([]action_kit_api.Message{
+		Messages: new([]action_kit_api.Message{
 			{
 				Level:   extutil.Ptr(action_kit_api.Info),
 				Message: fmt.Sprintf("Restart triggered for Argo Rollout %s/%s", state.Namespace, state.ArgoRollout),

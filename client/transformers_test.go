@@ -16,8 +16,8 @@ import (
 func TestTransformIngressClass(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    interface{}
-		expected interface{}
+		input    any
+		expected any
 		wantErr  bool
 	}{
 		{
@@ -250,7 +250,7 @@ func TestTransformIngressClass_SpecificBehaviors(t *testing.T) {
 			Spec: networkingv1.IngressClassSpec{
 				Controller: "custom.controller/type",
 				Parameters: &networkingv1.IngressClassParametersReference{
-					APIGroup: stringPtr("example.com"),
+					APIGroup: new("example.com"),
 					Kind:     "CustomParams",
 					Name:     "my-params",
 				},
@@ -318,6 +318,8 @@ func TestTransformIngressClass_SpecificBehaviors(t *testing.T) {
 }
 
 // Helper function for string pointer
+//
+//go:fix inline
 func stringPtr(s string) *string {
-	return &s
+	return new(s)
 }

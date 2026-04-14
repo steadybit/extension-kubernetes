@@ -9,7 +9,6 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 )
@@ -20,10 +19,10 @@ func NewReplicaSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[
 		ActionId:        ReplicaSetPodCountCheckActionId,
 		TargetType:      ReplicaSetTargetType,
 		TargetTypeLabel: "ReplicaSet",
-		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+		SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "replicaset",
-				Description: extutil.Ptr("Find replicaset by cluster, namespace and replicaset"),
+				Description: new("Find replicaset by cluster, namespace and replicaset"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.replicaset=\"\"",
 			},
 		}),

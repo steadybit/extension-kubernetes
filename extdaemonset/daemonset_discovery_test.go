@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
@@ -334,7 +333,7 @@ func testDaemonSet(modifier func(*appsv1.DaemonSet)) *appsv1.DaemonSet {
 			},
 		},
 		Spec: appsv1.DaemonSetSpec{
-			Selector: extutil.Ptr(metav1.LabelSelector{
+			Selector: new(metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"best-city": "kevelaer",
 				},

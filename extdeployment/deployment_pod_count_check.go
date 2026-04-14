@@ -9,7 +9,6 @@ import (
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 )
@@ -20,10 +19,10 @@ func NewDeploymentPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[
 		ActionId:        DeploymentPodCountCheckActionId,
 		TargetType:      DeploymentTargetType,
 		TargetTypeLabel: "Deployment",
-		SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+		SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 			{
 				Label:       "deployment",
-				Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
+				Description: new("Find deployment by cluster, namespace and deployment"),
 				Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 			},
 		}),

@@ -422,48 +422,48 @@ func testRollout(modifier func(rollout *unstructured.Unstructured)) *unstructure
 	})
 
 	// Set basic spec
-	spec := map[string]interface{}{
+	spec := map[string]any{
 		"replicas":        int64(3),
 		"minReadySeconds": int64(10),
-		"selector": map[string]interface{}{
-			"matchLabels": map[string]interface{}{
+		"selector": map[string]any{
+			"matchLabels": map[string]any{
 				"app": "shop",
 			},
 		},
-		"template": map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"labels": map[string]interface{}{
+		"template": map[string]any{
+			"metadata": map[string]any{
+				"labels": map[string]any{
 					"app": "shop",
 				},
 			},
-			"spec": map[string]interface{}{
-				"containers": []interface{}{
-					map[string]interface{}{
+			"spec": map[string]any{
+				"containers": []any{
+					map[string]any{
 						"name":  "nginx",
 						"image": "nginx:1.19",
-						"ports": []interface{}{
-							map[string]interface{}{
+						"ports": []any{
+							map[string]any{
 								"containerPort": int64(80),
 							},
 						},
-						"livenessProbe": map[string]interface{}{
-							"httpGet": map[string]interface{}{
+						"livenessProbe": map[string]any{
+							"httpGet": map[string]any{
 								"path": "/live",
 								"port": int64(80),
 							},
 						},
-						"readinessProbe": map[string]interface{}{
-							"httpGet": map[string]interface{}{
+						"readinessProbe": map[string]any{
+							"httpGet": map[string]any{
 								"path": "/ready",
 								"port": int64(80),
 							},
 						},
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name":  "shop",
 						"image": "shop:1.0",
-						"ports": []interface{}{
-							map[string]interface{}{
+						"ports": []any{
+							map[string]any{
 								"containerPort": int64(8080),
 							},
 						},

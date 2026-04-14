@@ -144,14 +144,14 @@ func (a KubectlAction) Status(_ context.Context, state *KubectlActionState) (*ac
 			result.Error = &action_kit_api.ActionKitError{
 				Status: extutil.Ptr(action_kit_api.Errored),
 				Title:  fmt.Sprintf("Failed to %s exit-code %d", state.Opts.LogActionName, exitCode),
-				Detail: extutil.Ptr(strings.Join(stdOut, "\n")),
+				Detail: new(strings.Join(stdOut, "\n")),
 			}
 			if stdOutError := extractErrorFromStdOut(stdOut); stdOutError != "" {
 				result.Error.Title = stdOutError
 			}
 			state.CommandCompleted = true
 		}
-		result.Messages = extutil.Ptr(messages)
+		result.Messages = new(messages)
 	}
 
 	return &result, nil
@@ -257,6 +257,6 @@ func (a KubectlAction) Stop(_ context.Context, state *KubectlActionState) (*acti
 	})
 
 	return &action_kit_api.StopResult{
-		Messages: extutil.Ptr(messages),
+		Messages: new(messages),
 	}, nil
 }

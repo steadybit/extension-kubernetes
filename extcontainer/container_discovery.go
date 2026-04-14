@@ -14,7 +14,6 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -31,7 +30,7 @@ var (
 
 func NewContainerDiscovery(ctx context.Context, k8s *client.Client) discovery_kit_sdk.EnrichmentDataDiscovery {
 	discovery := &containerDiscovery{k8s: k8s}
-	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}), reflect.TypeOf(corev1.Node{}))
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeFor[corev1.Pod](), reflect.TypeFor[corev1.Node]())
 	return discovery_kit_sdk.NewCachedEnrichmentDataDiscovery(
 		discovery,
 		discovery_kit_sdk.WithRefreshEnrichmentDataNow(),
@@ -43,7 +42,7 @@ func (c *containerDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id: KubernetesContainerEnrichmentDataType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("30s"),
+			CallInterval: new("30s"),
 		},
 	}
 }

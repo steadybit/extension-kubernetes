@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
@@ -32,14 +31,14 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 	tests := []struct {
 		name        string
 		ingressName string
-		config      map[string]interface{}
+		config      map[string]any
 		want        NginxState
 		wantErr     string
 	}{
 		{
 			name:        "delay with path regex - open source nginx",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay":        500,
 				"conditionPathPattern": "/api/.*",
 			},
@@ -55,7 +54,7 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "delay with enterprise nginx",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay":        500,
 				"conditionPathPattern": "/api/.*",
 				"isEnterpriseNginx":    true,
@@ -72,7 +71,7 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "delay with http method",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay":       500,
 				"conditionHttpMethod": "POST",
 			},
@@ -88,10 +87,10 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "delay with http header",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay": 500,
-				"conditionHttpHeader": []interface{}{
-					map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+				"conditionHttpHeader": []any{
+					map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 				},
 			},
 			want: NginxState{
@@ -109,12 +108,12 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "delay with multiple conditions",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay":        1000,
 				"conditionPathPattern": "/api/users",
 				"conditionHttpMethod":  "POST",
-				"conditionHttpHeader": []interface{}{
-					map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+				"conditionHttpHeader": []any{
+					map[string]any{"key": "Content-Type", "value": "application/json"},
 				},
 			},
 			want: NginxState{
@@ -134,7 +133,7 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "no conditions provided",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay": 500,
 			},
 			wantErr: "at least one condition (path, method, or header) is required",
@@ -142,7 +141,7 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "path collision with existing rule",
 			ingressName: "conflict-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay":        500,
 				"conditionPathPattern": "/alreadyDelayed",
 			},
@@ -151,7 +150,7 @@ func TestNginxDelayTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "duplicate delay rule",
 			ingressName: "delay-conflict-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseDelay":        500,
 				"conditionPathPattern": "/newPath",
 			},
@@ -189,12 +188,12 @@ func TestNginxDelayTrafficAction_PrepareFluentChaining(t *testing.T) {
 	defer testEnv.cleanup()
 
 	// Test with all conditions to check the chained logic
-	config := map[string]interface{}{
+	config := map[string]any{
 		"responseDelay":        500,
 		"conditionPathPattern": "/api/users",
 		"conditionHttpMethod":  "POST",
-		"conditionHttpHeader": []interface{}{
-			map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+		"conditionHttpHeader": []any{
+			map[string]any{"key": "Content-Type", "value": "application/json"},
 		},
 	}
 
@@ -297,11 +296,11 @@ func createTestDelayNginxIngresses() []*networkingv1.Ingress {
 }
 
 // createDelayNginxTestRequest creates a test request with the given ingress name and config
-func createDelayNginxTestRequest(ingressName string, config map[string]interface{}) action_kit_api.PrepareActionRequestBody {
+func createDelayNginxTestRequest(ingressName string, config map[string]any) action_kit_api.PrepareActionRequestBody {
 	return action_kit_api.PrepareActionRequestBody{
 		ExecutionId: myTestUUID,
 		Config:      config,
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.namespace":     {"demo"},
 				"k8s.ingress":       {ingressName},

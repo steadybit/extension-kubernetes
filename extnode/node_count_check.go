@@ -58,18 +58,18 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Label:       "Node Count",
 		Description: "Verify node counts",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik02LjQ5IDkuNjNMMi41OSA4LjE2QzIuMjMgOC4wMyAyIDcuNjkgMiA3LjMxQzIgNi45MyAyLjIzIDYuNTkgMi41OSA2LjQ2TDExLjYgMy4wNkMxMS44IDIuOTggMTIuMDMgMi45OCAxMi4yMyAzLjA2TDIxLjI0IDYuNDZDMjEuNiA2LjU5IDIxLjgzIDYuOTMgMjEuODMgNy4zMUMyMS44MyA3LjY5IDIxLjU5IDguMDMgMjEuMjQgOC4xNkwxNy40OSA5LjU4QzE2LjU1IDcuNDcgMTQuNDcgNiAxMiA2QzkuNTMgNiA3LjQxIDcuNDkgNi40OSA5LjYzWk0xNCAxMC4wMUwxMS4xNyAxMi45OEwxMC4wMSAxMS43NUM5Ljc0IDExLjQ3IDkuMyAxMS40NyA5LjAyIDExLjczQzguNzQgMTIgOC43NCAxMi40NCA5IDEyLjcyTDEwLjY2IDE0LjQ3QzEwLjc5IDE0LjYxIDEwLjk3IDE0LjY4IDExLjE2IDE0LjY4QzExLjM1IDE0LjY4IDExLjUzIDE0LjYgMTEuNjYgMTQuNDdMMTUgMTAuOTdDMTUuMjcgMTAuNjkgMTUuMjYgMTAuMjUgMTQuOTggOS45OEMxNC43IDkuNzEgMTQuMjYgOS43MiAxMy45OSAxMEwxNCAxMC4wMVpNMy4yMTk5OCAxMS4yM0MyLjc0OTk4IDExLjA1IDIuMjI5OTggMTEuMjkgMi4wNTk5OCAxMS43NkMxLjg4OTk4IDEyLjIzIDIuMTE5OTggMTIuNzUgMi41ODk5OCAxMi45M0w2LjUxOTk4IDE0LjQxQzYuMjI5OTggMTMuNzUgNi4wNTk5OCAxMy4wNCA2LjAxOTk4IDEyLjI4TDMuMjE5OTggMTEuMjJWMTEuMjNaTTIwLjYgMTYuMDFMMTEuOTEgMTkuMjlMMy4yMTk5OCAxNi4wMUMyLjc0OTk4IDE1LjgzIDIuMjI5OTggMTYuMDcgMi4wNTk5OCAxNi41NEMxLjg4OTk4IDE3LjAxIDIuMTE5OTggMTcuNTMgMi41ODk5OCAxNy43MUwxMS42IDIxLjExQzExLjggMjEuMTkgMTIuMDMgMjEuMTkgMTIuMjMgMjEuMTFMMjEuMjQgMTcuNzFDMjEuNzEgMTcuNTMgMjEuOTQgMTcuMDEgMjEuNzcgMTYuNTRDMjEuNiAxNi4wNyAyMS4wOCAxNS44MyAyMC42MSAxNi4wMUgyMC42Wk0xNy45OCAxMi4yMkwyMC42IDExLjIzQzIxLjA3IDExLjA1IDIxLjU5IDExLjI5IDIxLjc2IDExLjc2QzIxLjkzIDEyLjIzIDIxLjcgMTIuNzUgMjEuMjMgMTIuOTNMMTcuNTIgMTQuMzNDMTcuOCAxMy42OCAxNy45NSAxMi45NyAxNy45OCAxMi4yMloiIGZpbGw9IiMxRDI2MzIiLz4KPC9zdmc+Cg=="),
-		Technology:  extutil.Ptr("Kubernetes"),
+		Icon:        new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik02LjQ5IDkuNjNMMi41OSA4LjE2QzIuMjMgOC4wMyAyIDcuNjkgMiA3LjMxQzIgNi45MyAyLjIzIDYuNTkgMi41OSA2LjQ2TDExLjYgMy4wNkMxMS44IDIuOTggMTIuMDMgMi45OCAxMi4yMyAzLjA2TDIxLjI0IDYuNDZDMjEuNiA2LjU5IDIxLjgzIDYuOTMgMjEuODMgNy4zMUMyMS44MyA3LjY5IDIxLjU5IDguMDMgMjEuMjQgOC4xNkwxNy40OSA5LjU4QzE2LjU1IDcuNDcgMTQuNDcgNiAxMiA2QzkuNTMgNiA3LjQxIDcuNDkgNi40OSA5LjYzWk0xNCAxMC4wMUwxMS4xNyAxMi45OEwxMC4wMSAxMS43NUM5Ljc0IDExLjQ3IDkuMyAxMS40NyA5LjAyIDExLjczQzguNzQgMTIgOC43NCAxMi40NCA5IDEyLjcyTDEwLjY2IDE0LjQ3QzEwLjc5IDE0LjYxIDEwLjk3IDE0LjY4IDExLjE2IDE0LjY4QzExLjM1IDE0LjY4IDExLjUzIDE0LjYgMTEuNjYgMTQuNDdMMTUgMTAuOTdDMTUuMjcgMTAuNjkgMTUuMjYgMTAuMjUgMTQuOTggOS45OEMxNC43IDkuNzEgMTQuMjYgOS43MiAxMy45OSAxMEwxNCAxMC4wMVpNMy4yMTk5OCAxMS4yM0MyLjc0OTk4IDExLjA1IDIuMjI5OTggMTEuMjkgMi4wNTk5OCAxMS43NkMxLjg4OTk4IDEyLjIzIDIuMTE5OTggMTIuNzUgMi41ODk5OCAxMi45M0w2LjUxOTk4IDE0LjQxQzYuMjI5OTggMTMuNzUgNi4wNTk5OCAxMy4wNCA2LjAxOTk4IDEyLjI4TDMuMjE5OTggMTEuMjJWMTEuMjNaTTIwLjYgMTYuMDFMMTEuOTEgMTkuMjlMMy4yMTk5OCAxNi4wMUMyLjc0OTk4IDE1LjgzIDIuMjI5OTggMTYuMDcgMi4wNTk5OCAxNi41NEMxLjg4OTk4IDE3LjAxIDIuMTE5OTggMTcuNTMgMi41ODk5OCAxNy43MUwxMS42IDIxLjExQzExLjggMjEuMTkgMTIuMDMgMjEuMTkgMTIuMjMgMjEuMTFMMjEuMjQgMTcuNzFDMjEuNzEgMTcuNTMgMjEuOTQgMTcuMDEgMjEuNzcgMTYuNTRDMjEuNiAxNi4wNyAyMS4wOCAxNS44MyAyMC42MSAxNi4wMUgyMC42Wk0xNy45OCAxMi4yMkwyMC42IDExLjIzQzIxLjA3IDExLjA1IDIxLjU5IDExLjI5IDIxLjc2IDExLjc2QzIxLjkzIDEyLjIzIDIxLjcgMTIuNzUgMjEuMjMgMTIuOTNMMTcuNTIgMTQuMzNDMTcuOCAxMy42OCAxNy45NSAxMi45NyAxNy45OCAxMi4yMloiIGZpbGw9IiMxRDI2MzIiLz4KPC9zdmc+Cg=="),
+		Technology:  new("Kubernetes"),
 
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType:          extcluster.ClusterTargetType,
 			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionExactlyOne),
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "cluster name",
-					Description: extutil.Ptr("Find cluster by name"),
+					Description: new("Find cluster by name"),
 					Query:       "k8s.cluster-name=\"\"",
 				},
 			}),
@@ -78,30 +78,30 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 			{
 				Name:         "duration",
 				Label:        "Timeout",
-				Description:  extutil.Ptr("How long should the check wait for the specified node count."),
+				Description:  new("How long should the check wait for the specified node count."),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("10s"),
-				Order:        extutil.Ptr(1),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("10s"),
+				Order:        new(1),
+				Required:     new(true),
 			},
 			{
 				Name:         "nodeCount",
 				Label:        "Node count",
-				Description:  extutil.Ptr("How many nodes are required or should change to let the check pass."),
+				Description:  new("How many nodes are required or should change to let the check pass."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				DefaultValue: extutil.Ptr("1"),
-				Order:        extutil.Ptr(2),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("1"),
+				Order:        new(2),
+				Required:     new(true),
 			},
 			{
 				Name:         "nodeCountCheckMode",
 				Label:        "Check type",
-				Description:  extutil.Ptr("How should the node count change?"),
+				Description:  new("How should the node count change?"),
 				Type:         action_kit_api.ActionParameterTypeString,
-				DefaultValue: extutil.Ptr(nodeCountAtLeast),
-				Order:        extutil.Ptr(2),
-				Required:     extutil.Ptr(true),
-				Options: extutil.Ptr([]action_kit_api.ParameterOption{
+				DefaultValue: new(nodeCountAtLeast),
+				Order:        new(2),
+				Required:     new(true),
+				Options: new([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "actual count >= node count",
 						Value: nodeCountAtLeast,
@@ -119,8 +119,8 @@ func (f NodeCountCheckAction) Describe() action_kit_api.ActionDescription {
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
 		Start:   action_kit_api.MutatingEndpointReference{},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("1s"),
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("1s"),
 		}),
 	}
 }
@@ -156,17 +156,17 @@ func statusNodeCountCheckInternal(k8s *client.Client, state *NodeCountCheckState
 
 	var checkError *action_kit_api.ActionKitError
 	if state.NodeCountCheckMode == nodeCountAtLeast && readyCount < state.NodeCount {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
+		checkError = new(action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("%s has not enough ready nodes.", state.Cluster),
 			Status: extutil.Ptr(action_kit_api.Failed),
 		})
 	} else if state.NodeCountCheckMode == nodeCountIncreasedBy && (state.NodeCount+state.InitialNodeCount) != readyCount {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
+		checkError = new(action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("%s has only %d of desired %d nodes ready.", state.Cluster, readyCount, state.NodeCount+state.InitialNodeCount),
 			Status: extutil.Ptr(action_kit_api.Failed),
 		})
 	} else if state.NodeCountCheckMode == nodeCountDecreasedBy && (state.InitialNodeCount-state.NodeCount) != readyCount {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
+		checkError = new(action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("%s has %d of desired %d nodes ready.", state.Cluster, readyCount, state.InitialNodeCount-state.NodeCount),
 			Status: extutil.Ptr(action_kit_api.Failed),
 		})

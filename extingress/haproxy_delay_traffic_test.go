@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
@@ -91,11 +90,11 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
+					Config: map[string]any{
 						"responseDelay":        500,
 						"conditionPathPattern": "/api/*",
 					},
-					Target: extutil.Ptr(action_kit_api.Target{
+					Target: new(action_kit_api.Target{
 						Attributes: map[string][]string{
 							"k8s.namespace": {"demo"},
 							"k8s.ingress":   {"simple-ingress"},
@@ -122,11 +121,11 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
+					Config: map[string]any{
 						"responseDelay":       500,
 						"conditionHttpMethod": "POST",
 					},
-					Target: extutil.Ptr(action_kit_api.Target{
+					Target: new(action_kit_api.Target{
 						Attributes: map[string][]string{
 							"k8s.namespace": {"demo"},
 							"k8s.ingress":   {"simple-ingress"},
@@ -153,13 +152,13 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
+					Config: map[string]any{
 						"responseDelay": 500,
-						"conditionHttpHeader": []interface{}{
-							map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+						"conditionHttpHeader": []any{
+							map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 						},
 					},
-					Target: extutil.Ptr(action_kit_api.Target{
+					Target: new(action_kit_api.Target{
 						Attributes: map[string][]string{
 							"k8s.namespace": {"demo"},
 							"k8s.ingress":   {"simple-ingress"},
@@ -189,15 +188,15 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
+					Config: map[string]any{
 						"responseDelay":        1000,
 						"conditionPathPattern": "/api/users",
 						"conditionHttpMethod":  "POST",
-						"conditionHttpHeader": []interface{}{
-							map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+						"conditionHttpHeader": []any{
+							map[string]any{"key": "Content-Type", "value": "application/json"},
 						},
 					},
-					Target: extutil.Ptr(action_kit_api.Target{
+					Target: new(action_kit_api.Target{
 						Attributes: map[string][]string{
 							"k8s.namespace": {"demo"},
 							"k8s.ingress":   {"simple-ingress"},
@@ -229,10 +228,10 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
+					Config: map[string]any{
 						"responseDelay": 500,
 					},
-					Target: extutil.Ptr(action_kit_api.Target{
+					Target: new(action_kit_api.Target{
 						Attributes: map[string][]string{
 							"k8s.namespace": {"demo"},
 							"k8s.ingress":   {"simple-ingress"},
@@ -241,7 +240,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 			},
 			want:    HAProxyState{},
-			wantErr: extutil.Ptr("at least one condition (path, method, or header) is required"),
+			wantErr: new("at least one condition (path, method, or header) is required"),
 		},
 		{
 			name:        "path collision with existing rule",
@@ -253,11 +252,11 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
+					Config: map[string]any{
 						"responseDelay":        500,
 						"conditionPathPattern": "/alreadyDelayed",
 					},
-					Target: extutil.Ptr(action_kit_api.Target{
+					Target: new(action_kit_api.Target{
 						Attributes: map[string][]string{
 							"k8s.namespace": {"demo"},
 							"k8s.ingress":   {"path-conflict-ingress"},
@@ -266,7 +265,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 			},
 			want:    HAProxyState{},
-			wantErr: extutil.Ptr("a rule for path /alreadyDelayed already exists"),
+			wantErr: new("a rule for path /alreadyDelayed already exists"),
 		},
 		{
 			name:        "duplicate delay rule",
@@ -278,11 +277,11 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 				request: action_kit_api.PrepareActionRequestBody{
 					ExecutionId: uuid.MustParse("00000000-0000-0000-0000-000000000000"),
-					Config: map[string]interface{}{
+					Config: map[string]any{
 						"responseDelay":        500,
 						"conditionPathPattern": "/newPath",
 					},
-					Target: extutil.Ptr(action_kit_api.Target{
+					Target: new(action_kit_api.Target{
 						Attributes: map[string][]string{
 							"k8s.namespace": {"demo"},
 							"k8s.ingress":   {"delay-conflict-ingress"},
@@ -291,7 +290,7 @@ func TestHAProxyDelayTrafficAction_Prepare(t *testing.T) {
 				},
 			},
 			want:    HAProxyState{},
-			wantErr: extutil.Ptr("a delay rule already exists - cannot add another one"),
+			wantErr: new("a delay rule already exists - cannot add another one"),
 		},
 	}
 

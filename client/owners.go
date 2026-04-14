@@ -6,7 +6,6 @@ package client
 import (
 	"strings"
 
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -71,22 +70,22 @@ func getResource(k8s *Client, kind string, namespace string, name string) (*Owne
 	if strings.EqualFold("replicaset", kind) {
 		replicaSet := k8s.ReplicaSetByNamespaceAndName(namespace, name)
 		if replicaSet != nil {
-			return extutil.Ptr(OwnerReference{Name: replicaSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(replicaSet.ObjectMeta), nil, nil
+			return new(OwnerReference{Name: replicaSet.Name, Kind: strings.ToLower(kind)}), new(replicaSet.ObjectMeta), nil, nil
 		}
 	} else if strings.EqualFold("daemonset", kind) {
 		daemonSet := k8s.DaemonSetByNamespaceAndName(namespace, name)
 		if daemonSet != nil {
-			return extutil.Ptr(OwnerReference{Name: daemonSet.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(daemonSet.ObjectMeta), nil, daemonSet
+			return new(OwnerReference{Name: daemonSet.Name, Kind: strings.ToLower(kind)}), new(daemonSet.ObjectMeta), nil, daemonSet
 		}
 	} else if strings.EqualFold("deployment", kind) {
 		deployment := k8s.DeploymentByNamespaceAndName(namespace, name)
 		if deployment != nil {
-			return extutil.Ptr(OwnerReference{Name: deployment.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(deployment.ObjectMeta), deployment, nil
+			return new(OwnerReference{Name: deployment.Name, Kind: strings.ToLower(kind)}), new(deployment.ObjectMeta), deployment, nil
 		}
 	} else if strings.EqualFold("statefulset", kind) {
 		statefulset := k8s.StatefulSetByNamespaceAndName(namespace, name)
 		if statefulset != nil {
-			return extutil.Ptr(OwnerReference{Name: statefulset.Name, Kind: strings.ToLower(kind)}), extutil.Ptr(statefulset.ObjectMeta), nil, nil
+			return new(OwnerReference{Name: statefulset.Name, Kind: strings.ToLower(kind)}), new(statefulset.ObjectMeta), nil, nil
 		}
 	} else if !extconfig.Config.DiscoveryDisabledArgoRollout && strings.EqualFold("rollout", kind) {
 		rollout := k8s.ArgoRolloutByNamespaceAndName(namespace, name)
@@ -97,7 +96,7 @@ func getResource(k8s *Client, kind string, namespace string, name string) (*Owne
 				Annotations: rollout.GetAnnotations(),
 				Labels:      rollout.GetLabels(),
 			}
-			return extutil.Ptr(OwnerReference{Name: rollout.GetName(), Kind: strings.ToLower(kind)}), extutil.Ptr(meta), nil, nil
+			return new(OwnerReference{Name: rollout.GetName(), Kind: strings.ToLower(kind)}), new(meta), nil, nil
 		}
 	}
 	return nil, nil, nil, nil

@@ -20,7 +20,7 @@ var ArgoRolloutGVK = schema.GroupVersionKind{
 
 func TriggerOnKubernetesResourceChange(k8s *client.Client, t ...reflect.Type) chan struct{} {
 	chRefresh := make(chan struct{})
-	chNotification := make(chan interface{})
+	chNotification := make(chan any)
 
 	k8s.Notify(chNotification)
 	go triggerNotificationsForType(chNotification, chRefresh, t...)
@@ -28,7 +28,7 @@ func TriggerOnKubernetesResourceChange(k8s *client.Client, t ...reflect.Type) ch
 	return chRefresh
 }
 
-func triggerNotificationsForType(in <-chan interface{}, out chan<- struct{}, types ...reflect.Type) {
+func triggerNotificationsForType(in <-chan any, out chan<- struct{}, types ...reflect.Type) {
 	var s []string
 	for _, r := range types {
 		s = append(s, r.String())

@@ -8,7 +8,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-func transformDaemonSet(i interface{}) (interface{}, error) {
+func transformDaemonSet(i any) (any, error) {
 	if d, ok := i.(*appsv1.DaemonSet); ok {
 		d.ObjectMeta.Annotations = nil
 		d.ObjectMeta.ManagedFields = nil
@@ -21,7 +21,7 @@ func transformDaemonSet(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformDeployment(i interface{}) (interface{}, error) {
+func transformDeployment(i any) (any, error) {
 	if d, ok := i.(*appsv1.Deployment); ok {
 		d.ObjectMeta.Annotations = nil
 		d.ObjectMeta.ManagedFields = nil
@@ -31,7 +31,7 @@ func transformDeployment(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformPod(i interface{}) (interface{}, error) {
+func transformPod(i any) (any, error) {
 	if pod, ok := i.(*corev1.Pod); ok {
 		pod.ObjectMeta.Annotations = nil
 		pod.ObjectMeta.ManagedFields = nil
@@ -64,7 +64,7 @@ func transformPod(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformNamespace(i interface{}) (interface{}, error) {
+func transformNamespace(i any) (any, error) {
 	if namespace, ok := i.(*corev1.Namespace); ok {
 		namespace.ObjectMeta.Annotations = nil
 		namespace.ObjectMeta.ManagedFields = nil
@@ -78,7 +78,7 @@ func transformNamespace(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformReplicaSet(i interface{}) (interface{}, error) {
+func transformReplicaSet(i any) (any, error) {
 	if rs, ok := i.(*appsv1.ReplicaSet); ok {
 		rs.ObjectMeta.ManagedFields = nil
 		if extconfig.Config.DiscoveryDisabledReplicaSet {
@@ -91,7 +91,7 @@ func transformReplicaSet(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformService(i interface{}) (interface{}, error) {
+func transformService(i any) (any, error) {
 	if s, ok := i.(*corev1.Service); ok {
 		s.ObjectMeta.Labels = nil
 		s.ObjectMeta.Annotations = nil
@@ -105,7 +105,7 @@ func transformService(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformStatefulSet(i interface{}) (interface{}, error) {
+func transformStatefulSet(i any) (any, error) {
 	if s, ok := i.(*appsv1.StatefulSet); ok {
 		s.ObjectMeta.Annotations = nil
 		s.ObjectMeta.ManagedFields = nil
@@ -117,7 +117,7 @@ func transformStatefulSet(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformEvents(i interface{}) (interface{}, error) {
+func transformEvents(i any) (any, error) {
 	if event, ok := i.(*corev1.Event); ok {
 		event.ObjectMeta.ManagedFields = nil
 		return event, nil
@@ -125,7 +125,7 @@ func transformEvents(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformNodes(i interface{}) (interface{}, error) {
+func transformNodes(i any) (any, error) {
 	if node, ok := i.(*corev1.Node); ok {
 		node.ObjectMeta.Annotations = nil
 		node.ObjectMeta.ManagedFields = nil
@@ -139,7 +139,7 @@ func transformNodes(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformHPA(i interface{}) (interface{}, error) {
+func transformHPA(i any) (any, error) {
 	if hpa, ok := i.(*autoscalingv1.HorizontalPodAutoscaler); ok {
 		hpa.ObjectMeta.Annotations = nil
 		hpa.ObjectMeta.ManagedFields = nil
@@ -148,7 +148,7 @@ func transformHPA(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformIngressClass(i interface{}) (interface{}, error) {
+func transformIngressClass(i any) (any, error) {
 	if ic, ok := i.(*networkingv1.IngressClass); ok {
 		// Keep only needed annotations for ingress controller discovery
 		keptAnnotations := map[string]string{}
@@ -188,7 +188,7 @@ func transformIngressClass(i interface{}) (interface{}, error) {
 	return i, nil
 }
 
-func transformIngress(i interface{}) (interface{}, error) {
+func transformIngress(i any) (any, error) {
 	if d, ok := i.(*networkingv1.Ingress); ok {
 		// Preserve ingressClassName and the class annotation if present
 		ingressClassName := d.Spec.IngressClassName

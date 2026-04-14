@@ -49,18 +49,18 @@ func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 		Label:       "Pod Count Metrics",
 		Description: "Collects information about pod counts (desired vs. actual count).",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMC40NSAyLjMyTDQuNjYgNS4yMlY1LjIxQzQuNjMyMTYgNS4yMjU5MSA0LjYwNDMzIDUuMjQwMjMgNC41NzcxMiA1LjI1NDIzQzQuNTM1OTEgNS4yNzU0NCA0LjQ5NjE0IDUuMjk1OTEgNC40NiA1LjMyTDcuOTMgNy4yNUM5IDYuMjYgMTAuNDMgNS42NiAxMiA1LjY2QzEzLjU3IDUuNjYgMTUgNi4yNiAxNi4wNyA3LjI1TDE5LjUgNS4zNUMxOS40MyA1LjMxIDE5LjM2IDUuMjcgMTkuMjkgNS4yNEwxMy4wOCAyLjI5QzEyLjI1IDEuOSAxMS4yOCAxLjkxIDEwLjQ1IDIuMzJaTTYuNjg4MTggOC44NTM0NEw2LjcgOC44Nkw2LjY5IDguODVDNi42ODkzOSA4Ljg1MTE1IDYuNjg4NzkgOC44NTIyOSA2LjY4ODE4IDguODUzNDRaTTYuNjg4MTggOC44NTM0NEwzLjE3IDYuOUMzLjA2IDcuMjIgMyA3LjU2IDMgNy45VjE1LjQyQzMgMTYuNTYgMy42NCAxNy41OSA0LjY2IDE4LjFMMTAuNDUgMjFDMTAuNjMgMjEuMDkgMTAuODEgMjEuMTYgMTEgMjEuMjFWMTcuNTdDOC4xNiAxNy4wOSA2IDE0LjYzIDYgMTEuNjVDNiAxMC42NDE0IDYuMjQ5MzEgOS42ODI2NSA2LjY4ODE4IDguODUzNDRaTTEzLjAxIDIxLjA3VjE3LjU4TDEzIDE3LjU3QzE1Ljg0IDE3LjA5IDE4IDE0LjYyIDE4IDExLjY1QzE4IDEwLjY0IDE3Ljc1IDkuNjkgMTcuMzEgOC44NUwyMC44MiA2LjlDMjAuOTUgNy4yMyAyMS4wMSA3LjU4IDIxLjAxIDcuOTRWMTUuMzdDMjEuMDEgMTYuNTMgMjAuMzUgMTcuNTggMTkuMyAxOC4wOEwxMy4wOSAyMS4wM0MxMy4wNiAyMS4wNSAxMy4wMSAyMS4wNyAxMy4wMSAyMS4wN1pNMTQuMTIgMTIuMDRIMTUuNjRMMTUuNjUgMTIuMDNDMTUuOTYgMTIuMDMgMTYuMjEgMTIuMjUgMTYuMjEgMTIuNTNDMTYuMjEgMTIuODEgMTUuOTYgMTMuMDMgMTUuNjUgMTMuMDNIMTQuNDVMMTMuNDMgMTQuNkMxMy4zMyAxNC43NiAxMy4xNCAxNC44NSAxMi45NCAxNC44NUgxMi45QzEyLjY4IDE0Ljg0IDEyLjQ5IDE0LjcxIDEyLjQxIDE0LjUzTDExLjA2IDExLjMzTDEwLjQyIDEyLjczQzEwLjM0IDEyLjkyIDEwLjEzIDEzLjA0IDkuOTAwMDEgMTMuMDRIOC4zODAwMUM4LjA3MDAxIDEzLjA0IDcuODIwMDEgMTIuODEgNy44MjAwMSAxMi41NEM3LjgyMDAxIDEyLjI3IDguMDcwMDEgMTIuMDQgOC4zODAwMSAxMi4wNEg5LjUyMDAxTDEwLjU2IDkuNzdDMTAuNjUgOS41OCAxMC44NSA5LjQ2IDExLjA4IDkuNDZDMTEuMzEgOS40NiAxMS41MiA5LjU5IDExLjYgOS43OEwxMy4wNCAxMy4xOUwxMy42MyAxMi4yOUMxMy43MyAxMi4xNCAxMy45MiAxMi4wNCAxNC4xMiAxMi4wNFoiIGZpbGw9IiMxRDI2MzIiLz4KPC9zdmc+Cg=="),
-		Technology:  extutil.Ptr("Kubernetes"),
+		Icon:        new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMC40NSAyLjMyTDQuNjYgNS4yMlY1LjIxQzQuNjMyMTYgNS4yMjU5MSA0LjYwNDMzIDUuMjQwMjMgNC41NzcxMiA1LjI1NDIzQzQuNTM1OTEgNS4yNzU0NCA0LjQ5NjE0IDUuMjk1OTEgNC40NiA1LjMyTDcuOTMgNy4yNUM5IDYuMjYgMTAuNDMgNS42NiAxMiA1LjY2QzEzLjU3IDUuNjYgMTUgNi4yNiAxNi4wNyA3LjI1TDE5LjUgNS4zNUMxOS40MyA1LjMxIDE5LjM2IDUuMjcgMTkuMjkgNS4yNEwxMy4wOCAyLjI5QzEyLjI1IDEuOSAxMS4yOCAxLjkxIDEwLjQ1IDIuMzJaTTYuNjg4MTggOC44NTM0NEw2LjcgOC44Nkw2LjY5IDguODVDNi42ODkzOSA4Ljg1MTE1IDYuNjg4NzkgOC44NTIyOSA2LjY4ODE4IDguODUzNDRaTTYuNjg4MTggOC44NTM0NEwzLjE3IDYuOUMzLjA2IDcuMjIgMyA3LjU2IDMgNy45VjE1LjQyQzMgMTYuNTYgMy42NCAxNy41OSA0LjY2IDE4LjFMMTAuNDUgMjFDMTAuNjMgMjEuMDkgMTAuODEgMjEuMTYgMTEgMjEuMjFWMTcuNTdDOC4xNiAxNy4wOSA2IDE0LjYzIDYgMTEuNjVDNiAxMC42NDE0IDYuMjQ5MzEgOS42ODI2NSA2LjY4ODE4IDguODUzNDRaTTEzLjAxIDIxLjA3VjE3LjU4TDEzIDE3LjU3QzE1Ljg0IDE3LjA5IDE4IDE0LjYyIDE4IDExLjY1QzE4IDEwLjY0IDE3Ljc1IDkuNjkgMTcuMzEgOC44NUwyMC44MiA2LjlDMjAuOTUgNy4yMyAyMS4wMSA3LjU4IDIxLjAxIDcuOTRWMTUuMzdDMjEuMDEgMTYuNTMgMjAuMzUgMTcuNTggMTkuMyAxOC4wOEwxMy4wOSAyMS4wM0MxMy4wNiAyMS4wNSAxMy4wMSAyMS4wNyAxMy4wMSAyMS4wN1pNMTQuMTIgMTIuMDRIMTUuNjRMMTUuNjUgMTIuMDNDMTUuOTYgMTIuMDMgMTYuMjEgMTIuMjUgMTYuMjEgMTIuNTNDMTYuMjEgMTIuODEgMTUuOTYgMTMuMDMgMTUuNjUgMTMuMDNIMTQuNDVMMTMuNDMgMTQuNkMxMy4zMyAxNC43NiAxMy4xNCAxNC44NSAxMi45NCAxNC44NUgxMi45QzEyLjY4IDE0Ljg0IDEyLjQ5IDE0LjcxIDEyLjQxIDE0LjUzTDExLjA2IDExLjMzTDEwLjQyIDEyLjczQzEwLjM0IDEyLjkyIDEwLjEzIDEzLjA0IDkuOTAwMDEgMTMuMDRIOC4zODAwMUM4LjA3MDAxIDEzLjA0IDcuODIwMDEgMTIuODEgNy44MjAwMSAxMi41NEM3LjgyMDAxIDEyLjI3IDguMDcwMDEgMTIuMDQgOC4zODAwMSAxMi4wNEg5LjUyMDAxTDEwLjU2IDkuNzdDMTAuNjUgOS41OCAxMC44NSA5LjQ2IDExLjA4IDkuNDZDMTEuMzEgOS40NiAxMS41MiA5LjU5IDExLjYgOS43OEwxMy4wNCAxMy4xOUwxMy42MyAxMi4yOUMxMy43MyAxMi4xNCAxMy45MiAxMi4wNCAxNC4xMiAxMi4wNFoiIGZpbGw9IiMxRDI2MzIiLz4KPC9zdmc+Cg=="),
+		Technology:  new("Kubernetes"),
 
 		Kind:        action_kit_api.Other,
 		TimeControl: action_kit_api.TimeControlInternal,
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType:          extcluster.ClusterTargetType,
 			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionExactlyOne),
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "cluster name",
-					Description: extutil.Ptr("Find cluster by name"),
+					Description: new("Find cluster by name"),
 					Query:       "k8s.cluster-name=\"\"",
 				},
 			}),
@@ -69,14 +69,14 @@ func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 			{
 				Name:         "duration",
 				Label:        "Duration",
-				Description:  extutil.Ptr(""),
+				Description:  new(""),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("60s"),
-				Order:        extutil.Ptr(1),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("60s"),
+				Order:        new(1),
+				Required:     new(true),
 			},
 		},
-		Widgets: extutil.Ptr([]action_kit_api.Widget{
+		Widgets: new([]action_kit_api.Widget{
 			action_kit_api.PredefinedWidget{
 				Type:               action_kit_api.ComSteadybitWidgetPredefined,
 				PredefinedWidgetId: "com.steadybit.widget.predefined.DeploymentReadinessWidget",
@@ -84,8 +84,8 @@ func (f PodCountMetricsAction) Describe() action_kit_api.ActionDescription {
 		}),
 		Prepare: action_kit_api.MutatingEndpointReference{},
 		Start:   action_kit_api.MutatingEndpointReference{},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("2s"),
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("2s"),
 		}),
 	}
 }
@@ -123,7 +123,7 @@ func statusPodCountMetricsInternal(k8s *client.Client, state *PodCountMetricsSta
 
 	return &action_kit_api.StatusResult{
 		Completed: now.After(state.End),
-		Metrics:   extutil.Ptr(metrics),
+		Metrics:   new(metrics),
 	}
 }
 
@@ -153,7 +153,7 @@ func toMetrics(deployment *appsv1.Deployment, now time.Time) []action_kit_api.Me
 	metrics := make([]action_kit_api.Metric, 4)
 
 	metrics[0] = action_kit_api.Metric{
-		Name: extutil.Ptr("replicas_desired_count"),
+		Name: new("replicas_desired_count"),
 		Metric: map[string]string{
 			"k8s.cluster-name": extconfig.Config.ClusterName,
 			"k8s.namespace":    deployment.Namespace,
@@ -163,7 +163,7 @@ func toMetrics(deployment *appsv1.Deployment, now time.Time) []action_kit_api.Me
 		Value:     float64(*deployment.Spec.Replicas),
 	}
 	metrics[1] = action_kit_api.Metric{
-		Name: extutil.Ptr("replicas_current_count"),
+		Name: new("replicas_current_count"),
 		Metric: map[string]string{
 			"k8s.cluster-name": extconfig.Config.ClusterName,
 			"k8s.namespace":    deployment.Namespace,
@@ -173,7 +173,7 @@ func toMetrics(deployment *appsv1.Deployment, now time.Time) []action_kit_api.Me
 		Value:     float64(deployment.Status.Replicas),
 	}
 	metrics[2] = action_kit_api.Metric{
-		Name: extutil.Ptr("replicas_ready_count"),
+		Name: new("replicas_ready_count"),
 		Metric: map[string]string{
 			"k8s.cluster-name": extconfig.Config.ClusterName,
 			"k8s.namespace":    deployment.Namespace,
@@ -183,7 +183,7 @@ func toMetrics(deployment *appsv1.Deployment, now time.Time) []action_kit_api.Me
 		Value:     float64(deployment.Status.ReadyReplicas),
 	}
 	metrics[3] = action_kit_api.Metric{
-		Name: extutil.Ptr("replicas_available_count"),
+		Name: new("replicas_available_count"),
 		Metric: map[string]string{
 			"k8s.cluster-name": extconfig.Config.ClusterName,
 			"k8s.namespace":    deployment.Namespace,

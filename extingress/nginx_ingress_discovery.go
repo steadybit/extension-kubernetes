@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -13,7 +14,6 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -34,8 +34,8 @@ func NewNginxIngressDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscov
 	}
 
 	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s,
-		reflect.TypeOf(networkingv1.Ingress{}),
-		reflect.TypeOf(networkingv1.IngressClass{}),
+		reflect.TypeFor[networkingv1.Ingress](),
+		reflect.TypeFor[networkingv1.IngressClass](),
 	)
 
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
@@ -48,7 +48,7 @@ func (d *nginxIngressDiscovery) Describe() discovery_kit_api.DiscoveryDescriptio
 	return discovery_kit_api.DiscoveryDescription{
 		Id: NginxIngressTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("30s"),
+			CallInterval: new("30s"),
 		},
 	}
 }
@@ -57,9 +57,9 @@ func (d *nginxIngressDiscovery) DescribeTarget() discovery_kit_api.TargetDescrip
 	return discovery_kit_api.TargetDescription{
 		Id:       NginxIngressTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "NGINX Ingress", Other: "NGINX Ingresses"},
-		Category: extutil.Ptr("Kubernetes"),
+		Category: new("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M12.0956%202L3%207.25V17.75L12.0956%2023L21.1912%2017.75V7.25L12.0956%202ZM17.3456%2016.5162C17.3456%2017.1331%2016.7804%2017.645%2016.0078%2017.645C15.4556%2017.645%2014.8256%2017.4219%2014.4319%2016.9362L9.18187%2010.6879V16.5154C9.18187%2017.1462%208.68312%2017.6441%208.06712%2017.6441H8.00062C7.36975%2017.6441%206.87187%2017.1191%206.87187%2016.5154V8.48375C6.87187%207.86687%207.42312%207.355%208.18437%207.355C8.74962%207.355%209.39187%207.57812%209.78562%208.06375L15.0094%2014.3121V8.48375C15.0094%207.85287%2015.5344%207.355%2016.1381%207.355H16.2037C16.8337%207.355%2017.3325%207.88%2017.3325%208.48375V16.5162H17.3456Z%22%20fill%3D%22currentColor%22%2F%3E%0A%3C%2Fsvg%3E%0A"),
+		Icon:     new("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Cpath%20d%3D%22M12.0956%202L3%207.25V17.75L12.0956%2023L21.1912%2017.75V7.25L12.0956%202ZM17.3456%2016.5162C17.3456%2017.1331%2016.7804%2017.645%2016.0078%2017.645C15.4556%2017.645%2014.8256%2017.4219%2014.4319%2016.9362L9.18187%2010.6879V16.5154C9.18187%2017.1462%208.68312%2017.6441%208.06712%2017.6441H8.00062C7.36975%2017.6441%206.87187%2017.1191%206.87187%2016.5154V8.48375C6.87187%207.86687%207.42312%207.355%208.18437%207.355C8.74962%207.355%209.39187%207.57812%209.78562%208.06375L15.0094%2014.3121V8.48375C15.0094%207.85287%2015.5344%207.355%2016.1381%207.355H16.2037C16.8337%207.355%2017.3325%207.88%2017.3325%208.48375V16.5162H17.3456Z%22%20fill%3D%22currentColor%22%2F%3E%0A%3C%2Fsvg%3E%0A"),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.ingress"},
@@ -152,10 +152,8 @@ func (d *nginxIngressDiscovery) getIngressClassName(ingress *networkingv1.Ingres
 
 func (d *nginxIngressDiscovery) isUsingNginxClass(className string, nginxClasses []string, hasDefaultClass bool) bool {
 	if className != "" {
-		for _, nginxClass := range nginxClasses {
-			if className == nginxClass {
-				return true
-			}
+		if slices.Contains(nginxClasses, className) {
+			return true
 		}
 	} else if hasDefaultClass {
 		return true

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +18,7 @@ import (
 
 func TestArgoRolloutRestartAction_Prepare(t *testing.T) {
 	request := action_kit_api.PrepareActionRequestBody{
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.cluster-name": {"development"},
 				"k8s.namespace":    {"default"},
@@ -60,7 +59,7 @@ func TestArgoRolloutRestartAction_Prepare_MissingAttributes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			request := action_kit_api.PrepareActionRequestBody{
-				Target: extutil.Ptr(action_kit_api.Target{
+				Target: new(action_kit_api.Target{
 					Attributes: tt.attributes,
 				}),
 			}

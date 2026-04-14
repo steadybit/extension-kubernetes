@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 )
 
@@ -35,7 +34,7 @@ type HAProxyState struct {
 
 type haProxyAction struct {
 	description        action_kit_api.ActionDescription
-	annotationConfigFn func(state *HAProxyState, config map[string]interface{}) string
+	annotationConfigFn func(state *HAProxyState, config map[string]any) string
 	checkExistingFn    func(lines []string) error
 }
 
@@ -126,18 +125,18 @@ func getConditionsParameters() []action_kit_api.ActionParameter {
 		{
 			Name:        "conditionPathPattern",
 			Label:       "Path Pattern",
-			Description: extutil.Ptr("The path patterns to compare against the request URL."),
+			Description: new("The path patterns to compare against the request URL."),
 			Type:        action_kit_api.ActionParameterTypeRegex,
-			Required:    extutil.Ptr(false),
+			Required:    new(false),
 		},
 		{
 			Name:         "conditionHttpMethod",
 			Label:        "HTTP Method",
-			Description:  extutil.Ptr("The name of the request method."),
+			Description:  new("The name of the request method."),
 			Type:         action_kit_api.ActionParameterTypeString,
-			DefaultValue: extutil.Ptr("*"),
-			Required:     extutil.Ptr(false),
-			Options: extutil.Ptr([]action_kit_api.ParameterOption{
+			DefaultValue: new("*"),
+			Required:     new(false),
+			Options: new([]action_kit_api.ParameterOption{
 				action_kit_api.ExplicitParameterOption{
 					Label: "*",
 					Value: "*",
@@ -172,8 +171,8 @@ func getConditionsParameters() []action_kit_api.ActionParameter {
 			Name:        "conditionHttpHeader",
 			Label:       "HTTP Header",
 			Type:        action_kit_api.ActionParameterTypeKeyValue,
-			Description: extutil.Ptr("The name of the HTTP header field . And a value to compare against the value of the HTTP header as a regular expression."),
-			Required:    extutil.Ptr(false),
+			Description: new("The name of the HTTP header field . And a value to compare against the value of the HTTP header as a regular expression."),
+			Required:    new(false),
 		},
 	}
 }

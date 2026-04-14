@@ -14,7 +14,6 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -31,7 +30,7 @@ var (
 
 func NewPodDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 	discovery := &podDiscovery{k8s: k8s}
-	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeOf(corev1.Pod{}))
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeFor[corev1.Pod]())
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
 		discovery_kit_sdk.WithRefreshTargetsNow(),
 		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, time.Duration(extconfig.Config.DiscoveryRefreshThrottle)*time.Second),
@@ -42,7 +41,7 @@ func (*podDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id: PodTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("30s"),
+			CallInterval: new("30s"),
 		},
 	}
 }
@@ -51,15 +50,15 @@ func (*podDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       PodTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Kubernetes Pod", Other: "Kubernetes Pods"},
-		Category: extutil.Ptr("Kubernetes"),
+		Category: new("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTEwLjQ0OCAyLjY1Nkw0LjY1NSA1LjU2Yy0uMDY2LjAzNC0uMTMxLjA3LS4xOTUuMTA3bDYuNTY5IDMuNjVhMiAyIDAgMDAxLjk0MiAwbDYuNTMtMy42MjhjLS4wNy0uMDQtLjE0LS4wNzgtLjIxNC0uMTEzTDEzLjA4IDIuNjI4YTMgMyAwIDAwLTIuNjMxLjAyOHptMTAuMzY2IDQuNTkxbC02Ljg3MSAzLjgxOGE0IDQgMCAwMS0uOTQzLjM3NnY5Ljk2N2wuMDgtLjAzNiA2LjIwNy0yLjk0OUEzIDMgMCAwMDIxIDE1LjcxM1Y4LjI4NmMwLS4zNi0uMDY1LS43MTItLjE4Ni0xLjAzOXpNMTEgMjEuNTU1VjExLjQ0MWE0IDQgMCAwMS0uOTQzLS4zNzZMMy4xNzIgNy4yMzlBMi45OTcgMi45OTcgMCAwMDMgOC4yNDJ2Ny41MTZhMyAzIDAgMDAxLjY1NSAyLjY4MWw1Ljc5MyAyLjkwNGMuMTc4LjA5LjM2My4xNi41NTIuMjEyeiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+"),
+		Icon:     new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTEwLjQ0OCAyLjY1Nkw0LjY1NSA1LjU2Yy0uMDY2LjAzNC0uMTMxLjA3LS4xOTUuMTA3bDYuNTY5IDMuNjVhMiAyIDAgMDAxLjk0MiAwbDYuNTMtMy42MjhjLS4wNy0uMDQtLjE0LS4wNzgtLjIxNC0uMTEzTDEzLjA4IDIuNjI4YTMgMyAwIDAwLTIuNjMxLjAyOHptMTAuMzY2IDQuNTkxbC02Ljg3MSAzLjgxOGE0IDQgMCAwMS0uOTQzLjM3NnY5Ljk2N2wuMDgtLjAzNiA2LjIwNy0yLjk0OUEzIDMgMCAwMDIxIDE1LjcxM1Y4LjI4NmMwLS4zNi0uMDY1LS43MTItLjE4Ni0xLjAzOXpNMTEgMjEuNTU1VjExLjQ0MWE0IDQgMCAwMS0uOTQzLS4zNzZMMy4xNzIgNy4yMzlBMi45OTcgMi45OTcgMCAwMDMgOC4yNDJ2Ny41MTZhMyAzIDAgMDAxLjY1NSAyLjY4MWw1Ljc5MyAyLjkwNGMuMTc4LjA5LjM2My4xNi41NTIuMjEyeiIgZmlsbD0iY3VycmVudENvbG9yIi8+PC9zdmc+"),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: "k8s.pod.name"},
 				{Attribute: "k8s.cluster-name"},
 				{Attribute: "k8s.namespace"},
-				{Attribute: "k8s.deployment", FallbackAttributes: extutil.Ptr([]string{"k8s.statefulset", "k8s.daemonset", "k8s.argo-rollout"})},
+				{Attribute: "k8s.deployment", FallbackAttributes: new([]string{"k8s.statefulset", "k8s.daemonset", "k8s.argo-rollout"})},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{

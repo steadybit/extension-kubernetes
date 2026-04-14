@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/require"
@@ -20,12 +19,12 @@ import (
 func TestPrepareCheckExtractsState(t *testing.T) {
 	// Given
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"duration":           1000 * 10,
 			"nodeCountCheckMode": "nodeCountAtLeast",
 			"nodeCount":          2,
 		},
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.cluster-name": {"test"},
 			},

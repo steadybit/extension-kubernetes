@@ -34,12 +34,12 @@ func getHAProxyBlockTrafficDescription() action_kit_api.ActionDescription {
 			{
 				Name:         "responseStatusCode",
 				Label:        "Status Code",
-				Description:  extutil.Ptr("The status code which should get returned."),
+				Description:  new("The status code which should get returned."),
 				Type:         action_kit_api.ActionParameterTypeInteger,
-				MinValue:     extutil.Ptr(100),
-				MaxValue:     extutil.Ptr(999),
-				Required:     extutil.Ptr(true),
-				DefaultValue: extutil.Ptr("503"),
+				MinValue:     new(100),
+				MaxValue:     new(999),
+				Required:     new(true),
+				DefaultValue: new("503"),
 			},
 		}...,
 	)
@@ -49,7 +49,7 @@ func getHAProxyBlockTrafficDescription() action_kit_api.ActionDescription {
 }
 
 // buildHAProxyBlockConfig creates the HAProxy configuration for blocking traffic
-func buildHAProxyBlockConfig(state *HAProxyState, config map[string]interface{}) string {
+func buildHAProxyBlockConfig(state *HAProxyState, config map[string]any) string {
 	responseStatusCode := extutil.ToInt(config["responseStatusCode"])
 
 	var s strings.Builder

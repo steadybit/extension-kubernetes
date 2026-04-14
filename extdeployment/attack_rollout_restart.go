@@ -50,14 +50,14 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 		Label:       "Rollout Restart Deployment",
 		Description: "Execute a rollout restart for a Kubernetes deployment",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTExLjM5IDE5LjkzTDEwLjgxIDIwLjJDMTAuMzYgMjAuNDIgOS44NCAyMC40MSA5LjM5IDIwLjE5TDMuNSAxNy4yNEMyLjk1IDE2Ljk2IDIuNiAxNi40MSAyLjYgMTUuNzlWOC4xOTAwMUMyLjYgNy41NzAwMSAyLjk0IDcuMDIwMDEgMy40OSA2Ljc0MDAxTDkuMzggMy43OTAwMUM5LjgzIDMuNTcwMDEgMTAuMzUgMy41NjAwMSAxMC44IDMuNzcwMDFMMTcuMDcgNi43NTAwMUMxNy42MyA3LjAyMDAxIDE4IDcuNTkwMDEgMTggOC4yMTAwMUMxOCA4LjY1MDAxIDE4LjM2IDkuMDEwMDEgMTguOCA5LjAxMDAxQzE5LjI0IDkuMDEwMDEgMTkuNiA4LjY1MDAxIDE5LjYgOC4yMTAwMUMxOS42IDYuOTcwMDEgMTguODggNS44MzAwMSAxNy43NiA1LjMwMDAxTDExLjUgMi4zMTAwMUMxMC42IDEuODgwMDEgOS41NyAxLjg5MDAxIDguNjcgMi4zNDAwMUwyLjc4IDUuMzAwMDFDMS42OCA1Ljg1MDAxIDEgNi45NTAwMSAxIDguMTgwMDFWMTUuNzhDMSAxNy4wMSAxLjY4IDE4LjExIDIuNzggMTguNjZMOC42NyAyMS42MUM5LjEzIDIxLjg0IDkuNjIgMjEuOTUgMTAuMTEgMjEuOTVDMTAuNiAyMS45NSAxMS4wNSAyMS44NSAxMS40OSAyMS42NEwxMi4wNyAyMS4zN0MxMi40NyAyMS4xOCAxMi42NCAyMC43IDEyLjQ1IDIwLjNDMTIuMjYgMTkuOSAxMS43OCAxOS43MyAxMS4zOCAxOS45MkwxMS4zOSAxOS45M1pNMTEuMTkgNy4xNTAwMUMxMC43MiA2Ljk0MDAxIDEwLjE2IDYuOTMwMDEgOS42OSA3LjE0MDAxTDYuMTUgOC42NzAwMUM1LjU1IDguOTMwMDEgNS4xNyA5LjQ3MDAxIDUuMTcgMTAuMDdWMTMuOTFDNS4xNyAxNC41MSA1LjU1IDE1LjA2IDYuMTUgMTUuMzFMOS42OSAxNi44NEMxMC4wOCAxNy4wMSAxMC41MSAxNy4wMyAxMC45MSAxNi45MkMxMC45NiAxMy45NCAxMi44NCAxMS40MyAxNS40NCAxMC41VjEwLjA1QzE1LjQ0IDkuNDYwMDEgMTUuMDcgOC45MzAwMSAxNC40OSA4LjY2MDAxTDExLjE4IDcuMTYwMDFMMTEuMTkgNy4xNTAwMVpNMjIuMjYgMTYuMzhDMjEuOTIgMTYuMzggMjEuNjQgMTYuNjcgMjEuNjQgMTcuMDJDMjEuNjQgMTkuMjkgMTkuODIgMjEuMTggMTcuNjQgMjEuMThDMTUuNDYgMjEuMTggMTMuNjQgMTkuMjkgMTMuNjQgMTcuMDJDMTMuNjQgMTQuNzUgMTUuNDYgMTIuODYgMTcuNjQgMTIuODZIMTguNjJMMTcuODIgMTMuNjlDMTcuNTggMTMuOTQgMTcuNTggMTQuMzUgMTcuODIgMTQuNTlDMTguMDYgMTQuODQgMTguNDUgMTQuODQgMTguNjkgMTQuNTlMMjAuNTQgMTIuNjdDMjAuNzggMTIuNDIgMjAuNzggMTIuMDEgMjAuNTQgMTEuNzZMMTguNjkgOS44NDAwMUMxOC40NSA5LjU5MDAxIDE4LjA2IDkuNTkwMDEgMTcuODIgOS44NDAwMUMxNy41OCAxMC4wOSAxNy41OCAxMC41IDE3LjgyIDEwLjc1TDE4LjYyIDExLjU4SDE3LjY0QzE0Ljc3IDExLjU4IDEyLjQgMTQuMDQgMTIuNCAxNy4wMkMxMi40IDIwIDE0Ljc3IDIyLjQ2IDE3LjY0IDIyLjQ2QzIwLjUxIDIyLjQ2IDIyLjg4IDIwIDIyLjg4IDE3LjAyQzIyLjg4IDE2LjY3IDIyLjYgMTYuMzggMjIuMjYgMTYuMzhaIiBmaWxsPSIjMUQyNjMyIi8+Cjwvc3ZnPgo="),
-		Technology:  extutil.Ptr("Kubernetes"),
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		Icon:        new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTExLjM5IDE5LjkzTDEwLjgxIDIwLjJDMTAuMzYgMjAuNDIgOS44NCAyMC40MSA5LjM5IDIwLjE5TDMuNSAxNy4yNEMyLjk1IDE2Ljk2IDIuNiAxNi40MSAyLjYgMTUuNzlWOC4xOTAwMUMyLjYgNy41NzAwMSAyLjk0IDcuMDIwMDEgMy40OSA2Ljc0MDAxTDkuMzggMy43OTAwMUM5LjgzIDMuNTcwMDEgMTAuMzUgMy41NjAwMSAxMC44IDMuNzcwMDFMMTcuMDcgNi43NTAwMUMxNy42MyA3LjAyMDAxIDE4IDcuNTkwMDEgMTggOC4yMTAwMUMxOCA4LjY1MDAxIDE4LjM2IDkuMDEwMDEgMTguOCA5LjAxMDAxQzE5LjI0IDkuMDEwMDEgMTkuNiA4LjY1MDAxIDE5LjYgOC4yMTAwMUMxOS42IDYuOTcwMDEgMTguODggNS44MzAwMSAxNy43NiA1LjMwMDAxTDExLjUgMi4zMTAwMUMxMC42IDEuODgwMDEgOS41NyAxLjg5MDAxIDguNjcgMi4zNDAwMUwyLjc4IDUuMzAwMDFDMS42OCA1Ljg1MDAxIDEgNi45NTAwMSAxIDguMTgwMDFWMTUuNzhDMSAxNy4wMSAxLjY4IDE4LjExIDIuNzggMTguNjZMOC42NyAyMS42MUM5LjEzIDIxLjg0IDkuNjIgMjEuOTUgMTAuMTEgMjEuOTVDMTAuNiAyMS45NSAxMS4wNSAyMS44NSAxMS40OSAyMS42NEwxMi4wNyAyMS4zN0MxMi40NyAyMS4xOCAxMi42NCAyMC43IDEyLjQ1IDIwLjNDMTIuMjYgMTkuOSAxMS43OCAxOS43MyAxMS4zOCAxOS45MkwxMS4zOSAxOS45M1pNMTEuMTkgNy4xNTAwMUMxMC43MiA2Ljk0MDAxIDEwLjE2IDYuOTMwMDEgOS42OSA3LjE0MDAxTDYuMTUgOC42NzAwMUM1LjU1IDguOTMwMDEgNS4xNyA5LjQ3MDAxIDUuMTcgMTAuMDdWMTMuOTFDNS4xNyAxNC41MSA1LjU1IDE1LjA2IDYuMTUgMTUuMzFMOS42OSAxNi44NEMxMC4wOCAxNy4wMSAxMC41MSAxNy4wMyAxMC45MSAxNi45MkMxMC45NiAxMy45NCAxMi44NCAxMS40MyAxNS40NCAxMC41VjEwLjA1QzE1LjQ0IDkuNDYwMDEgMTUuMDcgOC45MzAwMSAxNC40OSA4LjY2MDAxTDExLjE4IDcuMTYwMDFMMTEuMTkgNy4xNTAwMVpNMjIuMjYgMTYuMzhDMjEuOTIgMTYuMzggMjEuNjQgMTYuNjcgMjEuNjQgMTcuMDJDMjEuNjQgMTkuMjkgMTkuODIgMjEuMTggMTcuNjQgMjEuMThDMTUuNDYgMjEuMTggMTMuNjQgMTkuMjkgMTMuNjQgMTcuMDJDMTMuNjQgMTQuNzUgMTUuNDYgMTIuODYgMTcuNjQgMTIuODZIMTguNjJMMTcuODIgMTMuNjlDMTcuNTggMTMuOTQgMTcuNTggMTQuMzUgMTcuODIgMTQuNTlDMTguMDYgMTQuODQgMTguNDUgMTQuODQgMTguNjkgMTQuNTlMMjAuNTQgMTIuNjdDMjAuNzggMTIuNDIgMjAuNzggMTIuMDEgMjAuNTQgMTEuNzZMMTguNjkgOS44NDAwMUMxOC40NSA5LjU5MDAxIDE4LjA2IDkuNTkwMDEgMTcuODIgOS44NDAwMUMxNy41OCAxMC4wOSAxNy41OCAxMC41IDE3LjgyIDEwLjc1TDE4LjYyIDExLjU4SDE3LjY0QzE0Ljc3IDExLjU4IDEyLjQgMTQuMDQgMTIuNCAxNy4wMkMxMi40IDIwIDE0Ljc3IDIyLjQ2IDE3LjY0IDIyLjQ2QzIwLjUxIDIyLjQ2IDIyLjg4IDIwIDIyLjg4IDE3LjAyQzIyLjg4IDE2LjY3IDIyLjYgMTYuMzggMjIuMjYgMTYuMzhaIiBmaWxsPSIjMUQyNjMyIi8+Cjwvc3ZnPgo="),
+		Technology:  new("Kubernetes"),
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType: DeploymentTargetType,
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "deployment",
-					Description: extutil.Ptr("Find deployment by cluster, namespace and deployment"),
+					Description: new("Find deployment by cluster, namespace and deployment"),
 					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.deployment=\"\"",
 				},
 			}),
@@ -69,20 +69,20 @@ func (f DeploymentRolloutRestartAction) Describe() action_kit_api.ActionDescript
 				Label:        "Wait for rollout completion",
 				Name:         "wait",
 				Type:         action_kit_api.ActionParameterTypeBoolean,
-				Advanced:     extutil.Ptr(true),
-				DefaultValue: extutil.Ptr("false"),
+				Advanced:     new(true),
+				DefaultValue: new("false"),
 			},
 			{
 				Label:        "Fail on already running rollout",
 				Name:         "checkBefore",
 				Type:         action_kit_api.ActionParameterTypeBoolean,
-				Advanced:     extutil.Ptr(true),
-				DefaultValue: extutil.Ptr("true"),
+				Advanced:     new(true),
+				DefaultValue: new("true"),
 			},
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
 		Start:   action_kit_api.MutatingEndpointReference{},
-		Status:  extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{}),
+		Status:  new(action_kit_api.MutatingEndpointReferenceWithCallInterval{}),
 	}
 }
 
@@ -136,7 +136,7 @@ func (f DeploymentRolloutRestartAction) Start(_ context.Context, state *Deployme
 
 func (f DeploymentRolloutRestartAction) Status(_ context.Context, state *DeploymentRolloutRestartState) (*action_kit_api.StatusResult, error) {
 	if !state.Wait {
-		return extutil.Ptr(action_kit_api.StatusResult{
+		return new(action_kit_api.StatusResult{
 			Completed: true,
 		}), nil
 	}
@@ -148,7 +148,7 @@ func (f DeploymentRolloutRestartAction) Status(_ context.Context, state *Deploym
 
 	cmdOutStr := string(cmdOut)
 	completed := !strings.Contains(strings.ToLower(cmdOutStr), "waiting")
-	return extutil.Ptr(action_kit_api.StatusResult{
+	return new(action_kit_api.StatusResult{
 		Completed: completed,
 	}), nil
 }

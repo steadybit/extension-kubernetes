@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,14 +31,14 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 	tests := []struct {
 		name        string
 		ingressName string
-		config      map[string]interface{}
+		config      map[string]any
 		want        NginxState
 		wantErr     string
 	}{
 		{
 			name:        "block with path regex - open source nginx",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/api/.*",
 			},
@@ -55,7 +54,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "block with http method",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":  503,
 				"conditionHttpMethod": "POST",
 			},
@@ -71,10 +70,10 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "block with http header",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode": 503,
-				"conditionHttpHeader": []interface{}{
-					map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+				"conditionHttpHeader": []any{
+					map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 				},
 			},
 			want: NginxState{
@@ -91,12 +90,12 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "block with multiple conditions",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/api/users",
 				"conditionHttpMethod":  "POST",
-				"conditionHttpHeader": []interface{}{
-					map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+				"conditionHttpHeader": []any{
+					map[string]any{"key": "Content-Type", "value": "application/json"},
 				},
 			},
 			want: NginxState{
@@ -116,7 +115,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "no conditions provided",
 			ingressName: "test-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode": 503,
 			},
 			wantErr: "at least one condition (path, method, or header) is required",
@@ -124,7 +123,7 @@ func TestNginxBlockTrafficAction_Prepare(t *testing.T) {
 		{
 			name:        "path collision with existing rule",
 			ingressName: "conflict-nginx-ingress",
-			config: map[string]interface{}{
+			config: map[string]any{
 				"responseStatusCode":   503,
 				"conditionPathPattern": "/alreadyBlocked",
 			},
@@ -214,11 +213,11 @@ func createNginxIngress(name, configSnippet string) *networkingv1.Ingress {
 }
 
 // createNginxTestRequest creates a test request with the given ingress name and config
-func createNginxTestRequest(ingressName string, config map[string]interface{}) action_kit_api.PrepareActionRequestBody {
+func createNginxTestRequest(ingressName string, config map[string]any) action_kit_api.PrepareActionRequestBody {
 	return action_kit_api.PrepareActionRequestBody{
 		ExecutionId: testUUIDBlock,
 		Config:      config,
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.namespace": {"demo"},
 				"k8s.ingress":   {ingressName},

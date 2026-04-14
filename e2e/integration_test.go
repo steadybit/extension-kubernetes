@@ -20,7 +20,6 @@ import (
 	advValidate "github.com/steadybit/advice-kit/go/advice_kit_test/validate"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_test/validate"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/extargorollout"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
@@ -892,7 +891,7 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		responseDelay        int
 		conditionPathPattern string
 		conditionHttpMethod  string
-		conditionHttpHeader  []interface{}
+		conditionHttpHeader  []any
 		requestPath          string
 		requestHeaders       map[string]string
 		requestMethod        string
@@ -931,8 +930,8 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			requestHeaders: map[string]string{
 				"User-Agent": "Mozilla/5.0",
 			},
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 			},
 			responseDelay: delayMs,
 			wantedDelay:   true,
@@ -944,8 +943,8 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				"User-Agent": "Chrome/90.0",
 			},
 			responseDelay: delayMs,
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 			},
 			wantedDelay: false,
 		},
@@ -959,8 +958,8 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			responseDelay:        delayMs,
 			conditionPathPattern: "/",
 			conditionHttpMethod:  "GET",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "Content-Type", "value": "application/json"},
 			},
 			wantedDelay: true,
 		},
@@ -974,8 +973,8 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			responseDelay:        delayMs,
 			conditionPathPattern: ".*",
 			conditionHttpMethod:  "POST",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "Content-Type", "value": "application/json"},
 			},
 			wantedDelay: false,
 		},
@@ -985,11 +984,11 @@ func testHAProxyDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Apply delay traffic action
 			config := struct {
-				Duration             int           `json:"duration"`
-				ResponseDelay        int           `json:"responseDelay"`
-				ConditionPathPattern string        `json:"conditionPathPattern,omitempty"`
-				ConditionHttpMethod  string        `json:"conditionHttpMethod,omitempty"`
-				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader,omitempty"`
+				Duration             int    `json:"duration"`
+				ResponseDelay        int    `json:"responseDelay"`
+				ConditionPathPattern string `json:"conditionPathPattern,omitempty"`
+				ConditionHttpMethod  string `json:"conditionHttpMethod,omitempty"`
+				ConditionHttpHeader  []any  `json:"conditionHttpHeader,omitempty"`
 			}{
 				Duration:             30000,
 				ResponseDelay:        tt.responseDelay,
@@ -1079,7 +1078,7 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		responseStatusCode   int
 		conditionPathPattern string
 		conditionHttpMethod  string
-		conditionHttpHeader  []interface{}
+		conditionHttpHeader  []any
 		requestHeaders       map[string]string
 		wantedBlock          bool
 	}{
@@ -1130,8 +1129,8 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		{
 			name:     "should block traffic for a specific header",
 			testPath: "/",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 			},
 			requestHeaders:     map[string]string{"User-Agent": "Mozilla/5.0"},
 			responseStatusCode: 501,
@@ -1141,8 +1140,8 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			name:                 "should block traffic with combined header and path conditions",
 			testPath:             "/",
 			conditionPathPattern: "/",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "Content-Type", "value": "application/json"},
 			},
 			requestHeaders:     map[string]string{"Content-Type": "application/json"},
 			responseStatusCode: 451,
@@ -1151,8 +1150,8 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		{
 			name:     "should not block traffic when header doesn't match",
 			testPath: "/",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "X-Test-Header", "value": "specific-value"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "X-Test-Header", "value": "specific-value"},
 			},
 			requestHeaders:     map[string]string{"X-Test-Header": "other-value"},
 			responseStatusCode: 200,
@@ -1164,11 +1163,11 @@ func testHAProxyBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Apply delay traffic action
 			config := struct {
-				Duration             int           `json:"duration"`
-				ResponseStatusCode   int           `json:"responseStatusCode"`
-				ConditionPathPattern string        `json:"conditionPathPattern"`
-				ConditionHttpMethod  string        `json:"conditionHttpMethod"`
-				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader"`
+				Duration             int    `json:"duration"`
+				ResponseStatusCode   int    `json:"responseStatusCode"`
+				ConditionPathPattern string `json:"conditionPathPattern"`
+				ConditionHttpMethod  string `json:"conditionHttpMethod"`
+				ConditionHttpHeader  []any  `json:"conditionHttpHeader"`
 			}{
 				Duration:             30000,
 				ResponseStatusCode:   tt.responseStatusCode,
@@ -1299,7 +1298,7 @@ func initHAProxyIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx con
 			Namespace: "default",
 		},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: extutil.Ptr("haproxy"),
+			IngressClassName: new("haproxy"),
 			Rules: []networkingv1.IngressRule{
 				{
 					IngressRuleValue: networkingv1.IngressRuleValue{
@@ -1576,12 +1575,14 @@ func pollForLatencyCondition(m *e2e.Minikube, service metav1.Object, hostname, p
 	}
 }
 
+//go:fix inline
 func int32Ptr(i int32) *int32 {
-	return &i
+	return new(i)
 }
 
+//go:fix inline
 func pathTypePtr(pathType networkingv1.PathType) *networkingv1.PathType {
-	return &pathType
+	return new(pathType)
 }
 
 func testNginxIngressDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
@@ -1649,7 +1650,7 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		responseStatusCode   int
 		conditionPathPattern string
 		conditionHttpMethod  string
-		conditionHttpHeader  []interface{}
+		conditionHttpHeader  []any
 		requestHeaders       map[string]string
 		isEnterpriseNginx    bool
 		wantedBlock          bool
@@ -1701,8 +1702,8 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		{
 			name:     "should block traffic for a specific header",
 			testPath: "/",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 			},
 			requestHeaders:     map[string]string{"User-Agent": "Mozilla/5.0"},
 			responseStatusCode: 501,
@@ -1712,8 +1713,8 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			name:                 "should block traffic with combined header and path conditions",
 			testPath:             "/",
 			conditionPathPattern: "/",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "Content-Type", "value": "application/json"},
 			},
 			requestHeaders:     map[string]string{"Content-Type": "application/json"},
 			responseStatusCode: 451,
@@ -1722,8 +1723,8 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		{
 			name:     "should not block traffic when header doesn't match",
 			testPath: "/",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "X-Test-Header", "value": "specific-value"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "X-Test-Header", "value": "specific-value"},
 			},
 			requestHeaders:     map[string]string{"X-Test-Header": "other-value"},
 			responseStatusCode: 200,
@@ -1733,8 +1734,8 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			name:                 "should block traffic with combined conditions",
 			testPath:             "/",
 			conditionPathPattern: "/",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "Content-Type", "value": "application/json"},
 			},
 			requestHeaders:     map[string]string{"Content-Type": "application/json"},
 			responseStatusCode: 451,
@@ -1746,12 +1747,12 @@ func testNginxBlockTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Apply block traffic action
 			config := struct {
-				Duration             int           `json:"duration"`
-				ResponseStatusCode   int           `json:"responseStatusCode"`
-				ConditionPathPattern string        `json:"conditionPathPattern"`
-				ConditionHttpMethod  string        `json:"conditionHttpMethod"`
-				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader"`
-				IsEnterpriseNginx    bool          `json:"isEnterpriseNginx"`
+				Duration             int    `json:"duration"`
+				ResponseStatusCode   int    `json:"responseStatusCode"`
+				ConditionPathPattern string `json:"conditionPathPattern"`
+				ConditionHttpMethod  string `json:"conditionHttpMethod"`
+				ConditionHttpHeader  []any  `json:"conditionHttpHeader"`
+				IsEnterpriseNginx    bool   `json:"isEnterpriseNginx"`
 			}{
 				Duration:             30000,
 				ResponseStatusCode:   tt.responseStatusCode,
@@ -1901,7 +1902,7 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 			Namespace: "default",
 		},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: extutil.Ptr("nginx-steadybit"),
+			IngressClassName: new("nginx-steadybit"),
 			Rules: []networkingv1.IngressRule{
 				{
 					IngressRuleValue: networkingv1.IngressRuleValue{
@@ -2170,7 +2171,7 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		responseDelay        int
 		conditionPathPattern string
 		conditionHttpMethod  string
-		conditionHttpHeader  []interface{}
+		conditionHttpHeader  []any
 		requestPath          string
 		requestHeaders       map[string]string
 		requestMethod        string
@@ -2209,8 +2210,8 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			requestHeaders: map[string]string{
 				"User-Agent": "Mozilla/5.0",
 			},
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 			},
 			responseDelay: delayMs,
 			wantedDelay:   true,
@@ -2222,8 +2223,8 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 				"User-Agent": "Chrome/90.0",
 			},
 			responseDelay: delayMs,
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "User-Agent", "value": "Mozilla.*"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "User-Agent", "value": "Mozilla.*"},
 			},
 			wantedDelay: false,
 		},
@@ -2237,8 +2238,8 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			responseDelay:        delayMs,
 			conditionPathPattern: "/",
 			conditionHttpMethod:  "GET",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "Content-Type", "value": "application/json"},
 			},
 			wantedDelay: true,
 		},
@@ -2252,8 +2253,8 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			responseDelay:        delayMs,
 			conditionPathPattern: ".*",
 			conditionHttpMethod:  "POST",
-			conditionHttpHeader: []interface{}{
-				map[string]interface{}{"key": "Content-Type", "value": "application/json"},
+			conditionHttpHeader: []any{
+				map[string]any{"key": "Content-Type", "value": "application/json"},
 			},
 			wantedDelay: false,
 		},
@@ -2263,11 +2264,11 @@ func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Apply delay traffic action
 			config := struct {
-				Duration             int           `json:"duration"`
-				ResponseDelay        int           `json:"responseDelay"`
-				ConditionPathPattern string        `json:"conditionPathPattern,omitempty"`
-				ConditionHttpMethod  string        `json:"conditionHttpMethod,omitempty"`
-				ConditionHttpHeader  []interface{} `json:"conditionHttpHeader,omitempty"`
+				Duration             int    `json:"duration"`
+				ResponseDelay        int    `json:"responseDelay"`
+				ConditionPathPattern string `json:"conditionPathPattern,omitempty"`
+				ConditionHttpMethod  string `json:"conditionHttpMethod,omitempty"`
+				ConditionHttpHeader  []any  `json:"conditionHttpHeader,omitempty"`
 			}{
 				Duration:             30000,
 				ResponseDelay:        tt.responseDelay,
@@ -2442,7 +2443,7 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 			Namespace: "default",
 		},
 		Spec: networkingv1.IngressSpec{
-			IngressClassName: extutil.Ptr("nginx-steadybit"),
+			IngressClassName: new("nginx-steadybit"),
 			Rules: []networkingv1.IngressRule{
 				{
 					IngressRuleValue: networkingv1.IngressRuleValue{

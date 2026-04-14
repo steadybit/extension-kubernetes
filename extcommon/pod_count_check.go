@@ -64,12 +64,12 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Label:       f.TargetTypeLabel + " Pod Count",
 		Description: "Verify " + f.TargetTypeLabel + " pod counts",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMiA1LjY2MjY4QzEzLjU3IDUuNjYyNjggMTUgNi4yNjI2OCAxNi4wNyA3LjI1MjY4TDE5LjUgNS4zNTI2OEwxOS41IDUuMzUyNjZDMTkuNDMgNS4zMTI2NyAxOS4zNiA1LjI3MjY4IDE5LjI5IDUuMjQyNjhMMTMuMDggMi4yOTI2OEMxMi4yNSAxLjg5MjY4IDExLjI3IDEuOTAyNjggMTAuNDUgMi4zMjI2OEw0LjY2MDAyIDUuMjIyNjhDNC42MDkwMyA1LjI0NDU0IDQuNTYzMzUgNS4yNzE2OSA0LjUxNTI0IDUuMzAwMjlMNC41MTUyMiA1LjMwMDNDNC40OTcyOSA1LjMxMDk2IDQuNDc5MDMgNS4zMjE4MiA0LjQ2MDAyIDUuMzMyNjhMNy45MzAwMiA3LjI2MjY4QzkuMDAwMDIgNi4yNzI2OCAxMC40MyA1LjY3MjY4IDEyIDUuNjcyNjhWNS42NjI2OFpNNi42OSA4Ljg2MjY4QzYuMjUwNzIgOS42OTEzMiA2LjAwMDgyIDEwLjY0OTUgNiAxMS42NTc3TDYgMTEuNjUyN1YxMS42NjI3TDYgMTEuNjU3N0M2LjAwMjQyIDE0LjYzNTQgOC4xNjE1OSAxNy4wOTMgMTEgMTcuNTcyN1YyMS4yMTI3QzEwLjgxIDIxLjE2MjcgMTAuNjMgMjEuMDkyNyAxMC40NSAyMS4wMDI3TDQuNjYgMTguMTAyN0MzLjY0IDE3LjU5MjcgMyAxNi41NjI3IDMgMTUuNDIyN1Y3LjkwMjY4QzMgNy41NjI2OCAzLjA2IDcuMjIyNjggMy4xNyA2LjkwMjY4TDYuNjkgOC44NjI2OFpNMjAuODA1IDYuOTE1NDZMMjAuODEgNi45MTI2OEwyMC44IDYuOTAyNjhMMjAuODA1IDYuOTE1NDZaTTIwLjgwNSA2LjkxNTQ2TDE3LjMgOC44NjI2OEMxNy43NCA5LjcwMjY4IDE3Ljk5IDEwLjY1MjcgMTcuOTkgMTEuNjYyN0MxNy45OSAxNC42MzI3IDE1LjgzIDE3LjEwMjcgMTIuOTkgMTcuNTgyN1YyMS4wNzI3QzEyLjk5IDIxLjA3MjcgMTMuMDQgMjEuMDUyNyAxMy4wNyAyMS4wMzI3TDE5LjI4IDE4LjA4MjdDMjAuMzMgMTcuNTgyNyAyMC45OSAxNi41MzI3IDIwLjk5IDE1LjM3MjdWNy45NDI2OEMyMC45OSA3LjU4NzMzIDIwLjkzMTUgNy4yNDE3MSAyMC44MDUgNi45MTU0NlpNMTQgOS42ODI2OEMxNC4yNyA5LjQwMjY4IDE0LjcxIDkuMzkyNjggMTQuOTkgOS42NjI2OEwxNC45OCA5LjY1MjY4QzE1LjI2IDkuOTIyNjggMTUuMjcgMTAuMzYyNyAxNSAxMC42NDI3TDExLjY2IDE0LjE0MjdDMTEuNTMgMTQuMjcyNyAxMS4zNSAxNC4zNTI3IDExLjE2IDE0LjM1MjdDMTAuOTcgMTQuMzUyNyAxMC43OSAxNC4yODI3IDEwLjY2IDE0LjE0MjdMOSAxMi4zOTI3QzguNzQgMTIuMTEyNyA4Ljc0IDExLjY3MjcgOS4wMiAxMS40MDI3QzkuMyAxMS4xNDI3IDkuNzQgMTEuMTQyNyAxMC4wMSAxMS40MjI3TDExLjE3IDEyLjY1MjdMMTQgOS42ODI2OFoiIGZpbGw9IiMxRDI2MzIiLz4KPC9zdmc+Cg=="),
-		Technology:  extutil.Ptr("Kubernetes"),
+		Icon:        new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMiA1LjY2MjY4QzEzLjU3IDUuNjYyNjggMTUgNi4yNjI2OCAxNi4wNyA3LjI1MjY4TDE5LjUgNS4zNTI2OEwxOS41IDUuMzUyNjZDMTkuNDMgNS4zMTI2NyAxOS4zNiA1LjI3MjY4IDE5LjI5IDUuMjQyNjhMMTMuMDggMi4yOTI2OEMxMi4yNSAxLjg5MjY4IDExLjI3IDEuOTAyNjggMTAuNDUgMi4zMjI2OEw0LjY2MDAyIDUuMjIyNjhDNC42MDkwMyA1LjI0NDU0IDQuNTYzMzUgNS4yNzE2OSA0LjUxNTI0IDUuMzAwMjlMNC41MTUyMiA1LjMwMDNDNC40OTcyOSA1LjMxMDk2IDQuNDc5MDMgNS4zMjE4MiA0LjQ2MDAyIDUuMzMyNjhMNy45MzAwMiA3LjI2MjY4QzkuMDAwMDIgNi4yNzI2OCAxMC40MyA1LjY3MjY4IDEyIDUuNjcyNjhWNS42NjI2OFpNNi42OSA4Ljg2MjY4QzYuMjUwNzIgOS42OTEzMiA2LjAwMDgyIDEwLjY0OTUgNiAxMS42NTc3TDYgMTEuNjUyN1YxMS42NjI3TDYgMTEuNjU3N0M2LjAwMjQyIDE0LjYzNTQgOC4xNjE1OSAxNy4wOTMgMTEgMTcuNTcyN1YyMS4yMTI3QzEwLjgxIDIxLjE2MjcgMTAuNjMgMjEuMDkyNyAxMC40NSAyMS4wMDI3TDQuNjYgMTguMTAyN0MzLjY0IDE3LjU5MjcgMyAxNi41NjI3IDMgMTUuNDIyN1Y3LjkwMjY4QzMgNy41NjI2OCAzLjA2IDcuMjIyNjggMy4xNyA2LjkwMjY4TDYuNjkgOC44NjI2OFpNMjAuODA1IDYuOTE1NDZMMjAuODEgNi45MTI2OEwyMC44IDYuOTAyNjhMMjAuODA1IDYuOTE1NDZaTTIwLjgwNSA2LjkxNTQ2TDE3LjMgOC44NjI2OEMxNy43NCA5LjcwMjY4IDE3Ljk5IDEwLjY1MjcgMTcuOTkgMTEuNjYyN0MxNy45OSAxNC42MzI3IDE1LjgzIDE3LjEwMjcgMTIuOTkgMTcuNTgyN1YyMS4wNzI3QzEyLjk5IDIxLjA3MjcgMTMuMDQgMjEuMDUyNyAxMy4wNyAyMS4wMzI3TDE5LjI4IDE4LjA4MjdDMjAuMzMgMTcuNTgyNyAyMC45OSAxNi41MzI3IDIwLjk5IDE1LjM3MjdWNy45NDI2OEMyMC45OSA3LjU4NzMzIDIwLjkzMTUgNy4yNDE3MSAyMC44MDUgNi45MTU0NlpNMTQgOS42ODI2OEMxNC4yNyA5LjQwMjY4IDE0LjcxIDkuMzkyNjggMTQuOTkgOS42NjI2OEwxNC45OCA5LjY1MjY4QzE1LjI2IDkuOTIyNjggMTUuMjcgMTAuMzYyNyAxNSAxMC42NDI3TDExLjY2IDE0LjE0MjdDMTEuNTMgMTQuMjcyNyAxMS4zNSAxNC4zNTI3IDExLjE2IDE0LjM1MjdDMTAuOTcgMTQuMzUyNyAxMC43OSAxNC4yODI3IDEwLjY2IDE0LjE0MjdMOSAxMi4zOTI3QzguNzQgMTIuMTEyNyA4Ljc0IDExLjY3MjcgOS4wMiAxMS40MDI3QzkuMyAxMS4xNDI3IDkuNzQgMTEuMTQyNyAxMC4wMSAxMS40MjI3TDExLjE3IDEyLjY1MjdMMTQgOS42ODI2OFoiIGZpbGw9IiMxRDI2MzIiLz4KPC9zdmc+Cg=="),
+		Technology:  new("Kubernetes"),
 
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType:          f.TargetType,
 			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionAll),
 			SelectionTemplates:  f.SelectionTemplates,
@@ -78,21 +78,21 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 			{
 				Name:         "duration",
 				Label:        "Timeout",
-				Description:  extutil.Ptr("How long should the check wait for the specified pod count."),
+				Description:  new("How long should the check wait for the specified pod count."),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("10s"),
-				Order:        extutil.Ptr(1),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("10s"),
+				Order:        new(1),
+				Required:     new(true),
 			},
 			{
 				Name:         "podCountCheckMode",
 				Label:        "Pod count",
-				Description:  extutil.Ptr("How many pods are required to let the check pass."),
+				Description:  new("How many pods are required to let the check pass."),
 				Type:         action_kit_api.ActionParameterTypeString,
-				DefaultValue: extutil.Ptr("podCountEqualsDesiredCount"),
-				Order:        extutil.Ptr(2),
-				Required:     extutil.Ptr(true),
-				Options: extutil.Ptr([]action_kit_api.ParameterOption{
+				DefaultValue: new("podCountEqualsDesiredCount"),
+				Order:        new(2),
+				Required:     new(true),
+				Options: new([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "ready count > 0",
 						Value: string(PodCountMin1),
@@ -122,8 +122,8 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
 		Start:   action_kit_api.MutatingEndpointReference{},
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("1s"),
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("1s"),
 		}),
 	}
 }
@@ -171,48 +171,48 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	switch state.PodCountCheckMode {
 	case PodCountMin1:
 		if !(readyCount >= 1) {
-			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+			checkError = new(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has no ready pods.", state.Namespace, state.Target),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountEqualsDesiredCount:
 		if !(readyCount == desiredCount) {
-			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+			checkError = new(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has %d of desired %d pods ready.", state.Namespace, state.Target, readyCount, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountGreaterEqualsDesiredCount:
 		if !(readyCount >= desiredCount) {
-			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+			checkError = new(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has %d of desired %d pods ready.", state.Namespace, state.Target, readyCount, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountLessThanDesiredCount:
 		if !(readyCount < desiredCount) {
-			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+			checkError = new(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has all %d desired pods ready.", state.Namespace, state.Target, desiredCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountDecreased:
 		if !(readyCount < state.InitialCount) {
-			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+			checkError = new(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s's pod count didn't decrease. Initial count: %d, current count: %d.", state.Namespace, state.Target, state.InitialCount, readyCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	case PodCountIncreased:
 		if !(readyCount > state.InitialCount) {
-			checkError = extutil.Ptr(action_kit_api.ActionKitError{
+			checkError = new(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s's pod count didn't increase. Initial count: %d, current count: %d.", state.Namespace, state.Target, state.InitialCount, readyCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
 	default:
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
+		checkError = new(action_kit_api.ActionKitError{
 			Title:  fmt.Sprintf("Unknown check mode: %s", state.PodCountCheckMode),
 			Status: extutil.Ptr(action_kit_api.Errored),
 		})
