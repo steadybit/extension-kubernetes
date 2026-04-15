@@ -4,3 +4,11 @@ vulnerabilities:
       - usr/bin/kubectl
     statement: Wait for a new kubectl-Release
     expired_at: 2026-06-01
+  - id: CVE-2026-32280
+    statement: Wait for runc release with fix
+    paths:
+      - usr/sbin/kubectl
+  - id: CVE-2026-32282
+    statement: Wait for runc release with fix
+    paths:
+      - usr/sbin/kubectl
