@@ -26,9 +26,9 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/zegl/kube-score v1.20.1-0.20250924213608-c531e59c0918
 	golang.org/x/text v0.36.0
-	k8s.io/api v0.35.3
-	k8s.io/apimachinery v0.35.3
-	k8s.io/client-go v0.35.3
+	k8s.io/api v0.35.4
+	k8s.io/apimachinery v0.35.4
+	k8s.io/client-go v0.35.4
 	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20260108192941-914a6e750570
 )
