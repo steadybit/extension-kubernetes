@@ -25,10 +25,12 @@ type CrashLoopState struct {
 	Namespace string `json:"namespace"`
 	Pod       string `json:"pod"`
 	Container string `json:"container,omitempty"`
+	Graceful  bool   `json:"graceful"`
 }
 
 type CrashLoopConfig struct {
 	Container string `json:"container,omitempty"`
+	Graceful  bool   `json:"graceful"`
 }
 
 func NewCrashLoopAction() action_kit_sdk.Action[CrashLoopState] {
@@ -69,6 +71,16 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Name:        "container",
 				Type:        action_kit_api.ActionParameterTypeString,
 				Advanced:    new(true),
+			},
+			{
+				Label:        "Graceful",
+				Description:  new("When true, sends SIGTERM (kill 1) to PID 1. When false, sends SIGKILL (kill -SIGKILL 1) for an immediate, non-recoverable kill."),
+				Advanced:     new(true),
+				Name:         "graceful",
+				Type:         action_kit_api.ActionParameterTypeBoolean,
+				DefaultValue: new("true"),
+				Order:        new(2),
+				Required:     new(true),
 			},
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
@@ -129,6 +141,13 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", state.Pod, state.Namespace), nil)
 	}
 
+	var killCmd []string
+	if state.Graceful {
+		killCmd = []string{"kill", "1"}
+	} else {
+		killCmd = []string{"kill", "-SIGKILL", "1"}
+	}
+
 	for _, cs := range pod.Status.ContainerStatuses {
 		if state.Container != "" && state.Container != cs.Name {
 			continue
@@ -141,7 +160,8 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "1"}); err != nil {
 			log.Info().Err(err).Msgf("Failed to kill container %s in pod %s", cs.Name, state.Pod)
 
-			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", "kill 1"}); err != nil {
+			shellKillCmd := append([]string{"/bin/sh", "-c"}, killCmd...)
+			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, shellKillCmd); err != nil {
 				return nil, fmt.Errorf("failed to kill container %s in pod %s: %w", cs.Name, state.Pod, err)
 			}
 		}
