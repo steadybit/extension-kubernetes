@@ -92,7 +92,7 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	var config CrashLoopState
+	var config CrashLoopConfig
 	if err := extconversion.Convert(request.Config, &config); err != nil {
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
