@@ -123,6 +123,7 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 	state.Namespace = namespace
 	state.Pod = podName
 	state.Container = config.Container
+	state.Graceful = config.Graceful
 	return nil, nil
 }
 
@@ -157,7 +158,7 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 			continue
 		}
 
-		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "1"}); err != nil {
+		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, killCmd); err != nil {
 			log.Info().Err(err).Msgf("Failed to kill container %s in pod %s", cs.Name, state.Pod)
 
 			shellKillCmd := append([]string{"/bin/sh", "-c"}, killCmd...)
