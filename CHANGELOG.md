@@ -1,8 +1,9 @@
 # Changelog
 
-## (next)
+## v2.6.21
 
 - Bump Go to 1.26.2
+- Update dependencies
 
 ## v2.6.20
 
