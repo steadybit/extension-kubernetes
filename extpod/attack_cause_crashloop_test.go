@@ -21,6 +21,7 @@ func Test_Prepare(t *testing.T) {
 		podSpecContainerName string
 		podSpecHostPID       bool
 		configContainer      string
+		configGraceful       bool
 		wantState            CrashLoopState
 		wantErr              string
 	}{
@@ -41,10 +42,11 @@ func Test_Prepare(t *testing.T) {
 			name:                 "should return state for all container",
 			podSpecContainerName: "example",
 			podSpecHostPID:       false,
+			configGraceful:       true,
 			wantState: CrashLoopState{
 				Namespace: "shop",
 				Pod:       "checkout-xyz1234",
-				Graceful:  false,
+				Graceful:  true,
 			},
 		},
 		{
@@ -52,6 +54,7 @@ func Test_Prepare(t *testing.T) {
 			podSpecContainerName: "example",
 			podSpecHostPID:       false,
 			configContainer:      "example",
+			configGraceful:       false,
 			wantState: CrashLoopState{
 				Namespace: "shop",
 				Pod:       "checkout-xyz1234",
@@ -91,7 +94,7 @@ func Test_Prepare(t *testing.T) {
 			request := action_kit_api.PrepareActionRequestBody{
 				Config: map[string]any{
 					"container": tt.configContainer,
-					"graceful":  false,
+					"graceful":  tt.configGraceful,
 				},
 				Target: new(action_kit_api.Target{
 					Attributes: map[string][]string{
@@ -113,82 +116,6 @@ func Test_Prepare(t *testing.T) {
 			} else {
 				assert.EqualError(t, err, tt.wantErr)
 			}
-		})
-	}
-}
-
-func Test_Prepare_Graceful(t *testing.T) {
-	tests := []struct {
-		name      string
-		graceful  bool
-		wantState CrashLoopState
-	}{
-		{
-			name:     "graceful true stores true in state",
-			graceful: true,
-			wantState: CrashLoopState{
-				Namespace: "shop",
-				Pod:       "checkout-xyz1234",
-				Graceful:  true,
-			},
-		},
-		{
-			name:     "graceful false stores false in state",
-			graceful: false,
-			wantState: CrashLoopState{
-				Namespace: "shop",
-				Pod:       "checkout-xyz1234",
-				Graceful:  false,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Given
-			stopCh := make(chan struct{})
-			defer close(stopCh)
-			testClient := getTestClient(stopCh, &corev1.Pod{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Pod",
-					APIVersion: "v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "checkout-xyz1234",
-					Namespace: "shop",
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{Name: "example"},
-					},
-				},
-			})
-
-			assert.Eventually(t, func() bool {
-				return testClient.PodByNamespaceAndName("shop", "checkout-xyz1234") != nil
-			}, time.Second, 100*time.Millisecond)
-			client.K8S = testClient
-
-			request := action_kit_api.PrepareActionRequestBody{
-				Config: map[string]any{
-					"graceful": tt.graceful,
-				},
-				Target: new(action_kit_api.Target{
-					Attributes: map[string][]string{
-						"k8s.namespace": {"shop"},
-						"k8s.pod.name":  {"checkout-xyz1234"},
-					},
-				}),
-			}
-			action := NewCrashLoopAction()
-			state := action.NewEmptyState()
-
-			// When
-			_, err := action.Prepare(context.Background(), &state, request)
-
-			// Then
-			assert.NoError(t, err)
-			assert.Equal(t, tt.wantState, state)
 		})
 	}
 }

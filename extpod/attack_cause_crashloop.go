@@ -161,7 +161,7 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, killCmd); err != nil {
 			log.Info().Err(err).Msgf("Failed to kill container %s in pod %s", cs.Name, state.Pod)
 
-			shellKillCmd := append([]string{"/bin/sh", "-c"}, killCmd...)
+			shellKillCmd := []string{"/bin/sh", "-c", strings.Join(killCmd, " ")}
 			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, shellKillCmd); err != nil {
 				return nil, fmt.Errorf("failed to kill container %s in pod %s: %w", cs.Name, state.Pod, err)
 			}
