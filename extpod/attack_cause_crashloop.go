@@ -62,7 +62,6 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Description:  new("How long should we cause the crash loop."),
 				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: new("30s"),
-				Order:        new(1),
 				Required:     new(true),
 			},
 			{
@@ -79,7 +78,6 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Name:         "graceful",
 				Type:         action_kit_api.ActionParameterTypeBoolean,
 				DefaultValue: new("true"),
-				Order:        new(2),
 				Required:     new(true),
 			},
 		},
