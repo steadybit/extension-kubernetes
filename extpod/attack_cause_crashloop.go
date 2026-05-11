@@ -25,10 +25,12 @@ type CrashLoopState struct {
 	Namespace string `json:"namespace"`
 	Pod       string `json:"pod"`
 	Container string `json:"container,omitempty"`
+	Graceful  bool   `json:"graceful"`
 }
 
 type CrashLoopConfig struct {
 	Container string `json:"container,omitempty"`
+	Graceful  bool   `json:"graceful"`
 }
 
 func NewCrashLoopAction() action_kit_sdk.Action[CrashLoopState] {
@@ -60,7 +62,6 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Description:  new("How long should we cause the crash loop."),
 				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: new("30s"),
-				Order:        new(1),
 				Required:     new(true),
 			},
 			{
@@ -69,6 +70,15 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Name:        "container",
 				Type:        action_kit_api.ActionParameterTypeString,
 				Advanced:    new(true),
+			},
+			{
+				Label:        "Graceful",
+				Description:  new("When true, sends SIGTERM (kill 1) to PID 1. When false, sends SIGKILL (kill -SIGKILL 1) for an immediate, non-recoverable kill."),
+				Advanced:     new(true),
+				Name:         "graceful",
+				Type:         action_kit_api.ActionParameterTypeBoolean,
+				DefaultValue: new("true"),
+				Required:     new(true),
 			},
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
@@ -80,7 +90,7 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	var config CrashLoopState
+	var config CrashLoopConfig
 	if err := extconversion.Convert(request.Config, &config); err != nil {
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
@@ -111,6 +121,7 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 	state.Namespace = namespace
 	state.Pod = podName
 	state.Container = config.Container
+	state.Graceful = config.Graceful
 	return nil, nil
 }
 
@@ -129,6 +140,13 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", state.Pod, state.Namespace), nil)
 	}
 
+	var killCmd []string
+	if state.Graceful {
+		killCmd = []string{"kill", "1"}
+	} else {
+		killCmd = []string{"kill", "-SIGKILL", "1"}
+	}
+
 	for _, cs := range pod.Status.ContainerStatuses {
 		if state.Container != "" && state.Container != cs.Name {
 			continue
@@ -138,10 +156,11 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 			continue
 		}
 
-		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "1"}); err != nil {
+		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, killCmd); err != nil {
 			log.Info().Err(err).Msgf("Failed to kill container %s in pod %s", cs.Name, state.Pod)
 
-			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", "kill 1"}); err != nil {
+			shellKillCmd := []string{"/bin/sh", "-c", strings.Join(killCmd, " ")}
+			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, shellKillCmd); err != nil {
 				return nil, fmt.Errorf("failed to kill container %s in pod %s: %w", cs.Name, state.Pod, err)
 			}
 		}
