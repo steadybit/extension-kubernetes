@@ -21,6 +21,7 @@ func Test_Prepare(t *testing.T) {
 		podSpecContainerName string
 		podSpecHostPID       bool
 		configContainer      string
+		configSignal         string
 		wantState            CrashLoopState
 		wantErr              string
 	}{
@@ -41,9 +42,11 @@ func Test_Prepare(t *testing.T) {
 			name:                 "should return state for all container",
 			podSpecContainerName: "example",
 			podSpecHostPID:       false,
+			configSignal:         "15",
 			wantState: CrashLoopState{
 				Namespace: "shop",
 				Pod:       "checkout-xyz1234",
+				Signal:    "15",
 			},
 		},
 		{
@@ -51,10 +54,12 @@ func Test_Prepare(t *testing.T) {
 			podSpecContainerName: "example",
 			podSpecHostPID:       false,
 			configContainer:      "example",
+			configSignal:         "15",
 			wantState: CrashLoopState{
 				Namespace: "shop",
 				Pod:       "checkout-xyz1234",
 				Container: "example",
+				Signal:    "15",
 			},
 		},
 	}
@@ -89,6 +94,7 @@ func Test_Prepare(t *testing.T) {
 			request := action_kit_api.PrepareActionRequestBody{
 				Config: map[string]any{
 					"container": tt.configContainer,
+					"signal":    tt.configSignal,
 				},
 				Target: new(action_kit_api.Target{
 					Attributes: map[string][]string{
