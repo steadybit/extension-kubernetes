@@ -709,11 +709,9 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 	//CrashLoopPod
 	config := struct {
-		Duration int  `json:"duration"`
-		Graceful bool `json:"graceful"`
+		Duration int `json:"duration"`
 	}{
 		Duration: 30_000,
-		Graceful: true,
 	}
 	action, err := e.RunAction(extpod.CrashLoopActionId, &action_kit_api.Target{
 		Name: target.Id,
