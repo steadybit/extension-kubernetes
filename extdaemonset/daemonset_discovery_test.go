@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,6 +31,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 		pods                      []*corev1.Pod
 		nodes                     []*corev1.Node
 		daemonSet                 *appsv1.DaemonSet
+		pdbs                      []*policyv1.PodDisruptionBudget
 		service                   *corev1.Service
 		configModifier            func(*extconfig.Specification)
 		expectedAttributesExactly map[string][]string
@@ -59,6 +61,7 @@ func Test_daemonSetDiscovery(t *testing.T) {
 				"k8s.container.id":              {"crio://abcdef-aaaaa", "crio://abcdef-bbbbb"},
 				"k8s.container.id.stripped":     {"abcdef-aaaaa", "abcdef-bbbbb"},
 				"k8s.distribution":              {"kubernetes"},
+				"k8s.specification.has-pdb":     {"false"},
 			},
 		},
 		{
@@ -193,6 +196,29 @@ func Test_daemonSetDiscovery(t *testing.T) {
 				"k8s.container.image.without-image-pull-policy-always": {"nginx", "shop"},
 			},
 		},
+		{
+			name:      "should roll up PDB matching the DaemonSet",
+			pods:      []*corev1.Pod{testPod("aaaaa", nil)},
+			daemonSet: testDaemonSet(nil),
+			pdbs: []*policyv1.PodDisruptionBudget{
+				{
+					TypeMeta:   metav1.TypeMeta{Kind: "PodDisruptionBudget", APIVersion: "policy/v1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "shop-pdb", Namespace: "default"},
+					Spec: policyv1.PodDisruptionBudgetSpec{
+						Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"best-city": "Kevelaer"}},
+						MaxUnavailable: func() *intstr.IntOrString {
+							v := intstr.FromInt32(1)
+							return &v
+						}(),
+					},
+				},
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-pdb": {"true"},
+				"k8s.pdb.name":              {"shop-pdb"},
+				"k8s.pdb.max-unavailable":   {"1"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -214,6 +240,9 @@ func Test_daemonSetDiscovery(t *testing.T) {
 			objects = append(objects, tt.daemonSet)
 			if tt.service != nil {
 				objects = append(objects, tt.service)
+			}
+			for _, p := range tt.pdbs {
+				objects = append(objects, p)
 			}
 
 			stopCh := make(chan struct{})

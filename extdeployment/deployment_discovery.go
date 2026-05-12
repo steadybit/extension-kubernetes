@@ -113,13 +113,22 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 			extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels)),
 		)
 
-		var hpa *autoscalingv2.HorizontalPodAutoscaler
+		var hpas []*autoscalingv2.HorizontalPodAutoscaler
 		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
-			hpa = d.k8s.HorizontalPodAutoscalerByNamespaceAndDeployment(deployment.Namespace, deployment.Name)
+			hpas = d.k8s.HorizontalPodAutoscalersByNamespaceKindAndName(deployment.Namespace, "Deployment", deployment.Name)
+		}
+		var firstHpa *autoscalingv2.HorizontalPodAutoscaler
+		if len(hpas) > 0 {
+			firstHpa = hpas[0]
 		}
 
 		if !extconfig.Config.DisableAdvice {
-			extcommon.MergeAttributes(attributes, extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), hpa))
+			extcommon.MergeAttributes(attributes, extcommon.GetKubeScoreForDeployment(deployment, d.k8s.ServicesMatchingToPodLabels(deployment.Namespace, deployment.Spec.Template.Labels), firstHpa))
+		}
+
+		extcommon.AddHpaAttributes(attributes, hpas)
+		if d.k8s.Permissions().CanReadPodDisruptionBudgets() {
+			extcommon.AddPdbAttributes(attributes, d.k8s.PodDisruptionBudgetsForPodLabels(deployment.Namespace, deployment.Spec.Template.Labels))
 		}
 
 		for container := range deployment.Spec.Template.Spec.Containers {

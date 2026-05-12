@@ -18,6 +18,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,6 +34,8 @@ func Test_deploymentDiscovery(t *testing.T) {
 		nodes                     []*corev1.Node
 		deployment                *appsv1.Deployment
 		hpa                       *autoscalingv2.HorizontalPodAutoscaler
+		extraHpas                 []*autoscalingv2.HorizontalPodAutoscaler
+		pdbs                      []*policyv1.PodDisruptionBudget
 		service                   *corev1.Service
 		expectedAttributesExactly map[string][]string
 		expectedAttributes        map[string][]string
@@ -64,6 +67,8 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.container.id.stripped":                  {"abcdef-aaaaa", "abcdef-bbbbb"},
 				"k8s.distribution":                           {"kubernetes"},
 				"k8s.specification.has-host-podantiaffinity": {"false"},
+				"k8s.specification.has-hpa":                  {"false"},
+				"k8s.specification.has-pdb":                  {"false"},
 				"k8s.container.name":                         {"nginx", "shop"},
 			},
 		},
@@ -355,6 +360,104 @@ func Test_deploymentDiscovery(t *testing.T) {
 			deployment:                testDeployment(nil),
 			expectedAttributesAbsence: []string{"k8s.specification.is-redundant"},
 		},
+		{
+			name:       "should roll up HPA attributes onto deployment",
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			hpa: testHPA(func(h *autoscalingv2.HorizontalPodAutoscaler) {
+				h.Spec.MinReplicas = new(int32(2))
+				h.Spec.MaxReplicas = 10
+				cpuTarget := int32(70)
+				h.Spec.Metrics = []autoscalingv2.MetricSpec{
+					{
+						Type: autoscalingv2.ResourceMetricSourceType,
+						Resource: &autoscalingv2.ResourceMetricSource{
+							Name: corev1.ResourceCPU,
+							Target: autoscalingv2.MetricTarget{
+								Type:               autoscalingv2.UtilizationMetricType,
+								AverageUtilization: &cpuTarget,
+							},
+						},
+					},
+				}
+			}),
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-hpa": {"true"},
+				"k8s.hpa.name":              {"shop"},
+				"k8s.hpa.min-replicas":      {"2"},
+				"k8s.hpa.max-replicas":      {"10"},
+				"k8s.hpa.metric.type":       {"Resource"},
+				"k8s.hpa.metric.target":     {"cpu=70%"},
+			},
+			expectedAttributesAbsence: []string{"k8s.hpa.conflict"},
+		},
+		{
+			name:       "should flag conflict when multiple HPAs target the same deployment",
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			hpa:        testHPA(nil),
+			extraHpas: []*autoscalingv2.HorizontalPodAutoscaler{
+				testHPA(func(h *autoscalingv2.HorizontalPodAutoscaler) {
+					h.Name = "shop-second"
+					h.Spec.MaxReplicas = 20
+				}),
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-hpa": {"true"},
+				"k8s.hpa.conflict":          {"true"},
+				"k8s.hpa.name":              {"shop", "shop-second"},
+			},
+		},
+		{
+			name:       "should roll up PDB matching the deployment's pod-template labels",
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			pdbs: []*policyv1.PodDisruptionBudget{
+				testPDB("shop-pdb", &metav1.LabelSelector{MatchLabels: map[string]string{"best-city": "Kevelaer"}}, func(p *policyv1.PodDisruptionBudget) {
+					mu := intstr.FromInt32(1)
+					p.Spec.MaxUnavailable = &mu
+				}),
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-pdb": {"true"},
+				"k8s.pdb.name":              {"shop-pdb"},
+				"k8s.pdb.max-unavailable":   {"1"},
+			},
+			expectedAttributesAbsence: []string{"k8s.pdb.min-available", "k8s.pdb.conflict"},
+		},
+		{
+			name:       "PDB whose selector does not match the deployment is ignored",
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			pdbs: []*policyv1.PodDisruptionBudget{
+				testPDB("other-pdb", &metav1.LabelSelector{MatchLabels: map[string]string{"app": "other"}}, nil),
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-pdb": {"false"},
+			},
+			expectedAttributesAbsence: []string{"k8s.pdb.name"},
+		},
+		{
+			name:       "should flag conflict when two PDBs select the same deployment",
+			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
+			deployment: testDeployment(nil),
+			pdbs: []*policyv1.PodDisruptionBudget{
+				testPDB("pdb-a", &metav1.LabelSelector{MatchLabels: map[string]string{"best-city": "Kevelaer"}}, func(p *policyv1.PodDisruptionBudget) {
+					ma := intstr.FromInt32(2)
+					p.Spec.MinAvailable = &ma
+				}),
+				testPDB("pdb-b", &metav1.LabelSelector{MatchLabels: map[string]string{"best-city": "Kevelaer"}}, func(p *policyv1.PodDisruptionBudget) {
+					ma := intstr.FromString("50%")
+					p.Spec.MinAvailable = &ma
+				}),
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-pdb": {"true"},
+				"k8s.pdb.conflict":          {"true"},
+				"k8s.pdb.name":              {"pdb-a", "pdb-b"},
+				"k8s.pdb.min-available":     {"2", "50%"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -381,6 +484,12 @@ func Test_deploymentDiscovery(t *testing.T) {
 			}
 			if tt.hpa != nil {
 				objects = append(objects, tt.hpa)
+			}
+			for _, h := range tt.extraHpas {
+				objects = append(objects, h)
+			}
+			for _, p := range tt.pdbs {
+				objects = append(objects, p)
 			}
 			if tt.service != nil {
 				objects = append(objects, tt.service)
@@ -470,6 +579,26 @@ func testHPA(modifier func(autoscaler *autoscalingv2.HorizontalPodAutoscaler)) *
 	}
 
 	return autoscaler
+}
+
+func testPDB(name string, selector *metav1.LabelSelector, modifier func(*policyv1.PodDisruptionBudget)) *policyv1.PodDisruptionBudget {
+	pdb := &policyv1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PodDisruptionBudget",
+			APIVersion: "policy/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			Selector: selector,
+		},
+	}
+	if modifier != nil {
+		modifier(pdb)
+	}
+	return pdb
 }
 
 func testDeployment(modifier func(*appsv1.Deployment)) *appsv1.Deployment {

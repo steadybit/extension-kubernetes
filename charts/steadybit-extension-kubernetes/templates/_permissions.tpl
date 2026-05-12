@@ -35,6 +35,15 @@ permissions for clusterrole or role
       - get
       - list
       - watch
+  {{/* Required for has-pdb / k8s.pdb.* rollup on workload targets */}}
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - get
+      - list
+      - watch
   {{- if not .Values.discovery.disabled.deployment }}
   {{/* Required for Rollout Restart Attack */}}
   - apiGroups:
