@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.22
+
+- Added advanced parameter "Signal" for the "Pod Crash Loop" attack to be able to specify the signal used to kill the container process (default is "SIGKILL")
+- Update dependencies
+
 ## v2.6.21
 
 - Bump Go to 1.26.2
