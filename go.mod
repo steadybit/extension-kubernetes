@@ -25,7 +25,7 @@ require (
 	github.com/steadybit/extension-kit v1.10.4
 	github.com/stretchr/testify v1.11.1
 	github.com/zegl/kube-score v1.20.1-0.20250924213608-c531e59c0918
-	golang.org/x/text v0.36.0
+	golang.org/x/text v0.37.0
 	k8s.io/api v0.36.0
 	k8s.io/apimachinery v0.36.0
 	k8s.io/client-go v0.36.0
