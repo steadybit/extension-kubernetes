@@ -12,6 +12,7 @@ vulnerabilities:
   - id: CVE-2026-39820
     paths:
       - usr/bin/kubectl
+<<<<<<< Updated upstream
     statement: Wait for a new kubectl-Release
     expired_at: 2026-07-01
   - id: CVE-2026-39836
@@ -24,3 +25,30 @@ vulnerabilities:
       - usr/bin/kubectl
     statement: Wait for a new kubectl-Release
     expired_at: 2026-07-01
+=======
+  - id: CVE-2026-33811
+    statement: waiting for kubectl release
+    expired_at: 2026-09-01
+    paths:
+      - usr/bin/kubectl
+  - id: CVE-2026-33814
+    statement: waiting for kubectl release
+    expired_at: 2026-09-01
+    paths:
+      - usr/bin/kubectl
+  - id: CVE-2026-39820
+    statement: waiting for kubectl release
+    expired_at: 2026-09-01
+    paths:
+      - usr/bin/kubectl
+  - id: CVE-2026-39836
+    statement: waiting for kubectl release
+    expired_at: 2026-09-01
+    paths:
+      - usr/bin/kubectl
+  - id: CVE-2026-42499
+    statement: waiting for kubectl release
+    expired_at: 2026-09-01
+    paths:
+      - usr/bin/kubectl
+>>>>>>> Stashed changes
