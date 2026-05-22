@@ -25,10 +25,12 @@ type CrashLoopState struct {
 	Namespace string `json:"namespace"`
 	Pod       string `json:"pod"`
 	Container string `json:"container,omitempty"`
+	Signal    string `json:"signal"`
 }
 
 type CrashLoopConfig struct {
 	Container string `json:"container,omitempty"`
+	Signal    string `json:"signal,omitempty"`
 }
 
 func NewCrashLoopAction() action_kit_sdk.Action[CrashLoopState] {
@@ -60,7 +62,6 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Description:  new("How long should we cause the crash loop."),
 				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: new("30s"),
-				Order:        new(1),
 				Required:     new(true),
 			},
 			{
@@ -69,6 +70,80 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Name:        "container",
 				Type:        action_kit_api.ActionParameterTypeString,
 				Advanced:    new(true),
+			},
+			{
+				Label:        "Signal",
+				Description:  new("By default, the container will be killed by `kill -SIGTERM 1`. You can specify a different signal here."),
+				Name:         "signal",
+				Type:         action_kit_api.ActionParameterTypeString,
+				DefaultValue: new("15"),
+				Required:     new(true),
+				Advanced:     new(true), Options: new([]action_kit_api.ParameterOption{
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGHUP (1)",
+						Value: "1",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGINT (2)",
+						Value: "2",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGQUIT (3)",
+						Value: "3",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGILL (4)",
+						Value: "4",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGABRT (6)",
+						Value: "6",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGBUS (7)",
+						Value: "7",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGFPE (8)",
+						Value: "8",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGKILL (9)",
+						Value: "9",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGUSR1 (10)",
+						Value: "10",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGSEGV (11)",
+						Value: "11",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGUSR2 (12)",
+						Value: "12",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGPIPE (13)",
+						Value: "13",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGALRM (14)",
+						Value: "14",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGTERM (15)",
+						Value: "15",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGSTOP (19)",
+						Value: "19",
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "SIGTSTP (20)",
+						Value: "20",
+					},
+				}),
 			},
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
@@ -80,7 +155,7 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 }
 
 func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
-	var config CrashLoopState
+	var config CrashLoopConfig
 	if err := extconversion.Convert(request.Config, &config); err != nil {
 		return nil, extension_kit.ToError("Failed to unmarshal the config.", err)
 	}
@@ -111,6 +186,7 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 	state.Namespace = namespace
 	state.Pod = podName
 	state.Container = config.Container
+	state.Signal = config.Signal
 	return nil, nil
 }
 
@@ -138,10 +214,15 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 			continue
 		}
 
-		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "1"}); err != nil {
+		signal := state.Signal
+		if signal == "" {
+			signal = "15"
+		}
+
+		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "-" + signal, "1"}); err != nil {
 			log.Info().Err(err).Msgf("Failed to kill container %s in pod %s", cs.Name, state.Pod)
 
-			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", "kill 1"}); err != nil {
+			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", fmt.Sprintf("kill -%s 1", signal)}); err != nil {
 				return nil, fmt.Errorf("failed to kill container %s in pod %s: %w", cs.Name, state.Pod, err)
 			}
 		}
