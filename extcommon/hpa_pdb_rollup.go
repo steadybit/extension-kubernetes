@@ -12,9 +12,9 @@ import (
 )
 
 // AddHpaAttributes rolls up HPA presence + min/max/metric onto a workload target's attribute map.
-// Per Kubernetes, only one HPA should target a given workload (each HPA has a single ScaleTargetRef
-// and multiple HPAs scaling the same workload would fight each other); if hpas contains more than one
-// entry it is surfaced as a misconfig via k8s.hpa.conflict=true.
+// When more than one HPA matches a workload, all min/max values are surfaced as multi-valued
+// attributes. Per-metric details are only surfaced for the single-HPA case to keep the attribute
+// shape unambiguous.
 func AddHpaAttributes(attributes map[string][]string, hpas []*autoscalingv2.HorizontalPodAutoscaler) {
 	if len(hpas) == 0 {
 		attributes["k8s.specification.has-hpa"] = []string{"false"}
@@ -29,8 +29,6 @@ func AddHpaAttributes(attributes map[string][]string, hpas []*autoscalingv2.Hori
 	attributes["k8s.hpa.name"] = names
 
 	if len(hpas) > 1 {
-		attributes["k8s.hpa.conflict"] = []string{"true"}
-		// In a conflict the AI gets the raw values per HPA; no aggregation that would mask the misconfig.
 		mins := make([]string, 0, len(hpas))
 		maxs := make([]string, 0, len(hpas))
 		for _, h := range hpas {
@@ -135,9 +133,8 @@ func formatMetricTarget(t autoscalingv2.MetricTarget) string {
 }
 
 // AddPdbAttributes rolls up PDB presence + min-available / max-unavailable onto a workload target's
-// attribute map. Per Kubernetes, at most one PDB should select a given pod; multiple PDBs whose
-// selectors all match the workload's pod-template labels is surfaced as a misconfig via
-// k8s.pdb.conflict=true.
+// attribute map. When more than one PDB matches the same workload, all values are surfaced as
+// multi-valued attributes.
 func AddPdbAttributes(attributes map[string][]string, pdbs []*policyv1.PodDisruptionBudget) {
 	if len(pdbs) == 0 {
 		attributes["k8s.specification.has-pdb"] = []string{"false"}
@@ -163,8 +160,5 @@ func AddPdbAttributes(attributes map[string][]string, pdbs []*policyv1.PodDisrup
 	}
 	if len(maxs) > 0 {
 		attributes["k8s.pdb.max-unavailable"] = maxs
-	}
-	if len(pdbs) > 1 {
-		attributes["k8s.pdb.conflict"] = []string{"true"}
 	}
 }

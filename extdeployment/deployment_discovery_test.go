@@ -389,10 +389,9 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.hpa.metric.type":       {"Resource"},
 				"k8s.hpa.metric.target":     {"cpu=70%"},
 			},
-			expectedAttributesAbsence: []string{"k8s.hpa.conflict"},
 		},
 		{
-			name:       "should flag conflict when multiple HPAs target the same deployment",
+			name:       "should surface multi-valued HPA attributes when more than one HPA targets the same deployment",
 			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			hpa:        testHPA(nil),
@@ -404,7 +403,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-hpa": {"true"},
-				"k8s.hpa.conflict":          {"true"},
 				"k8s.hpa.name":              {"shop", "shop-second"},
 			},
 		},
@@ -423,7 +421,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 				"k8s.pdb.name":              {"shop-pdb"},
 				"k8s.pdb.max-unavailable":   {"1"},
 			},
-			expectedAttributesAbsence: []string{"k8s.pdb.min-available", "k8s.pdb.conflict"},
+			expectedAttributesAbsence: []string{"k8s.pdb.min-available"},
 		},
 		{
 			name:       "PDB whose selector does not match the deployment is ignored",
@@ -438,7 +436,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			expectedAttributesAbsence: []string{"k8s.pdb.name"},
 		},
 		{
-			name:       "should flag conflict when two PDBs select the same deployment",
+			name:       "should surface multi-valued PDB attributes when more than one PDB selects the same deployment",
 			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
 			deployment: testDeployment(nil),
 			pdbs: []*policyv1.PodDisruptionBudget{
@@ -453,7 +451,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-pdb": {"true"},
-				"k8s.pdb.conflict":          {"true"},
 				"k8s.pdb.name":              {"pdb-a", "pdb-b"},
 				"k8s.pdb.min-available":     {"2", "50%"},
 			},
