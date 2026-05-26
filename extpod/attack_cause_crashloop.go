@@ -220,10 +220,10 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 		}
 
 		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "-" + signal, "1"}); err != nil {
-			log.Info().Err(err).Msgf("Failed to kill container %s in pod %s", cs.Name, state.Pod)
+			log.Info().Err(err).Msgf("Direct kill failed for container %s in pod %s, retrying via /bin/sh", cs.Name, state.Pod)
 
 			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", fmt.Sprintf("kill -%s 1", signal)}); err != nil {
-				return nil, fmt.Errorf("failed to kill container %s in pod %s: %w", cs.Name, state.Pod, err)
+				return nil, err
 			}
 		}
 	}
@@ -267,7 +267,7 @@ func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []stri
 			return nil
 		}
 
-		return fmt.Errorf("failed to kill container %s in pod %s, %w: %s", containerName, podName, err, out)
+		return fmt.Errorf("kubectl exec failed for container %s in pod %s/%s (the signal may not have been delivered; this can happen if the container is restarting, the node is under memory/PID pressure, or host security policies block the runtime): %w: %s", containerName, namespace, podName, err, out)
 	}
 	return nil
 }
