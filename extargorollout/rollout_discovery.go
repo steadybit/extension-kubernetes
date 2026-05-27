@@ -17,6 +17,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -36,6 +37,7 @@ func NewRolloutDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 		reflect.TypeFor[corev1.Pod](),
 		reflect.TypeFor[unstructured.Unstructured](),
 		reflect.TypeFor[autoscalingv2.HorizontalPodAutoscaler](),
+		reflect.TypeFor[policyv1.PodDisruptionBudget](),
 		reflect.TypeFor[corev1.Service](),
 	)
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
@@ -151,6 +153,14 @@ func (d *rolloutDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_a
 
 			// Add service names
 			maps.Copy(attributes, extcommon.GetServiceNames(d.k8s.ServicesMatchingToPodLabels(rollout.GetNamespace(), podTemplateLabels)))
+
+			if d.k8s.Permissions().CanReadPodDisruptionBudgets() {
+				extcommon.AddPdbAttributes(attributes, d.k8s.PodDisruptionBudgetsForPodLabels(rollout.GetNamespace(), podTemplateLabels))
+			}
+		}
+
+		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
+			extcommon.AddHpaAttributes(attributes, d.k8s.HorizontalPodAutoscalersByNamespaceKindAndName(rollout.GetNamespace(), "Rollout", rollout.GetName()))
 		}
 
 		targets[i] = discovery_kit_api.Target{

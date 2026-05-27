@@ -6,6 +6,7 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 )
 
 func transformDaemonSet(i any) (any, error) {
@@ -144,6 +145,16 @@ func transformHPA(i any) (any, error) {
 		hpa.ObjectMeta.Annotations = nil
 		hpa.ObjectMeta.ManagedFields = nil
 		return hpa, nil
+	}
+	return i, nil
+}
+
+func transformPDB(i any) (any, error) {
+	if pdb, ok := i.(*policyv1.PodDisruptionBudget); ok {
+		pdb.ObjectMeta.Annotations = nil
+		pdb.ObjectMeta.ManagedFields = nil
+		pdb.Status = policyv1.PodDisruptionBudgetStatus{}
+		return pdb, nil
 	}
 	return i, nil
 }

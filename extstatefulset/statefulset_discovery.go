@@ -17,7 +17,9 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 )
 
 type statefulSetDiscovery struct {
@@ -31,7 +33,12 @@ var (
 
 func NewStatefulSetDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 	discovery := &statefulSetDiscovery{k8s: k8s}
-	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeFor[corev1.Pod](), reflect.TypeFor[appsv1.StatefulSet]())
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s,
+		reflect.TypeFor[corev1.Pod](),
+		reflect.TypeFor[appsv1.StatefulSet](),
+		reflect.TypeFor[autoscalingv2.HorizontalPodAutoscaler](),
+		reflect.TypeFor[policyv1.PodDisruptionBudget](),
+	)
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
 		discovery_kit_sdk.WithRefreshTargetsNow(),
 		discovery_kit_sdk.WithRefreshTargetsTrigger(context.Background(), chRefresh, time.Duration(extconfig.Config.DiscoveryRefreshThrottle)*time.Second),
@@ -107,6 +114,13 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 
 		if !extconfig.Config.DisableAdvice {
 			extcommon.MergeAttributes(attributes, extcommon.GetKubeScoreForStatefulSet(sts, d.k8s.ServicesMatchingToPodLabels(sts.Namespace, sts.Spec.Template.Labels)))
+		}
+
+		if d.k8s.Permissions().CanReadHorizontalPodAutoscalers() {
+			extcommon.AddHpaAttributes(attributes, d.k8s.HorizontalPodAutoscalersByNamespaceKindAndName(sts.Namespace, "StatefulSet", sts.Name))
+		}
+		if d.k8s.Permissions().CanReadPodDisruptionBudgets() {
+			extcommon.AddPdbAttributes(attributes, d.k8s.PodDisruptionBudgetsForPodLabels(sts.Namespace, sts.Spec.Template.Labels))
 		}
 
 		targets[i] = discovery_kit_api.Target{

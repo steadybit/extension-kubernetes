@@ -50,6 +50,7 @@ var requiredPermissions = []requiredPermission{
 	{group: "apps", resource: "daemonsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "apps", resource: "statefulsets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "autoscaling", resource: "horizontalpodautoscalers", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: "policy", resource: "poddisruptionbudgets", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 	{group: "", resource: "services", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "", resource: "pods", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: false},
 	{group: "", resource: "namespaces", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
@@ -158,6 +159,13 @@ func (p *PermissionCheckResult) CanReadHorizontalPodAutoscalers() bool {
 		"autoscaling/horizontalpodautoscalers/get",
 		"autoscaling/horizontalpodautoscalers/list",
 		"autoscaling/horizontalpodautoscalers/watch"})
+}
+
+func (p *PermissionCheckResult) CanReadPodDisruptionBudgets() bool {
+	return p.hasPermissions([]string{
+		"policy/poddisruptionbudgets/get",
+		"policy/poddisruptionbudgets/list",
+		"policy/poddisruptionbudgets/watch"})
 }
 
 func (p *PermissionCheckResult) CanReadNamespaces() bool {

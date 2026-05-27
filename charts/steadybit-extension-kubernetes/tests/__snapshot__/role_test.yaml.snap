@@ -39,6 +39,14 @@ manifest should match snapshot:
           - list
           - watch
       - apiGroups:
+          - policy
+        resources:
+          - poddisruptionbudgets
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
           - apps
         resources:
           - deployments
@@ -108,6 +116,14 @@ manifest should match snapshot with some disabled features:
           - autoscaling
         resources:
           - horizontalpodautoscalers
+        verbs:
+          - get
+          - list
+          - watch
+      - apiGroups:
+          - policy
+        resources:
+          - poddisruptionbudgets
         verbs:
           - get
           - list

@@ -16,7 +16,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +33,8 @@ func Test_statefulSetDiscovery(t *testing.T) {
 		pods                      []*v1.Pod
 		nodes                     []*v1.Node
 		statefulSet               *appsv1.StatefulSet
+		hpas                      []*autoscalingv2.HorizontalPodAutoscaler
+		pdbs                      []*policyv1.PodDisruptionBudget
 		service                   *v1.Service
 		expectedAttributesExactly map[string][]string
 		expectedAttributes        map[string][]string
@@ -61,6 +65,8 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				"k8s.container.id.stripped":                  {"abcdef-aaaaa", "abcdef-bbbbb"},
 				"k8s.distribution":                           {"kubernetes"},
 				"k8s.specification.has-host-podantiaffinity": {"false"},
+				"k8s.specification.has-hpa":                  {"false"},
+				"k8s.specification.has-pdb":                  {"false"},
 			},
 		},
 		{
@@ -221,6 +227,47 @@ func Test_statefulSetDiscovery(t *testing.T) {
 				"k8s.container.image.without-image-pull-policy-always": {"nginx", "shop"},
 			},
 		},
+		{
+			name:        "should roll up HPA targeting the StatefulSet",
+			pods:        []*v1.Pod{testPod("aaaaa", nil)},
+			statefulSet: testStatefulSet(nil),
+			hpas: []*autoscalingv2.HorizontalPodAutoscaler{
+				testStatefulSetHPA("shop-hpa", "shop", 2, 8),
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-hpa": {"true"},
+				"k8s.hpa.name":              {"shop-hpa"},
+				"k8s.hpa.min-replicas":      {"2"},
+				"k8s.hpa.max-replicas":      {"8"},
+			},
+		},
+		{
+			name:        "should ignore HPA targeting a different workload",
+			pods:        []*v1.Pod{testPod("aaaaa", nil)},
+			statefulSet: testStatefulSet(nil),
+			hpas: []*autoscalingv2.HorizontalPodAutoscaler{
+				testStatefulSetHPA("other-hpa", "other-sts", 1, 5),
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-hpa": {"false"},
+			},
+		},
+		{
+			name:        "should roll up PDB matching the StatefulSet",
+			pods:        []*v1.Pod{testPod("aaaaa", nil)},
+			statefulSet: testStatefulSet(nil),
+			pdbs: []*policyv1.PodDisruptionBudget{
+				testStatefulSetPDB("shop-pdb", map[string]string{"best-city": "Kevelaer"}, func(p *policyv1.PodDisruptionBudget) {
+					ma := intstr.FromInt32(2)
+					p.Spec.MinAvailable = &ma
+				}),
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-pdb": {"true"},
+				"k8s.pdb.name":              {"shop-pdb"},
+				"k8s.pdb.min-available":     {"2"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -241,6 +288,12 @@ func Test_statefulSetDiscovery(t *testing.T) {
 			}
 			if tt.service != nil {
 				objects = append(objects, tt.service)
+			}
+			for _, h := range tt.hpas {
+				objects = append(objects, h)
+			}
+			for _, p := range tt.pdbs {
+				objects = append(objects, p)
 			}
 			objects = append(objects, tt.statefulSet)
 
@@ -457,4 +510,40 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
 	dynamicClient := testutil.NewFakeDynamicClient()
 	return client.CreateClient(testclient.NewClientset(objects...), stopCh, "", client.MockAllPermitted(), dynamicClient)
+}
+
+func testStatefulSetHPA(name, targetName string, min, max int32) *autoscalingv2.HorizontalPodAutoscaler {
+	return &autoscalingv2.HorizontalPodAutoscaler{
+		TypeMeta: metav1.TypeMeta{Kind: "HorizontalPodAutoscaler", APIVersion: "autoscaling/v2"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+			MinReplicas: &min,
+			MaxReplicas: max,
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				Kind:       "StatefulSet",
+				Name:       targetName,
+				APIVersion: "apps/v1",
+			},
+		},
+	}
+}
+
+func testStatefulSetPDB(name string, matchLabels map[string]string, modifier func(*policyv1.PodDisruptionBudget)) *policyv1.PodDisruptionBudget {
+	pdb := &policyv1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{Kind: "PodDisruptionBudget", APIVersion: "policy/v1"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: matchLabels},
+		},
+	}
+	if modifier != nil {
+		modifier(pdb)
+	}
+	return pdb
 }

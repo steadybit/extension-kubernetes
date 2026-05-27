@@ -18,6 +18,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 )
 
 type daemonSetDiscovery struct {
@@ -31,7 +32,11 @@ var (
 
 func NewDaemonSetDiscovery(k8s *client.Client) discovery_kit_sdk.TargetDiscovery {
 	discovery := &daemonSetDiscovery{k8s: k8s}
-	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s, reflect.TypeFor[corev1.Pod](), reflect.TypeFor[appsv1.DaemonSet]())
+	chRefresh := extcommon.TriggerOnKubernetesResourceChange(k8s,
+		reflect.TypeFor[corev1.Pod](),
+		reflect.TypeFor[appsv1.DaemonSet](),
+		reflect.TypeFor[policyv1.PodDisruptionBudget](),
+	)
 
 	return discovery_kit_sdk.NewCachedTargetDiscovery(discovery,
 		discovery_kit_sdk.WithRefreshTargetsNow(),
@@ -105,6 +110,10 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 
 		if !extconfig.Config.DisableAdvice {
 			extcommon.MergeAttributes(attributes, extcommon.GetKubeScoreForDaemonSet(ds, d.k8s.ServicesMatchingToPodLabels(ds.Namespace, ds.Spec.Template.Labels)))
+		}
+
+		if d.k8s.Permissions().CanReadPodDisruptionBudgets() {
+			extcommon.AddPdbAttributes(attributes, d.k8s.PodDisruptionBudgetsForPodLabels(ds.Namespace, ds.Spec.Template.Labels))
 		}
 
 		targets[i] = discovery_kit_api.Target{

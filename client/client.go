@@ -25,6 +25,7 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -41,6 +42,7 @@ import (
 	listerAutoscalingv2 "k8s.io/client-go/listers/autoscaling/v2"
 	listerCorev1 "k8s.io/client-go/listers/core/v1"
 	listerNetworkingv1 "k8s.io/client-go/listers/networking/v1"
+	listerPolicyv1 "k8s.io/client-go/listers/policy/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -111,6 +113,11 @@ type Client struct {
 
 	hpa struct {
 		lister   listerAutoscalingv2.HorizontalPodAutoscalerLister
+		informer cache.SharedIndexInformer
+	}
+
+	pdb struct {
+		lister   listerPolicyv1.PodDisruptionBudgetLister
 		informer cache.SharedIndexInformer
 	}
 
@@ -631,18 +638,74 @@ func (c *Client) Events(since time.Time) *[]corev1.Event {
 	return &result
 }
 
-func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace string, reference string) *autoscalingv2.HorizontalPodAutoscaler {
+// HorizontalPodAutoscalerByNamespaceKindAndName returns the first HPA whose ScaleTargetRef matches the given
+// kind + name in the given namespace, or nil if none / if the HPA informer was not started (lacking RBAC).
+// Per K8s, only one HPA should target a given workload; callers can detect the rare misconfig of multiple
+// HPAs by using HorizontalPodAutoscalersByNamespaceKindAndName.
+func (c *Client) HorizontalPodAutoscalerByNamespaceKindAndName(namespace, kind, name string) *autoscalingv2.HorizontalPodAutoscaler {
+	hpas := c.HorizontalPodAutoscalersByNamespaceKindAndName(namespace, kind, name)
+	if len(hpas) == 0 {
+		return nil
+	}
+	return hpas[0]
+}
+
+// HorizontalPodAutoscalersByNamespaceKindAndName returns all HPAs in the namespace whose ScaleTargetRef
+// targets the given (kind, name). Returns an empty slice if the HPA informer is not running.
+func (c *Client) HorizontalPodAutoscalersByNamespaceKindAndName(namespace, kind, name string) []*autoscalingv2.HorizontalPodAutoscaler {
+	if c.hpa.lister == nil {
+		return nil
+	}
 	hpas, err := c.hpa.lister.HorizontalPodAutoscalers(namespace).List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching horizontal pod autoscalers")
 		return nil
 	}
+	matches := make([]*autoscalingv2.HorizontalPodAutoscaler, 0)
 	for _, hpa := range hpas {
-		if hpa.Spec.ScaleTargetRef.Kind == "Deployment" && hpa.Spec.ScaleTargetRef.Name == reference {
-			return hpa
+		if hpa.Spec.ScaleTargetRef.Kind == kind && hpa.Spec.ScaleTargetRef.Name == name {
+			matches = append(matches, hpa)
 		}
 	}
-	return nil
+	return matches
+}
+
+// HorizontalPodAutoscalerByNamespaceAndDeployment is kept for backward compatibility.
+//
+// Deprecated: use HorizontalPodAutoscalerByNamespaceKindAndName.
+func (c *Client) HorizontalPodAutoscalerByNamespaceAndDeployment(namespace string, reference string) *autoscalingv2.HorizontalPodAutoscaler {
+	return c.HorizontalPodAutoscalerByNamespaceKindAndName(namespace, "Deployment", reference)
+}
+
+// PodDisruptionBudgetsForPodLabels returns all PDBs in the given namespace whose Spec.Selector matches
+// the given pod-template labels. Returns nil if the PDB informer is not running (RBAC denied).
+// Per K8s, at most one PDB should select a given pod; multiple matches are a misconfiguration callers
+// can detect and flag.
+func (c *Client) PodDisruptionBudgetsForPodLabels(namespace string, podLabels map[string]string) []*policyv1.PodDisruptionBudget {
+	if c.pdb.lister == nil {
+		return nil
+	}
+	pdbs, err := c.pdb.lister.PodDisruptionBudgets(namespace).List(labels.Everything())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error while fetching pod disruption budgets")
+		return nil
+	}
+	matches := make([]*policyv1.PodDisruptionBudget, 0)
+	podLabelSet := labels.Set(podLabels)
+	for _, pdb := range pdbs {
+		if pdb.Spec.Selector == nil {
+			continue
+		}
+		selector, err := metav1.LabelSelectorAsSelector(pdb.Spec.Selector)
+		if err != nil {
+			log.Warn().Err(err).Str("pdb", pdb.Name).Msg("Invalid PDB selector")
+			continue
+		}
+		if selector.Matches(podLabelSet) {
+			matches = append(matches, pdb)
+		}
+	}
+	return matches
 }
 
 func (c *Client) Ingresses() []*networkingv1.Ingress {
@@ -923,6 +986,19 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		}
 		if _, err := client.hpa.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 			log.Fatal().Msg("failed to add hpa event handler")
+		}
+	}
+
+	if permissions.CanReadPodDisruptionBudgets() {
+		pdb := factory.Policy().V1().PodDisruptionBudgets()
+		client.pdb.informer = pdb.Informer()
+		client.pdb.lister = pdb.Lister()
+		informerSyncList = append(informerSyncList, client.pdb.informer.HasSynced)
+		if err := client.pdb.informer.SetTransform(transformPDB); err != nil {
+			log.Fatal().Err(err).Msg("Failed to add pdb transformer")
+		}
+		if _, err := client.pdb.informer.AddEventHandler(client.resourceEventHandler); err != nil {
+			log.Fatal().Msg("failed to add pdb event handler")
 		}
 	}
 

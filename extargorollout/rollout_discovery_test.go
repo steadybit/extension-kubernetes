@@ -16,7 +16,9 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -99,6 +101,8 @@ func Test_rolloutDiscovery(t *testing.T) {
 		pods                      []*v1.Pod
 		nodes                     []*v1.Node
 		rollout                   *unstructured.Unstructured
+		hpas                      []*autoscalingv2.HorizontalPodAutoscaler
+		pdbs                      []*policyv1.PodDisruptionBudget
 		service                   *v1.Service
 		expectedAttributesExactly map[string][]string
 		expectedAttributes        map[string][]string
@@ -126,6 +130,8 @@ func Test_rolloutDiscovery(t *testing.T) {
 				"k8s.container.id":                    {"crio://abcdef-aaaaa-nginx", "crio://abcdef-aaaaa-shop", "crio://abcdef-bbbbb-nginx", "crio://abcdef-bbbbb-shop"},
 				"k8s.container.id.stripped":           {"abcdef-aaaaa-nginx", "abcdef-aaaaa-shop", "abcdef-bbbbb-nginx", "abcdef-bbbbb-shop"},
 				"k8s.distribution":                    {"kubernetes"},
+				"k8s.specification.has-hpa":           {"false"},
+				"k8s.specification.has-pdb":           {"false"},
 			},
 		},
 		{
@@ -145,6 +151,51 @@ func Test_rolloutDiscovery(t *testing.T) {
 			service: testService(nil),
 			expectedAttributes: map[string][]string{
 				"k8s.service.name": {"shop-kevelaer"},
+			},
+		},
+		{
+			name:    "should roll up HPA targeting the Rollout",
+			pods:    []*v1.Pod{testPod("aaaaa", nil)},
+			rollout: testRollout(nil),
+			hpas: []*autoscalingv2.HorizontalPodAutoscaler{
+				{
+					TypeMeta:   metav1.TypeMeta{Kind: "HorizontalPodAutoscaler", APIVersion: "autoscaling/v2"},
+					ObjectMeta: metav1.ObjectMeta{Name: "shop-hpa", Namespace: "default"},
+					Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+						MinReplicas:    intPtr(2),
+						MaxReplicas:    8,
+						ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{Kind: "Rollout", Name: "shop", APIVersion: "argoproj.io/v1alpha1"},
+					},
+				},
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-hpa": {"true"},
+				"k8s.hpa.name":              {"shop-hpa"},
+				"k8s.hpa.min-replicas":      {"2"},
+				"k8s.hpa.max-replicas":      {"8"},
+			},
+		},
+		{
+			name:    "should roll up PDB matching the Rollout's pod-template labels",
+			pods:    []*v1.Pod{testPod("aaaaa", nil)},
+			rollout: testRollout(nil),
+			pdbs: []*policyv1.PodDisruptionBudget{
+				{
+					TypeMeta:   metav1.TypeMeta{Kind: "PodDisruptionBudget", APIVersion: "policy/v1"},
+					ObjectMeta: metav1.ObjectMeta{Name: "shop-pdb", Namespace: "default"},
+					Spec: policyv1.PodDisruptionBudgetSpec{
+						Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "shop"}},
+						MinAvailable: func() *intstr.IntOrString {
+							v := intstr.FromString("50%")
+							return &v
+						}(),
+					},
+				},
+			},
+			expectedAttributes: map[string][]string{
+				"k8s.specification.has-pdb": {"true"},
+				"k8s.pdb.name":              {"shop-pdb"},
+				"k8s.pdb.min-available":     {"50%"},
 			},
 		},
 	}
@@ -196,6 +247,16 @@ func Test_rolloutDiscovery(t *testing.T) {
 				// Add service to client
 				_, err := clientset.CoreV1().Services(tt.service.Namespace).Create(context.Background(), tt.service, metav1.CreateOptions{})
 				require.NoError(t, err, "Failed to create service %s", tt.service.Name)
+			}
+
+			for _, h := range tt.hpas {
+				_, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(h.Namespace).Create(context.Background(), h, metav1.CreateOptions{})
+				require.NoError(t, err, "Failed to create HPA %s", h.Name)
+			}
+
+			for _, p := range tt.pdbs {
+				_, err := clientset.PolicyV1().PodDisruptionBudgets(p.Namespace).Create(context.Background(), p, metav1.CreateOptions{})
+				require.NoError(t, err, "Failed to create PDB %s", p.Name)
 			}
 
 			// Create discovery
@@ -576,6 +637,8 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 	}
 	return service
 }
+
+func intPtr(v int32) *int32 { return &v }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface, dynamic.Interface) {
 	clientset := testclient.NewSimpleClientset()
