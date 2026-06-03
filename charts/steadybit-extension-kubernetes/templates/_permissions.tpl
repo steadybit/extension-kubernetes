@@ -120,4 +120,14 @@ permissions for clusterrole or role
     verbs:
       - patch
   {{- end }}
+  {{- if not .Values.discovery.disabled.argoRollout }}
+  {{/* Required for Argo Rollout Scale Attack */}}
+  - apiGroups: ["argoproj.io"]
+    resources:
+      - rollouts/scale
+    verbs:
+      - get
+      - update
+      - patch
+  {{- end }}
 {{- end -}}
