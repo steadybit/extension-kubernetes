@@ -24,7 +24,7 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.1
 	github.com/steadybit/extension-kit v1.10.4
 	github.com/stretchr/testify v1.11.1
-	github.com/zegl/kube-score v1.20.1-0.20250924213608-c531e59c0918
+	github.com/zegl/kube-score v1.20.1-0.20260520132026-06dedc9ccce5
 	golang.org/x/text v0.37.0
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
