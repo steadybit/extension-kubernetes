@@ -2,7 +2,6 @@
 
 ## v2.6.25
 
-- chore: add ignore to .trivyignore.yml
 - chore: update to go 1.26.4
 - feat: add weekly auto patch-release workflow
 - feat: roll up HPA + PDB attributes onto workload targets (#307)
