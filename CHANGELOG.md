@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.6.25
+
+- chore: add ignore to .trivyignore.yml
+- chore: update to go 1.26.4
+- feat: add weekly auto patch-release workflow
+- feat: roll up HPA + PDB attributes onto workload targets (#307)
+- fix: more detailed error for kubectl exec failed
+
 ## v2.6.24
 
 - Support discovery group attribute via `STEADYBIT_EXTENSION_DISCOVERY_GROUP` env var (or `discovery.group` Helm value) — when set, the extension adds `steadybit.group=<value>` to every discovered target
