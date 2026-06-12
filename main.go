@@ -78,7 +78,7 @@ func main() {
 		if client.K8S.Permissions().IsArgoRolloutRestartPermitted() {
 			action_kit_sdk.RegisterAction(extargorollout.NewArgoRolloutRestartAction(client.K8S))
 		}
-		if client.K8S.Permissions().IsScaleArgoRolloutPermitted() {
+		if client.K8S.Permissions().IsArgoRolloutScalePermitted() {
 			action_kit_sdk.RegisterAction(extargorollout.NewScaleArgoRolloutAction())
 		}
 	}

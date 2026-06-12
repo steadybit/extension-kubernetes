@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsScaleArgoRolloutPermitted(t *testing.T) {
+func TestIsArgoRolloutScalePermitted(t *testing.T) {
 	permitted := &PermissionCheckResult{
 		Permissions: map[string]PermissionCheckOutcome{
 			"argoproj.io/rollouts/scale/get":    OK,
@@ -17,12 +17,12 @@ func TestIsScaleArgoRolloutPermitted(t *testing.T) {
 			"argoproj.io/rollouts/scale/patch":  OK,
 		},
 	}
-	assert.True(t, permitted.IsScaleArgoRolloutPermitted())
+	assert.True(t, permitted.IsArgoRolloutScalePermitted())
 
 	missing := &PermissionCheckResult{
 		Permissions: map[string]PermissionCheckOutcome{
 			"argoproj.io/rollouts/scale/get": OK,
 		},
 	}
-	assert.False(t, missing.IsScaleArgoRolloutPermitted())
+	assert.False(t, missing.IsArgoRolloutScalePermitted())
 }

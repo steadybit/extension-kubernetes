@@ -268,7 +268,7 @@ func (p *PermissionCheckResult) IsArgoRolloutRestartPermitted() bool {
 	})
 }
 
-func (p *PermissionCheckResult) IsScaleArgoRolloutPermitted() bool {
+func (p *PermissionCheckResult) IsArgoRolloutScalePermitted() bool {
 	return p.hasPermissions([]string{
 		"argoproj.io/rollouts/scale/get",
 		"argoproj.io/rollouts/scale/update",
