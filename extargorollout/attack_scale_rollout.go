@@ -89,8 +89,13 @@ func scaleArgoRollout() extcommon.KubectlOptsProvider {
 		}
 
 		oldReplicaCount, found, err := unstructured.NestedInt64(rolloutDefinition.Object, "spec", "replicas")
-		if err != nil || !found {
+		if err != nil {
 			return nil, extension_kit.ToError(fmt.Sprintf("Failed to find current replicaCount for Argo Rollout %s/%s.", namespace, rollout), err)
+		}
+		if !found {
+			// Replicas is optional in Argo Rollout spec, default value is 1
+			// See: https://github.com/argoproj/argo-rollouts/blob/4d341b31dbd2e673c766b5f09cb6803a6ae2192e/utils/defaults/defaults.go#L111
+			oldReplicaCount = 1
 		}
 
 		command := []string{"kubectl",
