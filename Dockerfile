@@ -40,7 +40,7 @@ RUN make licenses-report
 ##
 ## Runtime
 ##
-FROM alpine:3.23
+FROM alpine:3.24
 
 ARG VERSION=unknown
 ARG REVISION=unknown
