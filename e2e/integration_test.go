@@ -118,6 +118,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "argoRolloutDiscovery",
 		Test: testArgoRolloutDiscovery,
 	},
+	{
+		Name: "scaleArgoRollout",
+		Test: testScaleArgoRollout,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -2140,6 +2144,87 @@ func testArgoRolloutDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, target.Attributes["k8s.workload-owner"][0], rolloutName)
 	assert.Equal(t, target.Attributes["k8s.cluster-name"][0], "e2e-cluster")
 	assert.Equal(t, target.Attributes["k8s.distribution"][0], "kubernetes")
+}
+
+func testScaleArgoRollout(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testScaleArgoRollout because it is using role binding, and is therefore not supported")
+		return
+	}
+
+	log.Info().Msg("Starting testScaleArgoRollout")
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	// Install Argo Rollouts
+	initArgoRollouts(t, m, ctx)
+
+	// Create a Rollout resource with 2 replicas
+	rolloutName := "nginx-rollout-scale"
+	createRolloutResource(t, m, rolloutName)
+	defer func() { cleanupArgoRollouts(m, rolloutName) }()
+
+	// Wait for the Rollout to be discovered
+	target, err := e2e.PollForTarget(ctx, e, extargorollout.ArgoRolloutTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.argo-rollout", rolloutName)
+	})
+	require.NoError(t, err, "Failed to discover Argo Rollout")
+
+	// Wait for the Rollout's 2 pods to come up
+	distinctPodNames := make(map[string]string)
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, rolloutName+"-") {
+				distinctPodNames[pod] = pod
+			}
+		}
+		return len(distinctPodNames) == 2
+	})
+	require.NoError(t, err)
+	log.Info().Msgf("rollout is running with 2 pods")
+
+	// scale rollout to 3
+	config := struct {
+		Duration     int `json:"duration"`
+		ReplicaCount int `json:"replicaCount"`
+	}{
+		Duration:     10000,
+		ReplicaCount: 3,
+	}
+	_, err = e.RunAction(extargorollout.ArgoRolloutScaleActionId, &action_kit_api.Target{
+		Name: target.Id,
+		Attributes: map[string][]string{
+			"k8s.namespace":    {"default"},
+			"k8s.argo-rollout": {rolloutName},
+		},
+	}, config, nil)
+	require.NoError(t, err)
+
+	// pods are upscaled to 3
+	distinctPodNames = make(map[string]string)
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, rolloutName+"-") {
+				distinctPodNames[pod] = pod
+			}
+		}
+		return len(distinctPodNames) == 3
+	})
+	require.NoError(t, err)
+	log.Info().Msgf("rollout is scaled to 3")
+
+	// replica count is reverted to 2 after the attack
+	distinctPodNames = make(map[string]string)
+	_, err = e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		for _, pod := range target.Attributes["k8s.pod.name"] {
+			if strings.HasPrefix(pod, rolloutName+"-") {
+				distinctPodNames[pod] = pod
+			}
+		}
+		return len(distinctPodNames) == 2
+	})
+	require.NoError(t, err)
+	log.Info().Msgf("rollout replica count is back to 2")
 }
 
 func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {

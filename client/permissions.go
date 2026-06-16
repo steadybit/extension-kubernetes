@@ -68,14 +68,15 @@ var requiredPermissions = []requiredPermission{
 	{group: "networking.k8s.io", resource: "ingressclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 }
 
-var argoRolloutPermission = requiredPermission{
-	group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch", "patch"}, allowGracefulFailure: true,
+var argoRolloutPermissions = []requiredPermission{
+	{group: "argoproj.io", resource: "rollouts", verbs: []string{"get", "list", "watch", "patch"}, allowGracefulFailure: true},
+	{group: "argoproj.io", resource: "rollouts", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
 }
 
 func getRequiredPermissions() []requiredPermission {
 	permissions := requiredPermissions
 	if !extconfig.Config.DiscoveryDisabledArgoRollout {
-		permissions = append(permissions, argoRolloutPermission)
+		permissions = append(permissions, argoRolloutPermissions...)
 	}
 	return permissions
 }
@@ -264,6 +265,14 @@ func (p *PermissionCheckResult) IsSetImageDeploymentPermitted() bool {
 func (p *PermissionCheckResult) IsArgoRolloutRestartPermitted() bool {
 	return p.hasPermissions([]string{
 		"argoproj.io/rollouts/patch",
+	})
+}
+
+func (p *PermissionCheckResult) IsArgoRolloutScalePermitted() bool {
+	return p.hasPermissions([]string{
+		"argoproj.io/rollouts/scale/get",
+		"argoproj.io/rollouts/scale/update",
+		"argoproj.io/rollouts/scale/patch",
 	})
 }
 
