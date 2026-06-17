@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.26
+
+- build(deps): bump alpine from 3.23 to 3.24
+- feat: scale argo rollout attack (#313)
+
 ## v2.6.25
 
 - chore: update to go 1.26.4
