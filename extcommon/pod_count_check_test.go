@@ -42,6 +42,22 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 			wantedErrorMessage: new("shop/checkout has no ready pods."),
 		},
 		{
+			name: "podCountEquals0Success",
+			preparedState: preparedState{
+				podCountCheckMode: PodCountEquals0,
+			},
+			readyCount:         0,
+			wantedErrorMessage: nil,
+		},
+		{
+			name: "podCountEquals0Failure",
+			preparedState: preparedState{
+				podCountCheckMode: PodCountEquals0,
+			},
+			readyCount:         2,
+			wantedErrorMessage: new("shop/checkout has 2 ready pods, expected 0."),
+		},
+		{
 			name: "podCountEqualsDesiredCountSuccess",
 			preparedState: preparedState{
 				podCountCheckMode: PodCountEqualsDesiredCount,
@@ -158,6 +174,115 @@ func Test_statusPodCountCheckInternal(t *testing.T) {
 				assert.Equalf(t, *tt.wantedErrorMessage, result.Error.Title, "Error message should be %s", *tt.wantedErrorMessage)
 			} else {
 				assert.Nil(t, result.Error, "Error should be nil")
+			}
+		})
+	}
+}
+
+func Test_statusPodCountCheckStatusCheckMode(t *testing.T) {
+	tests := []struct {
+		name            string
+		statusCheckMode StatusCheckMode
+		timeoutElapsed  bool
+		readyCount      int
+		desiredCount    int
+		wantCompleted   bool
+		wantError       bool
+	}{
+		{
+			name:            "atLeastOnce succeeds immediately when condition is met",
+			statusCheckMode: StatusCheckModeAtLeastOnce,
+			timeoutElapsed:  false,
+			readyCount:      2,
+			desiredCount:    2,
+			wantCompleted:   true,
+			wantError:       false,
+		},
+		{
+			name:            "atLeastOnce keeps running while condition is not met and timeout not reached",
+			statusCheckMode: StatusCheckModeAtLeastOnce,
+			timeoutElapsed:  false,
+			readyCount:      1,
+			desiredCount:    2,
+			wantCompleted:   false,
+			wantError:       false,
+		},
+		{
+			name:            "atLeastOnce fails once timeout reached and condition never met",
+			statusCheckMode: StatusCheckModeAtLeastOnce,
+			timeoutElapsed:  true,
+			readyCount:      1,
+			desiredCount:    2,
+			wantCompleted:   true,
+			wantError:       true,
+		},
+		{
+			name:            "empty status check mode defaults to atLeastOnce",
+			statusCheckMode: "",
+			timeoutElapsed:  false,
+			readyCount:      2,
+			desiredCount:    2,
+			wantCompleted:   true,
+			wantError:       false,
+		},
+		{
+			name:            "allTheTime keeps running while condition holds and timeout not reached",
+			statusCheckMode: StatusCheckModeAllTheTime,
+			timeoutElapsed:  false,
+			readyCount:      2,
+			desiredCount:    2,
+			wantCompleted:   false,
+			wantError:       false,
+		},
+		{
+			name:            "allTheTime fails fast when condition is violated",
+			statusCheckMode: StatusCheckModeAllTheTime,
+			timeoutElapsed:  false,
+			readyCount:      1,
+			desiredCount:    2,
+			wantCompleted:   true,
+			wantError:       true,
+		},
+		{
+			name:            "allTheTime succeeds once the duration has elapsed without violation",
+			statusCheckMode: StatusCheckModeAllTheTime,
+			timeoutElapsed:  true,
+			readyCount:      2,
+			desiredCount:    2,
+			wantCompleted:   true,
+			wantError:       false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			timeout := time.Now().Add(time.Minute)
+			if tt.timeoutElapsed {
+				timeout = time.Now().Add(-time.Minute)
+			}
+
+			state := PodCountCheckState{
+				Timeout:           timeout,
+				PodCountCheckMode: PodCountEqualsDesiredCount,
+				StatusCheckMode:   tt.statusCheckMode,
+				Namespace:         "shop",
+				Target:            "checkout",
+			}
+
+			action := &PodCountCheckAction{
+				ActionId:   "test",
+				TargetType: "testTargetType",
+				GetDesiredAndCurrentPodCount: func(k8s *client.Client, namespace string, target string) (*int32, int32, error) {
+					return new(int32(tt.desiredCount)), int32(tt.readyCount), nil
+				},
+			}
+
+			result, err := action.Status(context.Background(), &state)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantCompleted, result.Completed)
+			if tt.wantError {
+				assert.NotNil(t, result.Error)
+			} else {
+				assert.Nil(t, result.Error)
 			}
 		})
 	}

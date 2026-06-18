@@ -72,6 +72,7 @@ func TestPrepareCheckExtractsState(t *testing.T) {
 	require.Nil(t, result)
 	require.True(t, state.Timeout.After(time.Now()))
 	require.Equal(t, extcommon.PodCountEqualsDesiredCount, state.PodCountCheckMode)
+	require.Equal(t, extcommon.StatusCheckModeAtLeastOnce, state.StatusCheckMode, "missing statusCheckMode must default to atLeastOnce for backward compatibility")
 	require.Equal(t, "shop", state.Namespace)
 	require.Equal(t, "checkout", state.Target)
 	require.Equal(t, 3, state.InitialCount)

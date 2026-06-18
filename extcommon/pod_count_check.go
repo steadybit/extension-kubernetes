@@ -19,11 +19,19 @@ import (
 
 const (
 	PodCountMin1                      CheckMode = "podCountMin1"
+	PodCountEquals0                   CheckMode = "podCountEquals0"
 	PodCountEqualsDesiredCount        CheckMode = "podCountEqualsDesiredCount"
 	PodCountGreaterEqualsDesiredCount CheckMode = "podCountGreaterEqualsDesiredCount"
 	PodCountLessThanDesiredCount      CheckMode = "podCountLessThanDesiredCount"
 	PodCountDecreased                 CheckMode = "podCountDecreased"
 	PodCountIncreased                 CheckMode = "podCountIncreased"
+)
+
+const (
+	// StatusCheckModeAtLeastOnce requires the condition to be fulfilled at least once within the duration.
+	StatusCheckModeAtLeastOnce StatusCheckMode = "atLeastOnce"
+	// StatusCheckModeAllTheTime requires the condition to be fulfilled during the complete duration.
+	StatusCheckModeAllTheTime StatusCheckMode = "allTheTime"
 )
 
 type PodCountCheckAction struct {
@@ -38,9 +46,12 @@ type PodCountCheckAction struct {
 
 type CheckMode string
 
+type StatusCheckMode string
+
 type PodCountCheckState struct {
 	Timeout           time.Time
 	PodCountCheckMode CheckMode
+	StatusCheckMode   StatusCheckMode
 	Namespace         string
 	Target            string
 	InitialCount      int
@@ -49,6 +60,7 @@ type PodCountCheckState struct {
 type PodCountCheckConfig struct {
 	Duration          int
 	PodCountCheckMode CheckMode
+	StatusCheckMode   StatusCheckMode
 }
 
 var _ action_kit_sdk.Action[PodCountCheckState] = (*PodCountCheckAction)(nil)
@@ -77,8 +89,8 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 		Parameters: []action_kit_api.ActionParameter{
 			{
 				Name:         "duration",
-				Label:        "Timeout",
-				Description:  new("How long should the check wait for the specified pod count."),
+				Label:        "Duration",
+				Description:  new("How long should the check run for the specified pod count."),
 				Type:         action_kit_api.ActionParameterTypeDuration,
 				DefaultValue: new("10s"),
 				Order:        new(1),
@@ -96,6 +108,10 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 					action_kit_api.ExplicitParameterOption{
 						Label: "ready count > 0",
 						Value: string(PodCountMin1),
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "ready count = 0",
+						Value: string(PodCountEquals0),
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "ready count = desired count",
@@ -116,6 +132,25 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 					action_kit_api.ExplicitParameterOption{
 						Label: "actual count decreases",
 						Value: string(PodCountDecreased),
+					},
+				}),
+			},
+			{
+				Name:         "statusCheckMode",
+				Label:        "Status Check Mode",
+				Description:  new("How often should the status be expected? At least once: the condition has to be fulfilled at least once within the given duration. All the time: the condition has to be fulfilled during the complete duration."),
+				Type:         action_kit_api.ActionParameterTypeString,
+				DefaultValue: new(string(StatusCheckModeAtLeastOnce)),
+				Order:        new(3),
+				Required:     new(true),
+				Options: new([]action_kit_api.ParameterOption{
+					action_kit_api.ExplicitParameterOption{
+						Label: "All the time",
+						Value: string(StatusCheckModeAllTheTime),
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "At least once",
+						Value: string(StatusCheckModeAtLeastOnce),
 					},
 				}),
 			},
@@ -144,8 +179,14 @@ func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckStat
 		return nil, extension_kit.ToError(fmt.Sprintf("%s/%s has no desired count", namespace, target), nil)
 	}
 
+	statusCheckMode := config.StatusCheckMode
+	if statusCheckMode == "" {
+		statusCheckMode = StatusCheckModeAtLeastOnce
+	}
+
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
 	state.PodCountCheckMode = config.PodCountCheckMode
+	state.StatusCheckMode = statusCheckMode
 	state.Namespace = namespace
 	state.Target = target
 	state.InitialCount = int(current)
@@ -165,7 +206,10 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	}
 
 	readyCount := int(current)
-	desiredCount := int(*desired)
+	desiredCount := 0
+	if desired != nil {
+		desiredCount = int(*desired)
+	}
 
 	var checkError *action_kit_api.ActionKitError
 	switch state.PodCountCheckMode {
@@ -173,6 +217,13 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 		if !(readyCount >= 1) {
 			checkError = new(action_kit_api.ActionKitError{
 				Title:  fmt.Sprintf("%s/%s has no ready pods.", state.Namespace, state.Target),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			})
+		}
+	case PodCountEquals0:
+		if !(readyCount == 0) {
+			checkError = new(action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s/%s has %d ready pods, expected 0.", state.Namespace, state.Target, readyCount),
 				Status: extutil.Ptr(action_kit_api.Failed),
 			})
 		}
@@ -218,15 +269,29 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 		})
 	}
 
+	if state.StatusCheckMode == StatusCheckModeAllTheTime {
+		// The condition must hold for the complete duration: fail fast on the first violation,
+		// otherwise keep checking until the duration has elapsed.
+		if checkError != nil {
+			return &action_kit_api.StatusResult{
+				Completed: true,
+				Error:     checkError,
+			}, nil
+		}
+		return &action_kit_api.StatusResult{
+			Completed: now.After(state.Timeout),
+		}, nil
+	}
+
+	// StatusCheckModeAtLeastOnce (default): succeed as soon as the condition is fulfilled,
+	// otherwise report the last error once the duration has elapsed.
 	if now.After(state.Timeout) {
 		return &action_kit_api.StatusResult{
 			Completed: true,
 			Error:     checkError,
 		}, nil
-	} else {
-		return &action_kit_api.StatusResult{
-			Completed: checkError == nil,
-		}, nil
 	}
-
+	return &action_kit_api.StatusResult{
+		Completed: checkError == nil,
+	}, nil
 }
