@@ -116,6 +116,8 @@ func (d *daemonSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit
 			extcommon.AddPdbAttributes(attributes, d.k8s.PodDisruptionBudgetsForPodLabels(ds.Namespace, ds.Spec.Template.Labels))
 		}
 
+		extcommon.AddProbePathAttributes(attributes, ds.Spec.Template.Spec.Containers)
+
 		targets[i] = discovery_kit_api.Target{
 			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, ds.Namespace, ds.Name),
 			TargetType: DaemonSetTargetType,

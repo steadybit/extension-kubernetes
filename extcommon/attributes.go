@@ -82,6 +82,20 @@ func (a *attributeDescriber) DescribeAttributes() []discovery_kit_api.AttributeD
 				Other: "ReplicaSet names",
 			},
 		},
+		{
+			Attribute: LivenessProbePathAttribute,
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Liveness probe path",
+				Other: "Liveness probe paths",
+			},
+		},
+		{
+			Attribute: ReadinessProbePathAttribute,
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Readiness probe path",
+				Other: "Readiness probe paths",
+			},
+		},
 	}
 }
 

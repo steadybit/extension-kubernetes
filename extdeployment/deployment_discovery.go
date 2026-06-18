@@ -134,6 +134,7 @@ func (d *deploymentDiscovery) DiscoverTargets(_ context.Context) ([]discovery_ki
 		for container := range deployment.Spec.Template.Spec.Containers {
 			attributes["k8s.container.name"] = append(attributes["k8s.container.name"], deployment.Spec.Template.Spec.Containers[container].Name)
 		}
+		extcommon.AddProbePathAttributes(attributes, deployment.Spec.Template.Spec.Containers)
 
 		targets[i] = discovery_kit_api.Target{
 			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, deployment.Namespace, deployment.Name),
