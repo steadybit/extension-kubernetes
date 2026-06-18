@@ -164,7 +164,9 @@ func Test_deploymentDiscovery(t *testing.T) {
 			}),
 			service: testService(nil),
 			expectedAttributes: map[string][]string{
-				"k8s.specification.probes.summary": {"OK"},
+				"k8s.specification.probes.summary":        {"OK"},
+				"k8s.specification.probes.liveness.path":  {"/live"},
+				"k8s.specification.probes.readiness.path": {"/ready"},
 			},
 		},
 		{

@@ -123,6 +123,8 @@ func (d *statefulSetDiscovery) DiscoverTargets(_ context.Context) ([]discovery_k
 			extcommon.AddPdbAttributes(attributes, d.k8s.PodDisruptionBudgetsForPodLabels(sts.Namespace, sts.Spec.Template.Labels))
 		}
 
+		extcommon.AddProbePathAttributes(attributes, sts.Spec.Template.Spec.Containers)
+
 		targets[i] = discovery_kit_api.Target{
 			Id:         fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, sts.Namespace, sts.Name),
 			TargetType: StatefulSetTargetType,
