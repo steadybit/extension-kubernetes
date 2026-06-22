@@ -5,6 +5,7 @@
 - feat: add "Status Check Mode" (at least once / all the time) to the Deployment, StatefulSet, DaemonSet and ReplicaSet Pod Count Check. Defaults to "at least once" to keep the existing behavior (backward-compatible).
 - feat: add "ready count = 0" pod count check mode to validate that pods are scaled down.
 - The "Timeout" parameter of the Pod Count Check is now labeled "Duration" (label-only change, backward-compatible).
+- feat: Deployment and StatefulSet Pod Count Checks now emit pod-count metrics and show the readiness widget alongside the check timeline.
 
 ## v2.6.26
 

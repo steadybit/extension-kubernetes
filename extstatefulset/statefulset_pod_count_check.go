@@ -11,6 +11,7 @@ import (
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 func NewStatefulSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action[extcommon.PodCountCheckState] {
@@ -36,5 +37,30 @@ func NewStatefulSetPodCountCheckAction(k8s *client.Client) action_kit_sdk.Action
 			}
 			return d.Spec.Replicas, d.Status.ReadyReplicas, nil
 		},
+		MetricLabelKey: "k8s.statefulset",
+		GetPodCountMetrics: func(k8s *client.Client, namespace string, target string) (*extcommon.PodCountMetrics, error) {
+			d := k8s.StatefulSetByNamespaceAndName(namespace, target)
+			if d == nil {
+				return nil, nil
+			}
+			return statefulSetPodCountMetrics(d), nil
+		},
+		Widget: action_kit_api.PredefinedWidget{
+			Type:               action_kit_api.ComSteadybitWidgetPredefined,
+			PredefinedWidgetId: "com.steadybit.widget.predefined.DeploymentReadinessWidget",
+		},
+	}
+}
+
+func statefulSetPodCountMetrics(d *appsv1.StatefulSet) *extcommon.PodCountMetrics {
+	var desired int32
+	if d.Spec.Replicas != nil {
+		desired = *d.Spec.Replicas
+	}
+	return &extcommon.PodCountMetrics{
+		Desired:   desired,
+		Current:   d.Status.Replicas,
+		Ready:     d.Status.ReadyReplicas,
+		Available: d.Status.AvailableReplicas,
 	}
 }
