@@ -42,6 +42,17 @@ type PodCountCheckAction struct {
 	SelectionTemplates           *action_kit_api.TargetSelectionTemplates
 	GetTarget                    func(request action_kit_api.PrepareActionRequestBody) string
 	GetDesiredAndCurrentPodCount func(k8s *client.Client, namespace string, target string) (*int32, int32, error)
+	// GetPodCountMetrics is optional. When set, Status() emits pod-count metric
+	// series each tick so the widget can render alongside the check.
+	GetPodCountMetrics func(k8s *client.Client, namespace string, target string) (*PodCountMetrics, error)
+	// MetricLabelKey is the k8s label key used to identify the resource in emitted
+	// metrics (e.g. "k8s.deployment" or "k8s.statefulset"). Required when
+	// GetPodCountMetrics is set.
+	MetricLabelKey string
+	// Widget is optional. When set it is included in Describe() so the platform
+	// renders it next to the check timeline. Pass an action_kit_api.PredefinedWidget
+	// or any other concrete widget type.
+	Widget interface{}
 }
 
 type CheckMode string
@@ -54,6 +65,7 @@ type PodCountCheckState struct {
 	StatusCheckMode   StatusCheckMode
 	Namespace         string
 	Target            string
+	MetricLabelKey    string
 	InitialCount      int
 }
 
@@ -155,6 +167,12 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 				}),
 			},
 		},
+		Widgets: func() *[]action_kit_api.Widget {
+			if f.Widget == nil {
+				return nil
+			}
+			return &[]action_kit_api.Widget{f.Widget}
+		}(),
 		Prepare: action_kit_api.MutatingEndpointReference{},
 		Start:   action_kit_api.MutatingEndpointReference{},
 		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
@@ -189,6 +207,7 @@ func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckStat
 	state.StatusCheckMode = statusCheckMode
 	state.Namespace = namespace
 	state.Target = target
+	state.MetricLabelKey = f.MetricLabelKey
 	state.InitialCount = int(current)
 	return nil, nil
 }
@@ -209,6 +228,14 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	desiredCount := 0
 	if desired != nil {
 		desiredCount = int(*desired)
+	}
+
+	var metrics []action_kit_api.Metric
+	if f.GetPodCountMetrics != nil {
+		counts, metricsErr := f.GetPodCountMetrics(f.Client, state.Namespace, state.Target)
+		if metricsErr == nil && counts != nil {
+			metrics = BuildPodCountMetrics(state.MetricLabelKey, state.Namespace, state.Target, *counts, now)
+		}
 	}
 
 	var checkError *action_kit_api.ActionKitError
@@ -269,6 +296,13 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 		})
 	}
 
+	metricsPtr := func() *[]action_kit_api.Metric {
+		if len(metrics) == 0 {
+			return nil
+		}
+		return &metrics
+	}()
+
 	if state.StatusCheckMode == StatusCheckModeAllTheTime {
 		// The condition must hold for the complete duration: fail fast on the first violation,
 		// otherwise keep checking until the duration has elapsed.
@@ -276,10 +310,12 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 			return &action_kit_api.StatusResult{
 				Completed: true,
 				Error:     checkError,
+				Metrics:   metricsPtr,
 			}, nil
 		}
 		return &action_kit_api.StatusResult{
 			Completed: now.After(state.Timeout),
+			Metrics:   metricsPtr,
 		}, nil
 	}
 
@@ -289,9 +325,11 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 		return &action_kit_api.StatusResult{
 			Completed: true,
 			Error:     checkError,
+			Metrics:   metricsPtr,
 		}, nil
 	}
 	return &action_kit_api.StatusResult{
 		Completed: checkError == nil,
+		Metrics:   metricsPtr,
 	}, nil
 }

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.28
+
+- feat: Deployment and StatefulSet Pod Count Checks now emit pod-count metrics and show the readiness widget alongside the check timeline.
+- refactor: extract shared `BuildPodCountMetrics` helper in `extcommon` so the Pod Count Metrics action and the Pod Count Checks use one code path for metric construction.
+
 ## v2.6.27
 
 - feat: add "Status Check Mode" (at least once / all the time) to the Deployment, StatefulSet, DaemonSet and ReplicaSet Pod Count Check. Defaults to "at least once" to keep the existing behavior (backward-compatible).

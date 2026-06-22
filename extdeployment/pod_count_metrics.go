@@ -16,7 +16,7 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
-	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -150,48 +150,5 @@ func getMetricKey(deployment *appsv1.Deployment, metric string) string {
 }
 
 func toMetrics(deployment *appsv1.Deployment, now time.Time) []action_kit_api.Metric {
-	metrics := make([]action_kit_api.Metric, 4)
-
-	metrics[0] = action_kit_api.Metric{
-		Name: new("replicas_desired_count"),
-		Metric: map[string]string{
-			"k8s.cluster-name": extconfig.Config.ClusterName,
-			"k8s.namespace":    deployment.Namespace,
-			"k8s.deployment":   deployment.Name,
-		},
-		Timestamp: now,
-		Value:     float64(*deployment.Spec.Replicas),
-	}
-	metrics[1] = action_kit_api.Metric{
-		Name: new("replicas_current_count"),
-		Metric: map[string]string{
-			"k8s.cluster-name": extconfig.Config.ClusterName,
-			"k8s.namespace":    deployment.Namespace,
-			"k8s.deployment":   deployment.Name,
-		},
-		Timestamp: now,
-		Value:     float64(deployment.Status.Replicas),
-	}
-	metrics[2] = action_kit_api.Metric{
-		Name: new("replicas_ready_count"),
-		Metric: map[string]string{
-			"k8s.cluster-name": extconfig.Config.ClusterName,
-			"k8s.namespace":    deployment.Namespace,
-			"k8s.deployment":   deployment.Name,
-		},
-		Timestamp: now,
-		Value:     float64(deployment.Status.ReadyReplicas),
-	}
-	metrics[3] = action_kit_api.Metric{
-		Name: new("replicas_available_count"),
-		Metric: map[string]string{
-			"k8s.cluster-name": extconfig.Config.ClusterName,
-			"k8s.namespace":    deployment.Namespace,
-			"k8s.deployment":   deployment.Name,
-		},
-		Timestamp: now,
-		Value:     float64(deployment.Status.AvailableReplicas),
-	}
-
-	return metrics
+	return extcommon.BuildPodCountMetrics("k8s.deployment", deployment.Namespace, deployment.Name, *deploymentPodCountMetrics(deployment), now)
 }
