@@ -67,6 +67,7 @@ type PodCountCheckState struct {
 	Target            string
 	MetricLabelKey    string
 	InitialCount      int
+	LastMetrics       map[string]int32
 }
 
 type PodCountCheckConfig struct {
@@ -209,6 +210,7 @@ func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckStat
 	state.Target = target
 	state.MetricLabelKey = f.MetricLabelKey
 	state.InitialCount = int(current)
+	state.LastMetrics = make(map[string]int32)
 	return nil, nil
 }
 
@@ -234,7 +236,13 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	if f.GetPodCountMetrics != nil {
 		counts, metricsErr := f.GetPodCountMetrics(f.Client, state.Namespace, state.Target)
 		if metricsErr == nil && counts != nil {
-			metrics = BuildPodCountMetrics(state.MetricLabelKey, state.Namespace, state.Target, *counts, now)
+			if podCountMetricsChanged(state, counts) {
+				metrics = BuildPodCountMetrics(state.MetricLabelKey, state.Namespace, state.Target, *counts, now)
+				state.LastMetrics["desired"] = counts.Desired
+				state.LastMetrics["current"] = counts.Current
+				state.LastMetrics["ready"] = counts.Ready
+				state.LastMetrics["available"] = counts.Available
+			}
 		}
 	}
 
@@ -332,4 +340,11 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 		Completed: checkError == nil,
 		Metrics:   metricsPtr,
 	}, nil
+}
+
+func podCountMetricsChanged(state *PodCountCheckState, counts *PodCountMetrics) bool {
+	return state.LastMetrics["desired"] != counts.Desired ||
+		state.LastMetrics["current"] != counts.Current ||
+		state.LastMetrics["ready"] != counts.Ready ||
+		state.LastMetrics["available"] != counts.Available
 }
