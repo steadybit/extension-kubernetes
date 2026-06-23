@@ -232,20 +232,6 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 		desiredCount = int(*desired)
 	}
 
-	var metrics []action_kit_api.Metric
-	if f.GetPodCountMetrics != nil {
-		counts, metricsErr := f.GetPodCountMetrics(f.Client, state.Namespace, state.Target)
-		if metricsErr == nil && counts != nil {
-			if podCountMetricsChanged(state, counts) {
-				metrics = BuildPodCountMetrics(state.MetricLabelKey, state.Namespace, state.Target, *counts, now)
-				state.LastMetrics["desired"] = counts.Desired
-				state.LastMetrics["current"] = counts.Current
-				state.LastMetrics["ready"] = counts.Ready
-				state.LastMetrics["available"] = counts.Available
-			}
-		}
-	}
-
 	var checkError *action_kit_api.ActionKitError
 	switch state.PodCountCheckMode {
 	case PodCountMin1:
@@ -302,6 +288,29 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 			Title:  fmt.Sprintf("Unknown check mode: %s", state.PodCountCheckMode),
 			Status: extutil.Ptr(action_kit_api.Errored),
 		})
+	}
+
+	// Determine whether this is the completing tick before deciding on metric emission.
+	completing := false
+	if state.StatusCheckMode == StatusCheckModeAllTheTime {
+		completing = checkError != nil || now.After(state.Timeout)
+	} else {
+		completing = checkError == nil || now.After(state.Timeout)
+	}
+
+	var metrics []action_kit_api.Metric
+	if f.GetPodCountMetrics != nil {
+		counts, metricsErr := f.GetPodCountMetrics(f.Client, state.Namespace, state.Target)
+		if metricsErr == nil && counts != nil {
+			// Always emit on the completing tick so the widget has a final data point.
+			if completing || podCountMetricsChanged(state, counts) {
+				metrics = BuildPodCountMetrics(state.MetricLabelKey, state.Namespace, state.Target, *counts, now)
+				state.LastMetrics["desired"] = counts.Desired
+				state.LastMetrics["current"] = counts.Current
+				state.LastMetrics["ready"] = counts.Ready
+				state.LastMetrics["available"] = counts.Available
+			}
+		}
 	}
 
 	metricsPtr := func() *[]action_kit_api.Metric {
