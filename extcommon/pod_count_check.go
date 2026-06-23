@@ -352,6 +352,9 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 }
 
 func podCountMetricsChanged(state *PodCountCheckState, counts *PodCountMetrics) bool {
+	if _, firstEmission := state.LastMetrics["desired"]; !firstEmission {
+		return true
+	}
 	return state.LastMetrics["desired"] != counts.Desired ||
 		state.LastMetrics["current"] != counts.Current ||
 		state.LastMetrics["ready"] != counts.Ready ||
