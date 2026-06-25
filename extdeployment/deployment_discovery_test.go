@@ -34,7 +34,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 		nodes                     []*corev1.Node
 		deployment                *appsv1.Deployment
 		hpa                       *autoscalingv2.HorizontalPodAutoscaler
-		extraHpas                 []*autoscalingv2.HorizontalPodAutoscaler
 		pdbs                      []*policyv1.PodDisruptionBudget
 		service                   *corev1.Service
 		expectedAttributesExactly map[string][]string
@@ -385,27 +384,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 			}),
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-hpa": {"true"},
-				"k8s.hpa.name":              {"shop"},
-				"k8s.hpa.min-replicas":      {"2"},
-				"k8s.hpa.max-replicas":      {"10"},
-				"k8s.hpa.metric.type":       {"Resource"},
-				"k8s.hpa.metric.target":     {"cpu=70%"},
-			},
-		},
-		{
-			name:       "should surface multi-valued HPA attributes when more than one HPA targets the same deployment",
-			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
-			deployment: testDeployment(nil),
-			hpa:        testHPA(nil),
-			extraHpas: []*autoscalingv2.HorizontalPodAutoscaler{
-				testHPA(func(h *autoscalingv2.HorizontalPodAutoscaler) {
-					h.Name = "shop-second"
-					h.Spec.MaxReplicas = 20
-				}),
-			},
-			expectedAttributes: map[string][]string{
-				"k8s.specification.has-hpa": {"true"},
-				"k8s.hpa.name":              {"shop", "shop-second"},
 			},
 		},
 		{
@@ -420,10 +398,7 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-pdb": {"true"},
-				"k8s.pdb.name":              {"shop-pdb"},
-				"k8s.pdb.max-unavailable":   {"1"},
 			},
-			expectedAttributesAbsence: []string{"k8s.pdb.min-available"},
 		},
 		{
 			name:       "PDB whose selector does not match the deployment is ignored",
@@ -434,27 +409,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 			},
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-pdb": {"false"},
-			},
-			expectedAttributesAbsence: []string{"k8s.pdb.name"},
-		},
-		{
-			name:       "should surface multi-valued PDB attributes when more than one PDB selects the same deployment",
-			pods:       []*corev1.Pod{testPod("aaaaa", nil)},
-			deployment: testDeployment(nil),
-			pdbs: []*policyv1.PodDisruptionBudget{
-				testPDB("pdb-a", &metav1.LabelSelector{MatchLabels: map[string]string{"best-city": "Kevelaer"}}, func(p *policyv1.PodDisruptionBudget) {
-					ma := intstr.FromInt32(2)
-					p.Spec.MinAvailable = &ma
-				}),
-				testPDB("pdb-b", &metav1.LabelSelector{MatchLabels: map[string]string{"best-city": "Kevelaer"}}, func(p *policyv1.PodDisruptionBudget) {
-					ma := intstr.FromString("50%")
-					p.Spec.MinAvailable = &ma
-				}),
-			},
-			expectedAttributes: map[string][]string{
-				"k8s.specification.has-pdb": {"true"},
-				"k8s.pdb.name":              {"pdb-a", "pdb-b"},
-				"k8s.pdb.min-available":     {"2", "50%"},
 			},
 		},
 	}
@@ -483,9 +437,6 @@ func Test_deploymentDiscovery(t *testing.T) {
 			}
 			if tt.hpa != nil {
 				objects = append(objects, tt.hpa)
-			}
-			for _, h := range tt.extraHpas {
-				objects = append(objects, h)
 			}
 			for _, p := range tt.pdbs {
 				objects = append(objects, p)

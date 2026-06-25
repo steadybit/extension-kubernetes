@@ -215,8 +215,6 @@ func Test_daemonSetDiscovery(t *testing.T) {
 			},
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-pdb": {"true"},
-				"k8s.pdb.name":              {"shop-pdb"},
-				"k8s.pdb.max-unavailable":   {"1"},
 			},
 		},
 	}

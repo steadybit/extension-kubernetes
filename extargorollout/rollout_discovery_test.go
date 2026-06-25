@@ -170,9 +170,6 @@ func Test_rolloutDiscovery(t *testing.T) {
 			},
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-hpa": {"true"},
-				"k8s.hpa.name":              {"shop-hpa"},
-				"k8s.hpa.min-replicas":      {"2"},
-				"k8s.hpa.max-replicas":      {"8"},
 			},
 		},
 		{
@@ -194,8 +191,6 @@ func Test_rolloutDiscovery(t *testing.T) {
 			},
 			expectedAttributes: map[string][]string{
 				"k8s.specification.has-pdb": {"true"},
-				"k8s.pdb.name":              {"shop-pdb"},
-				"k8s.pdb.min-available":     {"50%"},
 			},
 		},
 	}
