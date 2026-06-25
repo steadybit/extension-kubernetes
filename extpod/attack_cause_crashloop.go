@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -17,6 +18,12 @@ import (
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 )
+
+// validSignal matches a signal given as a number (e.g. "15") or a name (e.g. "SIGTERM", "TERM").
+// The signal reaches a "kill" invocation, so it is validated here to reject shell metacharacters
+// and give a clean error. The ParameterOption list is only a UI hint and is not enforced by the
+// platform, so this server-side check is what actually constrains the value.
+var validSignal = regexp.MustCompile(`^[A-Za-z0-9]+$`)
 
 type CrashLoopAction struct {
 }
@@ -183,6 +190,10 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 		}
 	}
 
+	if config.Signal != "" && !validSignal.MatchString(config.Signal) {
+		return nil, extension_kit.ToError(fmt.Sprintf("Invalid signal %q. Expected a signal number (e.g. 15) or name (e.g. SIGTERM).", config.Signal), nil)
+	}
+
 	state.Namespace = namespace
 	state.Pod = podName
 	state.Container = config.Container
@@ -222,7 +233,9 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "-" + signal, "1"}); err != nil {
 			log.Info().Err(err).Msgf("Direct kill failed for container %s in pod %s, retrying via /bin/sh", cs.Name, state.Pod)
 
-			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", fmt.Sprintf("kill -%s 1", signal)}); err != nil {
+			// Pass the signal as a shell positional argument ($1) rather than interpolating it
+			// into the script, so it is never re-parsed by the shell and cannot inject commands.
+			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", `kill -"$1" 1`, "sh", signal}); err != nil {
 				return nil, err
 			}
 		}

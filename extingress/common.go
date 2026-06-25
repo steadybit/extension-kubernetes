@@ -5,6 +5,8 @@ package extingress
 
 import (
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kit/extbuild"
@@ -36,7 +38,26 @@ func parseRequestMatcher(config map[string]any) (RequestMatcher, error) {
 		return matcher, fmt.Errorf("at least one condition (path, method, or header) is required")
 	}
 
+	// Matcher values are interpolated into nginx/haproxy config snippets. Reject control
+	// characters (in particular newlines) so a value cannot break out of its directive and
+	// inject additional configuration into the ingress controller.
+	if containsControlChar(matcher.PathPattern) {
+		return matcher, fmt.Errorf("path pattern must not contain control characters")
+	}
+	if containsControlChar(matcher.HttpMethod) {
+		return matcher, fmt.Errorf("HTTP method must not contain control characters")
+	}
+	for name, value := range matcher.HttpHeader {
+		if containsControlChar(name) || containsControlChar(value) {
+			return matcher, fmt.Errorf("HTTP header condition must not contain control characters")
+		}
+	}
+
 	return matcher, nil
+}
+
+func containsControlChar(value string) bool {
+	return strings.IndexFunc(value, unicode.IsControl) >= 0
 }
 
 func getCommonActionDescription(targetType, id, label, description, icon string) action_kit_api.ActionDescription {
