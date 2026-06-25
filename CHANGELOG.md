@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- fix: validate the crash-loop `signal` parameter and pass it to the fallback shell as a positional argument, preventing command injection into the target pod (the signal option list is a UI hint only and was not enforced)
+- fix: reject control characters in ingress request-matcher conditions (path/method/header), preventing injection of additional directives into the nginx/HAProxy ingress controller configuration
+
 ## v2.6.27
 
 - feat: shrink HPA/PDB rollup to boolean flags only (`k8s.specification.has-hpa` / `has-pdb`) — drops the detailed multi-valued attributes that caused per-cycle platform DB churn on large clusters
