@@ -2,10 +2,15 @@
 
 ## v2.6.27
 
+- feat: shrink HPA/PDB rollup to boolean flags only (`k8s.specification.has-hpa` / `has-pdb`) — drops the detailed multi-valued attributes that caused per-cycle platform DB churn on large clusters
+- feat: expose liveness/readiness HTTP probe paths as discovery attributes
 - feat: add "Status Check Mode" (at least once / all the time) to the Deployment, StatefulSet, DaemonSet and ReplicaSet Pod Count Check. Defaults to "at least once" to keep the existing behavior (backward-compatible).
 - feat: add "ready count = 0" pod count check mode to validate that pods are scaled down.
 - The "Timeout" parameter of the Pod Count Check is now labeled "Duration" (label-only change, backward-compatible).
 - feat: Deployment and StatefulSet Pod Count Checks now emit pod-count metrics and show the readiness widget alongside the check timeline.
+- fix: always emit first and final metric points per check run to capture initial state and close widget gaps
+- fix: only emit pod-count metrics when values change to avoid tiny bars in the widget
+- Update dependencies
 
 ## v2.6.26
 
