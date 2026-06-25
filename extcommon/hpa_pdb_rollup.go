@@ -5,6 +5,7 @@ package extcommon
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -21,6 +22,11 @@ func AddHpaAttributes(attributes map[string][]string, hpas []*autoscalingv2.Hori
 		return
 	}
 	attributes["k8s.specification.has-hpa"] = []string{"true"}
+
+	// Stable attribute order across discovery cycles. The lister-backed callers
+	// return items in non-deterministic map-iteration order; without this sort
+	// every multi-HPA workload would re-upload to the platform every cycle.
+	sort.SliceStable(hpas, func(i, j int) bool { return hpas[i].Name < hpas[j].Name })
 
 	names := make([]string, 0, len(hpas))
 	for _, h := range hpas {
@@ -141,6 +147,9 @@ func AddPdbAttributes(attributes map[string][]string, pdbs []*policyv1.PodDisrup
 		return
 	}
 	attributes["k8s.specification.has-pdb"] = []string{"true"}
+
+	// Stable attribute order — same reasoning as AddHpaAttributes.
+	sort.SliceStable(pdbs, func(i, j int) bool { return pdbs[i].Name < pdbs[j].Name })
 
 	names := make([]string, 0, len(pdbs))
 	mins := make([]string, 0, len(pdbs))
