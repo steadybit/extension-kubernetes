@@ -18,6 +18,16 @@ var ArgoRolloutGVK = schema.GroupVersionKind{
 	Kind:    "Rollout",
 }
 
+// triggerableUnstructuredGVKs lists the dynamic (unstructured) resource kinds whose change events
+// should trigger a low-latency discovery refresh. Unstructured objects all share the same Go type,
+// so they cannot be matched by reflect.Type like typed resources — we match on their GVK instead.
+var triggerableUnstructuredGVKs = []schema.GroupVersionKind{
+	ArgoRolloutGVK,
+	{Group: client.GatewayNetworkingGroup, Version: "v1", Kind: "HTTPRoute"},
+	{Group: client.GatewayNetworkingGroup, Version: "v1", Kind: "Gateway"},
+	{Group: client.GatewayNetworkingGroup, Version: "v1", Kind: "GatewayClass"},
+}
+
 func TriggerOnKubernetesResourceChange(k8s *client.Client, t ...reflect.Type) chan struct{} {
 	chRefresh := make(chan struct{})
 	chNotification := make(chan any)
@@ -42,11 +52,9 @@ func triggerNotificationsForType(in <-chan any, out chan<- struct{}, types ...re
 
 		forward := false
 		if obj, ok := event.(*unstructured.Unstructured); ok {
-			// For unstructured resources, check if it's an Argo Rollout
+			// Unstructured resources (CRDs) can't be matched by reflect.Type, so match on GVK.
 			gvk := obj.GetObjectKind().GroupVersionKind()
-			if gvk == ArgoRolloutGVK {
-				forward = true
-			}
+			forward = slices.Contains(triggerableUnstructuredGVKs, gvk)
 		} else {
 			forward = slices.Index(types, eventType) >= 0
 		}

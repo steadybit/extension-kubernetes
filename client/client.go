@@ -58,6 +58,35 @@ var ArgoRolloutGVR = schema.GroupVersionResource{
 	Resource: "rollouts",
 }
 
+// GatewayNetworkingGroup is the Gateway API resource group.
+const GatewayNetworkingGroup = "gateway.networking.k8s.io"
+
+// EnvoyGatewayGroup is the Envoy Gateway resource group.
+const EnvoyGatewayGroup = "gateway.envoyproxy.io"
+
+var (
+	HTTPRouteGVR = schema.GroupVersionResource{
+		Group:    GatewayNetworkingGroup,
+		Version:  "v1",
+		Resource: "httproutes",
+	}
+	GatewayGVR = schema.GroupVersionResource{
+		Group:    GatewayNetworkingGroup,
+		Version:  "v1",
+		Resource: "gateways",
+	}
+	GatewayClassGVR = schema.GroupVersionResource{
+		Group:    GatewayNetworkingGroup,
+		Version:  "v1",
+		Resource: "gatewayclasses",
+	}
+	BackendTrafficPolicyGVR = schema.GroupVersionResource{
+		Group:    EnvoyGatewayGroup,
+		Version:  "v1alpha1",
+		Resource: "backendtrafficpolicies",
+	}
+)
+
 type Client struct {
 	Distribution string
 	permissions  *PermissionCheckResult
@@ -65,6 +94,12 @@ type Client struct {
 	argoRollout struct {
 		lister   RolloutLister
 		informer cache.SharedIndexInformer
+	}
+
+	envoyGateway struct {
+		httpRouteInformer    cache.SharedIndexInformer
+		gatewayInformer      cache.SharedIndexInformer
+		gatewayClassInformer cache.SharedIndexInformer
 	}
 
 	daemonSet struct {
@@ -480,6 +515,32 @@ func (c *Client) ArgoRolloutByNamespaceAndName(namespace string, name string) *u
 	return item
 }
 
+func listUnstructuredFromInformer(informer cache.SharedIndexInformer) []*unstructured.Unstructured {
+	if informer == nil {
+		return []*unstructured.Unstructured{}
+	}
+	items := informer.GetIndexer().List()
+	result := make([]*unstructured.Unstructured, 0, len(items))
+	for _, item := range items {
+		if obj, ok := item.(*unstructured.Unstructured); ok {
+			result = append(result, obj)
+		}
+	}
+	return result
+}
+
+func (c *Client) HTTPRoutes() []*unstructured.Unstructured {
+	return listUnstructuredFromInformer(c.envoyGateway.httpRouteInformer)
+}
+
+func (c *Client) Gateways() []*unstructured.Unstructured {
+	return listUnstructuredFromInformer(c.envoyGateway.gatewayInformer)
+}
+
+func (c *Client) GatewayClasses() []*unstructured.Unstructured {
+	return listUnstructuredFromInformer(c.envoyGateway.gatewayClassInformer)
+}
+
 func (c *Client) ServicesByPod(pod *corev1.Pod) []*corev1.Service {
 	services, err := c.service.lister.Services(pod.Namespace).List(labels.Everything())
 	if err != nil {
@@ -812,7 +873,7 @@ func PrepareClient(stopCh <-chan struct{}) {
 	permissions := checkPermissions(clientset)
 
 	var dynamicClient dynamic.Interface
-	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+	if !extconfig.Config.DiscoveryDisabledArgoRollout || !extconfig.Config.DiscoveryDisabledEnvoyGateway {
 		var err error
 		dynamicClient, err = dynamic.NewForConfig(config)
 		if err != nil {
@@ -858,8 +919,11 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 	var informerSyncList []cache.InformerSynced
 	var dynamicFactory dynamicinformer.DynamicSharedInformerFactory
 
-	// Initialize Argo Rollouts informer if enabled
-	if !extconfig.Config.DiscoveryDisabledArgoRollout {
+	// Envoy Gateway discovery relies on cluster-scoped (GatewayClass) and cross-namespace
+	// (Gateway) resources, so it is only supported when no namespace filter is configured.
+	envoyGatewayEnabled := !extconfig.Config.DiscoveryDisabledEnvoyGateway && !extconfig.HasNamespaceFilter()
+
+	if !extconfig.Config.DiscoveryDisabledArgoRollout || envoyGatewayEnabled {
 		if extconfig.HasNamespaceFilter() {
 			dynamicFactory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
 				dynamicClient,
@@ -873,6 +937,10 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 				informerResyncDuration,
 			)
 		}
+	}
+
+	// Initialize Argo Rollouts informer if enabled
+	if !extconfig.Config.DiscoveryDisabledArgoRollout {
 		argoRolloutInformer := dynamicFactory.ForResource(ArgoRolloutGVR)
 		client.argoRollout.informer = argoRolloutInformer.Informer()
 		client.argoRollout.lister = &rolloutLister{indexer: argoRolloutInformer.Informer().GetIndexer()}
@@ -881,6 +949,28 @@ func CreateClient(clientset kubernetes.Interface, stopCh <-chan struct{}, rootAp
 		log.Info().Msg("Argo Rollouts informer initialized (sync not required for readiness)")
 		if _, err := client.argoRollout.informer.AddEventHandler(client.resourceEventHandler); err != nil {
 			log.Fatal().Err(err).Msg("failed to add argo rollout event handler")
+		}
+	}
+
+	// Initialize Envoy Gateway informers (HTTPRoute, Gateway, GatewayClass) if enabled.
+	// Like Argo Rollouts, these CRDs may not be installed yet, so we do not block readiness
+	// on their sync.
+	if envoyGatewayEnabled {
+		httpRouteInformer := dynamicFactory.ForResource(HTTPRouteGVR)
+		client.envoyGateway.httpRouteInformer = httpRouteInformer.Informer()
+		gatewayInformer := dynamicFactory.ForResource(GatewayGVR)
+		client.envoyGateway.gatewayInformer = gatewayInformer.Informer()
+		gatewayClassInformer := dynamicFactory.ForResource(GatewayClassGVR)
+		client.envoyGateway.gatewayClassInformer = gatewayClassInformer.Informer()
+		log.Info().Msg("Envoy Gateway informers initialized (sync not required for readiness)")
+		for _, informer := range []cache.SharedIndexInformer{
+			client.envoyGateway.httpRouteInformer,
+			client.envoyGateway.gatewayInformer,
+			client.envoyGateway.gatewayClassInformer,
+		} {
+			if _, err := informer.AddEventHandler(client.resourceEventHandler); err != nil {
+				log.Fatal().Err(err).Msg("failed to add envoy gateway event handler")
+			}
 		}
 	}
 

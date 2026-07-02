@@ -19,3 +19,51 @@ tests:
           statefulSet: true
     asserts:
       - matchSnapshot: { }
+  - it: should grant Envoy Gateway permissions when enabled
+    set:
+      discovery:
+        disabled:
+          envoyGateway: false
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["gateway.networking.k8s.io"]
+            resources:
+              - httproutes
+              - gateways
+              - gatewayclasses
+            verbs:
+              - get
+              - list
+              - watch
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["gateway.envoyproxy.io"]
+            resources:
+              - backendtrafficpolicies
+            verbs:
+              - get
+              - list
+              - watch
+              - create
+              - update
+              - patch
+              - delete
+  - it: should not grant Envoy Gateway permissions by default
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["gateway.envoyproxy.io"]
+            resources:
+              - backendtrafficpolicies
+            verbs:
+              - get
+              - list
+              - watch
+              - create
+              - update
+              - patch
+              - delete
