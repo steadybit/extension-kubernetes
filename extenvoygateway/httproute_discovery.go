@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
@@ -132,7 +133,6 @@ func (d *httpRouteDiscovery) resolveEnvoyGateways(route *unstructured.Unstructur
 	}
 
 	var matching []gatewayRef
-	var gatewayClass string
 	for _, ref := range parentRefs {
 		refMap, ok := ref.(map[string]any)
 		if !ok {
@@ -157,7 +157,22 @@ func (d *httpRouteDiscovery) resolveEnvoyGateways(route *unstructured.Unstructur
 			continue
 		}
 		matching = append(matching, gw)
-		gatewayClass = className
+	}
+	// Sort and dedup so the resulting multi-valued attributes are stable across discovery cycles
+	// (unstable ordering churns the platform's target store). Sorting the (namespace, name) pairs
+	// together keeps the gateway / gateway.namespace attributes aligned, and makes the derived
+	// gatewayclass deterministic when a route attaches to Envoy gateways of different classes.
+	slices.SortFunc(matching, func(a, b gatewayRef) int {
+		if c := strings.Compare(a.namespace, b.namespace); c != 0 {
+			return c
+		}
+		return strings.Compare(a.name, b.name)
+	})
+	matching = slices.Compact(matching)
+
+	var gatewayClass string
+	if len(matching) > 0 {
+		gatewayClass = gatewayToClass[matching[0]]
 	}
 	return matching, gatewayClass
 }
@@ -175,7 +190,7 @@ func (d *httpRouteDiscovery) toTarget(route *unstructured.Unstructured, gateways
 	}
 
 	if hostnames, found, err := unstructured.NestedStringSlice(route.Object, "spec", "hostnames"); err == nil && found && len(hostnames) > 0 {
-		attributes["k8s.envoy-gateway.http-route.hostname"] = hostnames
+		attributes["k8s.envoy-gateway.http-route.hostname"] = sortDedup(hostnames)
 	}
 
 	var gatewayNames, gatewayNamespaces []string
@@ -187,7 +202,7 @@ func (d *httpRouteDiscovery) toTarget(route *unstructured.Unstructured, gateways
 	attributes["k8s.envoy-gateway.gateway.namespace"] = gatewayNamespaces
 
 	if ruleNames := ruleNames(route); len(ruleNames) > 0 {
-		attributes["k8s.envoy-gateway.http-route.rule"] = ruleNames
+		attributes["k8s.envoy-gateway.http-route.rule"] = sortDedup(ruleNames)
 	}
 
 	for key, value := range route.GetLabels() {
@@ -205,6 +220,14 @@ func (d *httpRouteDiscovery) toTarget(route *unstructured.Unstructured, gateways
 		Label:      name,
 		Attributes: attributes,
 	}
+}
+
+// sortDedup returns a sorted, de-duplicated copy so multi-valued attributes stay stable across
+// discovery cycles and don't churn the platform's target store.
+func sortDedup(values []string) []string {
+	out := slices.Clone(values)
+	slices.Sort(out)
+	return slices.Compact(out)
 }
 
 // ruleNames returns the names of named route rules (eligible for sectionName targeting).
