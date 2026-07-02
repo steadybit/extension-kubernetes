@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -185,6 +186,7 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 				for _, service := range services {
 					serviceNames = append(serviceNames, service.Name)
 				}
+				slices.Sort(serviceNames)
 				attributes["k8s.service.name"] = serviceNames
 			}
 
