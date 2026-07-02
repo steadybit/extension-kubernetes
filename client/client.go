@@ -58,24 +58,30 @@ var ArgoRolloutGVR = schema.GroupVersionResource{
 	Resource: "rollouts",
 }
 
+// GatewayNetworkingGroup is the Gateway API resource group.
+const GatewayNetworkingGroup = "gateway.networking.k8s.io"
+
+// EnvoyGatewayGroup is the Envoy Gateway resource group.
+const EnvoyGatewayGroup = "gateway.envoyproxy.io"
+
 var (
 	HTTPRouteGVR = schema.GroupVersionResource{
-		Group:    "gateway.networking.k8s.io",
+		Group:    GatewayNetworkingGroup,
 		Version:  "v1",
 		Resource: "httproutes",
 	}
 	GatewayGVR = schema.GroupVersionResource{
-		Group:    "gateway.networking.k8s.io",
+		Group:    GatewayNetworkingGroup,
 		Version:  "v1",
 		Resource: "gateways",
 	}
 	GatewayClassGVR = schema.GroupVersionResource{
-		Group:    "gateway.networking.k8s.io",
+		Group:    GatewayNetworkingGroup,
 		Version:  "v1",
 		Resource: "gatewayclasses",
 	}
 	BackendTrafficPolicyGVR = schema.GroupVersionResource{
-		Group:    "gateway.envoyproxy.io",
+		Group:    EnvoyGatewayGroup,
 		Version:  "v1alpha1",
 		Resource: "backendtrafficpolicies",
 	}

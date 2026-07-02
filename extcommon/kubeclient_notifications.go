@@ -23,9 +23,9 @@ var ArgoRolloutGVK = schema.GroupVersionKind{
 // so they cannot be matched by reflect.Type like typed resources — we match on their GVK instead.
 var triggerableUnstructuredGVKs = []schema.GroupVersionKind{
 	ArgoRolloutGVK,
-	{Group: "gateway.networking.k8s.io", Version: "v1", Kind: "HTTPRoute"},
-	{Group: "gateway.networking.k8s.io", Version: "v1", Kind: "Gateway"},
-	{Group: "gateway.networking.k8s.io", Version: "v1", Kind: "GatewayClass"},
+	{Group: client.GatewayNetworkingGroup, Version: "v1", Kind: "HTTPRoute"},
+	{Group: client.GatewayNetworkingGroup, Version: "v1", Kind: "Gateway"},
+	{Group: client.GatewayNetworkingGroup, Version: "v1", Kind: "GatewayClass"},
 }
 
 func TriggerOnKubernetesResourceChange(k8s *client.Client, t ...reflect.Type) chan struct{} {

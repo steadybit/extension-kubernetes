@@ -18,11 +18,13 @@ func registerGVK(scheme *runtime.Scheme, gvk schema.GroupVersionKind) {
 // resources whose informers are created by client.CreateClient when their (opt-in) features are
 // enabled — in tests the feature flags default to their zero value (enabled), so the fake client
 // must know these resources to avoid the informers panicking on LIST.
+const gatewayNetworkingGroup = "gateway.networking.k8s.io"
+
 var defaultListKinds = map[schema.GroupVersionResource]string{
 	{Group: "argoproj.io", Version: "v1alpha1", Resource: "rollouts"}:                         "RolloutList",
-	{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "httproutes"}:               "HTTPRouteList",
-	{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gateways"}:                 "GatewayList",
-	{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gatewayclasses"}:           "GatewayClassList",
+	{Group: gatewayNetworkingGroup, Version: "v1", Resource: "httproutes"}:                    "HTTPRouteList",
+	{Group: gatewayNetworkingGroup, Version: "v1", Resource: "gateways"}:                      "GatewayList",
+	{Group: gatewayNetworkingGroup, Version: "v1", Resource: "gatewayclasses"}:                "GatewayClassList",
 	{Group: "gateway.envoyproxy.io", Version: "v1alpha1", Resource: "backendtrafficpolicies"}: "BackendTrafficPolicyList",
 }
 

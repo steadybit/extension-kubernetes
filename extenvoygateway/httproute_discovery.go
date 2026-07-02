@@ -57,14 +57,14 @@ func (d *httpRouteDiscovery) DescribeTarget() discovery_kit_api.TargetDescriptio
 		Icon:     extutil.Ptr(EnvoyGatewayIcon),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
-				{Attribute: "k8s.envoy-gateway.http-route"},
+				{Attribute: attrHttpRoute},
 				{Attribute: "k8s.envoy-gateway.http-route.hostname"},
 				{Attribute: "k8s.envoy-gateway.gateway"},
 				{Attribute: "k8s.namespace"},
 				{Attribute: "k8s.cluster-name"},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
-				{Attribute: "k8s.envoy-gateway.http-route", Direction: "ASC"},
+				{Attribute: attrHttpRoute, Direction: "ASC"},
 			},
 		},
 	}
@@ -124,6 +124,28 @@ func (d *httpRouteDiscovery) gatewayToGatewayClass() map[gatewayRef]string {
 	return result
 }
 
+// parseGatewayParentRef extracts a Gateway reference from an HTTPRoute parentRef entry, applying
+// Gateway API defaulting: kind defaults to Gateway (non-Gateway kinds are skipped) and namespace
+// defaults to the route's namespace. Returns false when the entry is not a usable Gateway reference.
+func parseGatewayParentRef(ref any, routeNamespace string) (gatewayRef, bool) {
+	refMap, ok := ref.(map[string]any)
+	if !ok {
+		return gatewayRef{}, false
+	}
+	if kind, ok := refMap["kind"].(string); ok && kind != "" && kind != "Gateway" {
+		return gatewayRef{}, false
+	}
+	name, ok := refMap["name"].(string)
+	if !ok || name == "" {
+		return gatewayRef{}, false
+	}
+	namespace, _ := refMap["namespace"].(string)
+	if namespace == "" {
+		namespace = routeNamespace
+	}
+	return gatewayRef{namespace: namespace, name: name}, true
+}
+
 // resolveEnvoyGateways walks the route's parentRefs and returns the Gateways that belong to an Envoy
 // Gateway GatewayClass, plus the resolved GatewayClass name.
 func (d *httpRouteDiscovery) resolveEnvoyGateways(route *unstructured.Unstructured, gatewayToClass map[gatewayRef]string, envoyGatewayClasses map[string]bool) ([]gatewayRef, string) {
@@ -134,29 +156,13 @@ func (d *httpRouteDiscovery) resolveEnvoyGateways(route *unstructured.Unstructur
 
 	var matching []gatewayRef
 	for _, ref := range parentRefs {
-		refMap, ok := ref.(map[string]any)
+		gw, ok := parseGatewayParentRef(ref, route.GetNamespace())
 		if !ok {
 			continue
 		}
-		// parentRef kind defaults to Gateway; group defaults to gateway.networking.k8s.io.
-		if kind, ok := refMap["kind"].(string); ok && kind != "" && kind != "Gateway" {
-			continue
+		if className, ok := gatewayToClass[gw]; ok && envoyGatewayClasses[className] {
+			matching = append(matching, gw)
 		}
-		name, ok := refMap["name"].(string)
-		if !ok || name == "" {
-			continue
-		}
-		namespace, _ := refMap["namespace"].(string)
-		if namespace == "" {
-			namespace = route.GetNamespace()
-		}
-
-		gw := gatewayRef{namespace: namespace, name: name}
-		className, ok := gatewayToClass[gw]
-		if !ok || !envoyGatewayClasses[className] {
-			continue
-		}
-		matching = append(matching, gw)
 	}
 	// Sort and dedup so the resulting multi-valued attributes are stable across discovery cycles
 	// (unstable ordering churns the platform's target store). Sorting the (namespace, name) pairs
@@ -185,7 +191,7 @@ func (d *httpRouteDiscovery) toTarget(route *unstructured.Unstructured, gateways
 		"k8s.namespace":                  {namespace},
 		"k8s.cluster-name":               {extconfig.Config.ClusterName},
 		"k8s.distribution":               {d.k8s.Distribution},
-		"k8s.envoy-gateway.http-route":   {name},
+		attrHttpRoute:                    {name},
 		"k8s.envoy-gateway.gatewayclass": {gatewayClass},
 	}
 

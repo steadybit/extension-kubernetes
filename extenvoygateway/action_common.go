@@ -46,7 +46,7 @@ func (a *backendTrafficPolicyAction) Describe() action_kit_api.ActionDescription
 
 func (a *backendTrafficPolicyAction) Prepare(ctx context.Context, state *ActionState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	namespace := request.Target.Attributes["k8s.namespace"]
-	routeName := request.Target.Attributes["k8s.envoy-gateway.http-route"]
+	routeName := request.Target.Attributes[attrHttpRoute]
 	if len(namespace) == 0 || len(routeName) == 0 {
 		return nil, extension_kit.ToError("Missing required target attributes k8s.namespace and/or k8s.envoy-gateway.http-route.", nil)
 	}

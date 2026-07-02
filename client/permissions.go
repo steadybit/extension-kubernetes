@@ -74,10 +74,10 @@ var argoRolloutPermissions = []requiredPermission{
 }
 
 var envoyGatewayPermissions = []requiredPermission{
-	{group: "gateway.networking.k8s.io", resource: "httproutes", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
-	{group: "gateway.networking.k8s.io", resource: "gateways", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
-	{group: "gateway.networking.k8s.io", resource: "gatewayclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
-	{group: "gateway.envoyproxy.io", resource: "backendtrafficpolicies", verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}, allowGracefulFailure: true},
+	{group: GatewayNetworkingGroup, resource: "httproutes", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: GatewayNetworkingGroup, resource: "gateways", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: GatewayNetworkingGroup, resource: "gatewayclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: EnvoyGatewayGroup, resource: "backendtrafficpolicies", verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}, allowGracefulFailure: true},
 }
 
 func getRequiredPermissions() []requiredPermission {
