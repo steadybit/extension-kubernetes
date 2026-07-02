@@ -46,6 +46,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
 	"github.com/steadybit/extension-kubernetes/v2/extdaemonset"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
+	"github.com/steadybit/extension-kubernetes/v2/extenvoygateway"
 	"github.com/steadybit/extension-kubernetes/v2/extevents"
 	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
@@ -80,6 +81,15 @@ func main() {
 		}
 		if client.K8S.Permissions().IsArgoRolloutScalePermitted() {
 			action_kit_sdk.RegisterAction(extargorollout.NewScaleArgoRolloutAction())
+		}
+	}
+
+	if !extconfig.Config.DiscoveryDisabledEnvoyGateway && !extconfig.HasNamespaceFilter() && client.K8S.Permissions().IsListEnvoyGatewayHttpRoutesPermitted() {
+		discovery_kit_sdk.Register(extenvoygateway.NewHttpRouteDiscovery(client.K8S))
+		if client.K8S.Permissions().IsModifyBackendTrafficPolicyPermitted() {
+			action_kit_sdk.RegisterAction(extenvoygateway.NewDelayAction(client.K8S))
+			action_kit_sdk.RegisterAction(extenvoygateway.NewStatusAction(client.K8S))
+			action_kit_sdk.RegisterAction(extenvoygateway.NewResponseBodyAction(client.K8S))
 		}
 	}
 

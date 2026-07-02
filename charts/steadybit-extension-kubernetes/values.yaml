@@ -202,6 +202,8 @@ discovery:
       statefulSet: []
       # discovery.attributes.excludes.argoRollout -- List of attributes to exclude from Argo Rollout discovery.
       argoRollout: []
+      # discovery.attributes.excludes.envoyGateway -- List of attributes to exclude from Envoy Gateway HTTP route discovery.
+      envoyGateway: []
   disabled:
     # discovery.disabled.cluster -- Should the extension skip discovery of cluster targets?
     cluster: false
@@ -221,6 +223,8 @@ discovery:
     replicaSet: true
     # discovery.disabled.argoRollout -- Should the extension skip discovery of Argo rollouts?
     argoRollout: true
+    # discovery.disabled.envoyGateway -- Should the extension skip discovery of Envoy Gateway HTTP routes?
+    envoyGateway: true
     # discovery.disabled.statefulSet -- Should the extension skip discovery of statefulSets?
     statefulSet: false
 service:
