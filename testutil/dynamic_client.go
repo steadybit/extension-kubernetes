@@ -12,31 +12,39 @@ func registerGVK(scheme *runtime.Scheme, gvk schema.GroupVersionKind) {
 	scheme.AddKnownTypeWithName(gvk, &unstructured.Unstructured{})
 }
 
-// NewFakeDynamicClient creates a fake dynamic client with additional custom types.
-// If no GVKs are provided, it defaults to Argo Rollouts for backward compatibility.
-// To add additional types, pass them as arguments:
+// defaultListKinds maps the dynamic (CRD) resources the extension may watch to their list kinds.
+// The fake dynamic client would otherwise naively pluralize kinds (e.g. Gateway -> "gatewaies"),
+// which does not match the real resource names, so we register them explicitly. These are the
+// resources whose informers are created by client.CreateClient when their (opt-in) features are
+// enabled — in tests the feature flags default to their zero value (enabled), so the fake client
+// must know these resources to avoid the informers panicking on LIST.
+var defaultListKinds = map[schema.GroupVersionResource]string{
+	{Group: "argoproj.io", Version: "v1alpha1", Resource: "rollouts"}:                         "RolloutList",
+	{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "httproutes"}:               "HTTPRouteList",
+	{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gateways"}:                 "GatewayList",
+	{Group: "gateway.networking.k8s.io", Version: "v1", Resource: "gatewayclasses"}:           "GatewayClassList",
+	{Group: "gateway.envoyproxy.io", Version: "v1alpha1", Resource: "backendtrafficpolicies"}: "BackendTrafficPolicyList",
+}
+
+// NewFakeDynamicClient creates a fake dynamic client. With no arguments it registers every CRD the
+// extension may watch (Argo Rollouts and the Envoy Gateway resources) so that a client built from it
+// does not panic when the corresponding informers LIST. To register only specific types instead,
+// pass them as arguments:
 //
 //	NewFakeDynamicClient(
-//		schema.GroupVersionKind{Group: "argoproj.io", Version: "v1alpha1", Kind: "Rollout"},
 //		schema.GroupVersionKind{Group: "example.com", Version: "v1", Kind: "CustomResource"},
+//		schema.GroupVersionKind{Group: "example.com", Version: "v1", Kind: "CustomResourceList"},
 //	)
 func NewFakeDynamicClient(gvks ...schema.GroupVersionKind) *fake.FakeDynamicClient {
 	scheme := runtime.NewScheme()
 
-	// Default to Argo Rollout if no GVKs provided
 	if len(gvks) == 0 {
-		gvks = []schema.GroupVersionKind{
-			{
-				Group:   "argoproj.io",
-				Version: "v1alpha1",
-				Kind:    "Rollout",
-			},
-			{
-				Group:   "argoproj.io",
-				Version: "v1alpha1",
-				Kind:    "RolloutList",
-			},
+		for gvr, listKind := range defaultListKinds {
+			gv := gvr.GroupVersion()
+			scheme.AddKnownTypeWithName(gv.WithKind(kindFromListKind(listKind)), &unstructured.Unstructured{})
+			scheme.AddKnownTypeWithName(gv.WithKind(listKind), &unstructured.UnstructuredList{})
 		}
+		return fake.NewSimpleDynamicClientWithCustomListKinds(scheme, defaultListKinds)
 	}
 
 	// Register all provided GVKs
@@ -45,4 +53,8 @@ func NewFakeDynamicClient(gvks ...schema.GroupVersionKind) *fake.FakeDynamicClie
 	}
 
 	return fake.NewSimpleDynamicClient(scheme)
+}
+
+func kindFromListKind(listKind string) string {
+	return listKind[:len(listKind)-len("List")]
 }
