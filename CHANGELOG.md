@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix: sort multi-value discovery attributes (`k8s.container.id`, `k8s.pod.name`, `k8s.namespace`, `k8s.replicaset`, `k8s.deployment`, `k8s.daemonset`, `k8s.statefulset`, `k8s.service.name`) before attaching them to targets, so unrelated Go map/list iteration order no longer registers as a spurious attribute change on every discovery cycle
 - fix: validate the crash-loop `signal` parameter and pass it to the fallback shell as a positional argument, preventing command injection into the target pod (the signal option list is a UI hint only and was not enforced)
 - fix: reject control characters in ingress request-matcher conditions (path/method/header), preventing injection of additional directives into the nginx/HAProxy ingress controller configuration
 

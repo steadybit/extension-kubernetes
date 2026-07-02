@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -127,6 +128,7 @@ func (p *podDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.T
 			for _, service := range services {
 				serviceNames = append(serviceNames, service.Name)
 			}
+			slices.Sort(serviceNames)
 			attributes["k8s.service.name"] = serviceNames
 		}
 		targetName := fmt.Sprintf("%s/%s/%s", extconfig.Config.ClusterName, pod.Namespace, pod.Name)

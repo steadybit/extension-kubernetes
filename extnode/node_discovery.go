@@ -6,6 +6,7 @@ package extnode
 import (
 	"context"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -207,12 +208,15 @@ func (d *nodeDiscovery) DiscoverTargets(_ context.Context) ([]discovery_kit_api.
 			}
 
 			if len(containerIds) > 0 {
+				slices.Sort(containerIds)
 				attributes["k8s.container.id"] = containerIds
 			}
 			if len(containerIdsWithoutPrefix) > 0 {
+				slices.Sort(containerIdsWithoutPrefix)
 				attributes["k8s.container.id.stripped"] = containerIdsWithoutPrefix
 			}
 			if len(podNames) > 0 {
+				slices.Sort(podNames)
 				attributes["k8s.pod.name"] = podNames
 			}
 			if len(replicaSets) > 0 {
@@ -252,5 +256,6 @@ func keys(m map[string]bool) []string {
 		keys[i] = k
 		i++
 	}
+	slices.Sort(keys)
 	return keys
 }

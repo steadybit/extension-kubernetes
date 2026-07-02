@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
@@ -169,6 +170,84 @@ func Test_nodeDiscovery(t *testing.T) {
 		"k8s.node.label.label2":     {"value2"},
 		"k8s.node.label":            {"label1", "label2"},
 	}, target.Attributes)
+}
+
+func Test_nodeDiscovery_MultiValueAttributesAreSorted(t *testing.T) {
+	// Given
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	objects := []runtime.Object{
+		&v1.Node{
+			TypeMeta:   metav1.TypeMeta{Kind: "Node", APIVersion: "v1"},
+			ObjectMeta: metav1.ObjectMeta{Name: "node-123"},
+		},
+	}
+	// Deliberately named/created out of lexical order to make sure any accidental
+	// dependence on map/list iteration order would surface as a flaky assertion below.
+	podNames := []string{"zebra-pod", "mango-pod", "apple-pod"}
+	deploymentNames := []string{"zebra-deployment", "mango-deployment", "apple-deployment"}
+	serviceNames := []string{"zebra-service", "mango-service", "apple-service"}
+	containerIds := []string{"crio://zzz", "crio://mmm", "crio://aaa"}
+
+	for i := range podNames {
+		objects = append(objects,
+			&v1.Pod{
+				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      podNames[i],
+					Namespace: "default",
+					Labels:    map[string]string{"app": deploymentNames[i]},
+					OwnerReferences: []metav1.OwnerReference{
+						{Kind: "Deployment", Name: deploymentNames[i]},
+					},
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodRunning,
+					ContainerStatuses: []v1.ContainerStatus{
+						{ContainerID: containerIds[i], Name: "app", Image: "nginx"},
+					},
+				},
+				Spec: v1.PodSpec{
+					NodeName:   "node-123",
+					Containers: []v1.Container{{Name: "app", Image: "nginx"}},
+				},
+			},
+			&appsv1.Deployment{
+				TypeMeta:   metav1.TypeMeta{Kind: "Deployment", APIVersion: "apps/v1"},
+				ObjectMeta: metav1.ObjectMeta{Name: deploymentNames[i], Namespace: "default"},
+			},
+			&v1.Service{
+				TypeMeta:   metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
+				ObjectMeta: metav1.ObjectMeta{Name: serviceNames[i], Namespace: "default"},
+				Spec:       v1.ServiceSpec{Selector: map[string]string{"app": deploymentNames[i]}},
+			},
+		)
+	}
+	client := getTestClient(stopCh, objects...)
+	extconfig.Config.ClusterName = "development"
+	extconfig.Config.LabelFilter = nil
+
+	d := &nodeDiscovery{k8s: client}
+
+	// When run repeatedly, the multi-value attributes must come back in the same,
+	// sorted order every time regardless of Go's randomized map iteration order.
+	for i := 0; i < 20; i++ {
+		var targets []discovery_kit_api.Target
+		assert.EventuallyWithT(t, func(c *assert.CollectT) {
+			var err error
+			targets, err = d.DiscoverTargets(context.Background())
+			require.NoError(c, err)
+			require.Len(c, targets, 1)
+		}, 5*time.Second, 100*time.Millisecond)
+
+		attrs := targets[0].Attributes
+		assert.Equal(t, []string{"apple-deployment", "mango-deployment", "zebra-deployment"}, attrs["k8s.deployment"])
+		assert.Equal(t, []string{"apple-service", "mango-service", "zebra-service"}, attrs["k8s.service.name"])
+		assert.Equal(t, []string{"apple-pod", "mango-pod", "zebra-pod"}, attrs["k8s.pod.name"])
+		assert.Equal(t, []string{"crio://aaa", "crio://mmm", "crio://zzz"}, attrs["k8s.container.id"])
+		assert.Equal(t, []string{"aaa", "mmm", "zzz"}, attrs["k8s.container.id.stripped"])
+		assert.Equal(t, []string{"default"}, attrs["k8s.namespace"])
+	}
 }
 
 func getTestClient(stopCh <-chan struct{}, objects ...runtime.Object) *client.Client {
