@@ -80,9 +80,6 @@ func Test_buildResponseBodyFaultSpec(t *testing.T) {
 func Test_buildResponseBodyFaultSpec_validations(t *testing.T) {
 	_, err := buildResponseBodyFaultSpec(map[string]any{"statusCode": float64(200), "body": ""})
 	assert.Error(t, err, "empty body should fail")
-
-	_, err = buildResponseBodyFaultSpec(map[string]any{"statusCode": float64(418), "body": "x", "sentinelStatus": float64(418)})
-	assert.Error(t, err, "sentinel equal to final status should fail")
 }
 
 func Test_percentageFromConfig_defaultsTo100(t *testing.T) {

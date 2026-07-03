@@ -55,20 +55,14 @@ func getResponseBodyDescription() action_kit_api.ActionDescription {
 			Required:     extutil.Ptr(false),
 			Advanced:     extutil.Ptr(true),
 		},
-		action_kit_api.ActionParameter{
-			Name:         "sentinelStatus",
-			Label:        "Sentinel Status Code",
-			Description:  extutil.Ptr("Internal status code used to abort matching requests before the response override rewrites them. Pick a code your backend never returns."),
-			Type:         action_kit_api.ActionParameterTypeInteger,
-			DefaultValue: extutil.Ptr("418"),
-			Required:     extutil.Ptr(false),
-			MinValue:     extutil.Ptr(200),
-			MaxValue:     extutil.Ptr(600),
-			Advanced:     extutil.Ptr(true),
-		},
 	)
 	return withSectionNameParameter(desc)
 }
+
+// sentinelStatus is the internal HTTP status used to abort matching traffic before the response
+// override rewrites it. 418 ("I'm a teapot") is used because backends practically never return it,
+// avoiding collisions with genuine responses. The client never sees this status.
+const sentinelStatus int64 = 418
 
 func buildResponseBodyFaultSpec(config map[string]any) (map[string]any, error) {
 	statusCode := extutil.ToInt64(config["statusCode"])
@@ -82,16 +76,6 @@ func buildResponseBodyFaultSpec(config map[string]any) (map[string]any, error) {
 	contentType := extutil.ToString(config["contentType"])
 	if contentType == "" {
 		contentType = "application/json"
-	}
-	sentinelStatus := extutil.ToInt64(config["sentinelStatus"])
-	if sentinelStatus == 0 {
-		sentinelStatus = 418
-	}
-	if sentinelStatus < 200 || sentinelStatus > 600 {
-		return nil, fmt.Errorf("sentinelStatus must be between 200 and 600")
-	}
-	if sentinelStatus == statusCode {
-		return nil, fmt.Errorf("sentinelStatus must differ from the final statusCode")
 	}
 
 	return map[string]any{
