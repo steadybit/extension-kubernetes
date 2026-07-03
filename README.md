@@ -51,12 +51,12 @@ To run the different attacks "write" permissions are required:
 
 ## Envoy Gateway support
 
-Discovery of [Envoy Gateway](https://gateway.envoyproxy.io/) HTTP routes and the related attacks — *Delay HTTP Traffic*, *Change HTTP Status* and *Overwrite HTTP Response Body* — are **opt-in and disabled by default**. Enable them with `discovery.disabled.envoyGateway=false` (`STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY=false`).
+Discovery of [Envoy Gateway](https://gateway.envoyproxy.io/) HTTP routes and the related attacks — *Envoy Delay Traffic*, *Envoy Abort Traffic* and *Envoy Overwrite Response* — are **opt-in and disabled by default**. Enable them with `discovery.disabled.envoyGateway=false` (`STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY=false`).
 
 When enabled, the extension discovers `HTTPRoute`s whose parent `Gateway` belongs to a `GatewayClass` managed by Envoy Gateway (controller `gateway.envoyproxy.io/gatewayclass-controller`). Each attack applies an Envoy Gateway `BackendTrafficPolicy` to the targeted `HTTPRoute` for the duration of the attack and removes it afterwards. The corresponding RBAC (`read` on `gateway.networking.k8s.io` httproutes/gateways/gatewayclasses and full access to `gateway.envoyproxy.io/backendtrafficpolicies`) is granted automatically only when the feature is enabled.
 
 > **Minimum Envoy Gateway version: `v1.3.0`.**
-> Fault injection (delay/abort) is available in earlier releases, but the *Overwrite HTTP Response Body* attack relies on the `BackendTrafficPolicy` `responseOverride` feature — specifically the response `statusCode` override and the `source` selector — which is available from Envoy Gateway `v1.3.0`. This is the version the extension is tested against.
+> Fault injection (delay/abort) is available in earlier releases, but the *Envoy Overwrite Response* attack relies on the `BackendTrafficPolicy` `responseOverride` feature — specifically the response `statusCode` override and the `source` selector — which is available from Envoy Gateway `v1.3.0`. This is the version the extension is tested against.
 
 > **Note:** Envoy Gateway support requires cluster-scoped access (GatewayClasses are cluster-scoped), so it is not available when the extension is restricted to a single namespace via `STEADYBIT_EXTENSION_NAMESPACE`.
 

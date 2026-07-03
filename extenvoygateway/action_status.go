@@ -24,7 +24,7 @@ func NewStatusAction(k8s *client.Client) action_kit_sdk.Action[ActionState] {
 func getStatusDescription() action_kit_api.ActionDescription {
 	desc := getCommonActionDescription(
 		StatusActionId,
-		"Change HTTP Status (Envoy Gateway)",
+		"Envoy Abort Traffic",
 		"Abort a percentage of the traffic on an Envoy Gateway HTTP route with a given HTTP status code using a BackendTrafficPolicy.",
 	)
 	desc.Parameters = append(desc.Parameters, action_kit_api.ActionParameter{

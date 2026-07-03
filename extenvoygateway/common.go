@@ -10,7 +10,7 @@ import (
 
 const (
 	// EnvoyGatewayHttpRouteTargetType is the discovery target type for HTTPRoutes managed by Envoy Gateway.
-	EnvoyGatewayHttpRouteTargetType = "com.steadybit.extension_kubernetes.kubernetes-envoy-gateway-httproute"
+	EnvoyGatewayHttpRouteTargetType = "com.steadybit.extension_kubernetes.envoy-gateway-http-route"
 
 	// attrHttpRoute is the discovery attribute holding the HTTPRoute name.
 	attrHttpRoute = "k8s.envoy-gateway.http-route"

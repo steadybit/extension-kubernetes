@@ -24,7 +24,7 @@ func NewDelayAction(k8s *client.Client) action_kit_sdk.Action[ActionState] {
 func getDelayDescription() action_kit_api.ActionDescription {
 	desc := getCommonActionDescription(
 		DelayActionId,
-		"Delay HTTP Traffic (Envoy Gateway)",
+		"Envoy Delay Traffic",
 		"Inject a fixed delay into a percentage of the traffic on an Envoy Gateway HTTP route using a BackendTrafficPolicy.",
 	)
 	desc.Parameters = append(desc.Parameters, action_kit_api.ActionParameter{

@@ -24,7 +24,7 @@ func NewResponseBodyAction(k8s *client.Client) action_kit_sdk.Action[ActionState
 func getResponseBodyDescription() action_kit_api.ActionDescription {
 	desc := getCommonActionDescription(
 		ResponseBodyActionId,
-		"Overwrite HTTP Response Body (Envoy Gateway)",
+		"Envoy Overwrite Response",
 		"Overwrite the response body (and status code) for a percentage of the traffic on an Envoy Gateway HTTP route. "+
 			"Internally aborts matching requests with a sentinel status which a response override rewrites to the configured body and status.",
 	)

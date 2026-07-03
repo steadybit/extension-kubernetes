@@ -51,7 +51,7 @@ func (d *httpRouteDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 func (d *httpRouteDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       EnvoyGatewayHttpRouteTargetType,
-		Label:    discovery_kit_api.PluralLabel{One: "Envoy Gateway HTTP Route", Other: "Envoy Gateway HTTP Routes"},
+		Label:    discovery_kit_api.PluralLabel{One: "Envoy HTTP Route", Other: "Envoy HTTP Routes"},
 		Category: extutil.Ptr("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:     extutil.Ptr(EnvoyGatewayIcon),

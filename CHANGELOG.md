@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- feat: Envoy Gateway support (opt-in, disabled by default via `discovery.disabled.envoyGateway`). Discovers HTTPRoutes served by an Envoy Gateway `GatewayClass` and adds three attacks that apply an Envoy Gateway `BackendTrafficPolicy` for the attack duration: "Delay HTTP Traffic", "Change HTTP Status" and "Overwrite HTTP Response Body". Attacks refuse to run when another `BackendTrafficPolicy` already targets the route (Envoy Gateway resolves conflicts oldest-wins).
+- feat: Envoy Gateway support (opt-in, disabled by default via `discovery.disabled.envoyGateway`). Discovers HTTPRoutes served by an Envoy Gateway `GatewayClass` and adds three attacks that apply an Envoy Gateway `BackendTrafficPolicy` for the attack duration: "Envoy Delay Traffic", "Envoy Abort Traffic" and "Envoy Overwrite Response". Attacks refuse to run when another `BackendTrafficPolicy` already targets the route (Envoy Gateway resolves conflicts oldest-wins).
 - fix: sort multi-value discovery attributes (`k8s.container.id`, `k8s.pod.name`, `k8s.namespace`, `k8s.replicaset`, `k8s.deployment`, `k8s.daemonset`, `k8s.statefulset`, `k8s.service.name`) before attaching them to targets, so unrelated Go map/list iteration order no longer registers as a spurious attribute change on every discovery cycle
 - fix: validate the crash-loop `signal` parameter and pass it to the fallback shell as a positional argument, preventing command injection into the target pod (the signal option list is a UI hint only and was not enforced)
 - fix: reject control characters in ingress request-matcher conditions (path/method/header), preventing injection of additional directives into the nginx/HAProxy ingress controller configuration
