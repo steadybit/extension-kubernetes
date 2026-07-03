@@ -30,8 +30,9 @@ const (
 	managedByValue    = "extension-kubernetes"
 	executionLabelKey = "steadybit.com/execution-id"
 
-	// EnvoyGatewayIcon is a small inline gateway/route icon.
-	EnvoyGatewayIcon = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M4%206h4v4H4V6Zm12%208h4v4h-4v-4ZM6%2010v4h10v-4H6Z%22%20stroke%3D%22currentColor%22%20stroke-width%3D%221.5%22%2F%3E%3C%2Fsvg%3E"
+	// EnvoyGatewayIcon is the official Envoy Gateway logo
+	// (envoyproxy/gateway: site/assets/icons/logo.svg).
+	EnvoyGatewayIcon = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20role%3D%22img%22%20viewBox%3D%22-4.21%2049.54%20439.92%20332.67%22%3E%3Cstyle%3Esvg%20%7Benable-background%3Anew%200%200%20432%20432%7D%3C%2Fstyle%3E%3Cpath%20fill%3D%22%23b31aab%22%20d%3D%22M109.8%20210.6l.6%2025.4%2026.8%2016.6-.6-25.4zm65.4%20105.8l-.6-24.9-23.5-14.6c-.3-.2-.7-.5-1-.7l.6%2025%2024.5%2015.2zM91.5%20350l-61.3-38-1.5-63.7%2030.1-13-.6-25.5-48%2020.7c-3.7%201.6-5.9%205-5.8%208.9l1.8%2076.5c.1%203.9%202.5%207.8%206.3%2010.2L86%20371.7c3.4%202.1%207.6%202.7%2011%201.6.4-.1.7-.2%201-.4l45.1-19.4-24.5-15.2L91.5%20350z%22%2F%3E%3Cpath%20fill%3D%22%23d163ce%22%20d%3D%22M289.6%20209.1c-.1-4.6-2.9-9.1-7.3-11.9L193%20141.9l-2.8%201.2.6%2026.8%2070.7%2043.8%201.7%2071.6%2027%2016.7%201.5-.6-2.1-92.3zM182.7%20334.8l-82.9-51.4-2-86.3%2037.8-16.3-.7-29.7-58.7%2025.3c-4.3%201.9-6.9%205.8-6.8%2010.4L71.7%20288c.1%204.6%202.9%209.1%207.3%2011.8l97.2%2060.3c4%202.5%208.8%203.1%2012.9%201.9.4-.1.8-.3%201.2-.5l57.4-24.7-28.6-17.7-36.4%2015.7z%22%2F%3E%3Cpath%20fill%3D%22%23e13eaf%22%20d%3D%22M415.9%20138.3L291.3%2061c-4.6-2.8-10.1-3.6-14.8-2.1-.5.1-.9.3-1.4.5l-121.6%2052.4c-4.9%202.1-7.9%206.6-7.8%2011.9l3.1%20129.6c.1%205.3%203.3%2010.4%208.4%2013.5L281.8%20344c4.6%202.8%2010.1%203.6%2014.7%202.1.5-.1.9-.3%201.4-.5l121.6-52.4c4.9-2.1%207.9-6.7%207.8-11.9l-3-129.6c-.1-5.1-3.3-10.3-8.4-13.4zM289.3%20315.2L181%20248.1l-2.7-112.7%20105.6-45.5L392.2%20157l2.7%20112.7-105.6%2045.5z%22%2F%3E%3C%2Fsvg%3E"
 )
 
 // buildBackendTrafficPolicy builds an unstructured Envoy Gateway BackendTrafficPolicy object.
