@@ -128,8 +128,8 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Test: testEnvoyGatewayHttpRouteDiscovery,
 	},
 	{
-		Name: "envoyGatewayStatusAttack",
-		Test: testEnvoyGatewayStatusAttack,
+		Name: "envoyGatewayAbortAttack",
+		Test: testEnvoyGatewayAbortAttack,
 	},
 }
 
@@ -2407,13 +2407,13 @@ func testEnvoyGatewayHttpRouteDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Ex
 	assert.Contains(t, target.Attributes["k8s.envoy-gateway.http-route.hostname"], routeName+".example.com")
 }
 
-func testEnvoyGatewayStatusAttack(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+func testEnvoyGatewayAbortAttack(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	if isUsingRoleBinding() {
-		log.Info().Msg("Skipping testEnvoyGatewayStatusAttack because it is using role binding (namespace-scoped), which does not support cluster-scoped GatewayClass discovery")
+		log.Info().Msg("Skipping testEnvoyGatewayAbortAttack because it is using role binding (namespace-scoped), which does not support cluster-scoped GatewayClass discovery")
 		return
 	}
 
-	log.Info().Msg("Starting testEnvoyGatewayStatusAttack")
+	log.Info().Msg("Starting testEnvoyGatewayAbortAttack")
 	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
@@ -2438,7 +2438,7 @@ func testEnvoyGatewayStatusAttack(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 		Percentage: 100,
 		StatusCode: 503,
 	}
-	execution, err := e.RunAction(extenvoygateway.StatusActionId, &action_kit_api.Target{
+	execution, err := e.RunAction(extenvoygateway.AbortActionId, &action_kit_api.Target{
 		Name: target.Id,
 		Attributes: map[string][]string{
 			"k8s.namespace":                {"default"},
@@ -2450,7 +2450,7 @@ func testEnvoyGatewayStatusAttack(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 	// Start creates a BackendTrafficPolicy targeting the route.
 	require.Eventually(t, func() bool {
 		for _, name := range backendTrafficPolicyNames(m, "default") {
-			if strings.Contains(name, "steadybit-status-") {
+			if strings.Contains(name, "steadybit-abort-") {
 				return true
 			}
 		}

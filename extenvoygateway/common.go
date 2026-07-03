@@ -15,9 +15,8 @@ const (
 	// attrHttpRoute is the discovery attribute holding the HTTPRoute name.
 	attrHttpRoute = "k8s.envoy-gateway.http-route"
 
-	DelayActionId        = "com.steadybit.extension_kubernetes.envoy-gateway-http-route-delay"
-	StatusActionId       = "com.steadybit.extension_kubernetes.envoy-gateway-http-route-status"
-	ResponseBodyActionId = "com.steadybit.extension_kubernetes.envoy-gateway-http-route-response-body"
+	DelayActionId = "com.steadybit.extension_kubernetes.envoy-gateway-http-route-delay"
+	AbortActionId = "com.steadybit.extension_kubernetes.envoy-gateway-http-route-abort"
 
 	// envoyGatewayControllerName identifies GatewayClasses managed by Envoy Gateway.
 	envoyGatewayControllerName = "gateway.envoyproxy.io/gatewayclass-controller"

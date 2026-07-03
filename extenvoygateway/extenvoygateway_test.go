@@ -38,28 +38,36 @@ func Test_buildDelayFaultSpec(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func Test_buildStatusFaultSpec(t *testing.T) {
-	spec, err := buildStatusFaultSpec(map[string]any{"statusCode": float64(503), "percentage": float64(50)})
+func Test_buildAbortFaultSpec_plain(t *testing.T) {
+	spec, err := buildAbortFaultSpec(map[string]any{"statusCode": float64(503), "percentage": float64(50)})
 	require.NoError(t, err)
 
 	abort := spec["faultInjection"].(map[string]any)["abort"].(map[string]any)
 	assert.Equal(t, int64(503), abort["httpStatus"])
 	assert.Equal(t, float64(50), abort["percentage"])
+	// no body -> no response override
+	_, hasOverride := spec["responseOverride"]
+	assert.False(t, hasOverride)
 
-	_, err = buildStatusFaultSpec(map[string]any{"statusCode": float64(700)})
-	assert.Error(t, err)
+	_, err = buildAbortFaultSpec(map[string]any{"statusCode": float64(700)})
+	assert.Error(t, err, "out-of-range status should fail")
 }
 
-func Test_buildResponseBodyFaultSpec(t *testing.T) {
-	spec, err := buildResponseBodyFaultSpec(map[string]any{
+func Test_buildAbortFaultSpec_rejectsSentinelStatus(t *testing.T) {
+	_, err := buildAbortFaultSpec(map[string]any{"statusCode": float64(418)})
+	assert.Error(t, err, "418 is reserved for the internal sentinel and must be rejected")
+}
+
+func Test_buildAbortFaultSpec_withBodyOverride(t *testing.T) {
+	spec, err := buildAbortFaultSpec(map[string]any{
 		"statusCode":  float64(200),
 		"body":        `{"error":"chaos"}`,
 		"contentType": "application/json",
 		"percentage":  float64(10),
-		// sentinelStatus unset -> defaults to 418
 	})
 	require.NoError(t, err)
 
+	// aborts with the internal sentinel, not the client-facing status
 	abort := spec["faultInjection"].(map[string]any)["abort"].(map[string]any)
 	assert.Equal(t, int64(418), abort["httpStatus"])
 	assert.Equal(t, float64(10), abort["percentage"])
@@ -75,11 +83,6 @@ func Test_buildResponseBodyFaultSpec(t *testing.T) {
 	body := response["body"].(map[string]any)
 	assert.Equal(t, "Inline", body["type"])
 	assert.Equal(t, `{"error":"chaos"}`, body["inline"])
-}
-
-func Test_buildResponseBodyFaultSpec_validations(t *testing.T) {
-	_, err := buildResponseBodyFaultSpec(map[string]any{"statusCode": float64(200), "body": ""})
-	assert.Error(t, err, "empty body should fail")
 }
 
 func Test_percentageFromConfig_defaultsTo100(t *testing.T) {

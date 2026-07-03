@@ -88,8 +88,7 @@ func main() {
 		discovery_kit_sdk.Register(extenvoygateway.NewHttpRouteDiscovery(client.K8S))
 		if client.K8S.Permissions().IsModifyBackendTrafficPolicyPermitted() {
 			action_kit_sdk.RegisterAction(extenvoygateway.NewDelayAction(client.K8S))
-			action_kit_sdk.RegisterAction(extenvoygateway.NewStatusAction(client.K8S))
-			action_kit_sdk.RegisterAction(extenvoygateway.NewResponseBodyAction(client.K8S))
+			action_kit_sdk.RegisterAction(extenvoygateway.NewAbortAction(client.K8S))
 		}
 	}
 
