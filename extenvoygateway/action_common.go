@@ -71,8 +71,11 @@ func (a *backendTrafficPolicyAction) Prepare(ctx context.Context, state *ActionS
 }
 
 func (a *backendTrafficPolicyAction) Start(ctx context.Context, state *ActionState) (*action_kit_api.StartResult, error) {
-	// Re-check immediately before create to close the Prepare→Start race and catch a concurrent
-	// Steadybit attack that may have created a policy on the same route in the meantime.
+	// Re-check immediately before create to narrow the Prepare→Start window and catch a concurrent
+	// attack that already created a policy on the same route. This is best-effort: List→Create is not
+	// atomic, so two executions started at the same instant can still both create a policy, in which
+	// case Envoy Gateway resolves the conflict oldest-wins. Fully closing the window would require
+	// server-side admission control, which is out of scope.
 	if err := a.checkConflict(ctx, state); err != nil {
 		return nil, err
 	}
