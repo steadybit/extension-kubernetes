@@ -32,7 +32,7 @@ func getDelayDescription() action_kit_api.ActionDescription {
 		Label:        "Delay",
 		Description:  extutil.Ptr("The fixed delay to inject into matching requests."),
 		Type:         action_kit_api.ActionParameterTypeDuration,
-		DefaultValue: extutil.Ptr("5s"),
+		DefaultValue: extutil.Ptr("500ms"),
 		Required:     extutil.Ptr(true),
 	})
 	return withSectionNameParameter(desc)
