@@ -23,6 +23,8 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_POD`          | `discovery.attributes.excludes.pod`                                      | List of Target Attributes which will be excluded during pod discovery. Checked by key equality and supporting trailing "*"                                         | false    |                                                                      |
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ARGO_ROLLOUT` | `discovery.attributes.excludes.argoRollout`                              | List of Target Attributes which will be excluded during Argo Rollout discovery. Checked by key equality and supporting trailing "*"                               | false    |                                                                      |
 | `STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT`           | `discovery.disabled.argoRollout`                                          | Disable discovery of Argo rollouts                                                                                                                                 | false    | `true`                                                               |
+| `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ENVOY_GATEWAY` | `discovery.attributes.excludes.envoyGateway`                            | List of Target Attributes which will be excluded during Envoy Gateway HTTP route discovery. Checked by key equality and supporting trailing "*"                    | false    |                                                                      |
+| `STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY`          | `discovery.disabled.envoyGateway`                                         | Disable discovery of Envoy Gateway HTTP routes and the related attacks (see [Envoy Gateway support](#envoy-gateway-support))                                       | false    | `true`                                                               |
 | `STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET`             | `discovery.disabled.replicaSet`                                          | Disables discovery of ReplicaSets in favor of discovering Deployments, StatefulSets, DaemonSets, etc.                                                              | false    | `true`                                                               |
 | `STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT`                    | `discovery.maxPodCount`                                                  | Skip listing pods, containers and hosts for deployments, statefulsets, etc. if there are more then the given pods.                                                 | false    | 50                                                                   |
 | `STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE`                 | `discovery.refreshThrottle`                                              | Number of seconds between successive refreshes of the target data.                                                                                                 | false    | 20                                                                   |
@@ -45,6 +47,18 @@ To run the different attacks "write" permissions are required:
 - Rollout Restart Deployment: `patch` on `deployment`
 - Delete Pod Attack: `delete` on `pod`
 - Crash Loop Pod: `create` on `pod/exec` also needs to have an `sh` and `kill` binary in the target container
+- Envoy Gateway HTTP Route attacks: `create`, `delete` on `gateway.envoyproxy.io/backendtrafficpolicies` (see [Envoy Gateway support](#envoy-gateway-support))
+
+## Envoy Gateway support
+
+Discovery of [Envoy Gateway](https://gateway.envoyproxy.io/) HTTP routes and the related attacks — *Delay HTTP Traffic*, *Change HTTP Status* and *Overwrite HTTP Response Body* — are **opt-in and disabled by default**. Enable them with `discovery.disabled.envoyGateway=false` (`STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY=false`).
+
+When enabled, the extension discovers `HTTPRoute`s whose parent `Gateway` belongs to a `GatewayClass` managed by Envoy Gateway (controller `gateway.envoyproxy.io/gatewayclass-controller`). Each attack applies an Envoy Gateway `BackendTrafficPolicy` to the targeted `HTTPRoute` for the duration of the attack and removes it afterwards. The corresponding RBAC (`read` on `gateway.networking.k8s.io` httproutes/gateways/gatewayclasses and full access to `gateway.envoyproxy.io/backendtrafficpolicies`) is granted automatically only when the feature is enabled.
+
+> **Minimum Envoy Gateway version: `v1.3.0`.**
+> Fault injection (delay/abort) is available in earlier releases, but the *Overwrite HTTP Response Body* attack relies on the `BackendTrafficPolicy` `responseOverride` feature — specifically the response `statusCode` override and the `source` selector — which is available from Envoy Gateway `v1.3.0`. This is the version the extension is tested against.
+
+> **Note:** Envoy Gateway support requires cluster-scoped access (GatewayClasses are cluster-scoped), so it is not available when the extension is restricted to a single namespace via `STEADYBIT_EXTENSION_NAMESPACE`.
 
 ## Installation
 
