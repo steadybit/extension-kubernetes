@@ -20,7 +20,7 @@ require (
 	github.com/steadybit/advice-kit/go/advice_kit_test v1.1.1
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.7.1
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.3.1
-	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.3.5
+	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.3.6
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.1
 	github.com/steadybit/extension-kit v1.10.8
 	github.com/stretchr/testify v1.11.1
