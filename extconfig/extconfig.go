@@ -30,6 +30,9 @@ type Specification struct {
 	DiscoveryDisabledPod                    bool     `json:"discoveryDisabledPod" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledReplicaSet             bool     `json:"discoveryDisabledReplicaSet" required:"false" split_words:"true" default:"false"`
 	DiscoveryDisabledStatefulSet            bool     `json:"discoveryDisabledStatefulSet" required:"false" split_words:"true" default:"false"`
+	DiscoveryLabelInheritanceNamespace      bool     `json:"discoveryLabelInheritanceNamespace" required:"false" split_words:"true" default:"true"`
+	DiscoveryLabelInheritanceNode           bool     `json:"discoveryLabelInheritanceNode" required:"false" split_words:"true" default:"true"`
+	DiscoveryLabelInheritancePod            bool     `json:"discoveryLabelInheritancePod" required:"false" split_words:"true" default:"true"`
 	DiscoveryAttributesExcludesContainer    []string `json:"discoveryAttributesExcludesContainer" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDaemonSet    []string `json:"discoveryAttributesExcludesDaemonSet" split_words:"true" required:"false"`
 	DiscoveryAttributesExcludesDeployment   []string `json:"discoveryAttributesExcludesDeployment" split_words:"true" required:"false"`

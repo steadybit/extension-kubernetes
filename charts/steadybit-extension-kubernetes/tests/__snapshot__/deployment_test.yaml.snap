@@ -61,6 +61,12 @@ manifest should match snapshot using podAnnotations and Labels:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -173,6 +179,12 @@ manifest should match snapshot with TLS:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -304,6 +316,12 @@ manifest should match snapshot with attribute excluded:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -412,6 +430,12 @@ manifest should match snapshot with clusterName from parent chart:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -518,6 +542,12 @@ manifest should match snapshot with custom image registry:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -626,6 +656,12 @@ manifest should match snapshot with disabled discoveries:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -732,6 +768,12 @@ manifest should match snapshot with disabled excludes:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -838,6 +880,12 @@ manifest should match snapshot with extra env vars:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -953,6 +1001,12 @@ manifest should match snapshot with extra labels:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1059,6 +1113,12 @@ manifest should match snapshot with global image pull secrets:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1167,6 +1227,12 @@ manifest should match snapshot with global image registry:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1273,6 +1339,12 @@ manifest should match snapshot with image pull secrets:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1381,6 +1453,12 @@ manifest should match snapshot with legacy image name containing registry:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1495,6 +1573,12 @@ manifest should match snapshot with mutual TLS:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1621,6 +1705,12 @@ manifest should match snapshot with mutual TLS using containerPaths:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1727,6 +1817,12 @@ manifest should match snapshot with podSecurityContext:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1834,6 +1930,12 @@ manifest should match snapshot with priority class:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -1943,6 +2045,12 @@ manifest should match snapshot without TLS:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -2051,6 +2159,12 @@ should disable advice:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -2157,6 +2271,12 @@ should disable advice with old settings:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
@@ -2263,6 +2383,12 @@ should enable specific advice with exlude:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
                   value: "false"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
                   value: "50"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE

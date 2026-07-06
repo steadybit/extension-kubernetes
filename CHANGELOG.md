@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- feat: add flags to independently disable namespace/node/pod label inheritance during discovery
+
 ## v2.6.28
 
 - feat: Envoy Gateway support (opt-in, disabled by default via `discovery.disabled.envoyGateway`). Discovers HTTPRoutes served by an Envoy Gateway `GatewayClass` and adds two attacks that apply an Envoy Gateway `BackendTrafficPolicy` for the attack duration: "Envoy Delay Traffic" and "Envoy Abort Traffic" (the latter can optionally overwrite the response body). Attacks refuse to run when another `BackendTrafficPolicy` already targets the route (Envoy Gateway resolves conflicts oldest-wins).

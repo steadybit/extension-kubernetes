@@ -227,6 +227,13 @@ discovery:
     envoyGateway: true
     # discovery.disabled.statefulSet -- Should the extension skip discovery of statefulSets?
     statefulSet: false
+  labelInheritance:
+    # discovery.labelInheritance.namespace -- Should discovered targets inherit labels from their namespace?
+    namespace: true
+    # discovery.labelInheritance.node -- Should discovered targets inherit labels from their node?
+    node: true
+    # discovery.labelInheritance.pod -- Should containers inherit labels from their pod?
+    pod: true
 service:
   extensionlib:
     list:

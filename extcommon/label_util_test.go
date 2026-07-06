@@ -22,12 +22,13 @@ import (
 
 func Test_namespaceDiscovery(t *testing.T) {
 	tests := []struct {
-		name                      string
-		namespace                 *corev1.Namespace
-		services                  []*corev1.Service
-		expectedAttributesExactly map[string][]string
-		expectedAttributes        map[string][]string
-		expectedAttributesAbsence []string
+		name                        string
+		namespace                   *corev1.Namespace
+		services                    []*corev1.Service
+		disableNamespaceInheritance bool
+		expectedAttributesExactly   map[string][]string
+		expectedAttributes          map[string][]string
+		expectedAttributesAbsence   []string
 	}{
 		{
 			name:      "should discover basic attributes",
@@ -40,6 +41,12 @@ func Test_namespaceDiscovery(t *testing.T) {
 			},
 			expectedAttributesAbsence: []string{"k8s.label.secret-label", "k8s.namespace.label.secret-label"},
 		},
+		{
+			name:                        "should not add namespace labels when namespace label inheritance is disabled",
+			namespace:                   testNamespace(nil),
+			disableNamespaceInheritance: true,
+			expectedAttributesExactly:   map[string][]string{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -49,6 +56,7 @@ func Test_namespaceDiscovery(t *testing.T) {
 			client := getTestClient(stopCh, tt.namespace)
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
+			extconfig.Config.DiscoveryLabelInheritanceNamespace = !tt.disableNamespaceInheritance
 
 			// When
 			var attributes map[string][]string
@@ -114,9 +122,10 @@ func TestAddNodeLabels(t *testing.T) {
 		attributes map[string][]string
 	}
 	tests := []struct {
-		name string
-		args args
-		want map[string][]string
+		name               string
+		args               args
+		disableInheritance bool
+		want               map[string][]string
 	}{
 		{
 			name: "should add label to attributes",
@@ -214,9 +223,29 @@ func TestAddNodeLabels(t *testing.T) {
 
 			want: map[string][]string{},
 		},
+		{
+			name: "should not add labels when node label inheritance is disabled",
+			args: args{
+				nodes: []*corev1.Node{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "node1",
+							Labels: map[string]string{
+								"topology.kubernetes.io/region": "eu-central-1",
+							},
+						},
+					},
+				},
+				nodeName:   "node1",
+				attributes: map[string][]string{"k8s.pod.name": {"shop"}},
+			},
+			disableInheritance: true,
+			want:               map[string][]string{"k8s.pod.name": {"shop"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			extconfig.Config.DiscoveryLabelInheritanceNode = !tt.disableInheritance
 			assert.Equalf(t, tt.want, AddNodeLabels(tt.args.nodes, tt.args.nodeName, tt.args.attributes), "AddNodeLabels(%v, %v, %v)", tt.args.nodes, tt.args.nodeName, tt.args.attributes)
 		})
 	}
