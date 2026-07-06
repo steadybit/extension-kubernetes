@@ -73,10 +73,20 @@ var argoRolloutPermissions = []requiredPermission{
 	{group: "argoproj.io", resource: "rollouts", subresource: "scale", verbs: []string{"get", "update", "patch"}, allowGracefulFailure: true},
 }
 
+var envoyGatewayPermissions = []requiredPermission{
+	{group: GatewayNetworkingGroup, resource: "httproutes", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: GatewayNetworkingGroup, resource: "gateways", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: GatewayNetworkingGroup, resource: "gatewayclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
+	{group: EnvoyGatewayGroup, resource: "backendtrafficpolicies", verbs: []string{"get", "list", "watch", "create", "update", "patch", "delete"}, allowGracefulFailure: true},
+}
+
 func getRequiredPermissions() []requiredPermission {
 	permissions := requiredPermissions
 	if !extconfig.Config.DiscoveryDisabledArgoRollout {
 		permissions = append(permissions, argoRolloutPermissions...)
+	}
+	if !extconfig.Config.DiscoveryDisabledEnvoyGateway {
+		permissions = append(permissions, envoyGatewayPermissions...)
 	}
 	return permissions
 }
@@ -273,6 +283,23 @@ func (p *PermissionCheckResult) IsArgoRolloutScalePermitted() bool {
 		"argoproj.io/rollouts/scale/get",
 		"argoproj.io/rollouts/scale/update",
 		"argoproj.io/rollouts/scale/patch",
+	})
+}
+
+func (p *PermissionCheckResult) IsListEnvoyGatewayHttpRoutesPermitted() bool {
+	return p.hasPermissions([]string{
+		"gateway.networking.k8s.io/httproutes/get",
+		"gateway.networking.k8s.io/httproutes/list",
+		"gateway.networking.k8s.io/httproutes/watch",
+	})
+}
+
+func (p *PermissionCheckResult) IsModifyBackendTrafficPolicyPermitted() bool {
+	return p.hasPermissions([]string{
+		"gateway.envoyproxy.io/backendtrafficpolicies/get",
+		"gateway.envoyproxy.io/backendtrafficpolicies/list",
+		"gateway.envoyproxy.io/backendtrafficpolicies/create",
+		"gateway.envoyproxy.io/backendtrafficpolicies/delete",
 	})
 }
 

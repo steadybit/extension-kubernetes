@@ -130,4 +130,28 @@ permissions for clusterrole or role
       - update
       - patch
   {{- end }}
+  {{- if not .Values.discovery.disabled.envoyGateway }}
+  {{/* Required for Envoy Gateway HTTP Route Discovery */}}
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources:
+      - httproutes
+      - gateways
+      - gatewayclasses
+    verbs:
+      - get
+      - list
+      - watch
+  {{/* Required for Envoy Gateway HTTP Route Attacks (BackendTrafficPolicy) */}}
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources:
+      - backendtrafficpolicies
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+  {{- end }}
 {{- end -}}

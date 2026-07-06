@@ -55,6 +55,8 @@ manifest should match snapshot using podAnnotations and Labels:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -164,6 +166,8 @@ manifest should match snapshot with TLS:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -294,6 +298,8 @@ manifest should match snapshot with attribute excluded:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -400,6 +406,8 @@ manifest should match snapshot with clusterName from parent chart:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -503,6 +511,8 @@ manifest should match snapshot with custom image registry:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -610,6 +620,8 @@ manifest should match snapshot with disabled discoveries:
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -714,6 +726,8 @@ manifest should match snapshot with disabled excludes:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -817,6 +831,8 @@ manifest should match snapshot with extra env vars:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -931,6 +947,8 @@ manifest should match snapshot with extra labels:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -1034,6 +1052,8 @@ manifest should match snapshot with global image pull secrets:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -1141,6 +1161,8 @@ manifest should match snapshot with global image registry:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -1244,6 +1266,8 @@ manifest should match snapshot with image pull secrets:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -1350,6 +1374,8 @@ manifest should match snapshot with legacy image name containing registry:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -1462,6 +1488,8 @@ manifest should match snapshot with mutual TLS:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -1587,6 +1615,8 @@ manifest should match snapshot with mutual TLS using containerPaths:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -1690,6 +1720,8 @@ manifest should match snapshot with podSecurityContext:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -1795,6 +1827,8 @@ manifest should match snapshot with priority class:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
@@ -1903,6 +1937,8 @@ manifest should match snapshot without TLS:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -2009,6 +2045,8 @@ should disable advice:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -2113,6 +2151,8 @@ should disable advice with old settings:
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
                   value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
+                  value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
@@ -2216,6 +2256,8 @@ should enable specific advice with exlude:
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_POD
                   value: "false"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ARGO_ROLLOUT
+                  value: "true"
+                - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_ENVOY_GATEWAY
                   value: "true"
                 - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_REPLICA_SET
                   value: "true"

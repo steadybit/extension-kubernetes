@@ -24,6 +24,7 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
+	"github.com/steadybit/extension-kubernetes/v2/extenvoygateway"
 	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
@@ -122,6 +123,14 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Name: "scaleArgoRollout",
 		Test: testScaleArgoRollout,
 	},
+	{
+		Name: "envoyGatewayHttpRouteDiscovery",
+		Test: testEnvoyGatewayHttpRouteDiscovery,
+	},
+	{
+		Name: "envoyGatewayAbortAttack",
+		Test: testEnvoyGatewayAbortAttack,
+	},
 }
 
 func TestWithMinikube(t *testing.T) {
@@ -135,6 +144,7 @@ func TestWithMinikube(t *testing.T) {
 				"--set", "discovery.refreshThrottle=1",
 				"--set", "logging.level=DEBUG",
 				"--set", "discovery.disabled.argoRollout=false",
+				"--set", "discovery.disabled.envoyGateway=false",
 			}
 		},
 	}
@@ -158,6 +168,7 @@ func TestWithMinikubeViaRole(t *testing.T) {
 				"--set", "clusterRole.create=false",
 				"--set", "clusterRoleBinding.create=false",
 				"--set", "discovery.disabled.argoRollout=false",
+				"--set", "discovery.disabled.envoyGateway=false",
 				"--namespace", "default",
 			}
 		},
@@ -2225,6 +2236,234 @@ func testScaleArgoRollout(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	})
 	require.NoError(t, err)
 	log.Info().Msgf("rollout replica count is back to 2")
+}
+
+const (
+	envoyGatewayNamespace = "envoy-gateway-system"
+	envoyGatewayVersion   = "v1.3.0"
+	envoyGatewayClassName = "eg-e2e"
+)
+
+func installEnvoyGateway(t *testing.T, m *e2e.Minikube, ctx context.Context) {
+	log.Info().Msg("Installing Envoy Gateway")
+	cmdCtx, cancel := context.WithTimeout(ctx, 180*time.Second)
+	defer cancel()
+
+	// helm upgrade --install is idempotent, so this is safe when both Envoy Gateway tests run.
+	// The gateway-helm chart bundles the Gateway API CRDs.
+	out, err := exec.CommandContext(cmdCtx, "helm", "upgrade", "--install", "eg", //NOSONAR go:S4036
+		"oci://docker.io/envoyproxy/gateway-helm", "--version", envoyGatewayVersion,
+		"--kube-context", m.Profile, "-n", envoyGatewayNamespace, "--create-namespace").CombinedOutput()
+	require.NoError(t, err, "Failed to install Envoy Gateway: %s", out)
+
+	log.Info().Msg("Waiting for Envoy Gateway controller to be ready")
+	out, err = exec.CommandContext(cmdCtx, "kubectl", "--context", m.Profile, "-n", envoyGatewayNamespace, //NOSONAR go:S4036
+		"wait", "--for=condition=Available", "deployment/envoy-gateway", "--timeout=180s").CombinedOutput()
+	require.NoError(t, err, "Envoy Gateway controller not ready: %s", out)
+}
+
+func createEnvoyGatewayResources(t *testing.T, m *e2e.Minikube, routeName string) {
+	log.Info().Msgf("Creating Envoy Gateway resources for route %s", routeName)
+
+	manifest := fmt.Sprintf(`apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: %[2]s
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: %[2]s
+  namespace: default
+spec:
+  gatewayClassName: %[2]s
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: %[1]s-backend
+  namespace: default
+  labels:
+    app: %[1]s-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: %[1]s-backend
+  template:
+    metadata:
+      labels:
+        app: %[1]s-backend
+    spec:
+      containers:
+        - name: backend
+          image: nginx:stable-alpine
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: %[1]s-backend
+  namespace: default
+spec:
+  selector:
+    app: %[1]s-backend
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: %[1]s
+  namespace: default
+  labels:
+    team: checkout
+spec:
+  parentRefs:
+    - name: %[2]s
+  hostnames:
+    - "%[1]s.example.com"
+  rules:
+    - name: root
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: %[1]s-backend
+          port: 80
+`, routeName, envoyGatewayClassName)
+
+	cmd := exec.Command("kubectl", "--context", m.Profile, "apply", "-f", "-") //NOSONAR go:S4036
+	cmd.Stdin = strings.NewReader(manifest)
+	out, err := cmd.CombinedOutput()
+	require.NoError(t, err, "Failed to create Envoy Gateway resources: %s", out)
+}
+
+func cleanupEnvoyGateway(m *e2e.Minikube, routeName string) {
+	run := func(args ...string) {
+		_ = exec.Command("kubectl", append([]string{"--context", m.Profile}, args...)...).Run() //NOSONAR go:S4036
+	}
+	run("delete", "httproute", routeName, "-n", "default", "--ignore-not-found")
+	run("delete", "service", routeName+"-backend", "-n", "default", "--ignore-not-found")
+	run("delete", "deployment", routeName+"-backend", "-n", "default", "--ignore-not-found")
+	run("delete", "gateway", envoyGatewayClassName, "-n", "default", "--ignore-not-found")
+	run("delete", "gatewayclass", envoyGatewayClassName, "--ignore-not-found")
+	// Attack policies are removed on stop; clean up any leftovers so tests stay independent.
+	run("delete", "backendtrafficpolicies", "--all", "-n", "default")
+	log.Info().Msgf("Cleaned up Envoy Gateway resources for route %s", routeName)
+}
+
+// backendTrafficPolicyNames lists the BackendTrafficPolicy object names in the namespace. It returns
+// nil (rather than failing) on transient kubectl errors so it is safe to call inside a poll loop.
+func backendTrafficPolicyNames(m *e2e.Minikube, namespace string) []string {
+	out, err := exec.Command("kubectl", "--context", m.Profile, "get", "backendtrafficpolicies", "-n", namespace, "-o", "name").CombinedOutput() //NOSONAR go:S4036
+	if err != nil {
+		log.Warn().Err(err).Msgf("failed to list backendtrafficpolicies: %s", out)
+		return nil
+	}
+	var names []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if strings.TrimSpace(line) != "" {
+			names = append(names, strings.TrimSpace(line))
+		}
+	}
+	return names
+}
+
+func testEnvoyGatewayHttpRouteDiscovery(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testEnvoyGatewayHttpRouteDiscovery because it is using role binding (namespace-scoped), which does not support cluster-scoped GatewayClass discovery")
+		return
+	}
+
+	log.Info().Msg("Starting testEnvoyGatewayHttpRouteDiscovery")
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	installEnvoyGateway(t, m, ctx)
+	routeName := "shop-discovery"
+	createEnvoyGatewayResources(t, m, routeName)
+	defer func() { cleanupEnvoyGateway(m, routeName) }()
+
+	target, err := e2e.PollForTarget(ctx, e, extenvoygateway.EnvoyGatewayHttpRouteTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.envoy-gateway.http-route", routeName)
+	})
+	require.NoError(t, err, "Failed to discover Envoy Gateway HTTP route")
+	assert.Equal(t, extenvoygateway.EnvoyGatewayHttpRouteTargetType, target.TargetType)
+	assert.Equal(t, "default", target.Attributes["k8s.namespace"][0])
+	assert.Equal(t, routeName, target.Attributes["k8s.envoy-gateway.http-route"][0])
+	assert.Equal(t, envoyGatewayClassName, target.Attributes["k8s.envoy-gateway.gateway"][0])
+	assert.Equal(t, envoyGatewayClassName, target.Attributes["k8s.envoy-gateway.gatewayclass"][0])
+	assert.Equal(t, "e2e-cluster", target.Attributes["k8s.cluster-name"][0])
+	assert.Contains(t, target.Attributes["k8s.envoy-gateway.http-route.hostname"], routeName+".example.com")
+}
+
+func testEnvoyGatewayAbortAttack(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	if isUsingRoleBinding() {
+		log.Info().Msg("Skipping testEnvoyGatewayAbortAttack because it is using role binding (namespace-scoped), which does not support cluster-scoped GatewayClass discovery")
+		return
+	}
+
+	log.Info().Msg("Starting testEnvoyGatewayAbortAttack")
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	defer cancel()
+
+	installEnvoyGateway(t, m, ctx)
+	routeName := "shop-attack"
+	createEnvoyGatewayResources(t, m, routeName)
+	defer func() { cleanupEnvoyGateway(m, routeName) }()
+
+	target, err := e2e.PollForTarget(ctx, e, extenvoygateway.EnvoyGatewayHttpRouteTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.envoy-gateway.http-route", routeName)
+	})
+	require.NoError(t, err, "Failed to discover Envoy Gateway HTTP route")
+
+	require.Empty(t, backendTrafficPolicyNames(m, "default"), "expected no BackendTrafficPolicy before the attack")
+
+	config := struct {
+		Duration   int `json:"duration"`
+		Percentage int `json:"percentage"`
+		StatusCode int `json:"statusCode"`
+	}{
+		Duration:   60000,
+		Percentage: 100,
+		StatusCode: 503,
+	}
+	execution, err := e.RunAction(extenvoygateway.AbortActionId, &action_kit_api.Target{
+		Name: target.Id,
+		Attributes: map[string][]string{
+			"k8s.namespace":                {"default"},
+			"k8s.envoy-gateway.http-route": {routeName},
+		},
+	}, config, nil)
+	require.NoError(t, err)
+
+	// Start creates a BackendTrafficPolicy targeting the route.
+	require.Eventually(t, func() bool {
+		for _, name := range backendTrafficPolicyNames(m, "default") {
+			if strings.Contains(name, "steadybit-abort-") {
+				return true
+			}
+		}
+		return false
+	}, 30*time.Second, 1*time.Second, "attack did not create a BackendTrafficPolicy")
+	log.Info().Msg("BackendTrafficPolicy created by attack")
+
+	// Stopping the attack removes the BackendTrafficPolicy.
+	require.NoError(t, execution.Cancel())
+	require.Eventually(t, func() bool {
+		return len(backendTrafficPolicyNames(m, "default")) == 0
+	}, 30*time.Second, 1*time.Second, "attack did not remove the BackendTrafficPolicy on stop")
+	log.Info().Msg("BackendTrafficPolicy removed after attack stop")
 }
 
 func testNginxDelayTraffic(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
