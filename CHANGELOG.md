@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## v2.6.29
 
 - feat: add flags to independently disable namespace/node/pod label inheritance during discovery
+- Update dependencies
 
 ## v2.6.28
 
