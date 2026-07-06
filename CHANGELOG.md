@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v2.6.28
 
 - feat: Envoy Gateway support (opt-in, disabled by default via `discovery.disabled.envoyGateway`). Discovers HTTPRoutes served by an Envoy Gateway `GatewayClass` and adds two attacks that apply an Envoy Gateway `BackendTrafficPolicy` for the attack duration: "Envoy Delay Traffic" and "Envoy Abort Traffic" (the latter can optionally overwrite the response body). Attacks refuse to run when another `BackendTrafficPolicy` already targets the route (Envoy Gateway resolves conflicts oldest-wins).
 - fix: sort multi-value discovery attributes (`k8s.container.id`, `k8s.pod.name`, `k8s.namespace`, `k8s.replicaset`, `k8s.deployment`, `k8s.daemonset`, `k8s.statefulset`, `k8s.service.name`) before attaching them to targets, so unrelated Go map/list iteration order no longer registers as a spurious attribute change on every discovery cycle
