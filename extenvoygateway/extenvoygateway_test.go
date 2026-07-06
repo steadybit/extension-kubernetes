@@ -38,16 +38,31 @@ func Test_buildDelayFaultSpec(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func Test_buildAbortFaultSpec_plain(t *testing.T) {
+// abortResponseOverride returns the single response-override entry and asserts the abort uses the
+// sentinel status (the client-facing status is set via the override, not the abort).
+func abortResponseOverride(t *testing.T, spec map[string]any, wantPercentage float64) map[string]any {
+	t.Helper()
+	abort := spec["faultInjection"].(map[string]any)["abort"].(map[string]any)
+	assert.Equal(t, int64(418), abort["httpStatus"], "abort should use the internal sentinel status")
+	assert.Equal(t, wantPercentage, abort["percentage"])
+	override := spec["responseOverride"].([]any)[0].(map[string]any)
+	statusCodes := override["match"].(map[string]any)["statusCodes"].([]any)[0].(map[string]any)
+	assert.Equal(t, "Value", statusCodes["type"])
+	assert.Equal(t, int64(418), statusCodes["value"])
+	// source is intentionally not set — it does not exist before Envoy Gateway v1.4.
+	_, hasSource := override["source"]
+	assert.False(t, hasSource, "source must not be set")
+	return override["response"].(map[string]any)
+}
+
+func Test_buildAbortFaultSpec_emptyBody(t *testing.T) {
 	spec, err := buildAbortFaultSpec(map[string]any{"statusCode": float64(503), "percentage": float64(50)})
 	require.NoError(t, err)
 
-	abort := spec["faultInjection"].(map[string]any)["abort"].(map[string]any)
-	assert.Equal(t, int64(503), abort["httpStatus"])
-	assert.Equal(t, float64(50), abort["percentage"])
-	// no body -> no response override
-	_, hasOverride := spec["responseOverride"]
-	assert.False(t, hasOverride)
+	response := abortResponseOverride(t, spec, 50)
+	assert.Equal(t, int64(503), response["statusCode"])
+	// empty body by default
+	assert.Equal(t, "", response["body"].(map[string]any)["inline"])
 
 	_, err = buildAbortFaultSpec(map[string]any{"statusCode": float64(700)})
 	assert.Error(t, err, "out-of-range status should fail")
@@ -58,7 +73,7 @@ func Test_buildAbortFaultSpec_rejectsSentinelStatus(t *testing.T) {
 	assert.Error(t, err, "418 is reserved for the internal sentinel and must be rejected")
 }
 
-func Test_buildAbortFaultSpec_withBodyOverride(t *testing.T) {
+func Test_buildAbortFaultSpec_withBody(t *testing.T) {
 	spec, err := buildAbortFaultSpec(map[string]any{
 		"statusCode":  float64(200),
 		"body":        `{"error":"chaos"}`,
@@ -67,17 +82,7 @@ func Test_buildAbortFaultSpec_withBodyOverride(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// aborts with the internal sentinel, not the client-facing status
-	abort := spec["faultInjection"].(map[string]any)["abort"].(map[string]any)
-	assert.Equal(t, int64(418), abort["httpStatus"])
-	assert.Equal(t, float64(10), abort["percentage"])
-
-	override := spec["responseOverride"].([]any)[0].(map[string]any)
-	assert.Equal(t, "Local", override["source"])
-	statusCodes := override["match"].(map[string]any)["statusCodes"].([]any)[0].(map[string]any)
-	assert.Equal(t, "Value", statusCodes["type"])
-	assert.Equal(t, int64(418), statusCodes["value"])
-	response := override["response"].(map[string]any)
+	response := abortResponseOverride(t, spec, 10)
 	assert.Equal(t, int64(200), response["statusCode"])
 	assert.Equal(t, "application/json", response["contentType"])
 	body := response["body"].(map[string]any)

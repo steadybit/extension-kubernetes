@@ -12,10 +12,12 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/client"
 )
 
-// sentinelStatus is the internal HTTP status used to abort traffic when the response body is
-// overwritten: Envoy aborts with this code and a responseOverride rewrites it to the configured
-// status and body. 418 ("I'm a teapot") is used because backends practically never return it, and
-// the client never sees it. The configured status code must therefore not be 418 (see below).
+// sentinelStatus is the internal HTTP status the attack aborts with: Envoy aborts with this code and
+// a responseOverride rewrites it to the configured status and body. This indirection is what lets us
+// return a clean, controllable body (empty by default, or the configured one) instead of Envoy's
+// built-in "fault filter abort" body. 418 ("I'm a teapot") is used because backends practically
+// never return it, and the client never sees it. The configured status code must therefore not be
+// 418 (see below).
 const sentinelStatus int64 = 418
 
 func NewAbortAction(k8s *client.Client) action_kit_sdk.Action[ActionState] {
@@ -47,7 +49,7 @@ func getAbortDescription() action_kit_api.ActionDescription {
 		action_kit_api.ActionParameter{
 			Name:        "body",
 			Label:       "Response Body",
-			Description: extutil.Ptr("Optional: overwrite the response body returned to clients. Leave empty to return the default abort response."),
+			Description: extutil.Ptr("Optional: the response body returned to clients for aborted requests. Leave empty to return an empty body."),
 			Type:        action_kit_api.ActionParameterTypeTextarea,
 			Required:    extutil.Ptr(false),
 		},
@@ -75,27 +77,18 @@ func buildAbortFaultSpec(config map[string]any) (map[string]any, error) {
 		return nil, fmt.Errorf("statusCode %d is reserved for the internal sentinel; choose a different status code", sentinelStatus)
 	}
 	percentage := percentageFromConfig(config)
-
 	body := extutil.ToString(config["body"])
-	if body == "" {
-		// Plain abort: return the chosen status with Envoy's default abort body.
-		return map[string]any{
-			"faultInjection": map[string]any{
-				"abort": map[string]any{
-					"httpStatus": statusCode,
-					"percentage": percentage,
-				},
-			},
-		}, nil
-	}
-
-	// Overwrite the response body: abort locally with the sentinel status, then rewrite that
-	// (Envoy-generated) response to the configured status/body/content-type. source=Local ensures
-	// genuine backend responses are left untouched.
 	contentType := extutil.ToString(config["contentType"])
 	if contentType == "" {
 		contentType = "application/json"
 	}
+
+	// Always abort locally with the sentinel status and rewrite that (Envoy-generated) response via
+	// responseOverride to the configured status/body/content-type. This returns a clean response (the
+	// configured status with the given body, empty by default) rather than Envoy's built-in
+	// "fault filter abort" body. Note: the response override matches on the sentinel status code
+	// regardless of source, so a genuine backend response returning 418 during the attack would also
+	// be rewritten — 418 is chosen precisely because backends practically never return it.
 	return map[string]any{
 		"faultInjection": map[string]any{
 			"abort": map[string]any{
@@ -118,7 +111,6 @@ func buildAbortFaultSpec(config map[string]any) (map[string]any, error) {
 						"inline": body,
 					},
 				},
-				"source": "Local",
 			},
 		},
 	}, nil
