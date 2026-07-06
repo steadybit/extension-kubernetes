@@ -177,9 +177,11 @@ func (c *containerDiscovery) DiscoverEnrichmentData(_ context.Context) ([]discov
 				"k8s.distribution":          {c.k8s.Distribution},
 			}
 
-			extcommon.AddLabels(attributes, pod.Labels, "k8s.pod.label", "k8s.label")
+			extcommon.AddPodLabels(attributes, pod.Labels)
 			extcommon.AddNamespaceLabels(attributes, c.k8s, pod.Namespace)
-			extcommon.AddNodeLabels(c.k8s.Nodes(), pod.Spec.NodeName, attributes)
+			if extconfig.Config.DiscoveryLabelInheritanceNode {
+				extcommon.AddNodeLabels(c.k8s.Nodes(), pod.Spec.NodeName, attributes)
+			}
 
 			if len(services) > 0 {
 				var serviceNames = make([]string, 0, len(services))

@@ -23,12 +23,17 @@ import (
 
 func Test_containerDiscovery(t *testing.T) {
 	tests := []struct {
-		name                      string
-		pod                       *corev1.Pod
-		services                  []*corev1.Service
-		expectedAttributesExactly map[string][]string
-		expectedAttributes        map[string][]string
-		expectedAttributesAbsence []string
+		name                             string
+		pod                              *corev1.Pod
+		namespace                        *corev1.Namespace
+		node                             *corev1.Node
+		services                         []*corev1.Service
+		disablePodLabelInheritance       bool
+		disableNamespaceLabelInheritance bool
+		disableNodeLabelInheritance      bool
+		expectedAttributesExactly        map[string][]string
+		expectedAttributes               map[string][]string
+		expectedAttributesAbsence        []string
 	}{
 		{
 			name: "should discover basic attributes",
@@ -66,6 +71,44 @@ func Test_containerDiscovery(t *testing.T) {
 				"k8s.service.name": {"shop-kevelaer", "shop-kevelaer-v2"},
 			},
 		},
+		{
+			name:                       "should not add pod labels when pod label inheritance is disabled",
+			pod:                        testPod(nil),
+			disablePodLabelInheritance: true,
+			expectedAttributesAbsence:  []string{"k8s.pod.label.best-city", "k8s.pod.label", "k8s.label.best-city", "k8s.label"},
+		},
+		{
+			name:      "should add namespace and node labels when inheritance is enabled",
+			pod:       testPod(nil),
+			namespace: testNamespace(nil),
+			node:      testNode(nil),
+			expectedAttributes: map[string][]string{
+				"k8s.namespace.label.best-country":             {"Germany"},
+				"k8s.node.label.topology.kubernetes.io/region": {"eu-central-1"},
+			},
+		},
+		{
+			name:                             "should not add namespace labels when namespace label inheritance is disabled",
+			pod:                              testPod(nil),
+			namespace:                        testNamespace(nil),
+			node:                             testNode(nil),
+			disableNamespaceLabelInheritance: true,
+			expectedAttributes: map[string][]string{
+				"k8s.node.label.topology.kubernetes.io/region": {"eu-central-1"},
+			},
+			expectedAttributesAbsence: []string{"k8s.namespace.label.best-country", "k8s.namespace.label"},
+		},
+		{
+			name:                        "should not add node labels when node label inheritance is disabled",
+			pod:                         testPod(nil),
+			namespace:                   testNamespace(nil),
+			node:                        testNode(nil),
+			disableNodeLabelInheritance: true,
+			expectedAttributes: map[string][]string{
+				"k8s.namespace.label.best-country": {"Germany"},
+			},
+			expectedAttributesAbsence: []string{"k8s.node.label.topology.kubernetes.io/region", "k8s.node.label"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -77,11 +120,20 @@ func Test_containerDiscovery(t *testing.T) {
 			for _, service := range tt.services {
 				objects = append(objects, service)
 			}
+			if tt.namespace != nil {
+				objects = append(objects, tt.namespace)
+			}
+			if tt.node != nil {
+				objects = append(objects, tt.node)
+			}
 
 			client := getTestClient(stopCh, objects...)
 			extconfig.Config.ClusterName = "development"
 			extconfig.Config.LabelFilter = []string{"secret-label"}
 			extconfig.Config.DiscoveryMaxPodCount = 50
+			extconfig.Config.DiscoveryLabelInheritancePod = !tt.disablePodLabelInheritance
+			extconfig.Config.DiscoveryLabelInheritanceNamespace = !tt.disableNamespaceLabelInheritance
+			extconfig.Config.DiscoveryLabelInheritanceNode = !tt.disableNodeLabelInheritance
 
 			d := &containerDiscovery{k8s: client}
 			// When
@@ -177,6 +229,44 @@ func testService(modifier func(service *corev1.Service)) *corev1.Service {
 		modifier(service)
 	}
 	return service
+}
+
+func testNamespace(modifier func(namespace *corev1.Namespace)) *corev1.Namespace {
+	namespace := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+			Labels: map[string]string{
+				"best-country": "Germany",
+			},
+		},
+	}
+	if modifier != nil {
+		modifier(namespace)
+	}
+	return namespace
+}
+
+func testNode(modifier func(node *corev1.Node)) *corev1.Node {
+	node := &corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "worker-1",
+			Labels: map[string]string{
+				"topology.kubernetes.io/region": "eu-central-1",
+			},
+		},
+	}
+	if modifier != nil {
+		modifier(node)
+	}
+	return node
 }
 
 func testPod(modifier func(pod *corev1.Pod)) *corev1.Pod {

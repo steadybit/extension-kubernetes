@@ -129,6 +129,12 @@ spec:
               value: {{ .Values.discovery.disabled.replicaSet | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_DISABLED_STATEFUL_SET
               value: {{ .Values.discovery.disabled.statefulSet | quote}}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NAMESPACE
+              value: {{ .Values.discovery.labelInheritance.namespace | quote }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_NODE
+              value: {{ .Values.discovery.labelInheritance.node | quote }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_LABEL_INHERITANCE_POD
+              value: {{ .Values.discovery.labelInheritance.pod | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_MAX_POD_COUNT
               value: {{ .Values.discovery.maxPodCount | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE

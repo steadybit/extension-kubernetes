@@ -36,6 +36,13 @@ func AddLabels(attributes map[string][]string, labels map[string]string, prefixe
 	}, labels, prefixes...)
 }
 
+func AddPodLabels(attributes map[string][]string, podLabels map[string]string) map[string][]string {
+	if !extconfig.Config.DiscoveryLabelInheritancePod {
+		return attributes
+	}
+	return AddLabels(attributes, podLabels, "k8s.pod.label", "k8s.label")
+}
+
 var nodeLabelFilter = []string{
 	"topology.kubernetes.io/region",
 	"topology.kubernetes.io/zone",
@@ -45,6 +52,9 @@ var nodeLabelFilter = []string{
 }
 
 func AddNodeLabels(nodes []*corev1.Node, nodeName string, attributes map[string][]string) map[string][]string {
+	if !extconfig.Config.DiscoveryLabelInheritanceNode {
+		return attributes
+	}
 	for _, node := range nodes {
 		if node.Name == nodeName {
 			return AddFilteredLabels(attributes, func(key string) bool {
@@ -56,6 +66,9 @@ func AddNodeLabels(nodes []*corev1.Node, nodeName string, attributes map[string]
 }
 
 func AddNamespaceLabels(attributes map[string][]string, k8s *client.Client, namespace string) map[string][]string {
+	if !extconfig.Config.DiscoveryLabelInheritanceNamespace {
+		return attributes
+	}
 	if k8s.Permissions().CanReadNamespaces() {
 		for _, ns := range k8s.Namespaces() {
 			if ns.Name == namespace {
