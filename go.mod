@@ -22,7 +22,7 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.3.1
 	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.3.5
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.1
-	github.com/steadybit/extension-kit v1.10.7
+	github.com/steadybit/extension-kit v1.10.8
 	github.com/stretchr/testify v1.11.1
 	github.com/zegl/kube-score v1.20.1-0.20260520132026-06dedc9ccce5
 	golang.org/x/text v0.38.0
