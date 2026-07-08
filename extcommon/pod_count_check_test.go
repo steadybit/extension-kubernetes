@@ -183,6 +183,7 @@ func Test_statusPodCountCheckStatusCheckMode(t *testing.T) {
 	tests := []struct {
 		name            string
 		statusCheckMode StatusCheckMode
+		failEarly       bool
 		timeoutElapsed  bool
 		readyCount      int
 		desiredCount    int
@@ -235,9 +236,30 @@ func Test_statusPodCountCheckStatusCheckMode(t *testing.T) {
 			wantError:       false,
 		},
 		{
-			name:            "allTheTime fails fast when condition is violated",
+			name:            "allTheTime with fail early fails fast when condition is violated",
 			statusCheckMode: StatusCheckModeAllTheTime,
+			failEarly:       true,
 			timeoutElapsed:  false,
+			readyCount:      1,
+			desiredCount:    2,
+			wantCompleted:   true,
+			wantError:       true,
+		},
+		{
+			name:            "allTheTime without fail early keeps running on violation before timeout",
+			statusCheckMode: StatusCheckModeAllTheTime,
+			failEarly:       false,
+			timeoutElapsed:  false,
+			readyCount:      1,
+			desiredCount:    2,
+			wantCompleted:   false,
+			wantError:       false,
+		},
+		{
+			name:            "allTheTime without fail early reports the violation once the duration has elapsed",
+			statusCheckMode: StatusCheckModeAllTheTime,
+			failEarly:       false,
+			timeoutElapsed:  true,
 			readyCount:      1,
 			desiredCount:    2,
 			wantCompleted:   true,
@@ -264,6 +286,7 @@ func Test_statusPodCountCheckStatusCheckMode(t *testing.T) {
 				Timeout:           timeout,
 				PodCountCheckMode: PodCountEqualsDesiredCount,
 				StatusCheckMode:   tt.statusCheckMode,
+				FailEarly:         tt.failEarly,
 				Namespace:         "shop",
 				Target:            "checkout",
 			}
