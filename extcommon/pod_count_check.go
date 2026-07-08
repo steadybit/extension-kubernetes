@@ -69,11 +69,10 @@ type PodCountCheckState struct {
 	MetricLabelKey    string
 	InitialCount      int
 	LastMetrics       map[string]int32
-	// DeviationSeen and DeviationTitle are used in 'All the time' + fail-at-end mode (FailEarly =
-	// false) to remember that the condition was violated during the step so the failure can be
-	// reported once the step ends.
-	DeviationSeen  bool
-	DeviationTitle string
+	// DeviationError is set in 'All the time' + fail-at-end mode (FailEarly = false) to remember the
+	// first observed violation during the step (preserving its original status) so it can be reported
+	// once the step ends.
+	DeviationError *action_kit_api.ActionKitError
 }
 
 type PodCountCheckConfig struct {
@@ -355,20 +354,15 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 					Metrics:   metricsPtr,
 				}, nil
 			}
-			state.DeviationSeen = true
-			state.DeviationTitle = checkError.Title
+			// Remember the first violation (with its original status) to report at the end of the step.
+			if state.DeviationError == nil {
+				state.DeviationError = checkError
+			}
 		}
 		if now.After(state.Timeout) {
-			var endError *action_kit_api.ActionKitError
-			if state.DeviationSeen {
-				endError = new(action_kit_api.ActionKitError{
-					Title:  state.DeviationTitle,
-					Status: extutil.Ptr(action_kit_api.Failed),
-				})
-			}
 			return &action_kit_api.StatusResult{
 				Completed: true,
-				Error:     endError,
+				Error:     state.DeviationError,
 				Metrics:   metricsPtr,
 			}, nil
 		}
