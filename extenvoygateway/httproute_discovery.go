@@ -15,7 +15,6 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_commons"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_sdk"
 	"github.com/steadybit/extension-kit/extbuild"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
@@ -43,7 +42,7 @@ func (d *httpRouteDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 	return discovery_kit_api.DiscoveryDescription{
 		Id: EnvoyGatewayHttpRouteTargetType,
 		Discover: discovery_kit_api.DescribingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("30s"),
+			CallInterval: new("30s"),
 		},
 	}
 }
@@ -52,9 +51,9 @@ func (d *httpRouteDiscovery) DescribeTarget() discovery_kit_api.TargetDescriptio
 	return discovery_kit_api.TargetDescription{
 		Id:       EnvoyGatewayHttpRouteTargetType,
 		Label:    discovery_kit_api.PluralLabel{One: "Envoy HTTP Route", Other: "Envoy HTTP Routes"},
-		Category: extutil.Ptr("Kubernetes"),
+		Category: new("Kubernetes"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:     extutil.Ptr(EnvoyGatewayIcon),
+		Icon:     new(EnvoyGatewayIcon),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
 				{Attribute: attrHttpRoute},

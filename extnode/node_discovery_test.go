@@ -231,7 +231,7 @@ func Test_nodeDiscovery_MultiValueAttributesAreSorted(t *testing.T) {
 
 	// When run repeatedly, the multi-value attributes must come back in the same,
 	// sorted order every time regardless of Go's randomized map iteration order.
-	for i := 0; i < 20; i++ {
+	for range 20 {
 		var targets []discovery_kit_api.Target
 		assert.EventuallyWithT(t, func(c *assert.CollectT) {
 			var err error

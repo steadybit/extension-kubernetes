@@ -4,6 +4,8 @@
 package extenvoygateway
 
 import (
+	"maps"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -48,9 +50,7 @@ func buildBackendTrafficPolicy(namespace, name, executionId, routeName, sectionN
 	spec := map[string]any{
 		"targetRefs": []any{targetRef},
 	}
-	for k, v := range faultSpec {
-		spec[k] = v
-	}
+	maps.Copy(spec, faultSpec)
 
 	return &unstructured.Unstructured{
 		Object: map[string]any{

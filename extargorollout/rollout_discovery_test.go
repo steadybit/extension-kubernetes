@@ -633,7 +633,8 @@ func testService(modifier func(service *v1.Service)) *v1.Service {
 	return service
 }
 
-func intPtr(v int32) *int32 { return &v }
+//go:fix inline
+func intPtr(v int32) *int32 { return new(v) }
 
 func getTestClient(stopCh <-chan struct{}) (*client.Client, kubernetes.Interface, dynamic.Interface) {
 	clientset := testclient.NewSimpleClientset()
