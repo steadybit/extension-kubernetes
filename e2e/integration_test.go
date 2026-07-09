@@ -1259,7 +1259,7 @@ func initHAProxyIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx con
 			Namespace: "default",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
+			Replicas: new(int32(1)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": testAppName,
@@ -1323,7 +1323,7 @@ func initHAProxyIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx con
 							Paths: []networkingv1.HTTPIngressPath{
 								{
 									Path:     "/",
-									PathType: pathTypePtr(networkingv1.PathTypePrefix),
+									PathType: new(networkingv1.PathTypePrefix),
 									Backend: networkingv1.IngressBackend{
 										Service: &networkingv1.IngressServiceBackend{
 											Name: testAppName,
@@ -1863,7 +1863,7 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 			Namespace: "default",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
+			Replicas: new(int32(1)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": testAppName,
@@ -1927,7 +1927,7 @@ func initNginxIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx conte
 							Paths: []networkingv1.HTTPIngressPath{
 								{
 									Path:     "/",
-									PathType: pathTypePtr(networkingv1.PathTypePrefix),
+									PathType: new(networkingv1.PathTypePrefix),
 									Backend: networkingv1.IngressBackend{
 										Service: &networkingv1.IngressServiceBackend{
 											Name: testAppName,
@@ -2371,7 +2371,7 @@ func backendTrafficPolicyNames(m *e2e.Minikube, namespace string) []string {
 		return nil
 	}
 	var names []string
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+	for line := range strings.SplitSeq(strings.TrimSpace(string(out)), "\n") {
 		if strings.TrimSpace(line) != "" {
 			names = append(names, strings.TrimSpace(line))
 		}
@@ -2711,7 +2711,7 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 			Namespace: "default",
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
+			Replicas: new(int32(1)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": testAppName,
@@ -2777,7 +2777,7 @@ func testNginxMultipleControllers(t *testing.T, m *e2e.Minikube, e *e2e.Extensio
 							Paths: []networkingv1.HTTPIngressPath{
 								{
 									Path:     "/",
-									PathType: pathTypePtr(networkingv1.PathTypePrefix),
+									PathType: new(networkingv1.PathTypePrefix),
 									Backend: networkingv1.IngressBackend{
 										Service: &networkingv1.IngressServiceBackend{
 											Name: testAppName,

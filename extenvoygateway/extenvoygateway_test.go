@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
-	"github.com/steadybit/extension-kit/extutil"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
@@ -258,7 +257,7 @@ func newDelayRequest(executionId uuid.UUID) action_kit_api.PrepareActionRequestB
 	return action_kit_api.PrepareActionRequestBody{
 		ExecutionId: executionId,
 		Config:      map[string]any{"duration": float64(30000), "percentage": float64(50), "delay": float64(5000)},
-		Target: extutil.Ptr(action_kit_api.Target{
+		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.namespace":                {"default"},
 				"k8s.envoy-gateway.http-route": {"shop"},

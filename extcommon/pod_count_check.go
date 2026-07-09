@@ -52,7 +52,7 @@ type PodCountCheckAction struct {
 	// Widget is optional. When set it is included in Describe() so the platform
 	// renders it next to the check timeline. Pass an action_kit_api.PredefinedWidget
 	// or any other concrete widget type.
-	Widget interface{}
+	Widget any
 }
 
 type CheckMode string

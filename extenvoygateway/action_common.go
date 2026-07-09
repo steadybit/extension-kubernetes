@@ -88,7 +88,7 @@ func (a *backendTrafficPolicyAction) Start(ctx context.Context, state *ActionSta
 
 	log.Info().Msgf("Created BackendTrafficPolicy %s/%s targeting HTTPRoute %s", state.Namespace, state.PolicyName, state.RouteName)
 	return &action_kit_api.StartResult{
-		Messages: extutil.Ptr([]action_kit_api.Message{
+		Messages: new([]action_kit_api.Message{
 			{
 				Level:   extutil.Ptr(action_kit_api.Info),
 				Message: fmt.Sprintf("Applied BackendTrafficPolicy %s to HTTPRoute %s/%s", state.PolicyName, state.Namespace, state.RouteName),
@@ -147,14 +147,14 @@ func getCommonActionDescription(id, label, description string) action_kit_api.Ac
 		Label:       label,
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Description: description,
-		Technology:  extutil.Ptr("Kubernetes"),
-		Icon:        extutil.Ptr(EnvoyGatewayIcon),
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		Technology:  new("Kubernetes"),
+		Icon:        new(EnvoyGatewayIcon),
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType: EnvoyGatewayHttpRouteTargetType,
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "HTTP route",
-					Description: extutil.Ptr("Find HTTP route by cluster, namespace and route name"),
+					Description: new("Find HTTP route by cluster, namespace and route name"),
 					Query:       "k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND k8s.envoy-gateway.http-route=\"\"",
 				},
 			}),
@@ -165,23 +165,23 @@ func getCommonActionDescription(id, label, description string) action_kit_api.Ac
 			{
 				Name:         "duration",
 				Label:        "Duration",
-				Description:  extutil.Ptr("The duration of the attack. The HTTP route will be affected for the specified duration."),
+				Description:  new("The duration of the attack. The HTTP route will be affected for the specified duration."),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("30s"),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("30s"),
+				Required:     new(true),
 			},
 			{
 				Name:         "percentage",
 				Label:        "Traffic Percentage",
-				Description:  extutil.Ptr("The percentage of requests the fault is applied to."),
+				Description:  new("The percentage of requests the fault is applied to."),
 				Type:         action_kit_api.ActionParameterTypePercentage,
-				DefaultValue: extutil.Ptr("50"),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("50"),
+				Required:     new(true),
 			},
 		},
 		Prepare: action_kit_api.MutatingEndpointReference{},
 		Start:   action_kit_api.MutatingEndpointReference{},
-		Stop:    extutil.Ptr(action_kit_api.MutatingEndpointReference{}),
+		Stop:    new(action_kit_api.MutatingEndpointReference{}),
 	}
 }
 
@@ -191,10 +191,10 @@ func withSectionNameParameter(desc action_kit_api.ActionDescription) action_kit_
 	desc.Parameters = append(desc.Parameters, action_kit_api.ActionParameter{
 		Name:        "sectionName",
 		Label:       "Route Rule Name",
-		Description: extutil.Ptr("Optional: restrict the attack to a single named route rule (spec.rules[].name) instead of the whole route."),
+		Description: new("Optional: restrict the attack to a single named route rule (spec.rules[].name) instead of the whole route."),
 		Type:        action_kit_api.ActionParameterTypeString,
-		Required:    extutil.Ptr(false),
-		Advanced:    extutil.Ptr(true),
+		Required:    new(false),
+		Advanced:    new(true),
 	})
 	return desc
 }
