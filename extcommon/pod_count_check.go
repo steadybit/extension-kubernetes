@@ -63,11 +63,16 @@ type PodCountCheckState struct {
 	Timeout           time.Time
 	PodCountCheckMode CheckMode
 	StatusCheckMode   StatusCheckMode
+	FailEarly         bool
 	Namespace         string
 	Target            string
 	MetricLabelKey    string
 	InitialCount      int
 	LastMetrics       map[string]int32
+	// DeviationError is set in 'All the time' + fail-at-end mode (FailEarly = false) to remember the
+	// first observed violation during the step (preserving its original status) so it can be reported
+	// once the step ends.
+	DeviationError *action_kit_api.ActionKitError
 }
 
 type PodCountCheckConfig struct {
@@ -167,6 +172,16 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 					},
 				}),
 			},
+			{
+				Name:         "failEarly",
+				Label:        "Fail early",
+				Description:  new("If enabled, the check fails as soon as the condition is violated. If disabled, the check keeps collecting events for the whole duration and only fails at the end of the step. Only affects the 'All the time' mode; 'At least once' can only be evaluated at the end of the step."),
+				Type:         action_kit_api.ActionParameterTypeBoolean,
+				DefaultValue: new("true"),
+				Advanced:     new(true),
+				Required:     new(false),
+				Order:        new(4),
+			},
 		},
 		Widgets: func() *[]action_kit_api.Widget {
 			if f.Widget == nil {
@@ -203,9 +218,16 @@ func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckStat
 		statusCheckMode = StatusCheckModeAtLeastOnce
 	}
 
+	// Default to failing early to preserve the previous behavior for experiments that don't set this parameter.
+	failEarly := true
+	if request.Config["failEarly"] != nil {
+		failEarly = extutil.ToBool(request.Config["failEarly"])
+	}
+
 	state.Timeout = time.Now().Add(time.Millisecond * time.Duration(config.Duration))
 	state.PodCountCheckMode = config.PodCountCheckMode
 	state.StatusCheckMode = statusCheckMode
+	state.FailEarly = failEarly
 	state.Namespace = namespace
 	state.Target = target
 	state.MetricLabelKey = f.MetricLabelKey
@@ -293,7 +315,7 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	// Determine whether this is the completing tick before deciding on metric emission.
 	completing := false
 	if state.StatusCheckMode == StatusCheckModeAllTheTime {
-		completing = checkError != nil || now.After(state.Timeout)
+		completing = (checkError != nil && state.FailEarly) || now.After(state.Timeout)
 	} else {
 		completing = checkError == nil || now.After(state.Timeout)
 	}
@@ -321,17 +343,31 @@ func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState
 	}()
 
 	if state.StatusCheckMode == StatusCheckModeAllTheTime {
-		// The condition must hold for the complete duration: fail fast on the first violation,
-		// otherwise keep checking until the duration has elapsed.
+		// The condition must hold for the complete duration. With fail early (default) the check fails
+		// fast on the first violation; otherwise it keeps collecting events and reports a violation
+		// only once the duration has elapsed.
 		if checkError != nil {
+			if state.FailEarly {
+				return &action_kit_api.StatusResult{
+					Completed: true,
+					Error:     checkError,
+					Metrics:   metricsPtr,
+				}, nil
+			}
+			// Remember the first violation (with its original status) to report at the end of the step.
+			if state.DeviationError == nil {
+				state.DeviationError = checkError
+			}
+		}
+		if now.After(state.Timeout) {
 			return &action_kit_api.StatusResult{
 				Completed: true,
-				Error:     checkError,
+				Error:     state.DeviationError,
 				Metrics:   metricsPtr,
 			}, nil
 		}
 		return &action_kit_api.StatusResult{
-			Completed: now.After(state.Timeout),
+			Completed: false,
 			Metrics:   metricsPtr,
 		}, nil
 	}

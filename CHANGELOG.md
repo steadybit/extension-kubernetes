@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add a "Fail early" option to the pod count check. When enabled (the default, matching the previous behavior), the "All the time" mode fails as soon as the pod count condition is violated. When disabled, the check keeps collecting events for the whole duration and only fails at the end of the step. Only affects the "All the time" mode; "At least once" is unaffected.
+
 ## v2.6.29
 
 - feat: add flags to independently disable namespace/node/pod label inheritance during discovery
