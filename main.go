@@ -55,8 +55,6 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
 )
 
-var startedAt = time.Now().Format(time.RFC3339)
-
 func main() {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
@@ -189,7 +187,7 @@ func main() {
 	advice_kit_sdk.RegisterAdvice(adviceCfg, host_podantiaffinity.GetAdviceDescriptionHostPodantiaffinity)
 	advice_kit_sdk.RegisterAdvice(adviceCfg, single_zone.GetAdviceDescriptionSingleZone)
 
-	exthttp.RegisterHttpHandler("/", exthttp.IfNoneMatchHandler(func() string { return startedAt }, exthttp.GetterAsHandler(getExtensionList)))
+	exthttp.RegisterRevisionedHandler("/", getExtensionList)
 
 	extsignals.ActivateSignalHandlers()
 	action_kit_sdk.RegisterCoverageEndpoints()
