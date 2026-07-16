@@ -1,8 +1,17 @@
 # Changelog
 
-## Unreleased
+## v2.6.30
 
 - Add a "Fail early" option to the pod count check. When enabled (the default, matching the previous behavior), the "All the time" mode fails as soon as the pod count condition is violated. When disabled, the check keeps collecting events for the whole duration and only fails at the end of the step. Only affects the "All the time" mode; "At least once" is unaffected.
+- build(deps): bump github.com/steadybit/action-kit/go/action_kit_sdk
+- build(deps): bump github.com/steadybit/discovery-kit/go/discovery_kit_sdk
+- build(deps): bump github.com/steadybit/extension-kit
+- build(deps): bump golang.org/x/text from 0.38.0 to 0.39.0
+- build(deps): bump golang.org/x/text from 0.39.0 to 0.40.0
+- chore(deps): bump go to 1.26.5 (#336)
+- ci: skip build on .trivyignore.yml-only changes [skip ci]
+- feat(pod count check): add fail early option (#335)
+- refactor: register extension index via exthttp.RegisterRevisionedHandler (#337)
 
 ## v2.6.29
 
