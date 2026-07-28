@@ -59,7 +59,7 @@ func (*podDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 				{Attribute: "k8s.pod.name"},
 				{Attribute: "k8s.cluster-name"},
 				{Attribute: "k8s.namespace"},
-				{Attribute: "k8s.deployment", FallbackAttributes: new([]string{"k8s.statefulset", "k8s.daemonset", "k8s.argo-rollout"})},
+				{Attribute: "k8s.workload-owner"},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{

@@ -83,6 +83,20 @@ func (a *attributeDescriber) DescribeAttributes() []discovery_kit_api.AttributeD
 			},
 		},
 		{
+			Attribute: "k8s.workload-owner",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Workload owner",
+				Other: "Workload owners",
+			},
+		},
+		{
+			Attribute: "k8s.workload-type",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Workload type",
+				Other: "Workload types",
+			},
+		},
+		{
 			Attribute: LivenessProbePathAttribute,
 			Label: discovery_kit_api.PluralLabel{
 				One:   "Liveness probe path",
