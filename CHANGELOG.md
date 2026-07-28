@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- fix: show "Workload owner" as the pod table's last column instead of the joined "Deployment name / StatefulSet name / DaemonSet name" fallback column; adds labels for `k8s.workload-owner` and `k8s.workload-type`
+
 ## v2.6.30
 
 - Add a "Fail early" option to the pod count check. When enabled (the default, matching the previous behavior), the "All the time" mode fails as soon as the pod count condition is violated. When disabled, the check keeps collecting events for the whole duration and only fails at the end of the step. Only affects the "All the time" mode; "At least once" is unaffected.
