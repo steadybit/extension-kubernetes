@@ -34,7 +34,15 @@ Learn about the capabilities of this extension in our [Reliability Hub](https://
 | `STEADYBIT_EXTENSION_DISCOVERY_INFORMER_RESYNC`                  |                                                                          | Number of seconds until a full refresh of the internal kubernetes cache.                                                                                           | false    | 600                                                                  |
 | `STEADYBIT_EXTENSION_NAMESPACE`                                  | `Release.Namespace`                                                      | The namespace of the extension. If env var is set, discovery is only discovering in that namespace                                                                 | false    | `default`                                                            |
 
-The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
+Beyond the settings above, this extension supports the configuration common to all Steadybit
+extensions:
+
+- [extension-kit](https://github.com/steadybit/extension-kit#environment-variables) — HTTP and
+  health ports, TLS and mutual TLS, unix domain socket, logging, and pprof.
+- [Target Filtering](https://github.com/steadybit/discovery-kit/blob/main/docs/target-filtering.md) —
+  stop the extension reporting targets you do not want.
+- [Group Matching](https://github.com/steadybit/discovery-kit/blob/main/docs/target-enrichment.md#group-matching) —
+  tag discovered targets with a group, so enrichment rules only match within it.
 
 ## Permissions
 

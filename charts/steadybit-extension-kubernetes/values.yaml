@@ -176,6 +176,10 @@ advice:
 discovery:
   # discovery.group -- Optional group identifier. When set, the extension adds steadybit.group=<value> to every discovered target. Used as an additional matcher in enrichment rules.
   group: ""
+  # discovery.excludeQuery -- Optional query in Steadybit's target query language; matching targets are not reported. Quote it in YAML (or use a |- block scalar) — see https://github.com/steadybit/discovery-kit/blob/main/docs/target-filtering.md
+  excludeQuery: ""
+  # discovery.includeQuery -- Optional query in Steadybit's target query language; when set, only matching targets are reported.
+  includeQuery: ""
   # discovery.disableExcludes -- Ignore discovery excludes specified by `steadybit.com/discovery-disabled` (mainly for internal use)
   disableExcludes: false
   # discovery.maxPodCount -- Skip listing pods, containers and hosts for deployments, statefulsets, etc. if there are more then the given pods.
