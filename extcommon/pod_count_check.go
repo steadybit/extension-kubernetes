@@ -236,8 +236,17 @@ func (f PodCountCheckAction) Prepare(_ context.Context, state *PodCountCheckStat
 	return nil, nil
 }
 
-func (f PodCountCheckAction) Start(_ context.Context, _ *PodCountCheckState) (*action_kit_api.StartResult, error) {
-	return nil, nil
+func (f PodCountCheckAction) Start(ctx context.Context, state *PodCountCheckState) (*action_kit_api.StartResult, error) {
+	statusResult, err := f.Status(ctx, state)
+	if statusResult == nil {
+		return nil, err
+	}
+	return &action_kit_api.StartResult{
+		Artifacts: statusResult.Artifacts,
+		Error:     statusResult.Error,
+		Messages:  statusResult.Messages,
+		Metrics:   statusResult.Metrics,
+	}, err
 }
 
 func (f PodCountCheckAction) Status(_ context.Context, state *PodCountCheckState) (*action_kit_api.StatusResult, error) {
