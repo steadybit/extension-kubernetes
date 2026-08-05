@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+## v2.6.31
 
+- Update CHANGELOG.md
+- chore(deps): update dependencies
+- feat: support filtering targets out of discovery
+- fix: emit the pod count metric immediately on Start (#342)
 - fix: show "Workload owner" as the pod table's last column instead of the joined "Deployment name / StatefulSet name / DaemonSet name" fallback column; adds labels for `k8s.workload-owner` and `k8s.workload-type`
+- fix: show workload owner column for pods instead of joined fallback labels
 
 ## v2.6.30
 
