@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.32
+
+- build(deps): bump github.com/stretchr/testify from 1.11.1 to 1.12.0
+- chore(deps): bump steadybit kits and drop Go patch pin (#343)
+
 ## v2.6.31
 
 - Update CHANGELOG.md
