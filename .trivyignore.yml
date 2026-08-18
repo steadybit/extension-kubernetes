@@ -24,3 +24,38 @@ vulnerabilities:
     expired_at: 2027-01-01
     paths:
       - usr/bin/kubectl
+  - id: CVE-2026-33818
+    paths:
+      - usr/bin/kubectl
+    statement: waiting for kubectl release
+    expired_at: 2027-02-01
+  - id: CVE-2026-46600
+    paths:
+      - usr/bin/kubectl
+    statement: waiting for kubectl release
+    expired_at: 2027-02-01
+  - id: CVE-2026-56853
+    paths:
+      - usr/bin/kubectl
+    statement: waiting for kubectl release
+    expired_at: 2027-02-01
+  - id: CVE-2026-56858
+    paths:
+      - usr/bin/kubectl
+    statement: waiting for kubectl release
+    expired_at: 2027-02-01
+  - id: CVE-2026-56859
+    paths:
+      - usr/bin/kubectl
+    statement: waiting for kubectl release
+    expired_at: 2027-02-01
+  - id: CVE-2026-56860
+    paths:
+      - usr/bin/kubectl
+    statement: waiting for kubectl release
+    expired_at: 2027-02-01
+  - id: CVE-2026-56862
+    paths:
+      - usr/bin/kubectl
+    statement: waiting for kubectl release
+    expired_at: 2027-02-01
