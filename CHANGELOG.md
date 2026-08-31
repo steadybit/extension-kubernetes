@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.6.33
+
+- build(deps): bump github.com/steadybit/action-kit/go/action_kit_test
+- build(deps): bump github.com/stretchr/testify from 1.12.0 to 1.12.1
+- build(deps): bump golang from 1.26-alpine to 1.27-alpine
+- build(deps): bump k8s.io/api from 0.36.3 to 0.36.4
+- build(deps): bump k8s.io/client-go from 0.36.3 to 0.36.4
+
 ## v2.6.32
 
 - build(deps): bump github.com/stretchr/testify from 1.11.1 to 1.12.0
