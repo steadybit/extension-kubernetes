@@ -21,7 +21,7 @@ require (
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.7.2
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.3.2
 	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.4.2
-	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.1
+	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.2.2
 	github.com/steadybit/extension-kit v1.11.2
 	github.com/stretchr/testify v1.12.1
 	github.com/zegl/kube-score v1.20.1-0.20260520132026-06dedc9ccce5
