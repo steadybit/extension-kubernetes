@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.6.34
+
+- build(deps): bump github.com/steadybit/advice-kit/go/advice_kit_test
+- build(deps): bump github.com/steadybit/discovery-kit/go/discovery_kit_test
+- build(deps): bump k8s.io/client-go from 0.36.4 to 0.37.0
+
 ## v2.6.33
 
 - build(deps): bump github.com/steadybit/action-kit/go/action_kit_test
