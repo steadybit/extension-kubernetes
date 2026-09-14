@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.6.35
+
+- build(deps): bump github.com/steadybit/action-kit/go/action_kit_test
+- chore(deps): bump github.com/KimMachineGun/automemlimit from 0.7.5 to 1.0.0
+- chore: remove fixed CVEs from ignore list
+
 ## v2.6.34
 
 - build(deps): bump github.com/steadybit/advice-kit/go/advice_kit_test
