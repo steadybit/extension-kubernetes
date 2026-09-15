@@ -4,6 +4,8 @@
 package extconfig
 
 import (
+	"strings"
+
 	"github.com/kelseyhightower/envconfig"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/advice-kit/go/advice_kit_sdk"
@@ -63,6 +65,13 @@ func ParseConfiguration() {
 }
 
 func ValidateConfiguration() {
+	// envconfig's `required:"true"` only checks that the variable is *set*: an empty
+	// value satisfies it, so the extension would start with a blank configuration and
+	// fail much later against the target system. Reject blank values here instead.
+	if strings.TrimSpace(Config.ClusterName) == "" {
+		log.Fatal().Msg("STEADYBIT_EXTENSION_CLUSTER_NAME must not be empty.")
+	}
+
 	if Config.DisableDiscoveryExcludes {
 		log.Info().Msg("Discovery excludes are disabled. Will also discover workloads labeled with steadybit.com/discovery-disabled=true.")
 	}
