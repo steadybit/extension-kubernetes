@@ -557,7 +557,9 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		return
 	}
 	log.Info().Msg("Starting testTaintNode")
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	// The taint has to outlive the pods' termination grace period (see taintDuration
+	// below), so this test is necessarily slower than its neighbours.
+	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 
 	//Start Deployment with 2 pods
@@ -577,7 +579,13 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	//Taint node
-	const taintDuration = 20 * time.Second
+	// kubectl delete pod blocks until the pod is really gone, and these nginx pods
+	// carry the default 30s termination grace period. A taint shorter than that can
+	// expire while the deleted pods are still on the node, at which point the node
+	// is schedulable again and "no pods came back" can never hold -- that was a ~70%
+	// flake. Outlast the grace period, then watch for a while with the taint still on.
+	const taintDuration = 60 * time.Second
+	const observeRescheduling = 10 * time.Second
 	config := struct {
 		Duration int    `json:"duration"`
 		Key      string `json:"key"`
@@ -610,23 +618,39 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}, nil, nil)
 	require.NoError(t, err)
 
-	// Pods are removed and do not come back as long as the node is tainted. Once the
-	// taint is lifted the pods reschedule and this can never become true again, so
-	// bound the poll by the attack window rather than letting it run on into the
-	// test timeout and report a much later, less obvious failure.
-	taintWindow, cancelTaintWindow := context.WithDeadline(ctx, attackStarted.Add(taintDuration))
+	// First wait for the pods we deleted to actually leave the node. How long that
+	// takes is down to their grace period, not to the taint, so it is a precondition
+	// rather than the property under test. Bound it by the taint window: once the
+	// taint is lifted the node accepts pods again and nothing below can hold.
+	taintExpires := attackStarted.Add(taintDuration)
+	taintWindow, cancelTaintWindow := context.WithDeadline(ctx, taintExpires)
 	defer cancelTaintWindow()
 	_, err = e2e.PollForTarget(taintWindow, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
-		containsNginxPod := false
-		for _, pod := range target.Attributes["k8s.pod.name"] {
-			if strings.HasPrefix(pod, "nginx-test-taint-") {
-				containsNginxPod = true
+		return !slices.Contains(target.Attributes["k8s.pod.name"], podName1) &&
+			!slices.Contains(target.Attributes["k8s.pod.name"], podName2)
+	})
+	require.NoError(t, err, "the deleted pods never left the node while it was tainted")
+	log.Info().Msgf("deleted pods left the node after %.1fs", time.Since(attackStarted).Seconds())
+
+	// Now the actual property: while the taint is on, the replacements the
+	// ReplicaSet creates must not be scheduled onto this node. Watch for a stretch
+	// rather than sampling once, and stay inside the taint window.
+	observeUntil := time.Now().Add(observeRescheduling)
+	if observeUntil.After(taintExpires) {
+		observeUntil = taintExpires
+	}
+	for time.Now().Before(observeUntil) {
+		targets, discoverErr := e.DiscoverTargets(extnode.NodeTargetType)
+		require.NoError(t, discoverErr)
+		for _, target := range targets {
+			for _, pod := range target.Attributes["k8s.pod.name"] {
+				require.False(t, strings.HasPrefix(pod, "nginx-test-taint-"),
+					"pod %s was scheduled onto the node while it was tainted", pod)
 			}
 		}
-		return (time.Since(attackStarted) > 10*time.Second) && !containsNginxPod
-	})
-	require.NoError(t, err, "pods were rescheduled onto the node while it was tainted")
-	log.Info().Msgf("pods didn't come back within 10 seconds, node seems to be tainted")
+		time.Sleep(500 * time.Millisecond)
+	}
+	log.Info().Msgf("pods didn't come back within %s, node seems to be tainted", observeRescheduling)
 
 	// pods are rescheduled after attack
 	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
