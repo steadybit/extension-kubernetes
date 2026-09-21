@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## v2.6.36
 
-- fix: refuse to start when a required parameter is set but empty
+- Refuse to start when a required parameter is set but empty
+- Update dependencies
 
 ## v2.6.35
 
