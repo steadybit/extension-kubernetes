@@ -557,9 +557,7 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		return
 	}
 	log.Info().Msg("Starting testTaintNode")
-	// The taint has to outlive the pods' termination grace period (see taintDuration
-	// below), so this test is necessarily slower than its neighbours.
-	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	//Start Deployment with 2 pods
@@ -579,12 +577,13 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	//Taint node
-	// kubectl delete pod blocks until the pod is really gone, and these nginx pods
-	// carry the default 30s termination grace period. A taint shorter than that can
-	// expire while the deleted pods are still on the node, at which point the node
-	// is schedulable again and "no pods came back" can never hold -- that was a ~70%
-	// flake. Outlast the grace period, then watch for a while with the taint still on.
-	const taintDuration = 60 * time.Second
+	// kubectl delete pod blocks until the pod is really gone. The taint has to
+	// outlast that, or it expires while the deleted pods are still on the node, the
+	// node turns schedulable again and "no pods came back" can never hold -- that
+	// was a ~70% flake while the fixtures used the 30s default grace period.
+	// action_kit_test v1.4.12 caps their termination at 5s, so the window below only
+	// has to cover that plus the stretch we watch, with room to spare.
+	const taintDuration = 25 * time.Second
 	const observeRescheduling = 10 * time.Second
 	config := struct {
 		Duration int    `json:"duration"`
