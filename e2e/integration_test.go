@@ -553,7 +553,7 @@ func testDrainNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 
 func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	if isUsingRoleBinding() {
-		log.Info().Msg("Skipping testDrainNode because it is using role binding, and is therefore not supported")
+		log.Info().Msg("Skipping testTaintNode because it is using role binding, and is therefore not supported")
 		return
 	}
 	log.Info().Msg("Starting testTaintNode")
@@ -577,18 +577,19 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 
 	//Taint node
+	const taintDuration = 20 * time.Second
 	config := struct {
 		Duration int    `json:"duration"`
 		Key      string `json:"key"`
 		Value    string `json:"value"`
 		Effect   string `json:"effect"`
 	}{
-		Duration: 20_000,
+		Duration: int(taintDuration.Milliseconds()),
 		Key:      "allowed",
 		Value:    "nothing",
 		Effect:   "NoSchedule",
 	}
-	_, err = e.RunAction(extnode.DrainNodeActionId, &action_kit_api.Target{
+	_, err = e.RunAction(extnode.TaintNodeActionId, &action_kit_api.Target{
 		Name: nodeTarget.Id,
 		Attributes: map[string][]string{
 			"host.hostname": nodeTarget.Attributes["host.hostname"],
@@ -609,8 +610,13 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}, nil, nil)
 	require.NoError(t, err)
 
-	// pods are removed and do not come back as long as the node is tainted
-	_, err = e2e.PollForTarget(ctx, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
+	// Pods are removed and do not come back as long as the node is tainted. Once the
+	// taint is lifted the pods reschedule and this can never become true again, so
+	// bound the poll by the attack window rather than letting it run on into the
+	// test timeout and report a much later, less obvious failure.
+	taintWindow, cancelTaintWindow := context.WithDeadline(ctx, attackStarted.Add(taintDuration))
+	defer cancelTaintWindow()
+	_, err = e2e.PollForTarget(taintWindow, e, extnode.NodeTargetType, func(target discovery_kit_api.Target) bool {
 		containsNginxPod := false
 		for _, pod := range target.Attributes["k8s.pod.name"] {
 			if strings.HasPrefix(pod, "nginx-test-taint-") {
@@ -619,7 +625,7 @@ func testTaintNode(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		}
 		return (time.Since(attackStarted) > 10*time.Second) && !containsNginxPod
 	})
-	require.NoError(t, err)
+	require.NoError(t, err, "pods were rescheduled onto the node while it was tainted")
 	log.Info().Msgf("pods didn't come back within 10 seconds, node seems to be tainted")
 
 	// pods are rescheduled after attack
