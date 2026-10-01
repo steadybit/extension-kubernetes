@@ -115,10 +115,6 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 						Value: "8",
 					},
 					action_kit_api.ExplicitParameterOption{
-						Label: "SIGKILL (9)",
-						Value: "9",
-					},
-					action_kit_api.ExplicitParameterOption{
 						Label: "SIGUSR1 (10)",
 						Value: "10",
 					},
@@ -141,10 +137,6 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 					action_kit_api.ExplicitParameterOption{
 						Label: "SIGTERM (15)",
 						Value: "15",
-					},
-					action_kit_api.ExplicitParameterOption{
-						Label: "SIGSTOP (19)",
-						Value: "19",
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "SIGTSTP (20)",
@@ -192,6 +184,15 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 
 	if config.Signal != "" && !validSignal.MatchString(config.Signal) {
 		return nil, extension_kit.ToError(fmt.Sprintf("Invalid signal %q. Expected a signal number (e.g. 15) or name (e.g. SIGTERM).", config.Signal), nil)
+	}
+
+	// SIGKILL/SIGSTOP are rejected even though the picker options were removed, since the
+	// Signal field is free text and the ParameterOption list is only a UI hint (see validSignal).
+	if config.Signal != "" {
+		normalized := strings.TrimPrefix(strings.ToUpper(config.Signal), "SIG")
+		if normalized == "9" || normalized == "KILL" || normalized == "19" || normalized == "STOP" {
+			return nil, extension_kit.ToError(fmt.Sprintf("Signal %q is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.", config.Signal), nil)
+		}
 	}
 
 	state.Namespace = namespace
