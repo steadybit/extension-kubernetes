@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.6.37
+
+- Cause Crash Loop attack: `SIGKILL` and `SIGSTOP` are no longer allowed as signal; experiments using them will now fail on start
+- Initialize OpenTelemetry tracing
+- Update dependencies
+
 ## v2.6.36
 
 - Refuse to start when a required parameter is set but empty
