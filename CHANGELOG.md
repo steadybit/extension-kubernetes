@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.6.38
+
+- chore(deps): bump golang.org/x/net to v0.61.0
+- chore: add go stdlib CVEs to trivyignore for kubectl
+
 ## v2.6.37
 
 - Cause Crash Loop attack: `SIGKILL` and `SIGSTOP` are no longer allowed as signal; experiments using them will now fail on start
