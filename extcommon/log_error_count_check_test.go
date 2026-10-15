@@ -990,3 +990,35 @@ func TestDefaultLogErrorPattern(t *testing.T) {
 		assert.False(t, pattern.MatchString(line), line)
 	}
 }
+
+func TestBuildLogCountMetrics_MarksPointsAboveTheThreshold(t *testing.T) {
+	pods := []*corev1.Pod{testPod("checkout-1", "app"), testPod("checkout-2", "app")}
+	state := &LogErrorCountCheckState{
+		Namespace: "shop", Target: "checkout", MetricLabelKey: "k8s.deployment", MaxErrorCount: 2,
+		Cursors: map[string]*ContainerLogCursor{
+			"shop/checkout-1/app": {Pod: "checkout-1", Container: "app", Errors: 3},
+			"shop/checkout-2/app": {Pod: "checkout-2", Container: "app", Errors: 1},
+		},
+	}
+	labelsOf := func(pod string) map[string]string {
+		for _, m := range buildLogCountMetrics(state, pods, time.Now()) {
+			if *m.Name == LogErrorCountMetricName && m.Metric["k8s.pod.name"] == pod {
+				return m.Metric
+			}
+		}
+		return nil
+	}
+
+	state.CheckMode = LogErrorCountCheckModePerPodExceeded
+	assert.Equal(t, "true", labelsOf("checkout-1")[LogMaxExceededLabel])
+	assert.Equal(t, "false", labelsOf("checkout-2")[LogMaxExceededLabel])
+	assert.Equal(t, "2", labelsOf("checkout-1")[LogMaxErrorCountLabel])
+
+	state.CheckMode = LogErrorCountCheckModeTotalExceeded
+	assert.Equal(t, "true", labelsOf("checkout-1")[LogMaxExceededLabel], "total 4 > 2 marks every pod")
+	assert.Equal(t, "true", labelsOf("checkout-2")[LogMaxExceededLabel])
+
+	state.CheckMode = LogErrorCountCheckModeNone
+	assert.NotContains(t, labelsOf("checkout-1"), LogMaxExceededLabel)
+	assert.NotContains(t, labelsOf("checkout-1"), LogMaxErrorCountLabel)
+}

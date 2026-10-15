@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +36,12 @@ const (
 	LogErrorCountMetricName = "k8s_log_error_count"
 	// LogLineCountMetricName is the cumulative number of log lines read per pod.
 	LogLineCountMetricName = "k8s_log_line_count"
+
+	// LogMaxExceededLabel is "true" on the points of a pod whose threshold is exceeded at that moment (per pod, or
+	// for all pods once the total is exceeded), so the chart colors them.
+	LogMaxExceededLabel = "k8s.log.max_error_count_exceeded"
+	// LogMaxErrorCountLabel carries the threshold, shown in the chart's tooltip. Only set when a threshold is used.
+	LogMaxErrorCountLabel = "k8s.log.max_error_count"
 
 	// DefaultLogErrorPattern matches the usual error markers of plain-text, logfmt and JSON logs
 	// (e.g. "ERROR", "level=error", "\"level\":\"error\"", "panic:", "NullPointerException").
@@ -231,9 +238,31 @@ func (f LogErrorCountCheckAction) Describe() action_kit_api.ActionDescription {
 					From:       "k8s.pod.name",
 					Mode:       action_kit_api.ComSteadybitWidgetLineChartIdentityModeSelect,
 				},
+				// Points are colored by whether the threshold is exceeded at that moment.
+				Grouping: new(action_kit_api.LineChartWidgetGroupingConfig{
+					Groups: []action_kit_api.LineChartWidgetGroup{
+						{
+							Title: "Max error count exceeded",
+							Color: "danger",
+							Matcher: action_kit_api.LineChartWidgetGroupMatcherKeyEqualsValue{
+								Type:  action_kit_api.ComSteadybitWidgetLineChartGroupMatcherKeyEqualsValue,
+								Key:   LogMaxExceededLabel,
+								Value: "true",
+							},
+						},
+						{
+							Title: "Within max error count",
+							Color: "info",
+							Matcher: action_kit_api.LineChartWidgetGroupMatcherFallback{
+								Type: action_kit_api.ComSteadybitWidgetLineChartGroupMatcherFallback,
+							},
+						},
+					},
+				}),
 				Tooltip: new(action_kit_api.LineChartWidgetTooltipConfig{
 					MetricValueTitle: new("Error log lines"),
 					AdditionalContent: []action_kit_api.LineChartWidgetTooltipContent{
+						{From: LogMaxErrorCountLabel, Title: "Max error count"},
 						{From: "k8s.pod.name", Title: "Pod"},
 						{From: "k8s.namespace", Title: "Namespace"},
 						{From: f.MetricLabelKey, Title: f.TargetTypeLabel},
@@ -537,6 +566,10 @@ func evaluateLogErrorCount(state *LogErrorCountCheckState) *action_kit_api.Actio
 // buildLogCountMetrics emits the cumulative counts of all pods currently belonging to the target.
 func buildLogCountMetrics(state *LogErrorCountCheckState, pods []*corev1.Pod, now time.Time) []action_kit_api.Metric {
 	counts := countsByPod(state)
+	total := 0
+	for _, c := range counts {
+		total += c.errors
+	}
 	metrics := make([]action_kit_api.Metric, 0, len(pods)*2)
 	for _, pod := range pods {
 		c, ok := counts[pod.Name]
@@ -548,6 +581,17 @@ func buildLogCountMetrics(state *LogErrorCountCheckState, pods []*corev1.Pod, no
 			"k8s.namespace":      state.Namespace,
 			state.MetricLabelKey: state.Target,
 			"k8s.pod.name":       pod.Name,
+		}
+		exceeded := false
+		switch state.CheckMode {
+		case LogErrorCountCheckModeTotalExceeded:
+			exceeded = total > state.MaxErrorCount
+		case LogErrorCountCheckModePerPodExceeded:
+			exceeded = c.errors > state.MaxErrorCount
+		}
+		if state.CheckMode != LogErrorCountCheckModeNone && state.CheckMode != "" {
+			labels[LogMaxErrorCountLabel] = strconv.Itoa(state.MaxErrorCount)
+			labels[LogMaxExceededLabel] = strconv.FormatBool(exceeded)
 		}
 		metrics = append(metrics,
 			action_kit_api.Metric{Name: new(LogErrorCountMetricName), Metric: labels, Timestamp: now, Value: float64(c.errors)},
