@@ -175,6 +175,9 @@ type Client struct {
 	networkingV1         networkingv1client.NetworkingV1Interface
 	clientset            kubernetes.Interface
 	dynamicClient        dynamic.Interface
+	// logStreamingClientset has no request timeout, so long-lived log streams (follow=true) aren't cut off.
+	// Falls back to clientset when not set (e.g. in tests).
+	logStreamingClientset kubernetes.Interface
 }
 
 func (c *Client) DynamicClient() dynamic.Interface {
@@ -465,7 +468,11 @@ func (c *Client) ExecInPod(_ context.Context, namespace, podName, containerName 
 
 // PodLogs streams the logs of a pod container. The caller is responsible for closing the returned stream.
 func (c *Client) PodLogs(ctx context.Context, namespace, podName string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
-	return c.clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).Stream(ctx)
+	clientset := c.clientset
+	if c.logStreamingClientset != nil {
+		clientset = c.logStreamingClientset
+	}
+	return clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).Stream(ctx)
 }
 
 // FileExistsInPod checks if a file exists in a pod container
@@ -905,6 +912,16 @@ func PrepareClient(stopCh <-chan struct{}) {
 	}
 
 	K8S = CreateClient(clientset, stopCh, rootApiPath, permissions, dynamicClient)
+
+	// The request timeout of the regular client would cut off followed log streams after a few seconds; they are
+	// ended by cancelling their context instead.
+	streamingConfig := rest.CopyConfig(config)
+	streamingConfig.Timeout = 0
+	logStreamingClientset, err := kubernetes.NewForConfig(streamingConfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create log streaming client")
+	}
+	K8S.logStreamingClientset = logStreamingClientset
 }
 
 // CreateClient is visible for testing

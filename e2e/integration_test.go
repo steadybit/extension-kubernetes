@@ -851,8 +851,9 @@ func testLogErrorCountCheck(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	}
 
 	t.Run("visualize only reports error counts per pod", func(t *testing.T) {
+		// longer than the 10s request timeout of the regular Kubernetes client, which must not cut off the streams
 		action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, targetFor(noisyName), config{
-			Duration:  10_000,
+			Duration:  25_000,
 			CheckMode: "none",
 		}, nil)
 		defer func() { _ = action.Cancel() }()
@@ -868,6 +869,24 @@ func testLogErrorCountCheck(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		}
 		for _, message := range action.Messages() {
 			assert.NotContains(t, message.Message, "something failed", "log lines must not be shipped to the platform")
+			assert.NotContains(t, message.Message, "Failed to read logs", "log streams must not break off")
+		}
+
+		// the pods log an error per second and status is called every 2s: the count must grow steadily, without
+		// stalling (a broken stream would only catch up after reconnecting)
+		series := map[string][]float64{}
+		for _, metric := range action.Metrics() {
+			if metric.Name != nil && *metric.Name == extcommon.LogErrorCountMetricName {
+				pod := metric.Metric["k8s.pod.name"]
+				series[pod] = append(series[pod], metric.Value)
+			}
+		}
+		for pod, values := range series {
+			require.GreaterOrEqual(t, len(values), 8, "pod %s", pod)
+			// skip the first points (stream opening) and the last one (lines after the end are ignored)
+			for i := 3; i < len(values)-1; i++ {
+				assert.False(t, values[i] == values[i-1] && values[i-1] == values[i-2], "error count of pod %s stalled: %v", pod, values)
+			}
 		}
 	})
 
