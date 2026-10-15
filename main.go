@@ -101,6 +101,9 @@ func main() {
 		discovery_kit_sdk.Register(extdeployment.NewDeploymentDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extdeployment.NewCheckDeploymentRolloutStatusAction())
 		action_kit_sdk.RegisterAction(extdeployment.NewDeploymentPodCountCheckAction(client.K8S))
+		if client.K8S.Permissions().CanReadPodLogs() {
+			action_kit_sdk.RegisterAction(extdeployment.NewDeploymentLogErrorCountCheckAction(client.K8S))
+		}
 
 		if client.K8S.Permissions().IsRolloutRestartPermitted() {
 			action_kit_sdk.RegisterAction(extdeployment.NewDeploymentRolloutRestartAction())
@@ -136,6 +139,9 @@ func main() {
 	if !extconfig.Config.DiscoveryDisabledStatefulSet {
 		discovery_kit_sdk.Register(extstatefulset.NewStatefulSetDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extstatefulset.NewStatefulSetPodCountCheckAction(client.K8S))
+		if client.K8S.Permissions().CanReadPodLogs() {
+			action_kit_sdk.RegisterAction(extstatefulset.NewStatefulSetLogErrorCountCheckAction(client.K8S))
+		}
 		if client.K8S.Permissions().IsScaleStatefulSetPermitted() {
 			action_kit_sdk.RegisterAction(extstatefulset.NewScaleStatefulSetAction())
 		}
@@ -144,6 +150,9 @@ func main() {
 	if !extconfig.Config.DiscoveryDisabledDaemonSet {
 		discovery_kit_sdk.Register(extdaemonset.NewDaemonSetDiscovery(client.K8S))
 		action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetPodCountCheckAction(client.K8S))
+		if client.K8S.Permissions().CanReadPodLogs() {
+			action_kit_sdk.RegisterAction(extdaemonset.NewDaemonSetLogErrorCountCheckAction(client.K8S))
+		}
 	}
 
 	if !extconfig.Config.DiscoveryDisabledIngress && client.K8S.Permissions().IsListIngressPermitted() && client.K8S.Permissions().IsListIngressClassesPermitted() && client.K8S.Permissions().IsModifyIngressPermitted() && !extconfig.HasNamespaceFilter() {

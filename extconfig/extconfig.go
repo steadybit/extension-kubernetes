@@ -48,6 +48,9 @@ type Specification struct {
 	DiscoveryMaxPodCount                    int      `json:"discoveryMaxPodCount" split_words:"true" required:"false" default:"50"`
 	DiscoveryRefreshThrottle                int      `json:"DiscoveryRefreshThrottle" required:"false" split_words:"true" default:"20"`
 	DiscoveryInformerResync                 int      `json:"DiscoveryInformerResync" required:"false" split_words:"true" default:"600"`
+	LogErrorCountMaxContainersPerStep       int      `json:"logErrorCountMaxContainersPerStep" split_words:"true" required:"false" default:"20"`
+	LogErrorCountMaxConcurrentStreams       int      `json:"logErrorCountMaxConcurrentStreams" split_words:"true" required:"false" default:"40"`
+	LogErrorCountMaxLogMiBPerSecond         int      `json:"logErrorCountMaxLogMiBPerSecond" envconfig:"LOG_ERROR_COUNT_MAX_LOG_MIB_PER_SECOND" required:"false" default:"10"`
 	Namespace                               string   `json:"namespace" split_words:"true" required:"false" default:""`
 	NginxDelaySkipImageCheck                bool     `json:"nginxDelaySkipImageCheck" split_words:"true" required:"false" default:"false"`
 	PrintMemoryStatsInterval                int64    `json:"printMemoryStatsInterval" split_words:"true" required:"false" default:"0"`

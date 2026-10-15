@@ -80,6 +80,12 @@ manifest should match snapshot:
           - pods/exec
         verbs:
           - create
+      - apiGroups:
+          - ""
+        resources:
+          - pods/log
+        verbs:
+          - get
 manifest should match snapshot with some disabled features:
   1: |
     apiVersion: rbac.authorization.k8s.io/v1
@@ -136,3 +142,9 @@ manifest should match snapshot with some disabled features:
           - get
           - update
           - patch
+      - apiGroups:
+          - ""
+        resources:
+          - pods/log
+        verbs:
+          - get
