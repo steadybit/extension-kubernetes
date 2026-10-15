@@ -1,0 +1,396 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 Steadybit GmbH
+
+package extcommon
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"regexp"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type logLine struct {
+	ts      time.Time
+	message string
+}
+
+// fakeLogStreamer emulates the pods/log endpoint: it honours sinceTime with second precision only
+// (like the real API) and always prefixes lines with their RFC3339Nano timestamp.
+type fakeLogStreamer struct {
+	mu       sync.Mutex
+	logs     map[string][]logLine
+	failures map[string]error
+	calls    int
+}
+
+func newFakeLogStreamer() *fakeLogStreamer {
+	return &fakeLogStreamer{logs: map[string][]logLine{}, failures: map[string]error{}}
+}
+
+func (s *fakeLogStreamer) add(pod, container string, ts time.Time, message string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := pod + "/" + container
+	s.logs[key] = append(s.logs[key], logLine{ts: ts, message: message})
+}
+
+func (s *fakeLogStreamer) PodLogs(_ context.Context, _ string, podName string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.calls++
+	key := podName + "/" + opts.Container
+	if err := s.failures[key]; err != nil {
+		return nil, err
+	}
+	var since time.Time
+	if opts.SinceTime != nil {
+		since = opts.SinceTime.Time.Truncate(time.Second)
+	}
+	var sb strings.Builder
+	for _, l := range s.logs[key] {
+		if l.ts.Before(since) {
+			continue
+		}
+		sb.WriteString(l.ts.UTC().Format(time.RFC3339Nano))
+		sb.WriteString(" ")
+		sb.WriteString(l.message)
+		sb.WriteString("\n")
+	}
+	return io.NopCloser(strings.NewReader(sb.String())), nil
+}
+
+func testPod(name string, containers ...string) *corev1.Pod {
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "shop"}}
+	for _, c := range containers {
+		pod.Spec.Containers = append(pod.Spec.Containers, corev1.Container{Name: c})
+		pod.Status.ContainerStatuses = append(pod.Status.ContainerStatuses, corev1.ContainerStatus{
+			Name:  c,
+			State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+		})
+	}
+	return pod
+}
+
+func newTestLogErrorCountCheck(streamer PodLogStreamer, pods *[]*corev1.Pod) LogErrorCountCheckAction {
+	return LogErrorCountCheckAction{
+		ActionId:        "test",
+		TargetType:      "test-type",
+		TargetTypeLabel: "Deployment",
+		GetTarget: func(request action_kit_api.PrepareActionRequestBody) string {
+			return request.Target.Attributes["k8s.deployment"][0]
+		},
+		GetPods: func(_ *client.Client, _ string, _ string) ([]*corev1.Pod, error) {
+			return *pods, nil
+		},
+		MetricLabelKey: "k8s.deployment",
+		logStreamer:    streamer,
+	}
+}
+
+func prepareRequest(config map[string]any) action_kit_api.PrepareActionRequestBody {
+	return action_kit_api.PrepareActionRequestBody{
+		Config: config,
+		Target: new(action_kit_api.Target{
+			Attributes: map[string][]string{
+				"k8s.namespace":  {"shop"},
+				"k8s.deployment": {"checkout"},
+			},
+		}),
+	}
+}
+
+func metricValue(metrics *[]action_kit_api.Metric, name, pod string) (float64, bool) {
+	if metrics == nil {
+		return 0, false
+	}
+	for _, m := range *metrics {
+		if *m.Name == name && m.Metric["k8s.pod.name"] == pod {
+			return m.Value, true
+		}
+	}
+	return 0, false
+}
+
+func TestLogErrorCountCheck_PrepareDefaults(t *testing.T) {
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(newFakeLogStreamer(), &pods)
+	state := action.NewEmptyState()
+
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 10_000}))
+
+	require.NoError(t, err)
+	assert.Equal(t, LogErrorCountCheckModeNone, state.CheckMode)
+	assert.Equal(t, DefaultLogErrorPattern, state.ErrorPattern)
+	assert.Equal(t, "shop", state.Namespace)
+	assert.Equal(t, "checkout", state.Target)
+	assert.Equal(t, "k8s.deployment", state.MetricLabelKey)
+	assert.False(t, state.FailEarly)
+	assert.Equal(t, 10*time.Second, state.End.Sub(state.Start))
+}
+
+func TestLogErrorCountCheck_PrepareRejectsInvalidConfig(t *testing.T) {
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(newFakeLogStreamer(), &pods)
+
+	for name, config := range map[string]map[string]any{
+		"invalid error pattern":  {"duration": 1000, "errorPattern": "("},
+		"invalid ignore pattern": {"duration": 1000, "ignorePattern": "["},
+		"unknown check mode":     {"duration": 1000, "checkMode": "whatever"},
+		"negative max":           {"duration": 1000, "checkMode": string(LogErrorCountCheckModeTotalExceeded), "maxErrorCount": -1},
+	} {
+		t.Run(name, func(t *testing.T) {
+			state := action.NewEmptyState()
+			_, err := action.Prepare(context.Background(), &state, prepareRequest(config))
+			require.Error(t, err)
+		})
+	}
+}
+
+func TestLogErrorCountCheck_CountsOnlyNewLinesAcrossStatusCalls(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app", "sidecar"), testPod("checkout-2", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, err = action.Start(context.Background(), &state)
+	require.NoError(t, err)
+
+	// logged before the step started -> ignored
+	streamer.add("checkout-1", "app", state.Start.Add(-2*time.Second), "ERROR before start")
+
+	base := state.Start.Add(10 * time.Millisecond)
+	streamer.add("checkout-1", "app", base, "ERROR failed to connect to db")
+	streamer.add("checkout-1", "app", base.Add(time.Millisecond), "INFO request served")
+	streamer.add("checkout-1", "sidecar", base, `{"level":"error","msg":"upstream reset"}`)
+	streamer.add("checkout-2", "app", base, "level=info msg=ok")
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.False(t, result.Completed)
+	assert.Nil(t, result.Error)
+
+	v, ok := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	require.True(t, ok)
+	assert.Equal(t, float64(2), v, "app + sidecar errors are aggregated per pod")
+	v, _ = metricValue(result.Metrics, LogLineCountMetricName, "checkout-1")
+	assert.Equal(t, float64(3), v)
+	v, ok = metricValue(result.Metrics, LogErrorCountMetricName, "checkout-2")
+	require.True(t, ok)
+	assert.Equal(t, float64(0), v)
+
+	// new lines within the same second as the last seen line must be counted exactly once
+	streamer.add("checkout-1", "app", base.Add(2*time.Millisecond), "panic: runtime error")
+	streamer.add("checkout-2", "app", base.Add(3*time.Second), "java.lang.NullPointerException: boom")
+
+	result, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	v, _ = metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(3), v)
+	v, _ = metricValue(result.Metrics, LogLineCountMetricName, "checkout-1")
+	assert.Equal(t, float64(4), v)
+	v, _ = metricValue(result.Metrics, LogErrorCountMetricName, "checkout-2")
+	assert.Equal(t, float64(1), v)
+
+	// nothing new -> counts stay
+	result, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	v, _ = metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(3), v)
+}
+
+func TestLogErrorCountCheck_PicksUpNewPodsAndIgnoresGonePodsInMetrics(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{
+		"duration":      60_000,
+		"checkMode":     string(LogErrorCountCheckModeTotalExceeded),
+		"maxErrorCount": 1,
+	}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	streamer.add("checkout-1", "app", state.Start.Add(time.Millisecond), "ERROR one")
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.Nil(t, result.Error)
+
+	// rollout: old pod is replaced by a new one which logs an error
+	pods = []*corev1.Pod{testPod("checkout-2", "app")}
+	streamer.add("checkout-2", "app", state.Start.Add(time.Second), "ERROR two")
+	result, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+
+	_, ok := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.False(t, ok, "gone pods are not reported anymore")
+	v, ok := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-2")
+	require.True(t, ok)
+	assert.Equal(t, float64(1), v)
+
+	// errors of the gone pod still count towards the total; not fail early -> not completed yet
+	assert.False(t, result.Completed)
+	assert.Nil(t, result.Error)
+
+	state.End = time.Now()
+	result, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.True(t, result.Completed)
+	require.NotNil(t, result.Error)
+	assert.Equal(t, action_kit_api.Failed, *result.Error.Status)
+	assert.Contains(t, result.Error.Title, "logged 2 error lines, max allowed is 1")
+	require.NotNil(t, result.Messages)
+	assert.Contains(t, (*result.Messages)[len(*result.Messages)-1].Message, "checkout-1 1/1, checkout-2 1/1")
+}
+
+func TestLogErrorCountCheck_FailEarlyPerPod(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app"), testPod("checkout-2", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{
+		"duration":      60_000,
+		"checkMode":     string(LogErrorCountCheckModePerPodExceeded),
+		"maxErrorCount": 1,
+		"failEarly":     true,
+	}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	streamer.add("checkout-1", "app", state.Start.Add(time.Millisecond), "ERROR one")
+	streamer.add("checkout-2", "app", state.Start.Add(time.Millisecond), "ERROR one")
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.False(t, result.Completed, "1 error per pod is within the limit even though the total is 2")
+
+	streamer.add("checkout-2", "app", state.Start.Add(2*time.Millisecond), "ERROR two")
+	result, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.True(t, result.Completed)
+	require.NotNil(t, result.Error)
+	assert.Contains(t, result.Error.Title, "checkout-2 (2)")
+	assert.NotContains(t, result.Error.Title, "checkout-1")
+}
+
+func TestLogErrorCountCheck_ModeNoneNeverFails(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 0, "failEarly": true}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+	for i := 0; i < 10; i++ {
+		streamer.add("checkout-1", "app", state.Start.Add(time.Duration(i)*time.Millisecond), fmt.Sprintf("ERROR %d", i))
+	}
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.True(t, result.Completed)
+	assert.Nil(t, result.Error)
+	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(10), v)
+}
+
+func TestLogErrorCountCheck_ContainerFilterAndIgnorePattern(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app", "istio-proxy")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{
+		"duration":      60_000,
+		"containerName": "app",
+		"ignorePattern": "health",
+	}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	streamer.add("checkout-1", "app", state.Start.Add(time.Millisecond), "ERROR healthcheck flaky")
+	streamer.add("checkout-1", "app", state.Start.Add(2*time.Millisecond), "ERROR real problem")
+	streamer.add("checkout-1", "istio-proxy", state.Start.Add(time.Millisecond), "ERROR upstream")
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(1), v)
+	v, _ = metricValue(result.Metrics, LogLineCountMetricName, "checkout-1")
+	assert.Equal(t, float64(2), v, "sidecar lines are not read")
+}
+
+func TestLogErrorCountCheck_ReportsLogReadFailuresAsWarnings(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	streamer.failures["checkout-1/app"] = errors.New("forbidden")
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.Nil(t, result.Error)
+	require.NotNil(t, result.Messages)
+	assert.Equal(t, action_kit_api.Warn, *(*result.Messages)[0].Level)
+	assert.Contains(t, (*result.Messages)[0].Message, "forbidden")
+}
+
+func TestCountLogLines_TruncatesLongLinesAndSkipsUnparsable(t *testing.T) {
+	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
+	long := strings.Repeat("x", logMaxLineLength*2) + " ERROR"
+	input := strings.Join([]string{
+		ts.Format(time.RFC3339Nano) + " " + long,
+		"not-a-timestamp ERROR",
+		ts.Add(time.Millisecond).Format(time.RFC3339Nano) + " ERROR short",
+		"",
+	}, "\n")
+	cursor := &ContainerLogCursor{LastTime: ts}
+
+	err := countLogLines(strings.NewReader(input), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, cursor.Lines)
+	assert.Equal(t, 1, cursor.Errors, "the ERROR beyond the max line length is cut off")
+	assert.Equal(t, ts.Add(time.Millisecond), cursor.LastTime)
+	assert.Equal(t, 1, cursor.SeenAtLast)
+}
+
+func TestDefaultLogErrorPattern(t *testing.T) {
+	pattern := regexp.MustCompile(DefaultLogErrorPattern)
+	for _, line := range []string{
+		"ERROR something failed",
+		"2026-10-15 [error] boom",
+		`{"level":"error","msg":"x"}`,
+		"level=ERROR msg=x",
+		"FATAL cannot start",
+		"panic: runtime error: index out of range",
+		"java.lang.NullPointerException: x",
+		"Exception in thread \"main\"",
+		"CRITICAL disk full",
+	} {
+		assert.True(t, pattern.MatchString(line), line)
+	}
+	for _, line := range []string{
+		"INFO request served",
+		"errors=0",
+		"error_count=0",
+		"stderr redirected",
+		`{"level":"info","msg":"x"}`,
+	} {
+		assert.False(t, pattern.MatchString(line), line)
+	}
+}

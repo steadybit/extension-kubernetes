@@ -1,0 +1,587 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2026 Steadybit GmbH
+
+package extcommon
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"regexp"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/rs/zerolog/log"
+	"github.com/steadybit/action-kit/go/action_kit_api/v2"
+	"github.com/steadybit/action-kit/go/action_kit_sdk"
+	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/extbuild"
+	"github.com/steadybit/extension-kit/extutil"
+	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	// LogErrorCountMetricName is the cumulative number of log lines matching the error pattern per pod.
+	LogErrorCountMetricName = "k8s_log_error_count"
+	// LogLineCountMetricName is the cumulative number of log lines read per pod.
+	LogLineCountMetricName = "k8s_log_line_count"
+
+	// DefaultLogErrorPattern matches the usual error markers of plain-text, logfmt and JSON logs
+	// (e.g. "ERROR", "level=error", "\"level\":\"error\"", "panic:", "NullPointerException").
+	DefaultLogErrorPattern = `(?i)(\b(error|fatal|panic|critical)\b|exception\b)`
+
+	LogErrorCountCheckModeNone           LogErrorCountCheckMode = "none"
+	LogErrorCountCheckModeTotalExceeded  LogErrorCountCheckMode = "totalErrorsExceeded"
+	LogErrorCountCheckModePerPodExceeded LogErrorCountCheckMode = "podErrorsExceeded"
+)
+
+const (
+	// Upper bound of bytes read per container and status call. Remaining lines are picked up by the next call.
+	logFetchLimitBytes = int64(4 * 1024 * 1024)
+	// Lines longer than this are truncated before matching.
+	logMaxLineLength = 64 * 1024
+	logFetchTimeout  = 10 * time.Second
+	logFetchParallel = 8
+)
+
+type LogErrorCountCheckMode string
+
+// PodLogStreamer opens a log stream of a single container. Implemented by *client.Client.
+type PodLogStreamer interface {
+	PodLogs(ctx context.Context, namespace, podName string, opts *corev1.PodLogOptions) (io.ReadCloser, error)
+}
+
+type LogErrorCountCheckAction struct {
+	Client             *client.Client
+	ActionId           string
+	TargetType         string
+	TargetTypeLabel    string
+	SelectionTemplates *action_kit_api.TargetSelectionTemplates
+	GetTarget          func(request action_kit_api.PrepareActionRequestBody) string
+	// GetPods returns the pods currently belonging to the target. It is evaluated on every status call, so
+	// pods created during the step (e.g. by a rollout) are picked up as well.
+	GetPods func(k8s *client.Client, namespace string, target string) ([]*corev1.Pod, error)
+	// MetricLabelKey is the k8s label key used to identify the workload in emitted metrics (e.g. "k8s.deployment").
+	MetricLabelKey string
+	// logStreamer overrides the client for reading logs (tests only).
+	logStreamer PodLogStreamer
+}
+
+// ContainerLogCursor remembers how far the logs of a container have been read and what has been counted so far.
+type ContainerLogCursor struct {
+	Pod       string    `json:"pod"`
+	Container string    `json:"container"`
+	LastTime  time.Time `json:"lastTime"`
+	// SeenAtLast is the number of lines already counted carrying exactly LastTime. The API only supports
+	// second precision for sinceTime, so lines of the last second are returned again and must be skipped.
+	SeenAtLast int `json:"seenAtLast"`
+	Errors     int `json:"errors"`
+	Lines      int `json:"lines"`
+}
+
+type LogErrorCountCheckState struct {
+	Start          time.Time                      `json:"start"`
+	End            time.Time                      `json:"end"`
+	Namespace      string                         `json:"namespace"`
+	Target         string                         `json:"target"`
+	MetricLabelKey string                         `json:"metricLabelKey"`
+	ErrorPattern   string                         `json:"errorPattern"`
+	IgnorePattern  string                         `json:"ignorePattern"`
+	ContainerName  string                         `json:"containerName"`
+	CheckMode      LogErrorCountCheckMode         `json:"checkMode"`
+	MaxErrorCount  int                            `json:"maxErrorCount"`
+	FailEarly      bool                           `json:"failEarly"`
+	Cursors        map[string]*ContainerLogCursor `json:"cursors"`
+}
+
+var _ action_kit_sdk.Action[LogErrorCountCheckState] = (*LogErrorCountCheckAction)(nil)
+var _ action_kit_sdk.ActionWithStatus[LogErrorCountCheckState] = (*LogErrorCountCheckAction)(nil)
+
+func (f LogErrorCountCheckAction) NewEmptyState() LogErrorCountCheckState {
+	return LogErrorCountCheckState{}
+}
+
+func (f LogErrorCountCheckAction) Describe() action_kit_api.ActionDescription {
+	return action_kit_api.ActionDescription{
+		Id:          f.ActionId,
+		Label:       f.TargetTypeLabel + " Error Log Count",
+		Description: "Counts the error log lines of the " + strings.ToLower(f.TargetTypeLabel) + "'s pods and optionally fails when a threshold is exceeded. Only the counts are reported, the log lines themselves are not collected.",
+		Version:     extbuild.GetSemverVersionStringOrUnknown(),
+		Icon:        new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTUgM0gxNEwxOSA4VjEyIiBzdHJva2U9IiMxRDI2MzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik01IDNWMjFIMTIiIHN0cm9rZT0iIzFEMjYzMiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTggOUgxMiIgc3Ryb2tlPSIjMUQyNjMyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNOCAxM0gxMSIgc3Ryb2tlPSIjMUQyNjMyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8Y2lyY2xlIGN4PSIxNy41IiBjeT0iMTcuNSIgcj0iNC41IiBmaWxsPSIjMUQyNjMyIi8+CjxwYXRoIGQ9Ik0xNy41IDE1VjE3LjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMTcuNSIgY3k9IjE5LjkiIHI9IjAuOCIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg=="),
+		Technology:  new("Kubernetes"),
+
+		Kind:        action_kit_api.Check,
+		TimeControl: action_kit_api.TimeControlInternal,
+		TargetSelection: new(action_kit_api.TargetSelection{
+			TargetType:          f.TargetType,
+			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionAll),
+			SelectionTemplates:  f.SelectionTemplates,
+		}),
+		Parameters: []action_kit_api.ActionParameter{
+			{
+				Name:         "duration",
+				Label:        "Duration",
+				Description:  new("How long should the error logs be counted."),
+				Type:         action_kit_api.ActionParameterTypeDuration,
+				DefaultValue: new("60s"),
+				Order:        new(1),
+				Required:     new(true),
+			},
+			{
+				Name:         "checkMode",
+				Label:        "Fail when",
+				Description:  new("Whether the check should fail when too many error log lines are counted. Use 'Never' to only visualize the error log count."),
+				Type:         action_kit_api.ActionParameterTypeString,
+				DefaultValue: new(string(LogErrorCountCheckModeNone)),
+				Order:        new(2),
+				Required:     new(true),
+				Options: new([]action_kit_api.ParameterOption{
+					action_kit_api.ExplicitParameterOption{
+						Label: "Never (visualize only)",
+						Value: string(LogErrorCountCheckModeNone),
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "total error count > max",
+						Value: string(LogErrorCountCheckModeTotalExceeded),
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "error count of any pod > max",
+						Value: string(LogErrorCountCheckModePerPodExceeded),
+					},
+				}),
+			},
+			{
+				Name:         "maxErrorCount",
+				Label:        "Max error count",
+				Description:  new("Maximum number of error log lines allowed during the step. Ignored when 'Fail when' is 'Never'."),
+				Type:         action_kit_api.ActionParameterTypeInteger,
+				DefaultValue: new("0"),
+				Order:        new(3),
+				Required:     new(true),
+			},
+			{
+				Name:         "errorPattern",
+				Label:        "Error pattern",
+				Description:  new("Regular expression (RE2 syntax) identifying an error log line."),
+				Type:         action_kit_api.ActionParameterTypeString,
+				DefaultValue: new(DefaultLogErrorPattern),
+				Order:        new(4),
+				Required:     new(true),
+				Advanced:     new(true),
+			},
+			{
+				Name:        "ignorePattern",
+				Label:       "Ignore pattern",
+				Description: new("Optional regular expression (RE2 syntax). Lines matching it are never counted as errors."),
+				Type:        action_kit_api.ActionParameterTypeString,
+				Order:       new(5),
+				Required:    new(false),
+				Advanced:    new(true),
+			},
+			{
+				Name:        "containerName",
+				Label:       "Container name",
+				Description: new("Only count the logs of this container. Leave empty to count the logs of all containers (e.g. including sidecars)."),
+				Type:        action_kit_api.ActionParameterTypeString,
+				Order:       new(6),
+				Required:    new(false),
+				Advanced:    new(true),
+			},
+			{
+				Name:         "failEarly",
+				Label:        "Fail early",
+				Description:  new("If enabled, the check fails as soon as the threshold is exceeded. If disabled, the error logs are counted for the whole duration and the check fails at the end of the step."),
+				Type:         action_kit_api.ActionParameterTypeBoolean,
+				DefaultValue: new("false"),
+				Order:        new(7),
+				Required:     new(false),
+				Advanced:     new(true),
+			},
+		},
+		Widgets: new([]action_kit_api.Widget{
+			action_kit_api.LineChartWidget{
+				Type:  action_kit_api.ComSteadybitWidgetLineChart,
+				Title: "Kubernetes Error Log Count",
+				Identity: action_kit_api.LineChartWidgetIdentityConfig{
+					MetricName: LogErrorCountMetricName,
+					From:       "k8s.pod.name",
+					Mode:       action_kit_api.ComSteadybitWidgetLineChartIdentityModeSelect,
+				},
+				Tooltip: new(action_kit_api.LineChartWidgetTooltipConfig{
+					MetricValueTitle: new("Error log lines"),
+					AdditionalContent: []action_kit_api.LineChartWidgetTooltipContent{
+						{From: "k8s.pod.name", Title: "Pod"},
+						{From: "k8s.namespace", Title: "Namespace"},
+						{From: f.MetricLabelKey, Title: f.TargetTypeLabel},
+					},
+				}),
+			},
+		}),
+		Prepare: action_kit_api.MutatingEndpointReference{},
+		Start:   action_kit_api.MutatingEndpointReference{},
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("2s"),
+		}),
+	}
+}
+
+func (f LogErrorCountCheckAction) Prepare(_ context.Context, state *LogErrorCountCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
+	errorPattern := extutil.ToString(request.Config["errorPattern"])
+	if strings.TrimSpace(errorPattern) == "" {
+		errorPattern = DefaultLogErrorPattern
+	}
+	if _, err := regexp.Compile(errorPattern); err != nil {
+		return nil, extension_kit.ToError(fmt.Sprintf("Invalid error pattern '%s'.", errorPattern), err)
+	}
+	ignorePattern := strings.TrimSpace(extutil.ToString(request.Config["ignorePattern"]))
+	if ignorePattern != "" {
+		if _, err := regexp.Compile(ignorePattern); err != nil {
+			return nil, extension_kit.ToError(fmt.Sprintf("Invalid ignore pattern '%s'.", ignorePattern), err)
+		}
+	}
+
+	checkMode := LogErrorCountCheckMode(extutil.ToString(request.Config["checkMode"]))
+	switch checkMode {
+	case "":
+		checkMode = LogErrorCountCheckModeNone
+	case LogErrorCountCheckModeNone, LogErrorCountCheckModeTotalExceeded, LogErrorCountCheckModePerPodExceeded:
+	default:
+		return nil, extension_kit.ToError(fmt.Sprintf("Unknown check mode '%s'.", checkMode), nil)
+	}
+
+	maxErrorCount := int(extutil.ToInt64(request.Config["maxErrorCount"]))
+	if maxErrorCount < 0 {
+		return nil, extension_kit.ToError("Max error count must not be negative.", nil)
+	}
+
+	namespace := request.Target.Attributes["k8s.namespace"][0]
+	target := f.GetTarget(request)
+	if _, err := f.GetPods(f.Client, namespace, target); err != nil {
+		return nil, err
+	}
+
+	duration := time.Duration(extutil.ToInt64(request.Config["duration"])) * time.Millisecond
+	state.Start = time.Now()
+	state.End = state.Start.Add(duration)
+	state.Namespace = namespace
+	state.Target = target
+	state.MetricLabelKey = f.MetricLabelKey
+	state.ErrorPattern = errorPattern
+	state.IgnorePattern = ignorePattern
+	state.ContainerName = strings.TrimSpace(extutil.ToString(request.Config["containerName"]))
+	state.CheckMode = checkMode
+	state.MaxErrorCount = maxErrorCount
+	state.FailEarly = extutil.ToBool(request.Config["failEarly"])
+	state.Cursors = make(map[string]*ContainerLogCursor)
+	return nil, nil
+}
+
+func (f LogErrorCountCheckAction) Start(_ context.Context, state *LogErrorCountCheckState) (*action_kit_api.StartResult, error) {
+	// Only count what is logged after the step has started.
+	now := time.Now()
+	duration := state.End.Sub(state.Start)
+	state.Start = now
+	state.End = now.Add(duration)
+	return nil, nil
+}
+
+func (f LogErrorCountCheckAction) Status(ctx context.Context, state *LogErrorCountCheckState) (*action_kit_api.StatusResult, error) {
+	now := time.Now()
+	pods, err := f.GetPods(f.Client, state.Namespace, state.Target)
+	if err != nil {
+		return nil, err
+	}
+
+	errorRegex, err := regexp.Compile(state.ErrorPattern)
+	if err != nil {
+		return nil, extension_kit.ToError("Invalid error pattern.", err)
+	}
+	var ignoreRegex *regexp.Regexp
+	if state.IgnorePattern != "" {
+		if ignoreRegex, err = regexp.Compile(state.IgnorePattern); err != nil {
+			return nil, extension_kit.ToError("Invalid ignore pattern.", err)
+		}
+	}
+
+	streamer := f.logStreamer
+	if streamer == nil {
+		streamer = f.Client
+	}
+	messages := collectLogCounts(ctx, streamer, state, pods, errorRegex, ignoreRegex)
+
+	completed := !now.Before(state.End)
+	checkError := evaluateLogErrorCount(state)
+
+	result := &action_kit_api.StatusResult{
+		Completed: completed,
+		Metrics:   new(buildLogCountMetrics(state, pods, now)),
+	}
+	if checkError != nil && (state.FailEarly || completed) {
+		result.Completed = true
+		result.Error = checkError
+	}
+	if result.Completed {
+		messages = append(messages, action_kit_api.Message{
+			Level:   extutil.Ptr(action_kit_api.Info),
+			Message: summarizeLogCounts(state),
+		})
+	}
+	if len(messages) > 0 {
+		result.Messages = &messages
+	}
+	return result, nil
+}
+
+// collectLogCounts reads the new log lines of all containers of the given pods and updates the cursors in the state.
+func collectLogCounts(ctx context.Context, streamer PodLogStreamer, state *LogErrorCountCheckState, pods []*corev1.Pod, errorRegex, ignoreRegex *regexp.Regexp) []action_kit_api.Message {
+	type job struct {
+		pod    *corev1.Pod
+		cursor *ContainerLogCursor
+	}
+	var jobs []job
+	for _, pod := range pods {
+		for _, container := range pod.Spec.Containers {
+			if state.ContainerName != "" && container.Name != state.ContainerName {
+				continue
+			}
+			key := pod.Namespace + "/" + pod.Name + "/" + container.Name
+			cursor, ok := state.Cursors[key]
+			if !ok {
+				cursor = &ContainerLogCursor{Pod: pod.Name, Container: container.Name, LastTime: state.Start}
+				state.Cursors[key] = cursor
+			}
+			jobs = append(jobs, job{pod: pod, cursor: cursor})
+		}
+	}
+
+	var (
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+		messages []action_kit_api.Message
+		sem      = make(chan struct{}, logFetchParallel)
+	)
+	for _, j := range jobs {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func() {
+			defer wg.Done()
+			defer func() { <-sem }()
+			// Each job owns its cursor, so no locking is needed for the cursor itself.
+			if err := readContainerLogs(ctx, streamer, j.pod.Namespace, j.cursor, errorRegex, ignoreRegex); err != nil {
+				log.Debug().Err(err).Msgf("Failed to read logs of %s/%s container %s", j.pod.Namespace, j.cursor.Pod, j.cursor.Container)
+				if !isContainerNotReadyYet(j.pod, j.cursor.Container) {
+					mu.Lock()
+					messages = append(messages, action_kit_api.Message{
+						Level:   extutil.Ptr(action_kit_api.Warn),
+						Message: fmt.Sprintf("Failed to read logs of pod %s container %s: %s", j.cursor.Pod, j.cursor.Container, err.Error()),
+					})
+					mu.Unlock()
+				}
+			}
+		}()
+	}
+	wg.Wait()
+	return messages
+}
+
+func isContainerNotReadyYet(pod *corev1.Pod, containerName string) bool {
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.Name == containerName {
+			return status.State.Waiting != nil && status.LastTerminationState.Terminated == nil && status.RestartCount == 0
+		}
+	}
+	return true
+}
+
+func readContainerLogs(ctx context.Context, streamer PodLogStreamer, namespace string, cursor *ContainerLogCursor, errorRegex, ignoreRegex *regexp.Regexp) error {
+	ctx, cancel := context.WithTimeout(ctx, logFetchTimeout)
+	defer cancel()
+
+	sinceTime := metav1.NewTime(cursor.LastTime)
+	stream, err := streamer.PodLogs(ctx, namespace, cursor.Pod, &corev1.PodLogOptions{
+		Container:  cursor.Container,
+		Timestamps: true,
+		SinceTime:  &sinceTime,
+		LimitBytes: new(logFetchLimitBytes),
+	})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = stream.Close() }()
+	return countLogLines(stream, cursor, errorRegex, ignoreRegex)
+}
+
+// countLogLines consumes a log stream produced with `timestamps=true`. Each line starts with an RFC3339Nano
+// timestamp followed by a space. Lines that were already counted in a previous call are skipped.
+func countLogLines(stream io.Reader, cursor *ContainerLogCursor, errorRegex, ignoreRegex *regexp.Regexp) error {
+	reader := bufio.NewReaderSize(stream, 64*1024)
+	seenAtLast := 0
+	for {
+		line, err := readLine(reader)
+		if len(line) > 0 {
+			ts, message, ok := splitTimestamp(line)
+			if ok {
+				switch {
+				case ts.Before(cursor.LastTime):
+					// older than the cursor (sinceTime has only second precision)
+				case ts.Equal(cursor.LastTime) && seenAtLast < cursor.SeenAtLast:
+					seenAtLast++
+				default:
+					if ts.Equal(cursor.LastTime) {
+						seenAtLast++
+						cursor.SeenAtLast = seenAtLast
+					} else {
+						cursor.LastTime = ts
+						cursor.SeenAtLast = 1
+						seenAtLast = 1
+					}
+					cursor.Lines++
+					if errorRegex.Match(message) && (ignoreRegex == nil || !ignoreRegex.Match(message)) {
+						cursor.Errors++
+					}
+				}
+			}
+		}
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+// readLine returns the next line without the line terminator, truncated to logMaxLineLength.
+func readLine(reader *bufio.Reader) ([]byte, error) {
+	var line []byte
+	for {
+		chunk, isPrefix, err := reader.ReadLine()
+		if len(line) < logMaxLineLength {
+			remaining := logMaxLineLength - len(line)
+			if len(chunk) > remaining {
+				chunk = chunk[:remaining]
+			}
+			line = append(line, chunk...)
+		}
+		if err != nil || !isPrefix {
+			return line, err
+		}
+	}
+}
+
+func splitTimestamp(line []byte) (time.Time, []byte, bool) {
+	idx := bytes.IndexByte(line, ' ')
+	if idx <= 0 {
+		return time.Time{}, nil, false
+	}
+	ts, err := time.Parse(time.RFC3339Nano, string(line[:idx]))
+	if err != nil {
+		return time.Time{}, nil, false
+	}
+	return ts, line[idx+1:], true
+}
+
+type podLogCount struct {
+	errors int
+	lines  int
+}
+
+func countsByPod(state *LogErrorCountCheckState) map[string]*podLogCount {
+	result := make(map[string]*podLogCount)
+	for _, cursor := range state.Cursors {
+		c, ok := result[cursor.Pod]
+		if !ok {
+			c = &podLogCount{}
+			result[cursor.Pod] = c
+		}
+		c.errors += cursor.Errors
+		c.lines += cursor.Lines
+	}
+	return result
+}
+
+func evaluateLogErrorCount(state *LogErrorCountCheckState) *action_kit_api.ActionKitError {
+	switch state.CheckMode {
+	case LogErrorCountCheckModeTotalExceeded:
+		total := 0
+		for _, c := range countsByPod(state) {
+			total += c.errors
+		}
+		if total > state.MaxErrorCount {
+			return &action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s/%s logged %d error lines, max allowed is %d.", state.Namespace, state.Target, total, state.MaxErrorCount),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			}
+		}
+	case LogErrorCountCheckModePerPodExceeded:
+		counts := countsByPod(state)
+		var exceeded []string
+		for pod, c := range counts {
+			if c.errors > state.MaxErrorCount {
+				exceeded = append(exceeded, fmt.Sprintf("%s (%d)", pod, c.errors))
+			}
+		}
+		if len(exceeded) > 0 {
+			sort.Strings(exceeded)
+			return &action_kit_api.ActionKitError{
+				Title:  fmt.Sprintf("%s/%s has pods with more than %d error log lines: %s.", state.Namespace, state.Target, state.MaxErrorCount, strings.Join(exceeded, ", ")),
+				Status: extutil.Ptr(action_kit_api.Failed),
+			}
+		}
+	}
+	return nil
+}
+
+// buildLogCountMetrics emits the cumulative counts of all pods currently belonging to the target.
+func buildLogCountMetrics(state *LogErrorCountCheckState, pods []*corev1.Pod, now time.Time) []action_kit_api.Metric {
+	counts := countsByPod(state)
+	metrics := make([]action_kit_api.Metric, 0, len(pods)*2)
+	for _, pod := range pods {
+		c, ok := counts[pod.Name]
+		if !ok {
+			continue
+		}
+		labels := map[string]string{
+			"k8s.cluster-name":   extconfig.Config.ClusterName,
+			"k8s.namespace":      state.Namespace,
+			state.MetricLabelKey: state.Target,
+			"k8s.pod.name":       pod.Name,
+		}
+		metrics = append(metrics,
+			action_kit_api.Metric{Name: new(LogErrorCountMetricName), Metric: labels, Timestamp: now, Value: float64(c.errors)},
+			action_kit_api.Metric{Name: new(LogLineCountMetricName), Metric: labels, Timestamp: now, Value: float64(c.lines)},
+		)
+	}
+	return metrics
+}
+
+func summarizeLogCounts(state *LogErrorCountCheckState) string {
+	counts := countsByPod(state)
+	pods := make([]string, 0, len(counts))
+	totalErrors, totalLines := 0, 0
+	for pod, c := range counts {
+		pods = append(pods, pod)
+		totalErrors += c.errors
+		totalLines += c.lines
+	}
+	sort.Strings(pods)
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%s/%s logged %d error lines out of %d lines", state.Namespace, state.Target, totalErrors, totalLines)
+	for i, pod := range pods {
+		if i == 0 {
+			sb.WriteString(": ")
+		} else {
+			sb.WriteString(", ")
+		}
+		fmt.Fprintf(&sb, "%s %d/%d", pod, counts[pod].errors, counts[pod].lines)
+	}
+	return sb.String()
+}

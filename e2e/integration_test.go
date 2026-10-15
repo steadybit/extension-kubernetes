@@ -22,6 +22,7 @@ import (
 	"github.com/steadybit/discovery-kit/go/discovery_kit_test/validate"
 	"github.com/steadybit/extension-kubernetes/v2/extargorollout"
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
+	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
 	"github.com/steadybit/extension-kubernetes/v2/extenvoygateway"
@@ -82,6 +83,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 	{
 		Name: "causeCrashLoop",
 		Test: testCauseCrashLoop,
+	},
+	{
+		Name: "logErrorCountCheck",
+		Test: testLogErrorCountCheck,
 	},
 	{
 		Name: "setImage",
@@ -774,6 +779,131 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		require.NoError(t, err)
 		assert.GreaterOrEqual(collect, p.Status.ContainerStatuses[0].RestartCount, int32(2))
 	}, 20*time.Second, 1*time.Second, "pod should be restarted at least twice")
+}
+
+func testLogErrorCountCheck(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testLogErrorCountCheck")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	// A workload logging one error and one info line per second and container.
+	noisyName := "log-error-noisy"
+	replicas := int32(2)
+	noisy, noisyPods, err := m.CreateDeployment(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: noisyName, Labels: map[string]string{"app": noisyName}},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": noisyName}},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": noisyName}},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: new(int64(1)),
+					Containers: []corev1.Container{{
+						Name:    "app",
+						Image:   "busybox:1.36",
+						Command: []string{"sh", "-c", `i=0; while true; do echo "INFO tick $i"; echo "ERROR something failed $i"; i=$((i+1)); sleep 1; done`},
+					}},
+				},
+			},
+		},
+	})
+	require.NoError(t, err, "failed to create noisy deployment")
+	defer func() { _ = m.DeleteDeployment(noisy) }()
+	require.Len(t, noisyPods, 2)
+
+	// A workload without any error logs.
+	quiet := e2e.NginxDeployment{Minikube: m}
+	err = quiet.Deploy("log-error-quiet")
+	require.NoError(t, err, "failed to create quiet deployment")
+	defer func() { _ = quiet.Delete() }()
+
+	for _, name := range []string{noisyName, "log-error-quiet"} {
+		_, err = e2e.PollForTarget(ctx, e, extdeployment.DeploymentTargetType, func(target discovery_kit_api.Target) bool {
+			return e2e.HasAttribute(target, "k8s.deployment", name)
+		})
+		require.NoError(t, err)
+	}
+
+	type config struct {
+		Duration      int    `json:"duration"`
+		CheckMode     string `json:"checkMode"`
+		MaxErrorCount int    `json:"maxErrorCount"`
+		FailEarly     bool   `json:"failEarly"`
+	}
+	targetFor := func(deployment string) *action_kit_api.Target {
+		return &action_kit_api.Target{
+			Name: deployment,
+			Attributes: map[string][]string{
+				"k8s.cluster-name": {"e2e-cluster"},
+				"k8s.namespace":    {"default"},
+				"k8s.deployment":   {deployment},
+			},
+		}
+	}
+	lastValuePerPod := func(metrics []action_kit_api.Metric, name string) map[string]float64 {
+		result := map[string]float64{}
+		for _, metric := range metrics {
+			if metric.Name != nil && *metric.Name == name {
+				result[metric.Metric["k8s.pod.name"]] = metric.Value
+			}
+		}
+		return result
+	}
+
+	t.Run("visualize only reports error counts per pod", func(t *testing.T) {
+		action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, targetFor(noisyName), config{
+			Duration:  10_000,
+			CheckMode: "none",
+		}, nil)
+		defer func() { _ = action.Cancel() }()
+		require.NoError(t, err)
+		require.NoError(t, action.Wait())
+
+		errorsPerPod := lastValuePerPod(action.Metrics(), extcommon.LogErrorCountMetricName)
+		linesPerPod := lastValuePerPod(action.Metrics(), extcommon.LogLineCountMetricName)
+		require.Len(t, errorsPerPod, 2, "one series per pod expected")
+		for _, pod := range noisyPods {
+			assert.GreaterOrEqual(t, errorsPerPod[pod.Name], float64(5), "pod %s should have logged errors during the step", pod.Name)
+			assert.InDelta(t, errorsPerPod[pod.Name]*2, linesPerPod[pod.Name], 2, "half of the lines of pod %s are errors", pod.Name)
+		}
+		for _, message := range action.Messages() {
+			assert.NotContains(t, message.Message, "something failed", "log lines must not be shipped to the platform")
+		}
+	})
+
+	t.Run("fails early when the total error count exceeds the threshold", func(t *testing.T) {
+		start := time.Now()
+		action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, targetFor(noisyName), config{
+			Duration:      60_000,
+			CheckMode:     "totalErrorsExceeded",
+			MaxErrorCount: 3,
+			FailEarly:     true,
+		}, nil)
+		defer func() { _ = action.Cancel() }()
+		require.NoError(t, err)
+		err = action.Wait()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "max allowed is 3")
+		assert.Less(t, time.Since(start), 45*time.Second, "check should fail before its duration elapsed")
+	})
+
+	t.Run("succeeds when no errors are logged", func(t *testing.T) {
+		action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, targetFor("log-error-quiet"), config{
+			Duration:      8_000,
+			CheckMode:     "podErrorsExceeded",
+			MaxErrorCount: 0,
+			FailEarly:     true,
+		}, nil)
+		defer func() { _ = action.Cancel() }()
+		require.NoError(t, err)
+		require.NoError(t, action.Wait())
+
+		errorsPerPod := lastValuePerPod(action.Metrics(), extcommon.LogErrorCountMetricName)
+		require.Len(t, errorsPerPod, 2)
+		for pod, count := range errorsPerPod {
+			assert.Equal(t, float64(0), count, "pod %s should not have error logs", pod)
+		}
+	})
 }
 
 func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {

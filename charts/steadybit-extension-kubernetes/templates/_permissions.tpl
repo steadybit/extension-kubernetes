@@ -102,6 +102,12 @@ permissions for clusterrole or role
     verbs:
       - create
   {{- end }}
+  {{/* Required for Error Log Count Checks */}}
+  - apiGroups: [""]
+    resources:
+      - pods/log
+    verbs:
+      - get
   {{- if not .Values.discovery.disabled.argoRollout }}
   {{/* Required for Argo Discovery */}}
   - apiGroups: ["argoproj.io"]

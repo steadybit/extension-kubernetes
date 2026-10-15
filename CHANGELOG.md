@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- feat: new "Error Log Count" checks for Deployments, StatefulSets and DaemonSets. They count the log lines of the workload's pods matching an error pattern (pods created during the step, e.g. by a rollout, are picked up too) and report the cumulative error/line counts per pod as metrics, visualized in a line chart with a pod switcher. Optionally the check fails when the total error count or the error count of any pod exceeds a threshold. Log lines are only counted by the extension and never shipped to the platform. Requires `get` on `pods/log` (added to the Helm chart); the checks are not registered without it.
+
 ## v2.6.38
 
 - chore(deps): bump golang.org/x/net to v0.61.0

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -443,6 +444,11 @@ func (c *Client) ExecInPod(_ context.Context, namespace, podName, containerName 
 	}
 
 	return stdout.String(), nil
+}
+
+// PodLogs streams the logs of a pod container. The caller is responsible for closing the returned stream.
+func (c *Client) PodLogs(ctx context.Context, namespace, podName string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+	return c.clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).Stream(ctx)
 }
 
 // FileExistsInPod checks if a file exists in a pod container

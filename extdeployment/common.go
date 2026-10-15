@@ -4,11 +4,12 @@
 package extdeployment
 
 const (
-	DeploymentTargetType            = "com.steadybit.extension_kubernetes.kubernetes-deployment"
-	PodCountMetricActionId          = "com.steadybit.extension_kubernetes.pod_count_metric"
-	DeploymentPodCountCheckActionId = "com.steadybit.extension_kubernetes.pod_count_check"
-	RolloutRestartActionId          = "com.steadybit.extension_kubernetes.rollout-restart"
-	RolloutStatusActionId           = "com.steadybit.extension_kubernetes.rollout-status"
-	ScaleDeploymentActionId         = "com.steadybit.extension_kubernetes.scale_deployment"
-	SetImageActionId                = "com.steadybit.extension_kubernetes.set_image"
+	DeploymentTargetType                 = "com.steadybit.extension_kubernetes.kubernetes-deployment"
+	PodCountMetricActionId               = "com.steadybit.extension_kubernetes.pod_count_metric"
+	DeploymentPodCountCheckActionId      = "com.steadybit.extension_kubernetes.pod_count_check"
+	DeploymentLogErrorCountCheckActionId = "com.steadybit.extension_kubernetes.log_error_count_check"
+	RolloutRestartActionId               = "com.steadybit.extension_kubernetes.rollout-restart"
+	RolloutStatusActionId                = "com.steadybit.extension_kubernetes.rollout-status"
+	ScaleDeploymentActionId              = "com.steadybit.extension_kubernetes.scale_deployment"
+	SetImageActionId                     = "com.steadybit.extension_kubernetes.set_image"
 )

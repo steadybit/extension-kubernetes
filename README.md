@@ -58,6 +58,7 @@ To run the different attacks "write" permissions are required:
 - Rollout Restart Deployment: `patch` on `deployment`
 - Delete Pod Attack: `delete` on `pod`
 - Crash Loop Pod: `create` on `pod/exec` also needs to have an `sh` and `kill` binary in the target container
+- Error Log Count checks (read only): `get` on `pods/log`
 - Envoy Gateway HTTP Route attacks: `create`, `delete` on `gateway.envoyproxy.io/backendtrafficpolicies` (see [Envoy Gateway support](#envoy-gateway-support))
 
 ## Envoy Gateway support
