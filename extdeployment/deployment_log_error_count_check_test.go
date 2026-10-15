@@ -8,10 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-kubernetes/v2/client"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/steadybit/extension-kubernetes/v2/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,6 +25,12 @@ import (
 )
 
 func TestDeploymentLogErrorCountCheck(t *testing.T) {
+	extconfig.Config.LogErrorCountMaxContainersPerStep = 20
+	extconfig.Config.LogErrorCountMaxConcurrentStreams = 100
+	t.Cleanup(func() {
+		extconfig.Config.LogErrorCountMaxContainersPerStep = 0
+		extconfig.Config.LogErrorCountMaxConcurrentStreams = 0
+	})
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{"app": "checkout"}}
 	pod := func(name string, ownerUid types.UID, phase corev1.PodPhase) *corev1.Pod {
 		return &corev1.Pod{
@@ -30,8 +38,11 @@ func TestDeploymentLogErrorCountCheck(t *testing.T) {
 				Name: name, Namespace: "shop", Labels: map[string]string{"app": "checkout"},
 				OwnerReferences: []metav1.OwnerReference{{UID: ownerUid, Kind: "ReplicaSet", Name: "rs"}},
 			},
-			Spec:   corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}},
-			Status: corev1.PodStatus{Phase: phase},
+			Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}},
+			Status: corev1.PodStatus{Phase: phase, ContainerStatuses: []corev1.ContainerStatus{{
+				Name:  "app",
+				State: containerState(phase),
+			}}},
 		}
 	}
 	clientset := testclient.NewClientset(
@@ -46,7 +57,7 @@ func TestDeploymentLogErrorCountCheck(t *testing.T) {
 			},
 		},
 		pod("checkout-1", "rs-uid", corev1.PodRunning),
-		// failed pods keep their logs and are still read
+		// owned, but its container isn't running, so there is nothing to follow
 		pod("checkout-2", "rs-uid", corev1.PodFailed),
 		// same labels, but owned by another workload
 		pod("other-1", "other-rs-uid", corev1.PodRunning),
@@ -68,7 +79,8 @@ func TestDeploymentLogErrorCountCheck(t *testing.T) {
 
 	state := action.NewEmptyState()
 	request := action_kit_api.PrepareActionRequestBody{
-		Config: map[string]any{"duration": 10_000},
+		ExecutionId: uuid.New(),
+		Config:      map[string]any{"duration": 10_000},
 		Target: new(action_kit_api.Target{Attributes: map[string][]string{
 			"k8s.namespace":  {"shop"},
 			"k8s.deployment": {"checkout"},
@@ -79,6 +91,9 @@ func TestDeploymentLogErrorCountCheck(t *testing.T) {
 
 	result, err := action.(action_kit_sdk.ActionWithStatus[extcommon.LogErrorCountCheckState]).Status(context.Background(), &state)
 	require.NoError(t, err)
+	defer func() {
+		_, _ = action.(action_kit_sdk.ActionWithStop[extcommon.LogErrorCountCheckState]).Stop(context.Background(), &state)
+	}()
 	require.NotNil(t, result.Metrics)
 	var pods []string
 	for _, m := range *result.Metrics {
@@ -87,9 +102,16 @@ func TestDeploymentLogErrorCountCheck(t *testing.T) {
 			assert.Equal(t, "checkout", m.Metric["k8s.deployment"])
 		}
 	}
-	assert.ElementsMatch(t, []string{"checkout-1", "checkout-2"}, pods)
+	assert.ElementsMatch(t, []string{"checkout-1"}, pods)
 
 	request.Target.Attributes["k8s.deployment"] = []string{"missing"}
 	_, err = action.Prepare(context.Background(), &state, request)
 	require.Error(t, err)
+}
+
+func containerState(phase corev1.PodPhase) corev1.ContainerState {
+	if phase == corev1.PodRunning {
+		return corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}
+	}
+	return corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{ExitCode: 1}}
 }

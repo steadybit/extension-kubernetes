@@ -927,6 +927,44 @@ func testLogErrorCountCheck(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			assert.Equal(t, float64(0), count, "pod %s should not have error logs", pod)
 		}
 	})
+
+	t.Run("rejects steps following more containers than allowed", func(t *testing.T) {
+		// one pod with more containers than the default limit of 20 per step
+		wideName := "log-error-wide"
+		one := int32(1)
+		containers := make([]corev1.Container, 21)
+		for i := range containers {
+			containers[i] = corev1.Container{Name: fmt.Sprintf("c%d", i), Image: "busybox:1.36", Command: []string{"sleep", "3600"}}
+		}
+		wide, _, err := m.CreateDeployment(&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: wideName, Labels: map[string]string{"app": wideName}},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: &one,
+				Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": wideName}},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": wideName}},
+					Spec:       corev1.PodSpec{TerminationGracePeriodSeconds: new(int64(1)), Containers: containers},
+				},
+			},
+		})
+		require.NoError(t, err)
+		defer func() { _ = m.DeleteDeployment(wide) }()
+		_, err = e2e.PollForTarget(ctx, e, extdeployment.DeploymentTargetType, func(target discovery_kit_api.Target) bool {
+			return e2e.HasAttribute(target, "k8s.deployment", wideName)
+		})
+		require.NoError(t, err)
+
+		action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, targetFor(wideName), config{
+			Duration:  5_000,
+			CheckMode: "none",
+		}, nil)
+		if err == nil {
+			err = action.Wait()
+			_ = action.Cancel()
+		}
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "at most 20 containers")
+	})
 }
 
 // errorLoggingPodTemplate returns a pod template logging one info and one error line per second.

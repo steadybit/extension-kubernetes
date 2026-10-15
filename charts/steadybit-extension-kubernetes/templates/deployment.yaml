@@ -139,6 +139,10 @@ spec:
               value: {{ .Values.discovery.maxPodCount | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
               value: {{ .Values.discovery.refreshThrottle | quote }}
+            - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
+              value: {{ .Values.logErrorCount.maxContainersPerStep | quote }}
+            - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
+              value: {{ .Values.logErrorCount.maxConcurrentStreams | quote }}
             {{- if or (not .Values.advice.enabled) .Values.discovery.disableAdvice}}
             - name: STEADYBIT_EXTENSION_DISABLE_ADVICE
               value: "true"

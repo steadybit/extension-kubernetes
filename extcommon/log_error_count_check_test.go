@@ -14,8 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/extension-kubernetes/v2/client"
+	"github.com/steadybit/extension-kubernetes/v2/extconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -120,12 +122,30 @@ func newTestLogErrorCountCheck(streamer PodLogStreamer, pods *[]*corev1.Pod) Log
 		},
 		MetricLabelKey: "k8s.deployment",
 		logStreamer:    streamer,
+		waitForReads:   true,
 	}
+}
+
+func setLogStreamLimits(t *testing.T, maxPerStep, maxConcurrent int) {
+	previousPerStep, previousConcurrent := extconfig.Config.LogErrorCountMaxContainersPerStep, extconfig.Config.LogErrorCountMaxConcurrentStreams
+	extconfig.Config.LogErrorCountMaxContainersPerStep = maxPerStep
+	extconfig.Config.LogErrorCountMaxConcurrentStreams = maxConcurrent
+	t.Cleanup(func() {
+		extconfig.Config.LogErrorCountMaxContainersPerStep = previousPerStep
+		extconfig.Config.LogErrorCountMaxConcurrentStreams = previousConcurrent
+	})
+}
+
+func TestMain(m *testing.M) {
+	extconfig.Config.LogErrorCountMaxContainersPerStep = 20
+	extconfig.Config.LogErrorCountMaxConcurrentStreams = 100
+	m.Run()
 }
 
 func prepareRequest(config map[string]any) action_kit_api.PrepareActionRequestBody {
 	return action_kit_api.PrepareActionRequestBody{
-		Config: config,
+		ExecutionId: uuid.New(),
+		Config:      config,
 		Target: new(action_kit_api.Target{
 			Attributes: map[string][]string{
 				"k8s.namespace":  {"shop"},
@@ -383,7 +403,7 @@ func TestCountLogLines_TruncatesLongLinesAndSkipsUnparsable(t *testing.T) {
 	}, "\n")
 	cursor := &ContainerLogCursor{LastTime: ts}
 
-	err := countLogLines(strings.NewReader(input), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil)
+	err := countLogLines(strings.NewReader(input), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil, &sync.Mutex{})
 
 	require.NoError(t, err)
 	assert.Equal(t, 2, cursor.Lines)
@@ -400,13 +420,13 @@ func TestCountLogLines_DoesNotCountTruncatedLastLine(t *testing.T) {
 	errorRegex := regexp.MustCompile(DefaultLogErrorPattern)
 
 	// the stream is cut (LimitBytes) in the middle of the second line, before the error marker
-	err := countLogLines(strings.NewReader(first+second[:len(second)-10]), cursor, errorRegex, nil)
+	err := countLogLines(strings.NewReader(first+second[:len(second)-10]), cursor, errorRegex, nil, &sync.Mutex{})
 	require.NoError(t, err)
 	assert.Equal(t, 1, cursor.Lines)
 	assert.Equal(t, 0, cursor.Errors)
 
 	// the next call (sinceTime truncated to the second) returns both lines completely
-	err = countLogLines(strings.NewReader(first+second), cursor, errorRegex, nil)
+	err = countLogLines(strings.NewReader(first+second), cursor, errorRegex, nil, &sync.Mutex{})
 	require.NoError(t, err)
 	assert.Equal(t, 2, cursor.Lines)
 	assert.Equal(t, 1, cursor.Errors)
@@ -416,7 +436,7 @@ func TestCountLogLines_CountsSingleUnterminatedLineToMakeProgress(t *testing.T) 
 	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
 	cursor := &ContainerLogCursor{LastTime: ts}
 
-	err := countLogLines(strings.NewReader(ts.Format(time.RFC3339Nano)+" ERROR no newline"), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil)
+	err := countLogLines(strings.NewReader(ts.Format(time.RFC3339Nano)+" ERROR no newline"), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil, &sync.Mutex{})
 
 	require.NoError(t, err)
 	assert.Equal(t, 1, cursor.Lines)
@@ -451,7 +471,7 @@ func TestLogErrorCountCheck_CountsLogsOfCrashedContainer(t *testing.T) {
 	assert.Equal(t, float64(3), v)
 }
 
-func TestLogErrorCountCheck_KeepsUpWithChattyContainers(t *testing.T) {
+func TestLogErrorCountCheck_ReadsLargeBacklog(t *testing.T) {
 	streamer := newFakeLogStreamer()
 	pods := []*corev1.Pod{testPod("checkout-1", "app")}
 	action := newTestLogErrorCountCheck(streamer, &pods)
@@ -460,9 +480,9 @@ func TestLogErrorCountCheck_KeepsUpWithChattyContainers(t *testing.T) {
 	require.NoError(t, err)
 	_, _ = action.Start(context.Background(), &state)
 
-	// ~2.5x the read limit, spread over several seconds
+	// ~10 MiB, spread over several seconds
 	payload := strings.Repeat("x", 1000)
-	lines := int(logFetchLimitBytes*5/2) / 1040
+	lines := 10 * 1024 * 1024 / 1040
 	for i := 0; i < lines; i++ {
 		streamer.add("checkout-1", "app", state.Start.Add(time.Duration(i)*time.Millisecond), "ERROR "+payload)
 	}
@@ -470,7 +490,7 @@ func TestLogErrorCountCheck_KeepsUpWithChattyContainers(t *testing.T) {
 	result, err := action.Status(context.Background(), &state)
 	require.NoError(t, err)
 	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
-	assert.Equal(t, float64(lines), v, "all lines are read within one status call")
+	assert.Equal(t, float64(lines), v, "all lines are read")
 }
 
 func TestCountLogLines_CountsOutOfOrderLinesWithinARead(t *testing.T) {
@@ -483,15 +503,140 @@ func TestCountLogLines_CountsOutOfOrderLinesWithinARead(t *testing.T) {
 	cursor := &ContainerLogCursor{LastTime: ts}
 	errorRegex := regexp.MustCompile(DefaultLogErrorPattern)
 
-	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil))
+	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil, &sync.Mutex{}))
 	assert.Equal(t, 2, cursor.Lines)
 	assert.Equal(t, 1, cursor.Errors)
 	assert.Equal(t, ts.Add(5*time.Millisecond), cursor.LastTime)
 
 	// reading the same second again does not count anything twice
-	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil))
+	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil, &sync.Mutex{}))
 	assert.Equal(t, 2, cursor.Lines)
 	assert.Equal(t, 1, cursor.Errors)
+}
+
+func TestLogErrorCountCheck_PrepareRejectsTooManyContainers(t *testing.T) {
+	setLogStreamLimits(t, 2, 100)
+	pods := []*corev1.Pod{testPod("checkout-1", "app", "sidecar"), testPod("checkout-2", "app")}
+	action := newTestLogErrorCountCheck(newFakeLogStreamer(), &pods)
+
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 1000}))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "at most 2 containers")
+
+	// restricting to one container per pod fits into the limit
+	state = action.NewEmptyState()
+	_, err = action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 1000, "containerName": "app"}))
+	require.NoError(t, err)
+}
+
+func TestLogErrorCountCheck_PrepareRejectsWhenGlobalLimitIsReached(t *testing.T) {
+	setLogStreamLimits(t, 20, 2)
+	openLogStreams.Lock()
+	openLogStreams.count = 1
+	openLogStreams.Unlock()
+	t.Cleanup(func() {
+		openLogStreams.Lock()
+		openLogStreams.count = 0
+		openLogStreams.Unlock()
+	})
+	pods := []*corev1.Pod{testPod("checkout-1", "app"), testPod("checkout-2", "app")}
+	action := newTestLogErrorCountCheck(newFakeLogStreamer(), &pods)
+
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 1000}))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "1 already in use")
+}
+
+func TestLogErrorCountCheck_SkipsContainersBeyondTheLimitDuringTheStep(t *testing.T) {
+	setLogStreamLimits(t, 1, 100)
+	streamer := &blockingLogStreamer{fakeLogStreamer: newFakeLogStreamer()}
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	action.waitForReads = false
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+	t.Cleanup(func() { stopLogWatcher(state.ExecutionId) })
+
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+
+	// a rollout adds a second pod while the first one is still followed
+	pods = append(pods, testPod("checkout-2", "app"))
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	require.NotNil(t, result.Messages)
+	require.Len(t, *result.Messages, 1)
+	assert.Contains(t, (*result.Messages)[0].Message, "Not counting the logs of pod checkout-2")
+
+	// the warning is reported once only
+	result, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.Nil(t, result.Messages)
+}
+
+func TestLogErrorCountCheck_ClosesStreamsOnStop(t *testing.T) {
+	streamer := &blockingLogStreamer{fakeLogStreamer: newFakeLogStreamer()}
+	pods := []*corev1.Pod{testPod("checkout-1", "app"), testPod("checkout-2", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	action.waitForReads = false
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	before := openLogStreamCount()
+	require.GreaterOrEqual(t, before, 2)
+
+	_, err = action.Stop(context.Background(), &state)
+	require.NoError(t, err)
+	// <= as streams of previous tests may still be closing in the background
+	assert.Eventually(t, func() bool { return openLogStreamCount() <= before-2 }, time.Second, 10*time.Millisecond)
+	logWatchers.Lock()
+	assert.NotContains(t, logWatchers.m, state.ExecutionId)
+	logWatchers.Unlock()
+}
+
+func TestLogErrorCountCheck_ResumesFromStateAfterExtensionRestart(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	streamer.add("checkout-1", "app", state.Start.Add(time.Millisecond), "ERROR one")
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+
+	// the extension restarts: the in-memory watcher is gone, the state is sent again by the platform
+	stopLogWatcher(state.ExecutionId)
+	streamer.add("checkout-1", "app", state.Start.Add(2*time.Millisecond), "ERROR two")
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(2), v, "counts are resumed from the state without counting lines twice")
+}
+
+// blockingLogStreamer returns streams that stay open (like follow=true) until their context is cancelled.
+type blockingLogStreamer struct {
+	*fakeLogStreamer
+}
+
+func (s *blockingLogStreamer) PodLogs(ctx context.Context, _ string, _ string, _ *corev1.PodLogOptions) (io.ReadCloser, error) {
+	reader, writer := io.Pipe()
+	go func() {
+		<-ctx.Done()
+		_ = writer.Close()
+	}()
+	return reader, nil
 }
 
 func TestDefaultLogErrorPattern(t *testing.T) {
