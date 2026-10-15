@@ -32,12 +32,13 @@ type logLine struct {
 type fakeLogStreamer struct {
 	mu       sync.Mutex
 	logs     map[string][]logLine
+	previous map[string][]logLine
 	failures map[string]error
 	calls    int
 }
 
 func newFakeLogStreamer() *fakeLogStreamer {
-	return &fakeLogStreamer{logs: map[string][]logLine{}, failures: map[string]error{}}
+	return &fakeLogStreamer{logs: map[string][]logLine{}, previous: map[string][]logLine{}, failures: map[string]error{}}
 }
 
 func (s *fakeLogStreamer) add(pod, container string, ts time.Time, message string) {
@@ -59,8 +60,12 @@ func (s *fakeLogStreamer) PodLogs(_ context.Context, _ string, podName string, o
 	if opts.SinceTime != nil {
 		since = opts.SinceTime.Time.Truncate(time.Second)
 	}
+	lines := s.logs[key]
+	if opts.Previous {
+		lines = s.previous[key]
+	}
 	var sb strings.Builder
-	for _, l := range s.logs[key] {
+	for _, l := range lines {
 		if l.ts.Before(since) {
 			continue
 		}
@@ -69,7 +74,25 @@ func (s *fakeLogStreamer) PodLogs(_ context.Context, _ string, podName string, o
 		sb.WriteString(l.message)
 		sb.WriteString("\n")
 	}
-	return io.NopCloser(strings.NewReader(sb.String())), nil
+	out := sb.String()
+	if opts.LimitBytes != nil && int64(len(out)) > *opts.LimitBytes {
+		out = out[:*opts.LimitBytes]
+	}
+	return io.NopCloser(strings.NewReader(out)), nil
+}
+
+// restart simulates a container restart: the current logs become the previous instance's logs.
+func (s *fakeLogStreamer) restart(pod *corev1.Pod, container string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := pod.Name + "/" + container
+	s.previous[key] = s.logs[key]
+	s.logs[key] = nil
+	for i := range pod.Status.ContainerStatuses {
+		if pod.Status.ContainerStatuses[i].Name == container {
+			pod.Status.ContainerStatuses[i].RestartCount++
+		}
+	}
 }
 
 func testPod(name string, containers ...string) *corev1.Pod {
@@ -367,6 +390,108 @@ func TestCountLogLines_TruncatesLongLinesAndSkipsUnparsable(t *testing.T) {
 	assert.Equal(t, 1, cursor.Errors, "the ERROR beyond the max line length is cut off")
 	assert.Equal(t, ts.Add(time.Millisecond), cursor.LastTime)
 	assert.Equal(t, 1, cursor.SeenAtLast)
+}
+
+func TestCountLogLines_DoesNotCountTruncatedLastLine(t *testing.T) {
+	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
+	first := ts.Format(time.RFC3339Nano) + " INFO ok\n"
+	second := ts.Add(time.Millisecond).Format(time.RFC3339Nano) + " something went wrong: ERROR\n"
+	cursor := &ContainerLogCursor{LastTime: ts}
+	errorRegex := regexp.MustCompile(DefaultLogErrorPattern)
+
+	// the stream is cut (LimitBytes) in the middle of the second line, before the error marker
+	err := countLogLines(strings.NewReader(first+second[:len(second)-10]), cursor, errorRegex, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 1, cursor.Lines)
+	assert.Equal(t, 0, cursor.Errors)
+
+	// the next call (sinceTime truncated to the second) returns both lines completely
+	err = countLogLines(strings.NewReader(first+second), cursor, errorRegex, nil)
+	require.NoError(t, err)
+	assert.Equal(t, 2, cursor.Lines)
+	assert.Equal(t, 1, cursor.Errors)
+}
+
+func TestCountLogLines_CountsSingleUnterminatedLineToMakeProgress(t *testing.T) {
+	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
+	cursor := &ContainerLogCursor{LastTime: ts}
+
+	err := countLogLines(strings.NewReader(ts.Format(time.RFC3339Nano)+" ERROR no newline"), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, cursor.Lines)
+	assert.Equal(t, 1, cursor.Errors)
+}
+
+func TestLogErrorCountCheck_CountsLogsOfCrashedContainer(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pod := testPod("checkout-1", "app")
+	pod.Status.ContainerStatuses[0].RestartCount = 3 // restarts before the step are ignored
+	pods := []*corev1.Pod{pod}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	streamer.add("checkout-1", "app", state.Start.Add(time.Millisecond), "ERROR first")
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+
+	// the container logs a fatal error and crashes before the next status call
+	streamer.add("checkout-1", "app", state.Start.Add(2*time.Second), "FATAL out of memory")
+	streamer.restart(pod, "app")
+	streamer.add("checkout-1", "app", state.Start.Add(3*time.Second), "INFO started again")
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(2), v)
+	v, _ = metricValue(result.Metrics, LogLineCountMetricName, "checkout-1")
+	assert.Equal(t, float64(3), v)
+}
+
+func TestLogErrorCountCheck_KeepsUpWithChattyContainers(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+
+	// ~2.5x the read limit, spread over several seconds
+	payload := strings.Repeat("x", 1000)
+	lines := int(logFetchLimitBytes*5/2) / 1040
+	for i := 0; i < lines; i++ {
+		streamer.add("checkout-1", "app", state.Start.Add(time.Duration(i)*time.Millisecond), "ERROR "+payload)
+	}
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(lines), v, "all lines are read within one status call")
+}
+
+func TestCountLogLines_CountsOutOfOrderLinesWithinARead(t *testing.T) {
+	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
+	input := strings.Join([]string{
+		ts.Add(5*time.Millisecond).Format(time.RFC3339Nano) + " INFO stdout",
+		ts.Add(4*time.Millisecond).Format(time.RFC3339Nano) + " ERROR stderr, stamped slightly earlier",
+		"",
+	}, "\n")
+	cursor := &ContainerLogCursor{LastTime: ts}
+	errorRegex := regexp.MustCompile(DefaultLogErrorPattern)
+
+	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil))
+	assert.Equal(t, 2, cursor.Lines)
+	assert.Equal(t, 1, cursor.Errors)
+	assert.Equal(t, ts.Add(5*time.Millisecond), cursor.LastTime)
+
+	// reading the same second again does not count anything twice
+	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil))
+	assert.Equal(t, 2, cursor.Lines)
+	assert.Equal(t, 1, cursor.Errors)
 }
 
 func TestDefaultLogErrorPattern(t *testing.T) {

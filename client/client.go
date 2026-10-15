@@ -347,6 +347,19 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 // PodsByOwnerUid returns all running pods that have the given owner UID in their OwnerReferences.
 // This is more accurate than PodsByLabelSelector when selectors are misconfigured.
 func (c *Client) PodsByOwnerUid(ownerUid types.UID, namespace string) []*corev1.Pod {
+	return c.onlyRunningPods(c.podsByOwnerUid(ownerUid, namespace))
+}
+
+// PodsOfWorkload returns the pods in any phase owned by the given workload. For deployments
+// (viaReplicaSets = true) the pods are resolved via the ReplicaSets owned by the deployment.
+func (c *Client) PodsOfWorkload(ownerUid types.UID, namespace string, viaReplicaSets bool) []*corev1.Pod {
+	if viaReplicaSets {
+		return c.podsOwnedByDeployment(ownerUid, namespace)
+	}
+	return c.podsByOwnerUid(ownerUid, namespace)
+}
+
+func (c *Client) podsByOwnerUid(ownerUid types.UID, namespace string) []*corev1.Pod {
 	allPods, err := c.pod.lister.Pods(namespace).List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching Pods in namespace %s", namespace)
@@ -362,12 +375,16 @@ func (c *Client) PodsByOwnerUid(ownerUid types.UID, namespace string) []*corev1.
 			}
 		}
 	}
-	return c.onlyRunningPods(result)
+	return result
 }
 
 // PodsOwnedByDeployment returns all running pods owned by the deployment via its ReplicaSets.
 // Deployment ownership chain: Deployment -> ReplicaSet -> Pod
 func (c *Client) PodsOwnedByDeployment(deploymentUid types.UID, namespace string) []*corev1.Pod {
+	return c.onlyRunningPods(c.podsOwnedByDeployment(deploymentUid, namespace))
+}
+
+func (c *Client) podsOwnedByDeployment(deploymentUid types.UID, namespace string) []*corev1.Pod {
 	// First, find all ReplicaSets owned by this deployment
 	allReplicaSets, err := c.replicaSet.lister.ReplicaSets(namespace).List(labels.Everything())
 	if err != nil {
@@ -401,7 +418,7 @@ func (c *Client) PodsOwnedByDeployment(deploymentUid types.UID, namespace string
 			}
 		}
 	}
-	return c.onlyRunningPods(result)
+	return result
 }
 
 // ExecInPod executes a command in a pod container and returns the output

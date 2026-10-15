@@ -18,33 +18,45 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestDeploymentLogErrorCountCheck(t *testing.T) {
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{"app": "checkout"}}
-	runningPod := func(name string, labels map[string]string) *corev1.Pod {
+	pod := func(name string, ownerUid types.UID, phase corev1.PodPhase) *corev1.Pod {
 		return &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "shop", Labels: labels},
-			Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}},
-			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name, Namespace: "shop", Labels: map[string]string{"app": "checkout"},
+				OwnerReferences: []metav1.OwnerReference{{UID: ownerUid, Kind: "ReplicaSet", Name: "rs"}},
+			},
+			Spec:   corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}},
+			Status: corev1.PodStatus{Phase: phase},
 		}
 	}
 	clientset := testclient.NewClientset(
 		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "checkout", Namespace: "shop"},
+			ObjectMeta: metav1.ObjectMeta{Name: "checkout", Namespace: "shop", UID: "deployment-uid"},
 			Spec:       appsv1.DeploymentSpec{Selector: selector},
 		},
-		runningPod("checkout-1", map[string]string{"app": "checkout"}),
-		runningPod("checkout-2", map[string]string{"app": "checkout"}),
-		runningPod("other-1", map[string]string{"app": "other"}),
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "checkout-abc", Namespace: "shop", UID: "rs-uid",
+				OwnerReferences: []metav1.OwnerReference{{UID: "deployment-uid", Kind: "Deployment", Name: "checkout"}},
+			},
+		},
+		pod("checkout-1", "rs-uid", corev1.PodRunning),
+		// failed pods keep their logs and are still read
+		pod("checkout-2", "rs-uid", corev1.PodFailed),
+		// same labels, but owned by another workload
+		pod("other-1", "other-rs-uid", corev1.PodRunning),
 	)
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	k8sclient := client.CreateClient(clientset, stopCh, "", client.MockAllPermitted(), testutil.NewFakeDynamicClient())
 	assert.Eventually(t, func() bool {
-		return k8sclient.DeploymentByNamespaceAndName("shop", "checkout") != nil && len(k8sclient.Pods()) == 3
+		return k8sclient.DeploymentByNamespaceAndName("shop", "checkout") != nil && len(k8sclient.Pods()) == 2
 	}, time.Second, 100*time.Millisecond)
 
 	action := NewDeploymentLogErrorCountCheckAction(k8sclient)

@@ -24,11 +24,13 @@ import (
 	"github.com/steadybit/extension-kubernetes/v2/extcluster"
 	"github.com/steadybit/extension-kubernetes/v2/extcommon"
 	"github.com/steadybit/extension-kubernetes/v2/extcontainer"
+	"github.com/steadybit/extension-kubernetes/v2/extdaemonset"
 	"github.com/steadybit/extension-kubernetes/v2/extdeployment"
 	"github.com/steadybit/extension-kubernetes/v2/extenvoygateway"
 	"github.com/steadybit/extension-kubernetes/v2/extingress"
 	"github.com/steadybit/extension-kubernetes/v2/extnode"
 	"github.com/steadybit/extension-kubernetes/v2/extpod"
+	"github.com/steadybit/extension-kubernetes/v2/extstatefulset"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -87,6 +89,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 	{
 		Name: "logErrorCountCheck",
 		Test: testLogErrorCountCheck,
+	},
+	{
+		Name: "logErrorCountCheckStatefulSetAndDaemonSet",
+		Test: testLogErrorCountCheckStatefulSetAndDaemonSet,
 	},
 	{
 		Name: "setImage",
@@ -794,17 +800,7 @@ func testLogErrorCountCheck(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": noisyName}},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": noisyName}},
-				Spec: corev1.PodSpec{
-					TerminationGracePeriodSeconds: new(int64(1)),
-					Containers: []corev1.Container{{
-						Name:    "app",
-						Image:   "busybox:1.36",
-						Command: []string{"sh", "-c", `i=0; while true; do echo "INFO tick $i"; echo "ERROR something failed $i"; i=$((i+1)); sleep 1; done`},
-					}},
-				},
-			},
+			Template: errorLoggingPodTemplate(noisyName),
 		},
 	})
 	require.NoError(t, err, "failed to create noisy deployment")
@@ -887,6 +883,33 @@ func testLogErrorCountCheck(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		assert.Less(t, time.Since(start), 45*time.Second, "check should fail before its duration elapsed")
 	})
 
+	t.Run("picks up the new pods of a rollout during the step", func(t *testing.T) {
+		action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, targetFor(noisyName), config{
+			Duration:  30_000,
+			CheckMode: "none",
+		}, nil)
+		defer func() { _ = action.Cancel() }()
+		require.NoError(t, err)
+
+		time.Sleep(5 * time.Second)
+		out, err := m.PodExec(e.Pod, "extension", "kubectl", "rollout", "restart", "deployment/"+noisyName)
+		require.NoError(t, err, out)
+		require.NoError(t, action.Wait())
+
+		errorsPerPod := lastValuePerPod(action.Metrics(), extcommon.LogErrorCountMetricName)
+		oldPods := map[string]bool{}
+		for _, pod := range noisyPods {
+			oldPods[pod.Name] = true
+		}
+		newPodsWithErrors := 0
+		for pod, count := range errorsPerPod {
+			if !oldPods[pod] && count > 0 {
+				newPodsWithErrors++
+			}
+		}
+		assert.Equal(t, 2, newPodsWithErrors, "errors of the pods created by the rollout should be counted: %v", errorsPerPod)
+	})
+
 	t.Run("succeeds when no errors are logged", func(t *testing.T) {
 		action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, targetFor("log-error-quiet"), config{
 			Duration:      8_000,
@@ -904,6 +927,119 @@ func testLogErrorCountCheck(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 			assert.Equal(t, float64(0), count, "pod %s should not have error logs", pod)
 		}
 	})
+}
+
+// errorLoggingPodTemplate returns a pod template logging one info and one error line per second.
+func errorLoggingPodTemplate(app string) corev1.PodTemplateSpec {
+	return corev1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": app}},
+		Spec: corev1.PodSpec{
+			TerminationGracePeriodSeconds: new(int64(1)),
+			Containers: []corev1.Container{{
+				Name:    "app",
+				Image:   "busybox:1.36",
+				Command: []string{"sh", "-c", `i=0; while true; do echo "INFO tick $i"; echo "ERROR something failed $i"; i=$((i+1)); sleep 1; done`},
+			}},
+		},
+	}
+}
+
+func testLogErrorCountCheckStatefulSetAndDaemonSet(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testLogErrorCountCheckStatefulSetAndDaemonSet")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	client := m.GetClient()
+
+	stsName := "log-error-sts"
+	replicas := int32(2)
+	_, err := client.AppsV1().StatefulSets("default").Create(ctx, &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: stsName},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas:            &replicas,
+			ServiceName:         stsName,
+			PodManagementPolicy: appsv1.ParallelPodManagement,
+			Selector:            &metav1.LabelSelector{MatchLabels: map[string]string{"app": stsName}},
+			Template:            errorLoggingPodTemplate(stsName),
+		},
+	}, metav1.CreateOptions{})
+	require.NoError(t, err)
+	defer func() {
+		_ = client.AppsV1().StatefulSets("default").Delete(context.Background(), stsName, metav1.DeleteOptions{GracePeriodSeconds: new(int64(0))})
+	}()
+
+	dsName := "log-error-ds"
+	_, err = client.AppsV1().DaemonSets("default").Create(ctx, &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: dsName},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": dsName}},
+			Template: errorLoggingPodTemplate(dsName),
+		},
+	}, metav1.CreateOptions{})
+	require.NoError(t, err)
+	defer func() {
+		_ = client.AppsV1().DaemonSets("default").Delete(context.Background(), dsName, metav1.DeleteOptions{GracePeriodSeconds: new(int64(0))})
+	}()
+
+	nodes, err := client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	require.NoError(t, err)
+
+	tests := []struct {
+		name         string
+		actionId     string
+		targetType   string
+		attribute    string
+		workload     string
+		expectedPods int
+	}{
+		{name: "statefulset", actionId: extstatefulset.StatefulSetLogErrorCountCheckActionId, targetType: extstatefulset.StatefulSetTargetType, attribute: "k8s.statefulset", workload: stsName, expectedPods: int(replicas)},
+		{name: "daemonset", actionId: extdaemonset.DaemonSetLogErrorCountCheckActionId, targetType: extdaemonset.DaemonSetTargetType, attribute: "k8s.daemonset", workload: dsName, expectedPods: len(nodes.Items)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				pods, err := m.ListPods(ctx, "default", "app="+tt.workload)
+				require.NoError(c, err)
+				require.Len(c, pods, tt.expectedPods)
+				for _, pod := range pods {
+					assert.Equal(c, corev1.PodRunning, pod.Status.Phase)
+				}
+			}, 2*time.Minute, time.Second)
+
+			_, err := e2e.PollForTarget(ctx, e, tt.targetType, func(target discovery_kit_api.Target) bool {
+				return e2e.HasAttribute(target, tt.attribute, tt.workload)
+			})
+			require.NoError(t, err)
+
+			config := struct {
+				Duration      int    `json:"duration"`
+				CheckMode     string `json:"checkMode"`
+				MaxErrorCount int    `json:"maxErrorCount"`
+			}{Duration: 8_000, CheckMode: "podErrorsExceeded", MaxErrorCount: 1_000}
+			action, err := e.RunAction(tt.actionId, &action_kit_api.Target{
+				Name: tt.workload,
+				Attributes: map[string][]string{
+					"k8s.cluster-name": {"e2e-cluster"},
+					"k8s.namespace":    {"default"},
+					tt.attribute:       {tt.workload},
+				},
+			}, config, nil)
+			defer func() { _ = action.Cancel() }()
+			require.NoError(t, err)
+			require.NoError(t, action.Wait())
+
+			errorsPerPod := map[string]float64{}
+			for _, metric := range action.Metrics() {
+				if metric.Name != nil && *metric.Name == extcommon.LogErrorCountMetricName {
+					assert.Equal(t, tt.workload, metric.Metric[tt.attribute])
+					errorsPerPod[metric.Metric["k8s.pod.name"]] = metric.Value
+				}
+			}
+			require.Len(t, errorsPerPod, tt.expectedPods)
+			for pod, count := range errorsPerPod {
+				assert.GreaterOrEqual(t, count, float64(4), "pod %s should have logged errors during the step", pod)
+			}
+		})
+	}
 }
 
 func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {

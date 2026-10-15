@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -50,6 +51,9 @@ const (
 	logMaxLineLength = 64 * 1024
 	logFetchTimeout  = 10 * time.Second
 	logFetchParallel = 8
+	// When a read hits logFetchLimitBytes, the logs are read again (up to this many times per status call) to
+	// keep up with chatty containers.
+	logFetchMaxRounds = 4
 )
 
 type LogErrorCountCheckMode string
@@ -85,6 +89,9 @@ type ContainerLogCursor struct {
 	SeenAtLast int `json:"seenAtLast"`
 	Errors     int `json:"errors"`
 	Lines      int `json:"lines"`
+	// RestartCount is the container's restart count when its logs were read last. When it increases, the
+	// logs of the previous (crashed) container instance are read first.
+	RestartCount int32 `json:"restartCount"`
 }
 
 type LogErrorCountCheckState struct {
@@ -355,7 +362,11 @@ func collectLogCounts(ctx context.Context, streamer PodLogStreamer, state *LogEr
 			key := pod.Namespace + "/" + pod.Name + "/" + container.Name
 			cursor, ok := state.Cursors[key]
 			if !ok {
-				cursor = &ContainerLogCursor{Pod: pod.Name, Container: container.Name, LastTime: state.Start}
+				if pod.Status.Phase == corev1.PodPending && !hasContainerStarted(pod, container.Name) {
+					continue
+				}
+				// Crashes before the step started are not of interest, so start with the current restart count.
+				cursor = &ContainerLogCursor{Pod: pod.Name, Container: container.Name, LastTime: state.Start, RestartCount: restartCount(pod, container.Name)}
 				state.Cursors[key] = cursor
 			}
 			jobs = append(jobs, job{pod: pod, cursor: cursor})
@@ -375,7 +386,7 @@ func collectLogCounts(ctx context.Context, streamer PodLogStreamer, state *LogEr
 			defer wg.Done()
 			defer func() { <-sem }()
 			// Each job owns its cursor, so no locking is needed for the cursor itself.
-			if err := readContainerLogs(ctx, streamer, j.pod.Namespace, j.cursor, errorRegex, ignoreRegex); err != nil {
+			if err := readContainerLogs(ctx, streamer, j.pod.Namespace, j.cursor, restartCount(j.pod, j.cursor.Container), errorRegex, ignoreRegex); err != nil {
 				log.Debug().Err(err).Msgf("Failed to read logs of %s/%s container %s", j.pod.Namespace, j.cursor.Pod, j.cursor.Container)
 				if !isContainerNotReadyYet(j.pod, j.cursor.Container) {
 					mu.Lock()
@@ -392,6 +403,24 @@ func collectLogCounts(ctx context.Context, streamer PodLogStreamer, state *LogEr
 	return messages
 }
 
+func restartCount(pod *corev1.Pod, containerName string) int32 {
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.Name == containerName {
+			return status.RestartCount
+		}
+	}
+	return 0
+}
+
+func hasContainerStarted(pod *corev1.Pod, containerName string) bool {
+	for _, status := range pod.Status.ContainerStatuses {
+		if status.Name == containerName {
+			return status.State.Running != nil || status.State.Terminated != nil || status.RestartCount > 0
+		}
+	}
+	return false
+}
+
 func isContainerNotReadyYet(pod *corev1.Pod, containerName string) bool {
 	for _, status := range pod.Status.ContainerStatuses {
 		if status.Name == containerName {
@@ -401,52 +430,101 @@ func isContainerNotReadyYet(pod *corev1.Pod, containerName string) bool {
 	return true
 }
 
-func readContainerLogs(ctx context.Context, streamer PodLogStreamer, namespace string, cursor *ContainerLogCursor, errorRegex, ignoreRegex *regexp.Regexp) error {
+func readContainerLogs(ctx context.Context, streamer PodLogStreamer, namespace string, cursor *ContainerLogCursor, currentRestartCount int32, errorRegex, ignoreRegex *regexp.Regexp) error {
+	if currentRestartCount > cursor.RestartCount {
+		// The container restarted since the last read: count what the crashed instance logged before it died.
+		if err := readLogRounds(ctx, streamer, namespace, cursor, true, errorRegex, ignoreRegex); err != nil {
+			log.Debug().Err(err).Msgf("Failed to read previous logs of %s/%s container %s", namespace, cursor.Pod, cursor.Container)
+		}
+		cursor.RestartCount = currentRestartCount
+	}
+	return readLogRounds(ctx, streamer, namespace, cursor, false, errorRegex, ignoreRegex)
+}
+
+func readLogRounds(ctx context.Context, streamer PodLogStreamer, namespace string, cursor *ContainerLogCursor, previous bool, errorRegex, ignoreRegex *regexp.Regexp) error {
+	for round := 0; round < logFetchMaxRounds; round++ {
+		read, err := readLogsOnce(ctx, streamer, namespace, cursor, previous, errorRegex, ignoreRegex)
+		if err != nil || read < logFetchLimitBytes {
+			return err
+		}
+	}
+	return nil
+}
+
+func readLogsOnce(ctx context.Context, streamer PodLogStreamer, namespace string, cursor *ContainerLogCursor, previous bool, errorRegex, ignoreRegex *regexp.Regexp) (int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, logFetchTimeout)
 	defer cancel()
 
 	sinceTime := metav1.NewTime(cursor.LastTime)
 	stream, err := streamer.PodLogs(ctx, namespace, cursor.Pod, &corev1.PodLogOptions{
 		Container:  cursor.Container,
+		Previous:   previous,
 		Timestamps: true,
 		SinceTime:  &sinceTime,
 		LimitBytes: new(logFetchLimitBytes),
 	})
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer func() { _ = stream.Close() }()
-	return countLogLines(stream, cursor, errorRegex, ignoreRegex)
+	counter := &countingReader{reader: stream}
+	err = countLogLines(counter, cursor, errorRegex, ignoreRegex)
+	return counter.read, err
+}
+
+type countingReader struct {
+	reader io.Reader
+	read   int64
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	n, err := r.reader.Read(p)
+	r.read += int64(n)
+	return n, err
 }
 
 // countLogLines consumes a log stream produced with `timestamps=true`. Each line starts with an RFC3339Nano
 // timestamp followed by a space. Lines that were already counted in a previous call are skipped.
+//
+// Lines are compared against the position of the previous call only (not against the previous line), so
+// slightly out-of-order timestamps within a read (e.g. interleaved stdout/stderr) are still counted.
 func countLogLines(stream io.Reader, cursor *ContainerLogCursor, errorRegex, ignoreRegex *regexp.Regexp) error {
 	reader := bufio.NewReaderSize(stream, 64*1024)
-	seenAtLast := 0
+	startTime, startSeen := cursor.LastTime, cursor.SeenAtLast
+	maxTime, atMax, seenAtStart := startTime, 0, 0
+	processedAny := false
+
+	defer func() {
+		if maxTime.Equal(startTime) {
+			cursor.SeenAtLast = max(startSeen, atMax)
+		} else {
+			cursor.LastTime = maxTime
+			cursor.SeenAtLast = atMax
+		}
+	}()
+
 	for {
-		line, err := readLine(reader)
-		if len(line) > 0 {
-			ts, message, ok := splitTimestamp(line)
-			if ok {
-				switch {
-				case ts.Before(cursor.LastTime):
-					// older than the cursor (sinceTime has only second precision)
-				case ts.Equal(cursor.LastTime) && seenAtLast < cursor.SeenAtLast:
-					seenAtLast++
-				default:
-					if ts.Equal(cursor.LastTime) {
-						seenAtLast++
-						cursor.SeenAtLast = seenAtLast
-					} else {
-						cursor.LastTime = ts
-						cursor.SeenAtLast = 1
-						seenAtLast = 1
-					}
+		line, terminated, err := readLine(reader)
+		// A final line without line terminator may have been cut by LimitBytes (or still be written). Leave it
+		// for the next call, which reads it completely, unless it is the only line - then count it to make progress.
+		if len(line) > 0 && (terminated || !processedAny) {
+			processedAny = true
+			if ts, message, ok := splitTimestamp(line); ok && !ts.Before(startTime) {
+				alreadyCounted := false
+				if ts.Equal(startTime) {
+					seenAtStart++
+					alreadyCounted = seenAtStart <= startSeen
+				}
+				if !alreadyCounted {
 					cursor.Lines++
 					if errorRegex.Match(message) && (ignoreRegex == nil || !ignoreRegex.Match(message)) {
 						cursor.Errors++
 					}
+				}
+				if ts.After(maxTime) {
+					maxTime, atMax = ts, 1
+				} else if ts.Equal(maxTime) {
+					atMax++
 				}
 			}
 		}
@@ -459,21 +537,26 @@ func countLogLines(stream io.Reader, cursor *ContainerLogCursor, errorRegex, ign
 	}
 }
 
-// readLine returns the next line without the line terminator, truncated to logMaxLineLength.
-func readLine(reader *bufio.Reader) ([]byte, error) {
+// readLine returns the next line without the line terminator, truncated to logMaxLineLength, and whether
+// the line was terminated by a newline.
+func readLine(reader *bufio.Reader) ([]byte, bool, error) {
 	var line []byte
 	for {
-		chunk, isPrefix, err := reader.ReadLine()
-		if len(line) < logMaxLineLength {
-			remaining := logMaxLineLength - len(line)
+		chunk, err := reader.ReadSlice('\n')
+		terminated := err == nil
+		if terminated {
+			chunk = bytes.TrimRight(chunk, "\r\n")
+		}
+		if remaining := logMaxLineLength - len(line); remaining > 0 {
 			if len(chunk) > remaining {
 				chunk = chunk[:remaining]
 			}
 			line = append(line, chunk...)
 		}
-		if err != nil || !isPrefix {
-			return line, err
+		if errors.Is(err, bufio.ErrBufferFull) {
+			continue
 		}
+		return line, terminated, err
 	}
 }
 
@@ -584,4 +667,34 @@ func summarizeLogCounts(state *LogErrorCountCheckState) string {
 		fmt.Fprintf(&sb, "%s %d/%d", pod, counts[pod].errors, counts[pod].lines)
 	}
 	return sb.String()
+}
+
+// NewWorkloadLogErrorCountCheckAction creates the error log count check for a workload kind. The pods are
+// resolved via their owner references (deployments via their ReplicaSets), like the discoveries do.
+func NewWorkloadLogErrorCountCheckAction(k8s *client.Client, actionId, targetType, kindLabel, attributeKey string, viaReplicaSets bool, getWorkload func(k8s *client.Client, namespace, name string) metav1.Object) action_kit_sdk.Action[LogErrorCountCheckState] {
+	kind := strings.ToLower(kindLabel)
+	return &LogErrorCountCheckAction{
+		Client:          k8s,
+		ActionId:        actionId,
+		TargetType:      targetType,
+		TargetTypeLabel: kindLabel,
+		SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
+			{
+				Label:       kind,
+				Description: new(fmt.Sprintf("Find %s by cluster, namespace and %s", kind, kind)),
+				Query:       fmt.Sprintf("k8s.cluster-name=\"\" AND k8s.namespace=\"\" AND %s=\"\"", attributeKey),
+			},
+		}),
+		GetTarget: func(request action_kit_api.PrepareActionRequestBody) string {
+			return request.Target.Attributes[attributeKey][0]
+		},
+		GetPods: func(k8s *client.Client, namespace string, target string) ([]*corev1.Pod, error) {
+			workload := getWorkload(k8s, namespace, target)
+			if workload == nil || reflect.ValueOf(workload).IsNil() {
+				return nil, extension_kit.ToError(fmt.Sprintf("%s %s not found.", kindLabel, target), nil)
+			}
+			return k8s.PodsOfWorkload(workload.GetUID(), namespace, viaReplicaSets), nil
+		},
+		MetricLabelKey: attributeKey,
+	}
 }
