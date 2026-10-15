@@ -58,7 +58,7 @@ To run the different attacks "write" permissions are required:
 - Rollout Restart Deployment: `patch` on `deployment`
 - Delete Pod Attack: `delete` on `pod`
 - Crash Loop Pod: `create` on `pod/exec` also needs to have an `sh` and `kill` binary in the target container
-- Error Log Count checks (read only): `get` on `pods/log`. Each followed container holds one log stream on the API server; limit them with the Helm values `logErrorCount.maxContainersPerStep` (default 20) and `logErrorCount.maxConcurrentStreams` (default 40)
+- Error Log Count checks (read only): `get` on `pods/log`. Each followed container holds one log stream on the API server; limit them with the Helm values `logErrorCount.maxContainersPerStep` (default 20) and `logErrorCount.maxConcurrentStreams` (default 40). The log volume read by all checks is capped by `logErrorCount.maxLogMiBPerSecond` (default 10 MiB/s, roughly 0.1 CPU); beyond it, the steps reading the most stop counting
 - Envoy Gateway HTTP Route attacks: `create`, `delete` on `gateway.envoyproxy.io/backendtrafficpolicies` (see [Envoy Gateway support](#envoy-gateway-support))
 
 ## Envoy Gateway support

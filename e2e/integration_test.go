@@ -95,6 +95,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Test: testLogErrorCountCheckStatefulSetAndDaemonSet,
 	},
 	{
+		Name: "logErrorCountCheckVolumeBudget",
+		Test: testLogErrorCountCheckVolumeBudget,
+	},
+	{
 		Name: "setImage",
 		Test: testSetImage,
 	},
@@ -1078,6 +1082,75 @@ func testLogErrorCountCheckStatefulSetAndDaemonSet(t *testing.T, m *e2e.Minikube
 			}
 		})
 	}
+}
+
+func testLogErrorCountCheckVolumeBudget(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testLogErrorCountCheckVolumeBudget")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	// a pod flooding its log with 1 KiB lines, far above the default budget of 10 MiB/s
+	floodName := "log-error-flood"
+	one := int32(1)
+	flood, _, err := m.CreateDeployment(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: floodName, Labels: map[string]string{"app": floodName}},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &one,
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": floodName}},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": floodName}},
+				Spec: corev1.PodSpec{
+					TerminationGracePeriodSeconds: new(int64(1)),
+					Containers: []corev1.Container{{
+						Name:    "app",
+						Image:   "busybox:1.36",
+						Command: []string{"sh", "-c", `yes "ERROR $(head -c 1000 /dev/zero | tr '\0' x)"`},
+					}},
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+	defer func() { _ = m.DeleteDeployment(flood) }()
+	_, err = e2e.PollForTarget(ctx, e, extdeployment.DeploymentTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.deployment", floodName)
+	})
+	require.NoError(t, err)
+
+	config := struct {
+		Duration  int    `json:"duration"`
+		CheckMode string `json:"checkMode"`
+	}{Duration: 25_000, CheckMode: "none"}
+	action, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, &action_kit_api.Target{
+		Name: floodName,
+		Attributes: map[string][]string{
+			"k8s.cluster-name": {"e2e-cluster"},
+			"k8s.namespace":    {"default"},
+			"k8s.deployment":   {floodName},
+		},
+	}, config, nil)
+	defer func() { _ = action.Cancel() }()
+	require.NoError(t, err)
+	require.NoError(t, action.Wait(), "exceeding the budget must not fail the step")
+
+	budgetWarnings := 0
+	for _, message := range action.Messages() {
+		if strings.Contains(message.Message, "log volume budget of 10 MiB/s") {
+			budgetWarnings++
+		}
+	}
+	assert.Equal(t, 1, budgetWarnings, "the step should report once that it stopped counting")
+
+	// counting stopped: the error count doesn't grow anymore after the budget was exceeded
+	var counts []float64
+	for _, metric := range action.Metrics() {
+		if metric.Name != nil && *metric.Name == extcommon.LogErrorCountMetricName {
+			counts = append(counts, metric.Value)
+		}
+	}
+	require.GreaterOrEqual(t, len(counts), 5)
+	assert.Greater(t, counts[len(counts)-1], float64(0))
+	assert.Equal(t, counts[len(counts)-3], counts[len(counts)-1], "counts should be frozen at the end of the step")
 }
 
 func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {

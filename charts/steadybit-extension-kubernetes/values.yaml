@@ -178,6 +178,8 @@ logErrorCount:
   maxContainersPerStep: 20
   # logErrorCount.maxConcurrentStreams -- Maximum number of container logs followed concurrently by all running "Error Log Count" check steps. Each followed container holds one log stream on the Kubernetes API server.
   maxConcurrentStreams: 40
+  # logErrorCount.maxLogMiBPerSecond -- Budget for the log volume read by all running "Error Log Count" check steps, in MiB/s averaged over 10s. When exceeded, the steps reading the most stop counting (their counts so far are kept). Reading 10 MiB/s costs the extension roughly 0.1 CPU. 0 disables the budget.
+  maxLogMiBPerSecond: 10
 
 discovery:
   # discovery.group -- Optional group identifier. When set, the extension adds steadybit.group=<value> to every discovered target. Used as an additional matcher in enrichment rules.

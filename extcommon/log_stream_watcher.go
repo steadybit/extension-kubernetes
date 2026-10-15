@@ -6,9 +6,11 @@ package extcommon
 import (
 	"context"
 	"fmt"
+	"io"
 	"regexp"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -77,18 +79,28 @@ func checkLogStreamLimits(containers int) error {
 
 // logWatcher follows the logs of the containers of a single step execution (one `follow=true` stream per container).
 type logWatcher struct {
-	mu            sync.Mutex
-	ctx           context.Context
-	cancel        context.CancelFunc
-	wg            sync.WaitGroup
-	streamer      PodLogStreamer
-	start         time.Time
-	namespace     string
-	containerName string
-	errorMatcher  lineMatcher
-	ignoreRegex   *regexp.Regexp
-	cursors       map[string]*ContainerLogCursor
-	active        map[string]bool
+	mu     sync.Mutex
+	ctx    context.Context
+	cancel context.CancelFunc
+	// streamsCtx is cancelled to close the streams without ending the watcher (log volume budget exceeded).
+	streamsCtx    context.Context
+	cancelStreams context.CancelFunc
+	// bytesRead counts the bytes read since the last log volume sample.
+	bytesRead atomic.Int64
+	// volumeWindow holds the bytes read per second over the last logVolumeWindowSeconds (guarded by logWatchers).
+	volumeWindow   [logVolumeWindowSeconds]int64
+	volumeIndex    int
+	budgetExceeded bool
+	wg             sync.WaitGroup
+	streamer       PodLogStreamer
+	start          time.Time
+	namespace      string
+	target         string
+	containerName  string
+	errorMatcher   lineMatcher
+	ignoreRegex    *regexp.Regexp
+	cursors        map[string]*ContainerLogCursor
+	active         map[string]bool
 	// warnings per container key; only reported when they change
 	warnings         map[string]string
 	reportedWarnings map[string]string
@@ -108,11 +120,16 @@ func getOrCreateLogWatcher(state *LogErrorCountCheckState, streamer PodLogStream
 		return w
 	}
 	ctx, cancel := context.WithDeadline(context.Background(), state.End.Add(logStreamGracePeriod))
+	streamsCtx, cancelStreams := context.WithCancel(ctx)
 	w := &logWatcher{
 		ctx:              ctx,
 		cancel:           cancel,
+		streamsCtx:       streamsCtx,
+		cancelStreams:    cancelStreams,
+		budgetExceeded:   state.LogVolumeBudgetExceeded,
 		streamer:         streamer,
 		start:            state.Start,
+		target:           state.Target,
 		namespace:        state.Namespace,
 		containerName:    state.ContainerName,
 		errorMatcher:     errorMatcher,
@@ -126,7 +143,11 @@ func getOrCreateLogWatcher(state *LogErrorCountCheckState, streamer PodLogStream
 		c := *cursor
 		w.cursors[key] = &c
 	}
+	if w.budgetExceeded {
+		cancelStreams()
+	}
 	logWatchers.m[state.ExecutionId] = w
+	startLogVolumeMonitor()
 	// Close the streams when the deadline is reached, even if stop is never called.
 	context.AfterFunc(ctx, func() { removeLogWatcher(state.ExecutionId, w) })
 	return w
@@ -154,7 +175,7 @@ func stopLogWatcher(executionId uuid.UUID) {
 func (w *logWatcher) reconcile(pods []*corev1.Pod) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	if w.ctx.Err() != nil {
+	if w.ctx.Err() != nil || w.budgetExceeded {
 		return
 	}
 	maxPerStep := extconfig.Config.LogErrorCountMaxContainersPerStep
@@ -213,7 +234,7 @@ func (w *logWatcher) follow(key string, cursor *ContainerLogCursor, currentResta
 		w.mu.Unlock()
 	}
 
-	if err := w.read(cursor, false); err != nil && w.ctx.Err() == nil {
+	if err := w.read(cursor, false); err != nil && w.streamsCtx.Err() == nil {
 		log.Debug().Err(err).Msgf("Failed to follow logs of %s/%s container %s", w.namespace, cursor.Pod, cursor.Container)
 		w.mu.Lock()
 		w.warnings[key] = fmt.Sprintf("Failed to read logs of pod %s container %s: %s", cursor.Pod, cursor.Container, err.Error())
@@ -225,7 +246,7 @@ func (w *logWatcher) read(cursor *ContainerLogCursor, previous bool) error {
 	w.mu.Lock()
 	sinceTime := metav1.NewTime(cursor.LastTime)
 	w.mu.Unlock()
-	stream, err := w.streamer.PodLogs(w.ctx, w.namespace, cursor.Pod, &corev1.PodLogOptions{
+	stream, err := w.streamer.PodLogs(w.streamsCtx, w.namespace, cursor.Pod, &corev1.PodLogOptions{
 		Container:  cursor.Container,
 		Previous:   previous,
 		Follow:     !previous,
@@ -236,12 +257,27 @@ func (w *logWatcher) read(cursor *ContainerLogCursor, previous bool) error {
 		return err
 	}
 	defer func() { _ = stream.Close() }()
-	err = countLogLines(stream, cursor, w.errorMatcher, w.ignoreRegex, &w.mu)
-	if w.ctx.Err() != nil {
+	err = countLogLines(&countingReader{reader: stream, count: &w.bytesRead}, cursor, w.errorMatcher, w.ignoreRegex, &w.mu)
+	if w.streamsCtx.Err() != nil {
 		// closed on purpose
 		return nil
 	}
 	return err
+}
+
+func (w *logWatcher) isBudgetExceeded() bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.budgetExceeded
+}
+
+// exceedBudget closes the streams of the watcher for good. The counts read so far are kept.
+func (w *logWatcher) exceedBudget(stepRate, totalRate int64) {
+	w.mu.Lock()
+	w.budgetExceeded = true
+	w.warnings[logVolumeBudgetWarningKey] = fmt.Sprintf("Stopped counting the logs of %s: the log volume budget of %d MiB/s for all running Error Log Count checks was exceeded (measured %.1f MiB/s, of which this step %.1f MiB/s). The counts up to now are kept.", w.namespace+"/"+w.target, extconfig.Config.LogErrorCountMaxLogMiBPerSecond, float64(totalRate)/(1024*1024), float64(stepRate)/(1024*1024))
+	w.mu.Unlock()
+	w.cancelStreams()
 }
 
 // wait blocks until all streams have ended (tests only).
@@ -278,4 +314,78 @@ func (w *logWatcher) drainWarnings() []action_kit_api.Message {
 	}
 	sort.Slice(messages, func(i, j int) bool { return messages[i].Message < messages[j].Message })
 	return messages
+}
+
+const (
+	logVolumeWindowSeconds    = 10
+	logVolumeBudgetWarningKey = "log-volume-budget"
+)
+
+type countingReader struct {
+	reader io.Reader
+	count  *atomic.Int64
+}
+
+func (r *countingReader) Read(p []byte) (int, error) {
+	n, err := r.reader.Read(p)
+	r.count.Add(int64(n))
+	return n, err
+}
+
+var logVolumeMonitorOnce sync.Once
+
+// startLogVolumeMonitor samples the log volume of all watchers once per second and enforces the budget.
+func startLogVolumeMonitor() {
+	logVolumeMonitorOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				enforceLogVolumeBudget()
+			}
+		}()
+	})
+}
+
+// enforceLogVolumeBudget takes a one second sample of the bytes read by every watcher. If the volume of all watchers,
+// averaged over the last logVolumeWindowSeconds, exceeds the budget, the streams of the steps reading the most are
+// closed until the remaining volume fits into the budget.
+func enforceLogVolumeBudget() {
+	logWatchers.Lock()
+	defer logWatchers.Unlock()
+
+	type stepVolume struct {
+		watcher *logWatcher
+		bytes   int64
+	}
+	var steps []stepVolume
+	total := int64(0)
+	for _, w := range logWatchers.m {
+		w.volumeWindow[w.volumeIndex] = w.bytesRead.Swap(0)
+		w.volumeIndex = (w.volumeIndex + 1) % logVolumeWindowSeconds
+		sum := int64(0)
+		for _, b := range w.volumeWindow {
+			sum += b
+		}
+		if w.isBudgetExceeded() {
+			continue
+		}
+		steps = append(steps, stepVolume{watcher: w, bytes: sum})
+		total += sum
+	}
+
+	budget := int64(extconfig.Config.LogErrorCountMaxLogMiBPerSecond) * 1024 * 1024 * logVolumeWindowSeconds
+	if budget <= 0 || total <= budget {
+		return
+	}
+	sort.Slice(steps, func(i, j int) bool { return steps[i].bytes > steps[j].bytes })
+	measured := total
+	for _, step := range steps {
+		if total <= budget {
+			break
+		}
+		log.Warn().Msgf("Log volume budget exceeded (%d bytes in %ds); closing the log streams of %s/%s", measured, logVolumeWindowSeconds, step.watcher.namespace, step.watcher.target)
+		step.watcher.exceedBudget(step.bytes/logVolumeWindowSeconds, measured/logVolumeWindowSeconds)
+		total -= step.bytes
+	}
 }

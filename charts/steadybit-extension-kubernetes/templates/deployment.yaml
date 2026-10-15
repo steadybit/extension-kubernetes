@@ -143,6 +143,8 @@ spec:
               value: {{ .Values.logErrorCount.maxContainersPerStep | quote }}
             - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
               value: {{ .Values.logErrorCount.maxConcurrentStreams | quote }}
+            - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_LOG_MIB_PER_SECOND
+              value: {{ .Values.logErrorCount.maxLogMiBPerSecond | quote }}
             {{- if or (not .Values.advice.enabled) .Values.discovery.disableAdvice}}
             - name: STEADYBIT_EXTENSION_DISABLE_ADVICE
               value: "true"

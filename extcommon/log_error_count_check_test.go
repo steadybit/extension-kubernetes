@@ -139,6 +139,7 @@ func setLogStreamLimits(t *testing.T, maxPerStep, maxConcurrent int) {
 func TestMain(m *testing.M) {
 	extconfig.Config.LogErrorCountMaxContainersPerStep = 20
 	extconfig.Config.LogErrorCountMaxConcurrentStreams = 100
+	extconfig.Config.LogErrorCountMaxLogMiBPerSecond = 10
 	m.Run()
 }
 
@@ -623,6 +624,121 @@ func TestLogErrorCountCheck_ResumesFromStateAfterExtensionRestart(t *testing.T) 
 	require.NoError(t, err)
 	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
 	assert.Equal(t, float64(2), v, "counts are resumed from the state without counting lines twice")
+}
+
+func startBlockingStep(t *testing.T, podNames ...string) (LogErrorCountCheckAction, *LogErrorCountCheckState, *[]*corev1.Pod) {
+	streamer := &blockingLogStreamer{fakeLogStreamer: newFakeLogStreamer()}
+	pods := make([]*corev1.Pod, 0, len(podNames))
+	for _, name := range podNames {
+		pods = append(pods, testPod(name, "app"))
+	}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	action.waitForReads = false
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+	t.Cleanup(func() { stopLogWatcher(state.ExecutionId) })
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	return action, &state, &pods
+}
+
+func watcherOf(state *LogErrorCountCheckState) *logWatcher {
+	logWatchers.Lock()
+	defer logWatchers.Unlock()
+	return logWatchers.m[state.ExecutionId]
+}
+
+func TestLogVolumeBudget_StopsTheHeaviestStepOnly(t *testing.T) {
+	previous := extconfig.Config.LogErrorCountMaxLogMiBPerSecond
+	extconfig.Config.LogErrorCountMaxLogMiBPerSecond = 1
+	t.Cleanup(func() { extconfig.Config.LogErrorCountMaxLogMiBPerSecond = previous })
+
+	heavyAction, heavy, _ := startBlockingStep(t, "heavy-1", "heavy-2")
+	lightAction, light, _ := startBlockingStep(t, "light-1")
+	heavyWatcher, lightWatcher := watcherOf(heavy), watcherOf(light)
+	require.Eventually(t, func() bool {
+		heavyWatcher.mu.Lock()
+		defer heavyWatcher.mu.Unlock()
+		return len(heavyWatcher.active) == 2
+	}, time.Second, 10*time.Millisecond)
+
+	// 1 MiB/s over 10s allows 10 MiB per window: 15 MiB + 1 MiB exceed it, 1 MiB alone fits
+	heavyWatcher.bytesRead.Add(15 * 1024 * 1024)
+	lightWatcher.bytesRead.Add(1 * 1024 * 1024)
+	enforceLogVolumeBudget()
+
+	assert.True(t, heavyWatcher.isBudgetExceeded())
+	assert.False(t, lightWatcher.isBudgetExceeded())
+	require.Eventually(t, func() bool {
+		heavyWatcher.mu.Lock()
+		defer heavyWatcher.mu.Unlock()
+		return len(heavyWatcher.active) == 0
+	}, time.Second, 10*time.Millisecond, "the streams of the heavy step are closed")
+
+	result, err := heavyAction.Status(context.Background(), heavy)
+	require.NoError(t, err)
+	assert.True(t, heavy.LogVolumeBudgetExceeded)
+	assert.Nil(t, result.Error, "exceeding the budget doesn't fail the step")
+	require.NotNil(t, result.Messages)
+	assert.Contains(t, (*result.Messages)[0].Message, "log volume budget of 1 MiB/s")
+	heavyWatcher.mu.Lock()
+	assert.Empty(t, heavyWatcher.active, "streams are not reopened")
+	heavyWatcher.mu.Unlock()
+
+	result, err = lightAction.Status(context.Background(), light)
+	require.NoError(t, err)
+	assert.False(t, light.LogVolumeBudgetExceeded)
+	assert.Nil(t, result.Messages)
+}
+
+func TestLogVolumeBudget_AveragesOverTheWindow(t *testing.T) {
+	previous := extconfig.Config.LogErrorCountMaxLogMiBPerSecond
+	extconfig.Config.LogErrorCountMaxLogMiBPerSecond = 1
+	t.Cleanup(func() { extconfig.Config.LogErrorCountMaxLogMiBPerSecond = previous })
+	_, state, _ := startBlockingStep(t, "burst-1")
+	w := watcherOf(state)
+
+	// a 5 MiB burst within one second is fine on average (limit is 10 MiB per 10s)
+	w.bytesRead.Add(5 * 1024 * 1024)
+	enforceLogVolumeBudget()
+	assert.False(t, w.isBudgetExceeded())
+
+	// sustained volume exceeds it
+	w.bytesRead.Add(6 * 1024 * 1024)
+	enforceLogVolumeBudget()
+	assert.True(t, w.isBudgetExceeded())
+}
+
+func TestLogVolumeBudget_ZeroDisablesIt(t *testing.T) {
+	previous := extconfig.Config.LogErrorCountMaxLogMiBPerSecond
+	extconfig.Config.LogErrorCountMaxLogMiBPerSecond = 0
+	t.Cleanup(func() { extconfig.Config.LogErrorCountMaxLogMiBPerSecond = previous })
+	_, state, _ := startBlockingStep(t, "unlimited-1")
+	w := watcherOf(state)
+
+	w.bytesRead.Add(1024 * 1024 * 1024)
+	enforceLogVolumeBudget()
+	assert.False(t, w.isBudgetExceeded())
+}
+
+func TestLogVolumeBudget_StaysExceededAfterExtensionRestart(t *testing.T) {
+	action, state, _ := startBlockingStep(t, "restart-1")
+	watcherOf(state).exceedBudget(20*1024*1024, 20*1024*1024)
+	_, err := action.Status(context.Background(), state)
+	require.NoError(t, err)
+	require.True(t, state.LogVolumeBudgetExceeded)
+
+	// extension restart: the watcher is recreated from the state
+	stopLogWatcher(state.ExecutionId)
+	_, err = action.Status(context.Background(), state)
+	require.NoError(t, err)
+	w := watcherOf(state)
+	assert.True(t, w.isBudgetExceeded())
+	w.mu.Lock()
+	assert.Empty(t, w.active)
+	w.mu.Unlock()
 }
 
 // blockingLogStreamer returns streams that stay open (like follow=true) until their context is cancelled.

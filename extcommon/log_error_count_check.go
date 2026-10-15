@@ -107,6 +107,8 @@ type LogErrorCountCheckState struct {
 	CheckMode      LogErrorCountCheckMode `json:"checkMode"`
 	MaxErrorCount  int                    `json:"maxErrorCount"`
 	FailEarly      bool                   `json:"failEarly"`
+	// LogVolumeBudgetExceeded is set once the streams of the step were closed because of the log volume budget.
+	LogVolumeBudgetExceeded bool `json:"logVolumeBudgetExceeded"`
 	// Cursors is a snapshot of the log streams' progress, taken on every status call. The streams themselves live
 	// in memory; if the extension restarts during the step, they are resumed from this snapshot.
 	Cursors map[string]*ContainerLogCursor `json:"cursors"`
@@ -339,6 +341,7 @@ func (f LogErrorCountCheckAction) Status(_ context.Context, state *LogErrorCount
 		watcher.wait()
 	}
 	state.Cursors = watcher.snapshot()
+	state.LogVolumeBudgetExceeded = watcher.isBudgetExceeded()
 	messages := watcher.drainWarnings()
 
 	completed := !now.Before(state.End)
