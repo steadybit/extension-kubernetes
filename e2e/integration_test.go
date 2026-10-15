@@ -1151,6 +1151,26 @@ func testLogErrorCountCheckVolumeBudget(t *testing.T, m *e2e.Minikube, e *e2e.Ex
 	require.GreaterOrEqual(t, len(counts), 5)
 	assert.Greater(t, counts[len(counts)-1], float64(0))
 	assert.Equal(t, counts[len(counts)-3], counts[len(counts)-1], "counts should be frozen at the end of the step")
+
+	// with a threshold, incomplete counts can't let the check pass
+	thresholdConfig := struct {
+		Duration      int    `json:"duration"`
+		CheckMode     string `json:"checkMode"`
+		MaxErrorCount int    `json:"maxErrorCount"`
+	}{Duration: 20_000, CheckMode: "totalErrorsExceeded", MaxErrorCount: 1_000_000_000}
+	thresholdAction, err := e.RunAction(extdeployment.DeploymentLogErrorCountCheckActionId, &action_kit_api.Target{
+		Name: floodName,
+		Attributes: map[string][]string{
+			"k8s.cluster-name": {"e2e-cluster"},
+			"k8s.namespace":    {"default"},
+			"k8s.deployment":   {floodName},
+		},
+	}, thresholdConfig, nil)
+	defer func() { _ = thresholdAction.Cancel() }()
+	require.NoError(t, err)
+	err = thresholdAction.Wait()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "can't be verified")
 }
 
 func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {

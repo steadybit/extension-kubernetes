@@ -126,7 +126,21 @@ func newTestLogErrorCountCheck(streamer PodLogStreamer, pods *[]*corev1.Pod) Log
 	}
 }
 
+// resetLogStreamSlots drops the reservations left behind by other tests (steps prepared but never stopped).
+func resetLogStreamSlots() {
+	logStreamSlots.Lock()
+	defer logStreamSlots.Unlock()
+	for executionId, u := range logStreamSlots.steps {
+		if u.open == 0 {
+			delete(logStreamSlots.steps, executionId)
+		} else {
+			u.reserved = 0
+		}
+	}
+}
+
 func setLogStreamLimits(t *testing.T, maxPerStep, maxConcurrent int) {
+	resetLogStreamSlots()
 	previousPerStep, previousConcurrent := extconfig.Config.LogErrorCountMaxContainersPerStep, extconfig.Config.LogErrorCountMaxConcurrentStreams
 	extconfig.Config.LogErrorCountMaxContainersPerStep = maxPerStep
 	extconfig.Config.LogErrorCountMaxConcurrentStreams = maxConcurrent
@@ -335,9 +349,12 @@ func TestLogErrorCountCheck_ModeNoneNeverFails(t *testing.T) {
 	pods := []*corev1.Pod{testPod("checkout-1", "app")}
 	action := newTestLogErrorCountCheck(streamer, &pods)
 	state := action.NewEmptyState()
-	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 0, "failEarly": true}))
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000, "failEarly": true}))
 	require.NoError(t, err)
 	_, _ = action.Start(context.Background(), &state)
+	// the step already ended
+	state.Start = state.Start.Add(-5 * time.Second)
+	state.End = state.Start.Add(time.Second)
 	for i := 0; i < 10; i++ {
 		streamer.add("checkout-1", "app", state.Start.Add(time.Duration(i)*time.Millisecond), fmt.Sprintf("ERROR %d", i))
 	}
@@ -404,7 +421,7 @@ func TestCountLogLines_TruncatesLongLinesAndSkipsUnparsable(t *testing.T) {
 	}, "\n")
 	cursor := &ContainerLogCursor{LastTime: ts}
 
-	err := countLogLines(strings.NewReader(input), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil, &sync.Mutex{})
+	err := countLogLines(strings.NewReader(input), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil, time.Time{}, &sync.Mutex{})
 
 	require.NoError(t, err)
 	assert.Equal(t, 2, cursor.Lines)
@@ -413,35 +430,55 @@ func TestCountLogLines_TruncatesLongLinesAndSkipsUnparsable(t *testing.T) {
 	assert.Equal(t, 1, cursor.SeenAtLast)
 }
 
-func TestCountLogLines_DoesNotCountTruncatedLastLine(t *testing.T) {
+type failingReader struct{ err error }
+
+func (r failingReader) Read([]byte) (int, error) { return 0, r.err }
+
+func TestCountLogLines_LeavesALineOfABrokenStreamForTheNextRead(t *testing.T) {
 	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
 	first := ts.Format(time.RFC3339Nano) + " INFO ok\n"
 	second := ts.Add(time.Millisecond).Format(time.RFC3339Nano) + " something went wrong: ERROR\n"
 	cursor := &ContainerLogCursor{LastTime: ts}
 	errorRegex := regexp.MustCompile(DefaultLogErrorPattern)
 
-	// the stream is cut (LimitBytes) in the middle of the second line, before the error marker
-	err := countLogLines(strings.NewReader(first+second[:len(second)-10]), cursor, errorRegex, nil, &sync.Mutex{})
-	require.NoError(t, err)
+	// the connection breaks in the middle of the second line, before the error marker
+	broken := io.MultiReader(strings.NewReader(first+second[:len(second)-10]), failingReader{err: io.ErrUnexpectedEOF})
+	err := countLogLines(broken, cursor, errorRegex, nil, time.Time{}, &sync.Mutex{})
+	require.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	assert.Equal(t, 1, cursor.Lines)
 	assert.Equal(t, 0, cursor.Errors)
 
-	// the next call (sinceTime truncated to the second) returns both lines completely
-	err = countLogLines(strings.NewReader(first+second), cursor, errorRegex, nil, &sync.Mutex{})
+	// the next read (sinceTime truncated to the second) returns both lines completely
+	err = countLogLines(strings.NewReader(first+second), cursor, errorRegex, nil, time.Time{}, &sync.Mutex{})
 	require.NoError(t, err)
 	assert.Equal(t, 2, cursor.Lines)
 	assert.Equal(t, 1, cursor.Errors)
 }
 
-func TestCountLogLines_CountsSingleUnterminatedLineToMakeProgress(t *testing.T) {
+func TestCountLogLines_CountsUnterminatedLastLineAtTheEndOfTheStream(t *testing.T) {
 	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
 	cursor := &ContainerLogCursor{LastTime: ts}
+	input := ts.Format(time.RFC3339Nano) + " INFO starting\n" + ts.Add(time.Millisecond).Format(time.RFC3339Nano) + " FATAL crashed without newline"
 
-	err := countLogLines(strings.NewReader(ts.Format(time.RFC3339Nano)+" ERROR no newline"), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil, &sync.Mutex{})
+	err := countLogLines(strings.NewReader(input), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil, time.Time{}, &sync.Mutex{})
 
 	require.NoError(t, err)
-	assert.Equal(t, 1, cursor.Lines)
+	assert.Equal(t, 2, cursor.Lines)
 	assert.Equal(t, 1, cursor.Errors)
+}
+
+func TestCountLogLines_IgnoresLinesAfterTheEndOfTheStep(t *testing.T) {
+	ts := time.Date(2026, 10, 15, 8, 0, 0, 0, time.UTC)
+	cursor := &ContainerLogCursor{LastTime: ts}
+	input := ts.Add(time.Second).Format(time.RFC3339Nano) + " ERROR within the step\n" +
+		ts.Add(10*time.Second).Format(time.RFC3339Nano) + " ERROR at the end\n" +
+		ts.Add(11*time.Second).Format(time.RFC3339Nano) + " ERROR after the step\n"
+
+	err := countLogLines(strings.NewReader(input), cursor, regexp.MustCompile(DefaultLogErrorPattern), nil, ts.Add(10*time.Second), &sync.Mutex{})
+
+	require.NoError(t, err)
+	assert.Equal(t, 2, cursor.Lines)
+	assert.Equal(t, 2, cursor.Errors)
 }
 
 func TestLogErrorCountCheck_CountsLogsOfCrashedContainer(t *testing.T) {
@@ -504,13 +541,13 @@ func TestCountLogLines_CountsOutOfOrderLinesWithinARead(t *testing.T) {
 	cursor := &ContainerLogCursor{LastTime: ts}
 	errorRegex := regexp.MustCompile(DefaultLogErrorPattern)
 
-	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil, &sync.Mutex{}))
+	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil, time.Time{}, &sync.Mutex{}))
 	assert.Equal(t, 2, cursor.Lines)
 	assert.Equal(t, 1, cursor.Errors)
 	assert.Equal(t, ts.Add(5*time.Millisecond), cursor.LastTime)
 
 	// reading the same second again does not count anything twice
-	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil, &sync.Mutex{}))
+	require.NoError(t, countLogLines(strings.NewReader(input), cursor, errorRegex, nil, time.Time{}, &sync.Mutex{}))
 	assert.Equal(t, 2, cursor.Lines)
 	assert.Equal(t, 1, cursor.Errors)
 }
@@ -533,14 +570,9 @@ func TestLogErrorCountCheck_PrepareRejectsTooManyContainers(t *testing.T) {
 
 func TestLogErrorCountCheck_PrepareRejectsWhenGlobalLimitIsReached(t *testing.T) {
 	setLogStreamLimits(t, 20, 2)
-	openLogStreams.Lock()
-	openLogStreams.count = 1
-	openLogStreams.Unlock()
-	t.Cleanup(func() {
-		openLogStreams.Lock()
-		openLogStreams.count = 0
-		openLogStreams.Unlock()
-	})
+	other := uuid.New()
+	require.NoError(t, reserveLogStreamSlots(other, 1, time.Now().Add(time.Minute)))
+	t.Cleanup(func() { releaseLogStreamReservation(other) })
 	pods := []*corev1.Pod{testPod("checkout-1", "app"), testPod("checkout-2", "app")}
 	action := newTestLogErrorCountCheck(newFakeLogStreamer(), &pods)
 
@@ -548,6 +580,184 @@ func TestLogErrorCountCheck_PrepareRejectsWhenGlobalLimitIsReached(t *testing.T)
 	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 1000}))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "1 already in use")
+}
+
+func TestLogErrorCountCheck_PrepareReservesTheSlotsOfTheStep(t *testing.T) {
+	setLogStreamLimits(t, 20, 3)
+	streamer := &blockingLogStreamer{fakeLogStreamer: newFakeLogStreamer()}
+	pods := []*corev1.Pod{testPod("checkout-1", "app"), testPod("checkout-2", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	action.waitForReads = false
+	first := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &first, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	t.Cleanup(func() { _, _ = action.Stop(context.Background(), &first) })
+
+	// a second step prepared before the first one opened its streams can't take the reserved slots
+	second := action.NewEmptyState()
+	_, err = action.Prepare(context.Background(), &second, prepareRequest(map[string]any{"duration": 60_000}))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "2 already in use")
+
+	// the first step gets all of its streams
+	_, _ = action.Start(context.Background(), &first)
+	result, err := action.Status(context.Background(), &first)
+	require.NoError(t, err)
+	assert.Nil(t, result.Messages)
+	assert.Equal(t, 2, openLogStreamCount())
+
+	// stopping the step releases its slots
+	_, err = action.Stop(context.Background(), &first)
+	require.NoError(t, err)
+	assert.Eventually(t, func() bool { return openLogStreamCount() == 0 }, time.Second, 10*time.Millisecond)
+	_, err = action.Prepare(context.Background(), &second, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Stop(context.Background(), &second)
+}
+
+func TestLogErrorCountCheck_PrepareIgnoresTerminatedPods(t *testing.T) {
+	setLogStreamLimits(t, 2, 100)
+	evicted := testPod("checkout-old", "app")
+	evicted.Status.Phase = corev1.PodFailed
+	pods := []*corev1.Pod{testPod("checkout-1", "app"), testPod("checkout-2", "app"), evicted}
+	action := newTestLogErrorCountCheck(newFakeLogStreamer(), &pods)
+
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 1000}))
+	require.NoError(t, err)
+	_, _ = action.Stop(context.Background(), &state)
+}
+
+func TestLogErrorCountCheck_IncompleteCountsCantPassAThreshold(t *testing.T) {
+	setLogStreamLimits(t, 1, 100)
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{
+		"duration":      60_000,
+		"checkMode":     string(LogErrorCountCheckModeTotalExceeded),
+		"maxErrorCount": 5,
+	}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+	t.Cleanup(func() { _, _ = action.Stop(context.Background(), &state) })
+
+	// a rollout adds a pod beyond the per-step limit while the first one is followed
+	streamer.add("checkout-1", "app", state.Start.Add(time.Millisecond), "ERROR one")
+	blocking := &blockingLogStreamer{fakeLogStreamer: streamer}
+	action.logStreamer = blocking
+	action.waitForReads = false
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	pods = append(pods, testPod("checkout-2", "app"))
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.True(t, state.Incomplete)
+
+	state.End = time.Now()
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	assert.True(t, result.Completed)
+	require.NotNil(t, result.Error, "a threshold that isn't exceeded can't pass on incomplete counts")
+	assert.Equal(t, action_kit_api.Errored, *result.Error.Status)
+	assert.Contains(t, result.Error.Title, "can't be verified")
+}
+
+func TestLogErrorCountCheck_FollowsNativeSidecars(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pod := testPod("checkout-1", "app")
+	always := corev1.ContainerRestartPolicyAlways
+	pod.Spec.InitContainers = []corev1.Container{{Name: "istio-proxy", RestartPolicy: &always}, {Name: "init-db"}}
+	pod.Status.InitContainerStatuses = []corev1.ContainerStatus{
+		{Name: "istio-proxy", State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}}},
+		{Name: "init-db", State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{}}},
+	}
+	pods := []*corev1.Pod{pod}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+	t.Cleanup(func() { _, _ = action.Stop(context.Background(), &state) })
+
+	streamer.add("checkout-1", "istio-proxy", state.Start.Add(time.Millisecond), "ERROR upstream connect error")
+	streamer.add("checkout-1", "init-db", state.Start.Add(time.Millisecond), "ERROR not followed, a regular init container")
+
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	v, _ := metricValue(result.Metrics, LogErrorCountMetricName, "checkout-1")
+	assert.Equal(t, float64(1), v)
+	assert.Contains(t, state.Cursors, "shop/checkout-1/istio-proxy")
+	assert.NotContains(t, state.Cursors, "shop/checkout-1/init-db")
+}
+
+func TestLogErrorCountCheck_BacksOffFailingStreams(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	streamer.failures["checkout-1/app"] = errors.New("forbidden")
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{"duration": 60_000}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+	t.Cleanup(func() { _, _ = action.Stop(context.Background(), &state) })
+
+	for i := 0; i < 3; i++ {
+		_, err = action.Status(context.Background(), &state)
+		require.NoError(t, err)
+	}
+	streamer.mu.Lock()
+	defer streamer.mu.Unlock()
+	assert.Equal(t, 1, streamer.calls, "a failing stream is retried with a backoff, not on every status call")
+}
+
+func TestLogErrorCountCheck_KeepsCountingWhenTheWorkloadIsGone(t *testing.T) {
+	streamer := newFakeLogStreamer()
+	pods := []*corev1.Pod{testPod("checkout-1", "app")}
+	var podsErr error
+	action := newTestLogErrorCountCheck(streamer, &pods)
+	action.GetPods = func(_ *client.Client, _ string, _ string) ([]*corev1.Pod, error) {
+		if podsErr != nil {
+			return nil, podsErr
+		}
+		return pods, nil
+	}
+	state := action.NewEmptyState()
+	_, err := action.Prepare(context.Background(), &state, prepareRequest(map[string]any{
+		"duration":      60_000,
+		"checkMode":     string(LogErrorCountCheckModeTotalExceeded),
+		"maxErrorCount": 0,
+	}))
+	require.NoError(t, err)
+	_, _ = action.Start(context.Background(), &state)
+	t.Cleanup(func() { _, _ = action.Stop(context.Background(), &state) })
+
+	streamer.add("checkout-1", "app", state.Start.Add(time.Millisecond), "ERROR before the deletion")
+	_, err = action.Status(context.Background(), &state)
+	require.NoError(t, err)
+
+	podsErr = errors.New("Deployment checkout not found.")
+	state.End = time.Now()
+	result, err := action.Status(context.Background(), &state)
+	require.NoError(t, err)
+	require.NotNil(t, result.Error)
+	assert.Equal(t, action_kit_api.Failed, *result.Error.Status, "the errors counted so far are still evaluated")
+	require.NotNil(t, result.Messages)
+	assert.Contains(t, (*result.Messages)[0].Message, "Deployment checkout not found")
+}
+
+func TestLogErrorCountCheck_ReportsAWarningAgainWhenItComesBack(t *testing.T) {
+	w := &logWatcher{warnings: map[string]string{}, reportedWarnings: map[string]string{}}
+	w.setWarning("k", "limit reached")
+	assert.Len(t, w.drainWarnings(), 1)
+	assert.Empty(t, w.drainWarnings())
+
+	w.mu.Lock()
+	w.clearWarning("k")
+	w.setWarning("k", "limit reached")
+	w.mu.Unlock()
+	assert.Len(t, w.drainWarnings(), 1)
 }
 
 func TestLogErrorCountCheck_SkipsContainersBeyondTheLimitDuringTheStep(t *testing.T) {

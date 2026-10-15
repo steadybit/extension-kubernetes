@@ -109,6 +109,9 @@ type LogErrorCountCheckState struct {
 	FailEarly      bool                   `json:"failEarly"`
 	// LogVolumeBudgetExceeded is set once the streams of the step were closed because of the log volume budget.
 	LogVolumeBudgetExceeded bool `json:"logVolumeBudgetExceeded"`
+	// Incomplete is set when containers couldn't be followed (limits, log volume budget). A threshold that isn't
+	// exceeded then can't be verified.
+	Incomplete bool `json:"incomplete"`
 	// Cursors is a snapshot of the log streams' progress, taken on every status call. The streams themselves live
 	// in memory; if the extension restarts during the step, they are resumed from this snapshot.
 	Cursors map[string]*ContainerLogCursor `json:"cursors"`
@@ -283,13 +286,14 @@ func (f LogErrorCountCheckAction) Prepare(_ context.Context, state *LogErrorCoun
 		return nil, err
 	}
 	containerName := strings.TrimSpace(extutil.ToString(request.Config["containerName"]))
-	if err := checkLogStreamLimits(countContainers(pods, containerName)); err != nil {
-		return nil, err
-	}
 
 	duration := time.Duration(extutil.ToInt64(request.Config["duration"])) * time.Millisecond
 	state.Start = time.Now()
 	state.End = state.Start.Add(duration)
+	// The reservation is released on stop, or expires if the step is never started or stopped.
+	if err := reserveLogStreamSlots(request.ExecutionId, countContainers(pods, containerName), state.End.Add(logStreamGracePeriod+time.Minute)); err != nil {
+		return nil, err
+	}
 	state.Namespace = namespace
 	state.Target = target
 	state.MetricLabelKey = f.MetricLabelKey
@@ -315,33 +319,24 @@ func (f LogErrorCountCheckAction) Start(_ context.Context, state *LogErrorCountC
 
 func (f LogErrorCountCheckAction) Status(_ context.Context, state *LogErrorCountCheckState) (*action_kit_api.StatusResult, error) {
 	now := time.Now()
-	pods, err := f.GetPods(f.Client, state.Namespace, state.Target)
-	if err != nil {
-		return nil, err
-	}
-
-	errorMatcher, err := compileErrorMatcher(state.ErrorPattern)
-	if err != nil {
-		return nil, extension_kit.ToError("Invalid error pattern.", err)
-	}
-	var ignoreRegex *regexp.Regexp
-	if state.IgnorePattern != "" {
-		if ignoreRegex, err = regexp.Compile(state.IgnorePattern); err != nil {
-			return nil, extension_kit.ToError("Invalid ignore pattern.", err)
-		}
-	}
-
 	streamer := f.logStreamer
 	if streamer == nil {
 		streamer = f.Client
 	}
-	watcher := getOrCreateLogWatcher(state, streamer, errorMatcher, ignoreRegex)
+	watcher, err := getOrCreateLogWatcher(state, streamer)
+	if err != nil {
+		return nil, err
+	}
+	// If the workload is gone (e.g. deleted by an attack), the counts read so far are still evaluated.
+	pods, err := f.GetPods(f.Client, state.Namespace, state.Target)
+	watcher.setWorkloadMissing(err)
 	watcher.reconcile(pods)
 	if f.waitForReads {
 		watcher.wait()
 	}
 	state.Cursors = watcher.snapshot()
 	state.LogVolumeBudgetExceeded = watcher.isBudgetExceeded()
+	state.Incomplete = watcher.isIncomplete()
 	messages := watcher.drainWarnings()
 
 	completed := !now.Before(state.End)
@@ -354,6 +349,12 @@ func (f LogErrorCountCheckAction) Status(_ context.Context, state *LogErrorCount
 	if checkError != nil && (state.FailEarly || completed) {
 		result.Completed = true
 		result.Error = checkError
+	} else if completed && state.Incomplete && state.CheckMode != LogErrorCountCheckModeNone {
+		// Not all logs were counted, so a threshold that isn't exceeded doesn't prove anything.
+		result.Error = &action_kit_api.ActionKitError{
+			Title:  fmt.Sprintf("The error log count of %s/%s can't be verified: not all logs could be counted (see the warnings). %s.", state.Namespace, state.Target, summarizeLogCounts(state)),
+			Status: extutil.Ptr(action_kit_api.Errored),
+		}
 	}
 	if result.Completed {
 		stopLogWatcher(state.ExecutionId)
@@ -368,26 +369,9 @@ func (f LogErrorCountCheckAction) Status(_ context.Context, state *LogErrorCount
 	return result, nil
 }
 
-func restartCount(pod *corev1.Pod, containerName string) int32 {
-	for _, status := range pod.Status.ContainerStatuses {
-		if status.Name == containerName {
-			return status.RestartCount
-		}
-	}
-	return 0
-}
-
-func isContainerRunning(pod *corev1.Pod, containerName string) bool {
-	for _, status := range pod.Status.ContainerStatuses {
-		if status.Name == containerName {
-			return status.State.Running != nil
-		}
-	}
-	return false
-}
-
 func (f LogErrorCountCheckAction) Stop(_ context.Context, state *LogErrorCountCheckState) (*action_kit_api.StopResult, error) {
 	stopLogWatcher(state.ExecutionId)
+	releaseLogStreamReservation(state.ExecutionId)
 	return nil, nil
 }
 
@@ -400,13 +384,12 @@ func (f LogErrorCountCheckAction) Stop(_ context.Context, state *LogErrorCountCh
 // Counts and position are accumulated locally and flushed to the cursor (holding mu) in batches: every
 // logFlushLines lines, whenever the stream has no more data buffered (i.e. before blocking on a followed stream)
 // and at the end. Counts and position are always flushed together, so a snapshot of the cursor is consistent.
-func countLogLines(stream io.Reader, cursor *ContainerLogCursor, errorMatcher lineMatcher, ignoreRegex *regexp.Regexp, mu sync.Locker) error {
+func countLogLines(stream io.Reader, cursor *ContainerLogCursor, errorMatcher lineMatcher, ignoreRegex *regexp.Regexp, until time.Time, mu sync.Locker) error {
 	reader := bufio.NewReaderSize(stream, 64*1024)
 	mu.Lock()
 	startTime, startSeen := cursor.LastTime, cursor.SeenAtLast
 	mu.Unlock()
 	maxTime, atMax, seenAtStart := startTime, 0, 0
-	processedAny := false
 	pendingLines, pendingErrors := 0, 0
 	lineBuffer := make([]byte, 0, 1024)
 
@@ -428,17 +411,17 @@ func countLogLines(stream io.Reader, cursor *ContainerLogCursor, errorMatcher li
 	for {
 		line, terminated, err := readLine(reader, lineBuffer[:0])
 		lineBuffer = line
-		// A final line without line terminator may have been cut (or still be written). Leave it for the next
-		// read, which returns it completely, unless it is the only line - then count it to make progress.
-		if len(line) > 0 && (terminated || !processedAny) {
-			processedAny = true
+		// A final line without line terminator is counted at the regular end of the stream (e.g. the last message
+		// of a crashed container). If the stream broke off, it is left for the next read, which returns it completely.
+		if len(line) > 0 && (terminated || errors.Is(err, io.EOF)) {
 			if ts, message, ok := splitTimestamp(line); ok && !ts.Before(startTime) {
 				alreadyCounted := false
 				if ts.Equal(startTime) {
 					seenAtStart++
 					alreadyCounted = seenAtStart <= startSeen
 				}
-				if !alreadyCounted {
+				// lines logged after the end of the step are not counted
+				if !alreadyCounted && (until.IsZero() || !ts.After(until)) {
 					pendingLines++
 					if errorMatcher.Match(message) && (ignoreRegex == nil || !ignoreRegex.Match(message)) {
 						pendingErrors++
