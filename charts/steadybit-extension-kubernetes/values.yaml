@@ -177,7 +177,7 @@ logErrorCount:
   # logErrorCount.maxContainersPerStep -- Maximum number of containers whose logs are followed by a single "Error Log Count" check step. Steps targeting more containers fail on start.
   maxContainersPerStep: 20
   # logErrorCount.maxConcurrentStreams -- Maximum number of container logs followed concurrently by all running "Error Log Count" check steps. Each followed container holds one log stream on the Kubernetes API server.
-  maxConcurrentStreams: 100
+  maxConcurrentStreams: 40
 
 discovery:
   # discovery.group -- Optional group identifier. When set, the extension adds steadybit.group=<value> to every discovered target. Used as an additional matcher in enrichment rules.

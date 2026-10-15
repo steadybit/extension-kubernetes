@@ -74,7 +74,7 @@ manifest should match snapshot using podAnnotations and Labels:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -196,7 +196,7 @@ manifest should match snapshot with TLS:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -337,7 +337,7 @@ manifest should match snapshot with attribute excluded:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -455,7 +455,7 @@ manifest should match snapshot with clusterName from parent chart:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -571,7 +571,7 @@ manifest should match snapshot with custom image registry:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -689,7 +689,7 @@ manifest should match snapshot with disabled discoveries:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -805,7 +805,7 @@ manifest should match snapshot with disabled excludes:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -921,7 +921,7 @@ manifest should match snapshot with extra env vars:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1046,7 +1046,7 @@ manifest should match snapshot with extra labels:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1162,7 +1162,7 @@ manifest should match snapshot with global image pull secrets:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1280,7 +1280,7 @@ manifest should match snapshot with global image registry:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1396,7 +1396,7 @@ manifest should match snapshot with image pull secrets:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1514,7 +1514,7 @@ manifest should match snapshot with legacy image name containing registry:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1638,7 +1638,7 @@ manifest should match snapshot with mutual TLS:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1774,7 +1774,7 @@ manifest should match snapshot with mutual TLS using containerPaths:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -1890,7 +1890,7 @@ manifest should match snapshot with podSecurityContext:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -2007,7 +2007,7 @@ manifest should match snapshot with priority class:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -2126,7 +2126,7 @@ manifest should match snapshot without TLS:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: '*'
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
@@ -2244,7 +2244,7 @@ should disable advice:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_DISABLE_ADVICE
                   value: "true"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
@@ -2360,7 +2360,7 @@ should disable advice with old settings:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_DISABLE_ADVICE
                   value: "true"
               image: ghcr.io/steadybit/extension-kubernetes:v0.0.0
@@ -2476,7 +2476,7 @@ should enable specific advice with exlude:
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
                   value: "20"
                 - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
-                  value: "100"
+                  value: "40"
                 - name: STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST
                   value: id1,id2,id3
                 - name: STEADYBIT_EXTENSION_ADVICE_EXCLUDE_QUERY
