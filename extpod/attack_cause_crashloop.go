@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
@@ -17,6 +18,8 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extconversion"
 	"github.com/steadybit/extension-kubernetes/v2/client"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // validSignal matches a signal given as a number (e.g. "15") or a name (e.g. "SIGTERM", "TERM").
@@ -202,16 +205,16 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 	return nil, nil
 }
 
-func (f CrashLoopAction) Start(_ context.Context, state *CrashLoopState) (*action_kit_api.StartResult, error) {
-	_, err := statusInternal(state)
+func (f CrashLoopAction) Start(ctx context.Context, state *CrashLoopState) (*action_kit_api.StartResult, error) {
+	_, err := statusInternal(ctx, state)
 	return nil, err
 }
 
-func (f CrashLoopAction) Status(_ context.Context, state *CrashLoopState) (*action_kit_api.StatusResult, error) {
-	return statusInternal(state)
+func (f CrashLoopAction) Status(ctx context.Context, state *CrashLoopState) (*action_kit_api.StatusResult, error) {
+	return statusInternal(ctx, state)
 }
 
-func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error) {
+func statusInternal(ctx context.Context, state *CrashLoopState) (*action_kit_api.StatusResult, error) {
 	pod := client.K8S.PodByNamespaceAndName(state.Namespace, state.Pod)
 	if pod == nil {
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", state.Pod, state.Namespace), nil)
@@ -231,18 +234,73 @@ func statusInternal(state *CrashLoopState) (*action_kit_api.StatusResult, error)
 			signal = "15"
 		}
 
-		if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"kill", "-" + signal, "1"}); err != nil {
-			log.Info().Err(err).Msgf("Direct kill failed for container %s in pod %s, retrying via /bin/sh", cs.Name, state.Pod)
-
-			// Pass the signal as a shell positional argument ($1) rather than interpolating it
-			// into the script, so it is never re-parsed by the shell and cannot inject commands.
-			if err := runKubectlExec(state.Namespace, state.Pod, cs.Name, []string{"/bin/sh", "-c", `kill -"$1" 1`, "sh", signal}); err != nil {
-				return nil, err
+		if err := killContainer(state.Namespace, state.Pod, cs.Name, signal); err != nil {
+			// The pod may still report a container as running while it is already shutting down from the
+			// previous kill. The runtime then fails the exec with errors that are not covered by containerGone.
+			if containerStoppedRunning(ctx, state.Namespace, state.Pod, cs.ContainerID) {
+				log.Info().Err(err).Msgf("Container %s in pod %s stopped while being killed. Skipping.", cs.Name, state.Pod)
+				continue
 			}
+			return nil, err
 		}
 	}
 
 	return nil, nil
+}
+
+func killContainer(namespace, podName, containerName, signal string) error {
+	if err := runKubectlExec(namespace, podName, containerName, []string{"kill", "-" + signal, "1"}); err != nil {
+		log.Info().Err(err).Msgf("Direct kill failed for container %s in pod %s, retrying via /bin/sh", containerName, podName)
+
+		// Pass the signal as a shell positional argument ($1) rather than interpolating it
+		// into the script, so it is never re-parsed by the shell and cannot inject commands.
+		return runKubectlExec(namespace, podName, containerName, []string{"/bin/sh", "-c", `kill -"$1" 1`, "sh", signal})
+	}
+	return nil
+}
+
+var (
+	containerSettleTimeout  = 3 * time.Second
+	containerSettleInterval = 500 * time.Millisecond
+)
+
+// containerStoppedRunning polls the pod, as the kubelet reports a stopped container with a short delay.
+func containerStoppedRunning(ctx context.Context, namespace, podName, containerID string) bool {
+	err := wait.PollUntilContextTimeout(ctx, containerSettleInterval, containerSettleTimeout, true, func(context.Context) (bool, error) {
+		pod := client.K8S.PodByNamespaceAndName(namespace, podName)
+		return pod == nil || !isContainerRunning(pod, containerID), nil
+	})
+	return err == nil
+}
+
+func isContainerRunning(pod *corev1.Pod, containerID string) bool {
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.ContainerID == containerID {
+			return cs.State.Running != nil
+		}
+	}
+	return false
+}
+
+// containerGone matches what kubelet and the container runtimes (containerd, docker, cri-o) report only when an exec
+// hits a container that is already gone. Ambiguous errors (e.g. "error executing setns process") are verified via
+// containerStoppedRunning instead.
+var containerGone = regexp.MustCompile(strings.Join([]string{
+	`container not found`,
+	`container not created`,
+	`failed to load task`,
+	`cannot exec in a stopped (state|container)`,
+	`cannot exec in a deleted state`,
+	`container is in CONTAINER_EXITED state`,
+	`container is not created or running`,
+	`init process is not running`,
+	`container not running \(`,
+	`task \S+ not found`,
+	`container \S+ is not running`,
+}, "|"))
+
+var runCommand = func(name string, args ...string) ([]byte, error) {
+	return exec.Command(name, args...).CombinedOutput()
 }
 
 func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []string) error {
@@ -250,34 +308,9 @@ func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []stri
 
 	log.Info().Msgf("Killing container %s in pod %s with command '%s'", containerName, podName, strings.Join(cmd, " "))
 
-	if out, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput(); err != nil {
-		output := string(out)
-		if strings.Contains(output, "container not found") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Container not found. Skipping.")
-			return nil
-		}
-		if strings.Contains(output, "container not created") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Container not created. Skipping.")
-			return nil
-		}
-		if strings.Contains(output, "failed to load task") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Failed to load taks. Skipping.")
-			return nil
-		}
-		if strings.Contains(output, "cannot exec in a stopped state") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Cannot exec in a stopped state. Skipping.")
-			return nil
-		}
-		if strings.Contains(output, "cannot exec in a stopped container") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Cannot exec in a stopped container. Skipping.")
-			return nil
-		}
-		if strings.Contains(output, "container is in CONTAINER_EXITED state") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Container is in CONTAINER_EXITED state. Skipping.")
-			return nil
-		}
-		if strings.Contains(output, "task") && strings.Contains(output, "not found") {
-			log.Debug().Str("container", containerName).Str("pod", podName).Msg("Task not found. Skipping.")
+	if out, err := runCommand(cmd[0], cmd[1:]...); err != nil {
+		if containerGone.Match(out) {
+			log.Debug().Str("container", containerName).Str("pod", podName).Str("output", string(out)).Msg("Container is stopping or gone. Skipping.")
 			return nil
 		}
 
