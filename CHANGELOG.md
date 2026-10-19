@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Rollout Restart Deployment attack: "Wait for rollout completion" and "Fail on already running rollout" are now shown in the main settings instead of additional settings
+
 ## v2.6.38
 
 - chore(deps): bump golang.org/x/net to v0.61.0
