@@ -84,6 +84,10 @@ var testCases = []e2e.WithMinikubeTestCase{
 		Test: testCauseCrashLoop,
 	},
 	{
+		Name: "causeCrashLoopGracefulShutdown",
+		Test: testCauseCrashLoopGracefulShutdown,
+	},
+	{
 		Name: "setImage",
 		Test: testSetImage,
 	},
@@ -774,6 +778,70 @@ func testCauseCrashLoop(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 		require.NoError(t, err)
 		assert.GreaterOrEqual(collect, p.Status.ContainerStatuses[0].RestartCount, int32(2))
 	}, 20*time.Second, 1*time.Second, "pod should be restarted at least twice")
+}
+
+// testCauseCrashLoopGracefulShutdown kills containers that take a moment to shut down, so the status calls race with
+// containers that are still reported as running but already stopping. The attack must keep going for the whole duration.
+func testCauseCrashLoopGracefulShutdown(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	log.Info().Msg("Starting testCauseCrashLoopGracefulShutdown")
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	appName := "crashloop-graceful"
+	var containers []corev1.Container
+	for _, name := range []string{"app-1", "app-2", "app-3"} {
+		containers = append(containers, corev1.Container{
+			Name:    name,
+			Image:   "busybox:1.36",
+			Command: []string{"/bin/sh", "-c", "trap 'sleep 0.$((RANDOM%10)); exit 0' TERM; while true; do sleep 0.1; done"},
+		})
+	}
+	deployment, pods, err := m.CreateDeployment(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: appName, Namespace: "default"},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: new(int32(1)),
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": appName}},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": appName}},
+				Spec:       corev1.PodSpec{Containers: containers, TerminationGracePeriodSeconds: new(int64(1))},
+			},
+		},
+	})
+	require.NoError(t, err)
+	defer func() { _ = m.DeleteDeployment(deployment) }()
+	require.Len(t, pods, 1)
+	pod := pods[0]
+
+	target, err := e2e.PollForTarget(ctx, e, extpod.PodTargetType, func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "k8s.pod.name", pod.Name)
+	})
+	require.NoError(t, err)
+
+	config := struct {
+		Duration int    `json:"duration"`
+		Signal   string `json:"signal"`
+	}{
+		Duration: 60_000,
+		Signal:   "SIGTERM",
+	}
+	action, err := e.RunAction(extpod.CrashLoopActionId, &action_kit_api.Target{
+		Name: target.Id,
+		Attributes: map[string][]string{
+			"k8s.namespace": {"default"},
+			"k8s.pod.name":  {pod.Name},
+		},
+	}, config, nil)
+	require.NoError(t, err)
+
+	require.NoError(t, action.Wait(), "crash loop must not fail while containers are shutting down")
+
+	assert.EventuallyWithT(t, func(collect *assert.CollectT) {
+		p, err := m.GetPod(&pod)
+		require.NoError(collect, err)
+		for _, cs := range p.Status.ContainerStatuses {
+			assert.GreaterOrEqual(collect, cs.RestartCount, int32(2), "container %s should be restarted at least twice", cs.Name)
+		}
+	}, 30*time.Second, 1*time.Second)
 }
 
 func testSetImage(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
