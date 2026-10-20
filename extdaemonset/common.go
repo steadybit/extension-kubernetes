@@ -4,6 +4,7 @@
 package extdaemonset
 
 const (
-	DaemonSetTargetType            = "com.steadybit.extension_kubernetes.kubernetes-daemonset"
-	DaemonSetPodCountCheckActionId = "com.steadybit.extension_kubernetes.pod_count_check_daemonset"
+	DaemonSetTargetType                 = "com.steadybit.extension_kubernetes.kubernetes-daemonset"
+	DaemonSetPodCountCheckActionId      = "com.steadybit.extension_kubernetes.pod_count_check_daemonset"
+	DaemonSetLogErrorCountCheckActionId = "com.steadybit.extension_kubernetes.log_error_count_check_daemonset"
 )

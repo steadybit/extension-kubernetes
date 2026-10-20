@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -174,6 +175,9 @@ type Client struct {
 	networkingV1         networkingv1client.NetworkingV1Interface
 	clientset            kubernetes.Interface
 	dynamicClient        dynamic.Interface
+	// logStreamingClientset has no request timeout, so long-lived log streams (follow=true) aren't cut off.
+	// Falls back to clientset when not set (e.g. in tests).
+	logStreamingClientset kubernetes.Interface
 }
 
 func (c *Client) DynamicClient() dynamic.Interface {
@@ -346,6 +350,19 @@ func (c *Client) PodsByLabelSelector(labelSelector *metav1.LabelSelector, namesp
 // PodsByOwnerUid returns all running pods that have the given owner UID in their OwnerReferences.
 // This is more accurate than PodsByLabelSelector when selectors are misconfigured.
 func (c *Client) PodsByOwnerUid(ownerUid types.UID, namespace string) []*corev1.Pod {
+	return c.onlyRunningPods(c.podsByOwnerUid(ownerUid, namespace))
+}
+
+// PodsOfWorkload returns the pods in any phase owned by the given workload. For deployments
+// (viaReplicaSets = true) the pods are resolved via the ReplicaSets owned by the deployment.
+func (c *Client) PodsOfWorkload(ownerUid types.UID, namespace string, viaReplicaSets bool) []*corev1.Pod {
+	if viaReplicaSets {
+		return c.podsOwnedByDeployment(ownerUid, namespace)
+	}
+	return c.podsByOwnerUid(ownerUid, namespace)
+}
+
+func (c *Client) podsByOwnerUid(ownerUid types.UID, namespace string) []*corev1.Pod {
 	allPods, err := c.pod.lister.Pods(namespace).List(labels.Everything())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error while fetching Pods in namespace %s", namespace)
@@ -361,12 +378,16 @@ func (c *Client) PodsByOwnerUid(ownerUid types.UID, namespace string) []*corev1.
 			}
 		}
 	}
-	return c.onlyRunningPods(result)
+	return result
 }
 
 // PodsOwnedByDeployment returns all running pods owned by the deployment via its ReplicaSets.
 // Deployment ownership chain: Deployment -> ReplicaSet -> Pod
 func (c *Client) PodsOwnedByDeployment(deploymentUid types.UID, namespace string) []*corev1.Pod {
+	return c.onlyRunningPods(c.podsOwnedByDeployment(deploymentUid, namespace))
+}
+
+func (c *Client) podsOwnedByDeployment(deploymentUid types.UID, namespace string) []*corev1.Pod {
 	// First, find all ReplicaSets owned by this deployment
 	allReplicaSets, err := c.replicaSet.lister.ReplicaSets(namespace).List(labels.Everything())
 	if err != nil {
@@ -400,7 +421,7 @@ func (c *Client) PodsOwnedByDeployment(deploymentUid types.UID, namespace string
 			}
 		}
 	}
-	return c.onlyRunningPods(result)
+	return result
 }
 
 // ExecInPod executes a command in a pod container and returns the output
@@ -443,6 +464,15 @@ func (c *Client) ExecInPod(_ context.Context, namespace, podName, containerName 
 	}
 
 	return stdout.String(), nil
+}
+
+// PodLogs streams the logs of a pod container. The caller is responsible for closing the returned stream.
+func (c *Client) PodLogs(ctx context.Context, namespace, podName string, opts *corev1.PodLogOptions) (io.ReadCloser, error) {
+	clientset := c.clientset
+	if c.logStreamingClientset != nil {
+		clientset = c.logStreamingClientset
+	}
+	return clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).Stream(ctx)
 }
 
 // FileExistsInPod checks if a file exists in a pod container
@@ -882,6 +912,16 @@ func PrepareClient(stopCh <-chan struct{}) {
 	}
 
 	K8S = CreateClient(clientset, stopCh, rootApiPath, permissions, dynamicClient)
+
+	// The request timeout of the regular client would cut off followed log streams after a few seconds; they are
+	// ended by cancelling their context instead.
+	streamingConfig := rest.CopyConfig(config)
+	streamingConfig.Timeout = 0
+	logStreamingClientset, err := kubernetes.NewForConfig(streamingConfig)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create log streaming client")
+	}
+	K8S.logStreamingClientset = logStreamingClientset
 }
 
 // CreateClient is visible for testing

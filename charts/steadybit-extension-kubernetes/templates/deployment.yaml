@@ -139,6 +139,14 @@ spec:
               value: {{ .Values.discovery.maxPodCount | quote }}
             - name: STEADYBIT_EXTENSION_DISCOVERY_REFRESH_THROTTLE
               value: {{ .Values.discovery.refreshThrottle | quote }}
+            {{- /* tolerate upgrades with --reuse-values from chart versions without logErrorCount */}}
+            {{- $logErrorCount := .Values.logErrorCount | default dict }}
+            - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONTAINERS_PER_STEP
+              value: {{ dig "maxContainersPerStep" 20 $logErrorCount | quote }}
+            - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_CONCURRENT_STREAMS
+              value: {{ dig "maxConcurrentStreams" 40 $logErrorCount | quote }}
+            - name: STEADYBIT_EXTENSION_LOG_ERROR_COUNT_MAX_LOG_MIB_PER_SECOND
+              value: {{ dig "maxLogMiBPerSecond" 10 $logErrorCount | quote }}
             {{- if or (not .Values.advice.enabled) .Values.discovery.disableAdvice}}
             - name: STEADYBIT_EXTENSION_DISABLE_ADVICE
               value: "true"

@@ -64,6 +64,7 @@ var requiredPermissions = []requiredPermission{
 	{group: "", resource: "pods", subresource: "eviction", verbs: []string{"create"}, allowGracefulFailure: true},
 	{group: "", resource: "nodes", verbs: []string{"patch"}, allowGracefulFailure: true},
 	{group: "", resource: "pods", subresource: "exec", verbs: []string{"create"}, allowGracefulFailure: true},
+	{group: "", resource: "pods", subresource: "log", verbs: []string{"get"}, allowGracefulFailure: true},
 	{group: "networking.k8s.io", resource: "ingresses", verbs: []string{"get", "list", "watch", "update", "patch"}, allowGracefulFailure: true},
 	{group: "networking.k8s.io", resource: "ingressclasses", verbs: []string{"get", "list", "watch"}, allowGracefulFailure: true},
 }
@@ -262,6 +263,12 @@ func (p *PermissionCheckResult) IsTaintNodePermitted() bool {
 func (p *PermissionCheckResult) IsCrashLoopPodPermitted() bool {
 	return p.hasPermissions([]string{
 		"pods/exec/create",
+	})
+}
+
+func (p *PermissionCheckResult) CanReadPodLogs() bool {
+	return p.hasPermissions([]string{
+		"pods/log/get",
 	})
 }
 
