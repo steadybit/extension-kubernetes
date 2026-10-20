@@ -136,7 +136,7 @@ func (f LogErrorCountCheckAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          f.ActionId,
 		Label:       f.TargetTypeLabel + " Error Log Count",
-		Description: "Counts the error log lines of the " + strings.ToLower(f.TargetTypeLabel) + "'s pods and optionally fails when a threshold is exceeded. Only the counts are reported, the log lines themselves are not collected.",
+		Description: "Counts the error log lines of the " + strings.ToLower(f.TargetTypeLabel) + "'s pods and optionally fails when a threshold is exceeded.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        new("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTUgM0gxNEwxOSA4VjEyIiBzdHJva2U9IiMxRDI2MzIiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik01IDNWMjFIMTIiIHN0cm9rZT0iIzFEMjYzMiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPHBhdGggZD0iTTggOUgxMiIgc3Ryb2tlPSIjMUQyNjMyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8cGF0aCBkPSJNOCAxM0gxMSIgc3Ryb2tlPSIjMUQyNjMyIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8Y2lyY2xlIGN4PSIxNy41IiBjeT0iMTcuNSIgcj0iNC41IiBmaWxsPSIjMUQyNjMyIi8+CjxwYXRoIGQ9Ik0xNy41IDE1VjE3LjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPGNpcmNsZSBjeD0iMTcuNSIgY3k9IjE5LjkiIHI9IjAuOCIgZmlsbD0id2hpdGUiLz4KPC9zdmc+Cg=="),
 		Technology:  new("Kubernetes"),
