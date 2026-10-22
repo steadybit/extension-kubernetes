@@ -19,3 +19,8 @@ vulnerabilities:
     expired_at: 2027-02-01
     paths:
       - usr/bin/kubectl
+  - id: CVE-2026-111943
+    statement: waiting for kubectl release built with go >= 1.26.10
+    expired_at: 2027-02-01
+    paths:
+      - usr/bin/kubectl
