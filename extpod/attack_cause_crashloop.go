@@ -6,9 +6,11 @@ package extpod
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -175,28 +177,16 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s in namespace %s has hostPID enabled. This is not yet supported", podName, namespace), nil)
 	}
 
-	if config.Container != "" {
-		containerFound := false
-		for _, cs := range pod.Spec.Containers {
-			if config.Container == cs.Name {
-				containerFound = true
-				break
-			}
-		}
-		if !containerFound {
-			return nil, extension_kit.ToError(fmt.Sprintf("Container %s not found in pod specification %s", config.Container, podName), nil)
-		}
+	if config.Container != "" && !slices.ContainsFunc(pod.Spec.Containers, func(c corev1.Container) bool { return c.Name == config.Container }) {
+		return nil, extension_kit.ToError(fmt.Sprintf("Container %s not found in pod specification %s", config.Container, podName), nil)
 	}
 
-	if config.Signal != "" && !validSignal.MatchString(config.Signal) {
-		return nil, extension_kit.ToError(fmt.Sprintf("Invalid signal %q. Expected a signal number (e.g. 15) or name (e.g. SIGTERM).", config.Signal), nil)
-	}
-
-	// SIGKILL/SIGSTOP are rejected even though the picker options were removed, since the
-	// Signal field is free text and the ParameterOption list is only a UI hint (see validSignal).
 	if config.Signal != "" {
-		normalized := strings.TrimPrefix(strings.ToUpper(config.Signal), "SIG")
-		if normalized == "9" || normalized == "KILL" || normalized == "19" || normalized == "STOP" {
+		if !validSignal.MatchString(config.Signal) {
+			return nil, extension_kit.ToError(fmt.Sprintf("Invalid signal %q. Expected a signal number (e.g. 15) or name (e.g. SIGTERM).", config.Signal), nil)
+		}
+		// PID 1 ignores SIGKILL and SIGSTOP sent from within its PID namespace.
+		if slices.Contains([]string{"9", "KILL", "19", "STOP"}, strings.TrimPrefix(strings.ToUpper(config.Signal), "SIG")) {
 			return nil, extension_kit.ToError(fmt.Sprintf("Signal %q is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.", config.Signal), nil)
 		}
 	}
@@ -209,47 +199,46 @@ func (f CrashLoopAction) Prepare(_ context.Context, state *CrashLoopState, reque
 }
 
 func (f CrashLoopAction) Start(ctx context.Context, state *CrashLoopState) (*action_kit_api.StartResult, error) {
-	_, err := statusInternal(ctx, state)
-	return nil, err
+	return nil, statusInternal(ctx, state)
 }
 
 func (f CrashLoopAction) Status(ctx context.Context, state *CrashLoopState) (*action_kit_api.StatusResult, error) {
-	return statusInternal(ctx, state)
+	return nil, statusInternal(ctx, state)
 }
 
-func statusInternal(ctx context.Context, state *CrashLoopState) (*action_kit_api.StatusResult, error) {
+func statusInternal(ctx context.Context, state *CrashLoopState) error {
 	pod := client.K8S.PodByNamespaceAndName(state.Namespace, state.Pod)
 	if pod == nil {
-		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", state.Pod, state.Namespace), nil)
+		return extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", state.Pod, state.Namespace), nil)
 	}
+
+	signal := state.Signal
+	if signal == "" {
+		signal = "15"
+	}
+	gracePeriod := terminationGracePeriod(pod)
 
 	lastSignalled := state.SignalledContainers
 	state.SignalledContainers = make(map[string]time.Time)
 	for _, cs := range pod.Status.ContainerStatuses {
-		if state.Container != "" && state.Container != cs.Name {
+		if (state.Container != "" && state.Container != cs.Name) || cs.State.Running == nil {
 			continue
-		}
-
-		if cs.State.Running == nil {
-			continue
-		}
-
-		signal := state.Signal
-		if signal == "" {
-			signal = "15"
 		}
 
 		// The signal is sent again on every status call, as PID 1 drops it until it has installed a handler.
-		err := killContainer(state.Namespace, state.Pod, cs.Name, signal)
+		err := killContainer(ctx, state.Namespace, state.Pod, cs.Name, signal)
 		if err == nil {
 			state.SignalledContainers[cs.ContainerID] = time.Now()
 			continue
 		}
+		if errors.Is(err, errContainerGone) {
+			continue
+		}
 
-		// A container that already received the signal may take longer to exit than containerStoppedRunning waits,
-		// while the runtime fails every exec into it.
-		signalledAt, signalled := lastSignalled[cs.ContainerID]
-		if signalled && time.Since(signalledAt) < signalledContainerGracePeriod {
+		// A container that already received the signal may take up to its termination grace period to exit, which is
+		// longer than containerStoppedRunning waits, while the runtime fails every exec into it.
+		signalledAt := lastSignalled[cs.ContainerID]
+		if !signalledAt.IsZero() && time.Since(signalledAt) < gracePeriod {
 			log.Info().Err(err).Msgf("Container %s in pod %s was signalled at %s and is likely shutting down. Skipping.", cs.Name, state.Pod, signalledAt.UTC().Format(time.RFC3339))
 			state.SignalledContainers[cs.ContainerID] = signalledAt
 			continue
@@ -261,29 +250,35 @@ func statusInternal(ctx context.Context, state *CrashLoopState) (*action_kit_api
 			log.Info().Err(err).Msgf("Container %s in pod %s stopped while being killed. Skipping.", cs.Name, state.Pod)
 			continue
 		}
-		return nil, fmt.Errorf("%w (%s)", err, describeContainer(cs, signalledAt))
+		return fmt.Errorf("%w (%s)", err, describeContainer(cs, signalledAt))
 	}
 
-	return nil, nil
+	return nil
 }
 
-func killContainer(namespace, podName, containerName, signal string) error {
-	if err := runKubectlExec(namespace, podName, containerName, []string{"kill", "-" + signal, "1"}); err != nil {
-		log.Info().Err(err).Msgf("Direct kill failed for container %s in pod %s, retrying via /bin/sh", containerName, podName)
-
-		// Pass the signal as a shell positional argument ($1) rather than interpolating it
-		// into the script, so it is never re-parsed by the shell and cannot inject commands.
-		return runKubectlExec(namespace, podName, containerName, []string{"/bin/sh", "-c", `kill -"$1" 1`, "sh", signal})
+func killContainer(ctx context.Context, namespace, podName, containerName, signal string) error {
+	err := runKubectlExec(ctx, namespace, podName, containerName, []string{"kill", "-" + signal, "1"})
+	if err == nil || errors.Is(err, errContainerGone) {
+		return err
 	}
-	return nil
+	log.Info().Err(err).Msgf("Direct kill failed for container %s in pod %s, retrying via /bin/sh", containerName, podName)
+
+	// Pass the signal as a shell positional argument ($1) rather than interpolating it
+	// into the script, so it is never re-parsed by the shell and cannot inject commands.
+	return runKubectlExec(ctx, namespace, podName, containerName, []string{"/bin/sh", "-c", `kill -"$1" 1`, "sh", signal})
 }
 
 var (
 	containerSettleTimeout  = 3 * time.Second
 	containerSettleInterval = 500 * time.Millisecond
-	// signalledContainerGracePeriod matches the kubelet's default termination grace period.
-	signalledContainerGracePeriod = 30 * time.Second
 )
+
+func terminationGracePeriod(pod *corev1.Pod) time.Duration {
+	if seconds := pod.Spec.TerminationGracePeriodSeconds; seconds != nil {
+		return time.Duration(*seconds) * time.Second
+	}
+	return corev1.DefaultTerminationGracePeriodSeconds * time.Second
+}
 
 // containerStoppedRunning polls the pod, as the kubelet reports a stopped container with a short delay.
 func containerStoppedRunning(ctx context.Context, namespace, podName, containerID string) bool {
@@ -331,19 +326,21 @@ var containerGone = regexp.MustCompile(strings.Join([]string{
 	`container \S+ is not running`,
 }, "|"))
 
-var runCommand = func(name string, args ...string) ([]byte, error) {
-	return exec.Command(name, args...).CombinedOutput()
+var errContainerGone = errors.New("container is stopping or gone")
+
+var runCommand = func(ctx context.Context, name string, args ...string) ([]byte, error) {
+	return exec.CommandContext(ctx, name, args...).CombinedOutput()
 }
 
-func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []string) error {
+func runKubectlExec(ctx context.Context, namespace, podName, containerName string, kubeExecCmd []string) error {
 	cmd := append([]string{"kubectl", "exec", podName, "-c", containerName, "-n", namespace, "--"}, kubeExecCmd...)
 
 	log.Info().Msgf("Killing container %s in pod %s with command '%s'", containerName, podName, strings.Join(cmd, " "))
 
-	if out, err := runCommand(cmd[0], cmd[1:]...); err != nil {
+	if out, err := runCommand(ctx, cmd[0], cmd[1:]...); err != nil {
 		if containerGone.Match(out) {
 			log.Debug().Str("container", containerName).Str("pod", podName).Str("output", string(out)).Msg("Container is stopping or gone. Skipping.")
-			return nil
+			return errContainerGone
 		}
 
 		return fmt.Errorf("kubectl exec failed for container %s in pod %s/%s (the signal may not have been delivered; this can happen if the container is restarting, the node is under memory/PID pressure, or host security policies block the runtime): %w: %s", containerName, namespace, podName, err, bytes.TrimSpace(out))

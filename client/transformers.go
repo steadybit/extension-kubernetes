@@ -38,9 +38,10 @@ func transformPod(i any) (any, error) {
 		pod.ObjectMeta.ManagedFields = nil
 
 		newPodSpec := corev1.PodSpec{
-			NodeName:   pod.Spec.NodeName,
-			HostPID:    pod.Spec.HostPID,
-			Containers: make([]corev1.Container, 0, len(pod.Spec.Containers)),
+			NodeName:                      pod.Spec.NodeName,
+			HostPID:                       pod.Spec.HostPID,
+			TerminationGracePeriodSeconds: pod.Spec.TerminationGracePeriodSeconds, // needed for crash loop attack
+			Containers:                    make([]corev1.Container, 0, len(pod.Spec.Containers)),
 		}
 		for _, container := range pod.Spec.Containers {
 			newPodSpec.Containers = append(newPodSpec.Containers, corev1.Container{
