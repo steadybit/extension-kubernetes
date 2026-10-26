@@ -6,6 +6,7 @@ package extpod
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -23,7 +24,7 @@ import (
 )
 
 func Test_Prepare(t *testing.T) {
-	tests := []struct {
+	type prepareTest struct {
 		name                 string
 		podSpecContainerName string
 		podSpecHostPID       bool
@@ -31,11 +32,11 @@ func Test_Prepare(t *testing.T) {
 		configSignal         string
 		wantState            CrashLoopState
 		wantErr              string
-	}{
+	}
+	tests := []prepareTest{
 		{
 			name:                 "should fail if pod does not have container in spec",
 			podSpecContainerName: "other",
-			podSpecHostPID:       false,
 			configContainer:      "example",
 			wantErr:              "Container example not found in pod specification checkout-xyz1234",
 		},
@@ -48,49 +49,12 @@ func Test_Prepare(t *testing.T) {
 		{
 			name:                 "should reject a signal containing shell metacharacters",
 			podSpecContainerName: "example",
-			podSpecHostPID:       false,
 			configSignal:         "1; curl evil | sh",
 			wantErr:              `Invalid signal "1; curl evil | sh". Expected a signal number (e.g. 15) or name (e.g. SIGTERM).`,
 		},
 		{
-			name:                 "should reject signal 9",
-			podSpecContainerName: "example",
-			podSpecHostPID:       false,
-			configSignal:         "9",
-			wantErr:              `Signal "9" is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.`,
-		},
-		{
-			name:                 "should reject SIGKILL",
-			podSpecContainerName: "example",
-			podSpecHostPID:       false,
-			configSignal:         "SIGKILL",
-			wantErr:              `Signal "SIGKILL" is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.`,
-		},
-		{
-			name:                 "should reject KILL case-insensitively",
-			podSpecContainerName: "example",
-			podSpecHostPID:       false,
-			configSignal:         "kill",
-			wantErr:              `Signal "kill" is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.`,
-		},
-		{
-			name:                 "should reject signal 19",
-			podSpecContainerName: "example",
-			podSpecHostPID:       false,
-			configSignal:         "19",
-			wantErr:              `Signal "19" is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.`,
-		},
-		{
-			name:                 "should reject SIGSTOP",
-			podSpecContainerName: "example",
-			podSpecHostPID:       false,
-			configSignal:         "SIGSTOP",
-			wantErr:              `Signal "SIGSTOP" is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.`,
-		},
-		{
 			name:                 "should return state for all container",
 			podSpecContainerName: "example",
-			podSpecHostPID:       false,
 			configSignal:         "15",
 			wantState: CrashLoopState{
 				Namespace: "shop",
@@ -101,7 +65,6 @@ func Test_Prepare(t *testing.T) {
 		{
 			name:                 "should return state for specific container",
 			podSpecContainerName: "example",
-			podSpecHostPID:       false,
 			configContainer:      "example",
 			configSignal:         "15",
 			wantState: CrashLoopState{
@@ -111,6 +74,15 @@ func Test_Prepare(t *testing.T) {
 				Signal:    "15",
 			},
 		},
+	}
+
+	for _, signal := range []string{"9", "SIGKILL", "kill", "19", "SIGSTOP"} {
+		tests = append(tests, prepareTest{
+			name:                 "should reject signal " + signal,
+			podSpecContainerName: "example",
+			configSignal:         signal,
+			wantErr:              fmt.Sprintf("Signal %q is not allowed. SIGKILL and SIGSTOP cannot be used for this attack.", signal),
+		})
 	}
 
 	for _, tt := range tests {
@@ -201,8 +173,10 @@ func Test_containerGone(t *testing.T) {
 }
 
 const (
-	setnsFailed    = `error: Internal error occurred: Internal error occurred: error executing command in container: failed to exec in container: failed to start exec "0123": OCI runtime exec failed: exec failed: unable to start container process: error executing setns process: exit status 1`
-	initPipeBroken = `error: Internal error occurred: Internal error occurred: error executing command in container: failed to exec in container: failed to start exec "0123": OCI runtime exec failed: exec failed: unable to start container process: error writing config to pipe: write init-p: broken pipe`
+	killCommand      = "kubectl exec checkout-xyz1234 -c app -n shop -- kill -15 1"
+	shellKillCommand = `kubectl exec checkout-xyz1234 -c app -n shop -- /bin/sh -c kill -"$1" 1 sh 15`
+	setnsFailed      = `error: Internal error occurred: Internal error occurred: error executing command in container: failed to exec in container: failed to start exec "0123": OCI runtime exec failed: exec failed: unable to start container process: error executing setns process: exit status 1`
+	initPipeBroken   = `error: Internal error occurred: Internal error occurred: error executing command in container: failed to exec in container: failed to start exec "0123": OCI runtime exec failed: exec failed: unable to start container process: error writing config to pipe: write init-p: broken pipe`
 )
 
 func Test_Status(t *testing.T) {
@@ -224,54 +198,73 @@ func Test_Status(t *testing.T) {
 	}
 	deleted := func(*corev1.Pod) *corev1.Pod { return nil }
 
+	recently := time.Now().Add(-2 * time.Second)
+	aMinuteAgo := time.Now().Add(-time.Minute)
+
 	tests := []struct {
 		name string
 		// podChange is applied after the first exec; returning nil deletes the pod.
-		podChange     func(pod *corev1.Pod) *corev1.Pod
-		signalled     map[string]time.Time
-		execOutputs   []string
-		wantErr       string
-		wantCommands  []string
-		wantSignalled []string
+		podChange          func(pod *corev1.Pod) *corev1.Pod
+		gracePeriodSeconds *int64
+		signalled          map[string]time.Time
+		execOutputs        []string
+		wantErr            string
+		wantCommands       []string
+		// wantSignalledAt is the time recorded for the container; zero expects the container to be signalled by this call.
+		wantSignalledAt *time.Time
 	}{
 		{
-			name:          "should kill pid 1",
-			execOutputs:   []string{""},
-			wantCommands:  []string{"kubectl exec checkout-xyz1234 -c app -n shop -- kill -15 1"},
-			wantSignalled: []string{"containerd://initial"},
+			name:            "should kill pid 1",
+			execOutputs:     []string{""},
+			wantCommands:    []string{killCommand},
+			wantSignalledAt: &time.Time{},
 		},
 		{
-			name:          "should signal an already signalled container again",
-			signalled:     map[string]time.Time{"containerd://initial": time.Now().Add(-2 * time.Second)},
-			execOutputs:   []string{""},
-			wantCommands:  []string{"kubectl exec checkout-xyz1234 -c app -n shop -- kill -15 1"},
-			wantSignalled: []string{"containerd://initial"},
+			name:            "should signal an already signalled container again",
+			signalled:       map[string]time.Time{"containerd://initial": recently},
+			execOutputs:     []string{""},
+			wantCommands:    []string{killCommand},
+			wantSignalledAt: &time.Time{},
 		},
 		{
-			name:          "should forget signalled containers that are no longer running",
-			signalled:     map[string]time.Time{"containerd://previous": time.Now()},
-			execOutputs:   []string{""},
-			wantSignalled: []string{"containerd://initial"},
+			name:            "should forget signalled containers that are no longer running",
+			signalled:       map[string]time.Time{"containerd://previous": recently},
+			execOutputs:     []string{""},
+			wantSignalledAt: &time.Time{},
 		},
 		{
-			name:          "should ignore setns error when the container was signalled recently",
-			signalled:     map[string]time.Time{"containerd://initial": time.Now().Add(-2 * time.Second)},
-			execOutputs:   []string{setnsFailed},
-			wantSignalled: []string{"containerd://initial"},
-		},
-		{
-			name:        "should fail on setns error when the container keeps running long after being signalled",
-			signalled:   map[string]time.Time{"containerd://initial": time.Now().Add(-time.Minute)},
+			name:        "should ignore setns error without waiting when the container was signalled recently",
+			signalled:   map[string]time.Time{"containerd://initial": recently},
 			execOutputs: []string{setnsFailed},
-			wantErr:     "restart count 3, last terminated at 2026-10-24T10:00:04Z with exit code 143, reason Error, last signalled at ",
+			wantCommands: []string{
+				killCommand,
+				shellKillCommand,
+			},
+			wantSignalledAt: &recently,
 		},
 		{
-			name:        "should retry via shell",
-			execOutputs: []string{`exec: "kill": executable file not found in $PATH`, ""},
-			wantCommands: []string{
-				"kubectl exec checkout-xyz1234 -c app -n shop -- kill -15 1",
-				`kubectl exec checkout-xyz1234 -c app -n shop -- /bin/sh -c kill -"$1" 1 sh 15`,
-			},
+			name:               "should ignore setns error within the pod's termination grace period",
+			gracePeriodSeconds: new(int64(120)),
+			signalled:          map[string]time.Time{"containerd://initial": aMinuteAgo},
+			execOutputs:        []string{setnsFailed},
+			wantSignalledAt:    &aMinuteAgo,
+		},
+		{
+			name:        "should fail on setns error when the container keeps running after its termination grace period",
+			signalled:   map[string]time.Time{"containerd://initial": aMinuteAgo},
+			execOutputs: []string{setnsFailed},
+			wantErr:     "restart count 3, last terminated at 2026-10-24T10:00:04Z with exit code 143, reason Error, last signalled at " + aMinuteAgo.UTC().Format(time.RFC3339) + ")",
+		},
+		{
+			name:            "should retry via shell",
+			execOutputs:     []string{`exec: "kill": executable file not found in $PATH`, ""},
+			wantCommands:    []string{killCommand, shellKillCommand},
+			wantSignalledAt: &time.Time{},
+		},
+		{
+			name:         "should not record a container that is already gone as signalled",
+			execOutputs:  []string{"cannot exec in a deleted state"},
+			wantCommands: []string{killCommand},
 		},
 		{
 			name:        "should ignore unknown exec error when the container was restarted meanwhile",
@@ -311,7 +304,7 @@ func Test_Status(t *testing.T) {
 			defer close(stopCh)
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "checkout-xyz1234", Namespace: "shop"},
-				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}, TerminationGracePeriodSeconds: tt.gracePeriodSeconds},
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{{
 						Name:         "app",
@@ -348,7 +341,9 @@ func Test_Status(t *testing.T) {
 			})
 
 			state := &CrashLoopState{Namespace: "shop", Pod: "checkout-xyz1234", Signal: "15", SignalledContainers: tt.signalled}
+			start := time.Now()
 			_, err := NewCrashLoopAction().(CrashLoopAction).Status(context.Background(), state)
+			elapsed := time.Since(start)
 
 			if tt.wantErr == "" {
 				assert.NoError(t, err)
@@ -358,8 +353,18 @@ func Test_Status(t *testing.T) {
 			if tt.wantCommands != nil {
 				assert.Equal(t, tt.wantCommands, commands)
 			}
-			if tt.wantSignalled != nil {
-				assert.Equal(t, tt.wantSignalled, slices.Sorted(maps.Keys(state.SignalledContainers)))
+			if tt.wantSignalledAt == nil && tt.wantErr == "" {
+				assert.Empty(t, state.SignalledContainers)
+			}
+			if tt.wantSignalledAt != nil {
+				assert.Equal(t, []string{"containerd://initial"}, slices.Collect(maps.Keys(state.SignalledContainers)))
+				signalledAt := state.SignalledContainers["containerd://initial"]
+				if tt.wantSignalledAt.IsZero() {
+					assert.False(t, signalledAt.Before(start), "should be signalled by this call")
+				} else {
+					assert.True(t, tt.wantSignalledAt.Equal(signalledAt), "should keep the previous signal time")
+					assert.Less(t, elapsed, containerSettleTimeout, "should skip without waiting for the container to stop")
+				}
 			}
 		})
 	}
@@ -368,7 +373,7 @@ func Test_Status(t *testing.T) {
 func stubRunCommand(t *testing.T, fn func(cmd []string) ([]byte, error)) {
 	original := runCommand
 	t.Cleanup(func() { runCommand = original })
-	runCommand = func(name string, args ...string) ([]byte, error) {
+	runCommand = func(_ context.Context, name string, args ...string) ([]byte, error) {
 		return fn(append([]string{name}, args...))
 	}
 }
