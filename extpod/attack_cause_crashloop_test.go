@@ -6,6 +6,8 @@ package extpod
 import (
 	"context"
 	"errors"
+	"maps"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -225,15 +227,43 @@ func Test_Status(t *testing.T) {
 	tests := []struct {
 		name string
 		// podChange is applied after the first exec; returning nil deletes the pod.
-		podChange    func(pod *corev1.Pod) *corev1.Pod
-		execOutputs  []string
-		wantErr      string
-		wantCommands []string
+		podChange     func(pod *corev1.Pod) *corev1.Pod
+		signalled     map[string]time.Time
+		execOutputs   []string
+		wantErr       string
+		wantCommands  []string
+		wantSignalled []string
 	}{
 		{
-			name:         "should kill pid 1",
-			execOutputs:  []string{""},
-			wantCommands: []string{"kubectl exec checkout-xyz1234 -c app -n shop -- kill -15 1"},
+			name:          "should kill pid 1",
+			execOutputs:   []string{""},
+			wantCommands:  []string{"kubectl exec checkout-xyz1234 -c app -n shop -- kill -15 1"},
+			wantSignalled: []string{"containerd://initial"},
+		},
+		{
+			name:          "should signal an already signalled container again",
+			signalled:     map[string]time.Time{"containerd://initial": time.Now().Add(-2 * time.Second)},
+			execOutputs:   []string{""},
+			wantCommands:  []string{"kubectl exec checkout-xyz1234 -c app -n shop -- kill -15 1"},
+			wantSignalled: []string{"containerd://initial"},
+		},
+		{
+			name:          "should forget signalled containers that are no longer running",
+			signalled:     map[string]time.Time{"containerd://previous": time.Now()},
+			execOutputs:   []string{""},
+			wantSignalled: []string{"containerd://initial"},
+		},
+		{
+			name:          "should ignore setns error when the container was signalled recently",
+			signalled:     map[string]time.Time{"containerd://initial": time.Now().Add(-2 * time.Second)},
+			execOutputs:   []string{setnsFailed},
+			wantSignalled: []string{"containerd://initial"},
+		},
+		{
+			name:        "should fail on setns error when the container keeps running long after being signalled",
+			signalled:   map[string]time.Time{"containerd://initial": time.Now().Add(-time.Minute)},
+			execOutputs: []string{setnsFailed},
+			wantErr:     "restart count 3, last terminated at 2026-10-24T10:00:04Z with exit code 143, reason Error, last signalled at ",
 		},
 		{
 			name:        "should retry via shell",
@@ -261,7 +291,7 @@ func Test_Status(t *testing.T) {
 		{
 			name:        "should fail on setns error when the container keeps running",
 			execOutputs: []string{setnsFailed},
-			wantErr:     "error executing setns process",
+			wantErr:     "error executing setns process: exit status 1 (container containerd://initial running since 2026-10-24T10:00:05Z, restart count 3, last terminated at 2026-10-24T10:00:04Z with exit code 143, reason Error, not signalled before)",
 		},
 		{
 			name:        "should ignore unknown exec error when the pod is gone",
@@ -284,9 +314,15 @@ func Test_Status(t *testing.T) {
 				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "app"}}},
 				Status: corev1.PodStatus{
 					ContainerStatuses: []corev1.ContainerStatus{{
-						Name:        "app",
-						ContainerID: "containerd://initial",
-						State:       corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+						Name:         "app",
+						ContainerID:  "containerd://initial",
+						RestartCount: 3,
+						State:        corev1.ContainerState{Running: &corev1.ContainerStateRunning{StartedAt: metav1.Date(2026, 10, 24, 10, 0, 5, 0, time.UTC)}},
+						LastTerminationState: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+							ExitCode:   143,
+							Reason:     "Error",
+							FinishedAt: metav1.Date(2026, 10, 24, 10, 0, 4, 0, time.UTC),
+						}},
 					}},
 				},
 			}
@@ -311,7 +347,8 @@ func Test_Status(t *testing.T) {
 				return []byte(output), errors.New("exit status 1")
 			})
 
-			_, err := NewCrashLoopAction().(CrashLoopAction).Status(context.Background(), &CrashLoopState{Namespace: "shop", Pod: "checkout-xyz1234", Signal: "15"})
+			state := &CrashLoopState{Namespace: "shop", Pod: "checkout-xyz1234", Signal: "15", SignalledContainers: tt.signalled}
+			_, err := NewCrashLoopAction().(CrashLoopAction).Status(context.Background(), state)
 
 			if tt.wantErr == "" {
 				assert.NoError(t, err)
@@ -320,6 +357,9 @@ func Test_Status(t *testing.T) {
 			}
 			if tt.wantCommands != nil {
 				assert.Equal(t, tt.wantCommands, commands)
+			}
+			if tt.wantSignalled != nil {
+				assert.Equal(t, tt.wantSignalled, slices.Sorted(maps.Keys(state.SignalledContainers)))
 			}
 		})
 	}
