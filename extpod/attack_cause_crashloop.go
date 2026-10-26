@@ -4,6 +4,7 @@
 package extpod
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os/exec"
@@ -36,6 +37,8 @@ type CrashLoopState struct {
 	Pod       string `json:"pod"`
 	Container string `json:"container,omitempty"`
 	Signal    string `json:"signal"`
+	// SignalledContainers holds when each running container instance last received the signal.
+	SignalledContainers map[string]time.Time `json:"signalledContainers,omitempty"`
 }
 
 type CrashLoopConfig struct {
@@ -220,6 +223,8 @@ func statusInternal(ctx context.Context, state *CrashLoopState) (*action_kit_api
 		return nil, extension_kit.ToError(fmt.Sprintf("Pod %s not found in namespace %s", state.Pod, state.Namespace), nil)
 	}
 
+	lastSignalled := state.SignalledContainers
+	state.SignalledContainers = make(map[string]time.Time)
 	for _, cs := range pod.Status.ContainerStatuses {
 		if state.Container != "" && state.Container != cs.Name {
 			continue
@@ -234,15 +239,29 @@ func statusInternal(ctx context.Context, state *CrashLoopState) (*action_kit_api
 			signal = "15"
 		}
 
-		if err := killContainer(state.Namespace, state.Pod, cs.Name, signal); err != nil {
-			// The pod may still report a container as running while it is already shutting down from the
-			// previous kill. The runtime then fails the exec with errors that are not covered by containerGone.
-			if containerStoppedRunning(ctx, state.Namespace, state.Pod, cs.ContainerID) {
-				log.Info().Err(err).Msgf("Container %s in pod %s stopped while being killed. Skipping.", cs.Name, state.Pod)
-				continue
-			}
-			return nil, err
+		// The signal is sent again on every status call, as PID 1 drops it until it has installed a handler.
+		err := killContainer(state.Namespace, state.Pod, cs.Name, signal)
+		if err == nil {
+			state.SignalledContainers[cs.ContainerID] = time.Now()
+			continue
 		}
+
+		// A container that already received the signal may take longer to exit than containerStoppedRunning waits,
+		// while the runtime fails every exec into it.
+		signalledAt, signalled := lastSignalled[cs.ContainerID]
+		if signalled && time.Since(signalledAt) < signalledContainerGracePeriod {
+			log.Info().Err(err).Msgf("Container %s in pod %s was signalled at %s and is likely shutting down. Skipping.", cs.Name, state.Pod, signalledAt.UTC().Format(time.RFC3339))
+			state.SignalledContainers[cs.ContainerID] = signalledAt
+			continue
+		}
+
+		// The pod may still report a container as running while it is already shutting down from the
+		// previous kill. The runtime then fails the exec with errors that are not covered by containerGone.
+		if containerStoppedRunning(ctx, state.Namespace, state.Pod, cs.ContainerID) {
+			log.Info().Err(err).Msgf("Container %s in pod %s stopped while being killed. Skipping.", cs.Name, state.Pod)
+			continue
+		}
+		return nil, fmt.Errorf("%w (%s)", err, describeContainer(cs, signalledAt))
 	}
 
 	return nil, nil
@@ -262,6 +281,8 @@ func killContainer(namespace, podName, containerName, signal string) error {
 var (
 	containerSettleTimeout  = 3 * time.Second
 	containerSettleInterval = 500 * time.Millisecond
+	// signalledContainerGracePeriod matches the kubelet's default termination grace period.
+	signalledContainerGracePeriod = 30 * time.Second
 )
 
 // containerStoppedRunning polls the pod, as the kubelet reports a stopped container with a short delay.
@@ -271,6 +292,17 @@ func containerStoppedRunning(ctx context.Context, namespace, podName, containerI
 		return pod == nil || !isContainerRunning(pod, containerID), nil
 	})
 	return err == nil
+}
+
+func describeContainer(cs corev1.ContainerStatus, signalledAt time.Time) string {
+	description := fmt.Sprintf("container %s running since %s, restart count %d", cs.ContainerID, cs.State.Running.StartedAt.UTC().Format(time.RFC3339), cs.RestartCount)
+	if t := cs.LastTerminationState.Terminated; t != nil {
+		description += fmt.Sprintf(", last terminated at %s with exit code %d, reason %s", t.FinishedAt.UTC().Format(time.RFC3339), t.ExitCode, t.Reason)
+	}
+	if signalledAt.IsZero() {
+		return description + ", not signalled before"
+	}
+	return description + ", last signalled at " + signalledAt.UTC().Format(time.RFC3339)
 }
 
 func isContainerRunning(pod *corev1.Pod, containerID string) bool {
@@ -314,7 +346,7 @@ func runKubectlExec(namespace, podName, containerName string, kubeExecCmd []stri
 			return nil
 		}
 
-		return fmt.Errorf("kubectl exec failed for container %s in pod %s/%s (the signal may not have been delivered; this can happen if the container is restarting, the node is under memory/PID pressure, or host security policies block the runtime): %w: %s", containerName, namespace, podName, err, out)
+		return fmt.Errorf("kubectl exec failed for container %s in pod %s/%s (the signal may not have been delivered; this can happen if the container is restarting, the node is under memory/PID pressure, or host security policies block the runtime): %w: %s", containerName, namespace, podName, err, bytes.TrimSpace(out))
 	}
 	return nil
 }
