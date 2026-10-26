@@ -324,6 +324,7 @@ var containerGone = regexp.MustCompile(strings.Join([]string{
 	`container not running \(`,
 	`task \S+ not found`,
 	`container \S+ is not running`,
+	`failed to open /proc/\d+/ns/\w+: No such file or directory`,
 }, "|"))
 
 var errContainerGone = errors.New("container is stopping or gone")

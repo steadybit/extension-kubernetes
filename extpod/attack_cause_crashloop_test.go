@@ -161,6 +161,7 @@ func Test_containerGone(t *testing.T) {
 		{name: "docker init process", output: `FailedPrecondition: container 0123abcdef init process is not running: failed precondition`},
 		{name: "cri-o not created or running", output: `error: Internal error occurred: Internal error occurred: error executing command in container: rpc error: code = NotFound desc = container is not created or running: checking if PID of 0123abcdef is running failed: container process not found`},
 		{name: "cri-o not running", output: "the container `0123abcdef` is not running"},
+		{name: "runc init process gone", output: `error: Internal error occurred: error executing command in container: failed to exec in container: failed to start exec "0123": OCI runtime exec failed: exec failed: unable to start container process: error executing setns process: exit status 1; runc init error(s): nsexec-1[2614443]: failed to open /proc/2504858/ns/ipc: No such file or directory; nsexec-0[2614442]: failed to sync with stage-1: next state (got 0 of 4 bytes)`},
 		{name: "pod name containing task", output: `Error from server (NotFound): pods "task-worker-abc" not found`, notGone: true},
 		{name: "kill not found", output: `OCI runtime exec failed: exec failed: unable to start container process: exec: "kill": executable file not found in $PATH`, notGone: true},
 	}
