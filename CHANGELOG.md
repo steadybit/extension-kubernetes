@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.7.1
+
+- chore(deps): bump action_kit_test to v1.4.13 (#368)
+
 ## v2.7.0
 
 - feat: new "Error Log Count" checks for Deployments, StatefulSets and DaemonSets. They count the log lines of the workload's pods matching an error pattern (pods created during the step, e.g. by a rollout, are picked up too) and report the cumulative error/line counts per pod as metrics, visualized in a line chart with a pod switcher. Optionally the check fails when the total error count or the error count of any pod exceeds a threshold. Log lines are only counted by the extension and never shipped to the platform. Each container is followed with a single long-lived log stream (`follow=true`) instead of repeated requests. To bound the load on the API server, a step follows at most `logErrorCount.maxContainersPerStep` containers (default 20) and all steps together at most `logErrorCount.maxConcurrentStreams` (default 40). A log volume budget (`logErrorCount.maxLogMiBPerSecond`, default 10 MiB/s averaged over 10s, roughly 0.1 CPU) protects the extension from log storms: when exceeded, the steps reading the most stop counting and report a warning, keeping their counts so far. Requires `get` on `pods/log` (added to the Helm chart); the checks are not registered without it.
