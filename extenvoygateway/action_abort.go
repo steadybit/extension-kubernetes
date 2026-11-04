@@ -52,6 +52,7 @@ func getAbortDescription() action_kit_api.ActionDescription {
 			Description: new("Optional: the response body returned to clients for aborted requests. Leave empty to return an empty body."),
 			Type:        action_kit_api.ActionParameterTypeTextarea,
 			Required:    new(false),
+			Group:       new(groupResponseDetails),
 		},
 		action_kit_api.ActionParameter{
 			Name:         "contentType",
@@ -61,6 +62,7 @@ func getAbortDescription() action_kit_api.ActionDescription {
 			DefaultValue: new("application/json"),
 			Required:     new(false),
 			Advanced:     new(true),
+			Group:        new(groupResponseDetails),
 		},
 	)
 	return withSectionNameParameter(desc)

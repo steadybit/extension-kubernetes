@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- feat: Log Error Count Check, Cause Crash Loop and the Envoy attacks show their optional settings in the groups "Log Filter", "Crash Behavior", "Response Details" and "Traffic Filter" on platforms that support parameter groups; Fail early of the log and pod count checks is shown with the other check settings
+
 ## v2.7.2
 
 - build(deps): bump github.com/KimMachineGun/automemlimit

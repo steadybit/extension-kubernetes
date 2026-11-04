@@ -185,8 +185,8 @@ func getCommonActionDescription(id, label, description string) action_kit_api.Ac
 	}
 }
 
-// withSectionNameParameter appends the advanced sectionName parameter. Call it after the attack's own
-// parameters so the advanced parameter renders last.
+// withSectionNameParameter appends the advanced sectionName parameter in the "Traffic Filter" group. Call it after
+// the attack's own parameters so it renders last.
 func withSectionNameParameter(desc action_kit_api.ActionDescription) action_kit_api.ActionDescription {
 	desc.Parameters = append(desc.Parameters, action_kit_api.ActionParameter{
 		Name:        "sectionName",
@@ -195,6 +195,12 @@ func withSectionNameParameter(desc action_kit_api.ActionDescription) action_kit_
 		Type:        action_kit_api.ActionParameterTypeString,
 		Required:    new(false),
 		Advanced:    new(true),
+		Group:       new(groupTrafficFilter),
 	})
+	var groups []action_kit_api.ParameterGroup
+	if desc.ParameterGroups != nil {
+		groups = *desc.ParameterGroups
+	}
+	desc.ParameterGroups = new(append(groups, trafficFilterGroup))
 	return desc
 }

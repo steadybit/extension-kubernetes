@@ -178,7 +178,6 @@ func (f PodCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Description:  new("If enabled, the check fails as soon as the condition is violated. If disabled, the check keeps collecting events for the whole duration and only fails at the end of the step. Only affects the 'All the time' mode; 'At least once' can only be evaluated at the end of the step."),
 				Type:         action_kit_api.ActionParameterTypeBoolean,
 				DefaultValue: new("true"),
-				Advanced:     new(true),
 				Required:     new(false),
 				Order:        new(4),
 			},

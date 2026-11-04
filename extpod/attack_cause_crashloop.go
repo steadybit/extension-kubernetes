@@ -70,6 +70,7 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 		TargetSelection: new(targetSelectionTemplates),
 		TimeControl:     action_kit_api.TimeControlExternal,
 		Kind:            action_kit_api.Attack,
+		ParameterGroups: new([]action_kit_api.ParameterGroup{crashBehaviorGroup}),
 		Parameters: []action_kit_api.ActionParameter{
 			{
 				Name:         "duration",
@@ -85,6 +86,7 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Name:        "container",
 				Type:        action_kit_api.ActionParameterTypeString,
 				Advanced:    new(true),
+				Group:       new(groupCrashBehavior),
 			},
 			{
 				Label:        "Signal",
@@ -93,7 +95,9 @@ func (f CrashLoopAction) Describe() action_kit_api.ActionDescription {
 				Type:         action_kit_api.ActionParameterTypeString,
 				DefaultValue: new("15"),
 				Required:     new(true),
-				Advanced:     new(true), Options: new([]action_kit_api.ParameterOption{
+				Advanced:     new(true),
+				Group:        new(groupCrashBehavior),
+				Options: new([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "SIGHUP (1)",
 						Value: "1",
