@@ -43,18 +43,22 @@ func getNginxDelayTrafficDescription() action_kit_api.ActionDescription {
 				DefaultValue: new("500ms"),
 				Required:     new(true),
 			},
-			{
-				Name:         "isEnterpriseNginx",
-				Label:        "Force Enterprise NGINX",
-				Description:  new("Whether to use Enterprise NGINX configuration (nginx.org/server-snippets) instead of open source (nginx.ingress.kubernetes.io/configuration-snippet)."),
-				Type:         action_kit_api.ActionParameterTypeBoolean,
-				DefaultValue: new("false"),
-				Required:     new(false),
-				Advanced:     new(true),
-			},
 		}...,
 	)
 	desc.Parameters = append(desc.Parameters, getConditionsParameters()...)
+	// Last, as the platforms show "Additional Settings" at the end.
+	desc.Parameters = append(desc.Parameters,
+		action_kit_api.ActionParameter{
+			Name:         "isEnterpriseNginx",
+			Label:        "Force Enterprise NGINX",
+			Description:  new("Whether to use Enterprise NGINX configuration (nginx.org/server-snippets) instead of open source (nginx.ingress.kubernetes.io/configuration-snippet)."),
+			Type:         action_kit_api.ActionParameterTypeBoolean,
+			DefaultValue: new("false"),
+			Required:     new(false),
+			Advanced:     new(true),
+			Group:        new(action_kit_api.ParameterGroupAdditionalSettings),
+		},
+	)
 
 	return desc
 }
