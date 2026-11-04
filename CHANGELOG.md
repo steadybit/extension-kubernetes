@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.7.2
+
+- build(deps): bump github.com/KimMachineGun/automemlimit
+- build(deps): bump github.com/steadybit/extension-kit
+- build(deps): bump k8s.io/client-go from 0.37.1 to 0.37.2
+- fix: bound the crash loop skip window by the pod's termination grace period
+- fix: don't fail crash loop on exec errors into a recently signalled container
+- fix: treat a missing runc init namespace as a stopped container
+
 ## v2.7.1
 
 - chore(deps): bump action_kit_test to v1.4.13 (#368)
