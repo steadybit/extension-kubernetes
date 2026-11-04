@@ -148,6 +148,7 @@ func (f LogErrorCountCheckAction) Describe() action_kit_api.ActionDescription {
 			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionAll),
 			SelectionTemplates:  f.SelectionTemplates,
 		}),
+		ParameterGroups: new([]action_kit_api.ParameterGroup{logFilterGroup}),
 		Parameters: []action_kit_api.ActionParameter{
 			{
 				Name:         "duration",
@@ -199,6 +200,7 @@ func (f LogErrorCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Order:        new(4),
 				Required:     new(true),
 				Advanced:     new(true),
+				Group:        new(groupLogFilter),
 			},
 			{
 				Name:        "ignorePattern",
@@ -208,6 +210,7 @@ func (f LogErrorCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Order:       new(5),
 				Required:    new(false),
 				Advanced:    new(true),
+				Group:       new(groupLogFilter),
 			},
 			{
 				Name:        "containerName",
@@ -217,6 +220,7 @@ func (f LogErrorCountCheckAction) Describe() action_kit_api.ActionDescription {
 				Order:       new(6),
 				Required:    new(false),
 				Advanced:    new(true),
+				Group:       new(groupLogFilter),
 			},
 			{
 				Name:         "failEarly",
