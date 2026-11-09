@@ -9,3 +9,8 @@ vulnerabilities:
     expired_at: 2027-02-01
     paths:
       - usr/bin/kubectl
+  - id: CVE-2026-78661
+    paths:
+      - usr/bin/kubectl
+    statement: "waiting for kubectl release with golang.org/x/net >= 0.62.0"
+    expired_at: 2027-02-01
