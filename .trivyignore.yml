@@ -1,26 +1,11 @@
 vulnerabilities:
-  - id: CVE-2026-78667
-    statement: waiting for kubectl release built with go >= 1.26.9
-    expired_at: 2026-12-01
-    paths:
-      - usr/bin/kubectl
   - id: CVE-2026-78669
-    statement: waiting for kubectl release built with go >= 1.26.9
-    expired_at: 2026-12-01
-    paths:
-      - usr/bin/kubectl
-  - id: CVE-2026-97031
     statement: waiting for kubectl release built with go >= 1.26.9
     expired_at: 2026-12-01
     paths:
       - usr/bin/kubectl
   - id: CVE-2026-56851
     statement: waiting for kubectl release with golang.org/x/text >= 0.41.0
-    expired_at: 2027-02-01
-    paths:
-      - usr/bin/kubectl
-  - id: CVE-2026-111943
-    statement: waiting for kubectl release built with go >= 1.26.10
     expired_at: 2027-02-01
     paths:
       - usr/bin/kubectl
