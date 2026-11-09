@@ -1,8 +1,16 @@
 # Changelog
 
-## Unreleased
+## v2.7.3
 
+- chore(deps): bump golang.org/x/net to v0.62.0
+- chore: add CVE-2026-78661 to trivyignore
 - feat: Log Error Count Check, Cause Crash Loop and the Envoy attacks show their optional settings in the groups "Log Filter", "Crash Behavior", "Response Details" and "Traffic Filter" on platforms that support parameter groups; Fail early of the log and pod count checks is shown with the other check settings
+- feat: name the Additional Settings group of Force Enterprise NGINX
+- feat: show Fail early with the check settings of the log and pod count checks
+- feat: show Route Rule Name of the Envoy attacks in a Traffic Filter group
+- feat: show the crash settings of Cause Crash Loop in a group
+- feat: show the log filters of Log Error Count Check in a group
+- feat: show the response details of Envoy Abort Traffic in a group
 
 ## v2.7.2
 
