@@ -25,7 +25,7 @@ require (
 	github.com/steadybit/extension-kit v1.12.2
 	github.com/stretchr/testify v1.12.1
 	github.com/zegl/kube-score v1.20.1-0.20260520132026-06dedc9ccce5
-	golang.org/x/text v0.43.0
+	golang.org/x/text v0.44.0
 	k8s.io/api v0.37.2
 	k8s.io/apimachinery v0.37.2
 	k8s.io/client-go v0.37.2
@@ -100,7 +100,7 @@ require (
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
