@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.7.4
+
+- build(deps): bump github.com/steadybit/action-kit/go/action_kit_api/v2
+- build(deps): bump github.com/steadybit/discovery-kit/go/discovery_kit_sdk
+
 ## v2.7.3
 
 - chore(deps): bump golang.org/x/net to v0.62.0
