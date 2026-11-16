@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- fix: HAProxy Delay Traffic and HAProxy Block Traffic fail with a clear error on HAProxy Kubernetes Ingress Controller 3.4 or later instead of reporting success without effect; 3.4 removed the config snippets these attacks rely on, supported versions are up to 3.2.x
+
 ## v2.7.4
 
 - build(deps): bump github.com/steadybit/action-kit/go/action_kit_api/v2

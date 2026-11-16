@@ -1753,7 +1753,8 @@ func initHAProxyIngress(t *testing.T, m *e2e.Minikube, e *e2e.Extension, ctx con
 	require.NoError(t, err, "Failed to add HAProxy Helm repo: %s", out)
 	out, err = exec.Command("helm", "repo", "update").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to update Helm repos: %s", out)
-	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--create-namespace", "--namespace", namespace, "--kube-context", m.Profile, "--set", "controller.service.type=NodePort").CombinedOutput() //NOSONAR go:S4036
+	// Pinned to chart 1.54.4 (controller 3.2.19): controller 3.4.0 dropped support for config snippets, which the HAProxy actions rely on
+	out, err = exec.Command("helm", "upgrade", "--install", "haproxy-ingress", "haproxytech/kubernetes-ingress", "--version", "1.54.4", "--create-namespace", "--namespace", namespace, "--kube-context", m.Profile, "--set", "controller.service.type=NodePort").CombinedOutput() //NOSONAR go:S4036
 	require.NoError(t, err, "Failed to deploy HAProxy Ingress Controller: %s", out)
 
 	// Wait for HAProxy ingress controller to be ready

@@ -56,6 +56,14 @@ func (a *haProxyAction) Prepare(_ context.Context, state *HAProxyState, request 
 
 	state.AnnotationKey = haProxyAnnotationKey
 
+	var ingressClassName string
+	if ingressClass := request.Target.Attributes["k8s.ingress.class"]; len(ingressClass) > 0 {
+		ingressClassName = ingressClass[0]
+	}
+	if err = checkHAProxyControllerSupportsConfigSnippets(ingressClassName); err != nil {
+		return nil, err
+	}
+
 	state.Matcher, err = parseRequestMatcher(request.Config)
 	if err != nil {
 		return nil, err
